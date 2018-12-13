@@ -39,3 +39,6 @@ rsconnect/
 # ignore blogdown folders
 public/
 blogdown/
+
+# .DS_Store
+.DS_Store
