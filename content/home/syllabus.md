@@ -4,7 +4,7 @@ widget = "talks"
 active = true
 date = 2016-04-20T00:00:00
 
-title = "Syllabus"
+title = "Course schedule"
 subtitle = ""
 
 # Order that this section will appear in.
@@ -22,4 +22,3 @@ list_format = 2
 # Exclude talks that are shown in the Selected Talks widget?
 exclude_selected = false
 +++
-
