@@ -29,6 +29,7 @@ All assignments will be completed using either [Python](https://www.python.org/)
 ### For Python users
 
 * VanderPlas, Jake. (2016). [*Python Data Science Handbook*](http://proquestcombo.safaribooksonline.com.proxy.uchicago.edu/book/programming/python/9781491912126). O'Reilly Media, Inc.
+* Warmenhoven, J. [`ISLR-python`](https://github.com/JWarmenhoven/ISLR-python). A series of Jupyter Notebooks reproducing a selection of tables, figures, and lab sections in ISL using Python.
 
 ### For R users
 

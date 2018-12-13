@@ -22,25 +22,23 @@ weight = 4
 
 # Course Description
 
-Students are often well trained in the details of specific models relevant to their respective fields. This course presents a generic definition of a model in the social sciences as well as a taxonomy of a wide range of different types of models used. We cover principles of model building, including static versus dynamic models, linear versus nonlinear, simple versus complicated, and identification versus overfitting. Major types of models implemented in this course include systems of nonlinear equations, linear and nonlinear regression, supervised learning (decision trees, random forests, support vector machines, etc.), and unsupervised learning. We will also explore the wide range of computational strategies used to estimate models from data and make statistical and causal inference. Students will study both good examples and bad examples of modeling and estimation. This course will give a quick overview of many topics and applied practice in problem sets with the hope that the students will later pursue deeper study into specific areas we cover.
+Statistical learning methods are an important tool for computational social scientists seeking to conduct inference and prediction using observable data. This course presents a generic definition of a model in the social sciences, as well as a survey of a wide range of different types of statistical models used. While there is substantial overlap with the field of machine learning, this course focuses on methods emerging from statistics applied to supervised and unsupervised modeling, considering both the goals of inference and prediction. Students develop an understanding of the theory of how these methods work, assess the use of these models in published social scientific research, apply the methods computationally via Python or R, and interpret the substantive impact of the model results. As a survey course, students will be exposed to a wide range of modeling strategies, with the expectation that they later pursue deeper study into specific areas we cover.
   
 # Course Objectives
 
 By the end of the course, students will:
 
-* Construct and execute basic programs in R using elementary programming techniques and [`tidyverse`](http://tidyverse.org/) packages (e.g. loops, conditional statements, user-defined functions)
-* Apply stylistic principles of coding to generate reusable, interpretable code
-* Debug programs for errors
-* Identify and use external libraries to expand on base functions
-* Generate reproducible research with [R Markdown](http://rmarkdown.rstudio.com/)
-* Implement statistical learning algorithms
-* Utilize cross validation methods
+* Define a range of statistical learning modeling strategies and demonstrate their theoretical properties
+* Distinguish between modeling strategies and assess their individual strengths and weaknesses
+* Read published research in the social sciences and analyze their modeling strategy
+* Implement statistical learning algorithms using Python and/or R
+* Utilize cross-validation methods
+* Evaluate model performance
+* Interpret the results of statistical models in terms of inference and prediction
 * Visualize information and data using appropriate graphical techniques
-* Import data from files or the internet
-* Munge raw data into a tidy format
-* Scrape websites to collect data for analysis
-* Parse and analyze text documents
-* Implement programs via distributed computing platforms
-* Create interactive web pages using [`flexdashboard`](http://rmarkdown.rstudio.com/flexdashboard/) and [Shiny](http://shiny.rstudio.com/)
+* Apply statistical learning methods to standard (e.g. tabular) and non-standard (e.g. text, image, video) datasets
+* Utilize stylistic principles of coding to generate reusable, interpretable code
+* Debug programs for errors
+* Generate reproducible research using computational notebooks such as [Jupyter Notebook](https://jupyter.org/) or [R Markdown](http://rmarkdown.rstudio.com/)
 
 For more details about the course, please read the [FAQ](/faq/).
