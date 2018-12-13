@@ -42,3 +42,5 @@ By the end of the course, students will:
 * Parse and analyze text documents
 * Implement programs via distributed computing platforms
 * Create interactive web pages using [`flexdashboard`](http://rmarkdown.rstudio.com/flexdashboard/) and [Shiny](http://shiny.rstudio.com/)
+
+For more details about the course, please read the [FAQ](/faq/).
