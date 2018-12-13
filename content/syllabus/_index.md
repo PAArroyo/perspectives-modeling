@@ -2,6 +2,8 @@
 title = "Syllabus"
 date = 2017-01-01T00:00:00
 
+type = "talk"
+
 # List format.
 #   0 = Simple
 #   1 = Detailed
