@@ -12,7 +12,7 @@ weight = 4
 * Teaching Assistants: TBD
 * Meeting day/time: MW 1:30-2:50pm (Saieh Hall of Economics 247)
 * Open lab session: W 3:00-4:20pm (Saieh Hall of Economics 247)
-* Office hours: M 10-12pm (McGiffert House 209)
+* Office hours: Th 1-3pm (McGiffert House 209)
 * TA office hours: TBD
 * Prerequisites
     * [MACS 30000](https://github.com/UC-MACSS/persp-analysis_A18)
