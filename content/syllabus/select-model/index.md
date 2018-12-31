@@ -42,8 +42,8 @@ math = false
 
 ## Before class
 
-* Read ISL ch 2
-* Read PRML ch 1
+* ISL ch 2
+* PRML ch 1
 
 ## Slides and class materials
 
