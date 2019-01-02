@@ -1,0 +1,158 @@
+---
+title: Introduction to the course
+
+date: 2018-09-09T00:00:00.000Z
+lastmod: 2018-09-09T00:00:00.000Z
+
+output:
+  blogdown::html_page:
+    highlight: pygments
+    
+draft: false
+type: docs
+
+linktitle: Introduction to the course
+menu:
+  notes:
+    parent: Theory and Model Building
+    weight: 1
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#course-overview"><span class="toc-section-number">1</span> Course overview</a><ul>
+<li><a href="#course-objectives"><span class="toc-section-number">1.1</span> Course objectives</a></li>
+<li><a href="#prerequisites"><span class="toc-section-number">1.2</span> Prerequisites</a></li>
+</ul></li>
+<li><a href="#software-choices"><span class="toc-section-number">2</span> Software choices</a></li>
+<li><a href="#description-of-assignments"><span class="toc-section-number">3</span> Description of assignments</a><ul>
+<li><a href="#general-exercises"><span class="toc-section-number">3.1</span> General exercises</a><ul>
+<li><a href="#theoretical-problems"><span class="toc-section-number">3.1.1</span> Theoretical problems</a></li>
+<li><a href="#application-problems"><span class="toc-section-number">3.1.2</span> Application problems</a></li>
+</ul></li>
+<li><a href="#submission-process"><span class="toc-section-number">3.2</span> Submission process</a></li>
+</ul></li>
+<li><a href="#any-questions"><span class="toc-section-number">4</span> Any questions?</a></li>
+</ul>
+</div>
+
+<div id="course-overview" class="section level1">
+<h1><span class="header-section-number">1</span> Course overview</h1>
+<p>Statistical learning methods are an important tool for computational social scientists seeking to conduct inference and prediction using observable data. This course presents a generic definition of a model in the social sciences, as well as a survey of a wide range of different types of statistical models used. While there is substantial overlap with the field of machine learning, this course focuses on methods emerging from statistics applied to supervised and unsupervised modeling, considering both the goals of inference and prediction. Students develop an understanding of the theory of how these methods work, assess the use of these models in published social scientific research, apply the methods computationally via Python or R, and interpret the substantive impact of the model results. As a survey course, students will be exposed to a wide range of modeling strategies, with the expectation that they later pursue deeper study into specific areas we cover.</p>
+<ul>
+<li>This is a mathematically rigorous course. Not as much as <a href="http://www.ttic.edu/courses/#ml">TTIC 31020</a> or CMSC 35400, but there are strong expectations. Be warned.</li>
+<li>Equal parts theory/application. Need to understand the theory of how the methods work, but just as importantly understand how to implement and interpret them using social scientific questions of interest and datasets</li>
+</ul>
+<div id="course-objectives" class="section level2">
+<h2><span class="header-section-number">1.1</span> Course objectives</h2>
+<p>By the end of the course, students will:</p>
+<ul>
+<li>Define a range of statistical learning modeling strategies and demonstrate their theoretical properties</li>
+<li>Distinguish between modeling strategies and assess their individual strengths and weaknesses</li>
+<li>Read published research in the social sciences and analyze their modeling strategy</li>
+<li>Implement statistical learning algorithms using Python and/or R</li>
+<li>Utilize cross-validation methods</li>
+<li>Evaluate model performance</li>
+<li>Interpret the results of statistical models in terms of inference and prediction</li>
+<li>Visualize information and data using appropriate graphical techniques</li>
+<li>Apply statistical learning methods to standard (e.g. tabular) and non-standard (e.g. text, image, video) datasets</li>
+<li>Utilize stylistic principles of coding to generate reusable, interpretable code</li>
+<li>Debug programs for errors</li>
+<li>Generate reproducible research using computational notebooks such as <a href="https://jupyter.org/">Jupyter Notebook</a> or <a href="http://rmarkdown.rstudio.com/">R Markdown</a></li>
+</ul>
+</div>
+<div id="prerequisites" class="section level2">
+<h2><span class="header-section-number">1.2</span> Prerequisites</h2>
+<ul>
+<li><a href="https://github.com/UC-MACSS/persp-analysis_A18">MACS 30000</a></li>
+<li><a href="https://css18.github.io/">MACS 33001</a> or similar training in math and statistics</li>
+<li>CAPP 30121/MACS 30500, or a similar programming course in Python or R</li>
+<li>Experience using the Git workflow from the shell or a GUI interface (no uploading via GitHub.com)</li>
+</ul>
+<p>I strongly recommend you do not take <a href="https://harris.uchicago.edu/academics/programs-degrees/courses/machine-learning">PPHA 30545</a> or <a href="https://github.com/dssg/MLforPublicPolicy">CAPP 30254</a> concurrently or subsequently. It is extremely duplicative of the content you learn in this course. For further study, choose courses that focus on a specific subset of the methods covered in MACS 30100 (e.g. linear models, deep learning) or take a course such as TTIC 31020 or CMSC 35400 to further develop your understanding of the mathematical underpinnings of machine learning algorithms</p>
+</div>
+</div>
+<div id="software-choices" class="section level1">
+<h1><span class="header-section-number">2</span> Software choices</h1>
+<p>You can use either Python or R for your assignments in the course. I am language-agnostic - use whichever language in which you feel most comfortable. That said, R is my language of preference and the course notes will generally use R to implement methods for demonstrations. For those of you operating in the world of Python, I strongly encourage you to consult the materials listed on the <a href="/faq/#for-python-users">FAQ</a>.</p>
+</div>
+<div id="description-of-assignments" class="section level1">
+<h1><span class="header-section-number">3</span> Description of assignments</h1>
+<table>
+<thead>
+<tr class="header">
+<th>Assignment</th>
+<th>Quantity</th>
+<th>Points</th>
+<th>Total Points</th>
+<th>Percent</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Problem Sets</td>
+<td>10</td>
+<td>10</td>
+<td>100</td>
+<td>83.3%</td>
+</tr>
+<tr class="even">
+<td>Final exam</td>
+<td>1</td>
+<td>20</td>
+<td>20</td>
+<td>16.7%</td>
+</tr>
+<tr class="odd">
+<td><strong>Total Points</strong></td>
+<td>–</td>
+<td>–</td>
+<td>120</td>
+<td>100%</td>
+</tr>
+</tbody>
+</table>
+<div id="general-exercises" class="section level2">
+<h2><span class="header-section-number">3.1</span> General exercises</h2>
+<ul>
+<li>Weekly problem sets</li>
+<li>Combination of theoretical and application problems</li>
+</ul>
+<div id="theoretical-problems" class="section level3">
+<h3><span class="header-section-number">3.1.1</span> Theoretical problems</h3>
+<ul>
+<li>Mathematical or simulation-based exercises to demonstrate certain properties of statistical learning methods</li>
+<li>Level of complexity somewhere between ISL and ESL/PRML</li>
+<li>Any time you need to use mathematical notation, use proper formatting. Generally R Markdown and Jupyter Notebooks alike use <span class="math inline">\(\LaTeX\)</span>-style formatting using <a href="https://pandoc.org/MANUAL.html#math">Pandoc</a> or <a href="https://www.mathjax.org/">MathJax</a></li>
+</ul>
+</div>
+<div id="application-problems" class="section level3">
+<h3><span class="header-section-number">3.1.2</span> Application problems</h3>
+<ul>
+<li>Apply the method(s) to real-world datasets</li>
+<li>Implement the method correctly</li>
+<li>Present the results in an informative manner</li>
+<li>Interpret the results accurately</li>
+</ul>
+</div>
+</div>
+<div id="submission-process" class="section level2">
+<h2><span class="header-section-number">3.2</span> Submission process</h2>
+<div class="figure">
+<img src="/img/homework_workflow.png" />
+
+</div>
+<p>Homework assignments will be stored in separate Git repositories under the <a href="https://github.com/css-model"><code>css-model</code></a> organization on GitHub. To complete a homework assignment, you need to:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Fork</strong> the repository</li>
+<li><strong>Clone</strong> the repository to your computer</li>
+<li>Modify the files and <strong>commit</strong> changes to complete your solution.</li>
+<li><strong>Push</strong> the changes up to GitHub.</li>
+<li>Create a <strong>pull request</strong> on the original repository to turn in the assignment. <strong>Make sure to include your name in the pull request.</strong></li>
+</ol>
+</div>
+</div>
+<div id="any-questions" class="section level1">
+<h1><span class="header-section-number">4</span> Any questions?</h1>
+</div>

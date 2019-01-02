@@ -1,0 +1,98 @@
+---
+title: Introduction to the course
+
+date: 2018-09-09T00:00:00.000Z
+lastmod: 2018-09-09T00:00:00.000Z
+
+output:
+  blogdown::html_page:
+    highlight: pygments
+    
+draft: false
+type: docs
+
+linktitle: Introduction to the course
+menu:
+  notes:
+    parent: Theory and Model Building
+    weight: 1
+---
+
+# Course overview
+
+Statistical learning methods are an important tool for computational social scientists seeking to conduct inference and prediction using observable data. This course presents a generic definition of a model in the social sciences, as well as a survey of a wide range of different types of statistical models used. While there is substantial overlap with the field of machine learning, this course focuses on methods emerging from statistics applied to supervised and unsupervised modeling, considering both the goals of inference and prediction. Students develop an understanding of the theory of how these methods work, assess the use of these models in published social scientific research, apply the methods computationally via Python or R, and interpret the substantive impact of the model results. As a survey course, students will be exposed to a wide range of modeling strategies, with the expectation that they later pursue deeper study into specific areas we cover.
+
+* This is a mathematically rigorous course. Not as much as [TTIC 31020](http://www.ttic.edu/courses/#ml) or CMSC 35400, but there are strong expectations. Be warned.
+* Equal parts theory/application. Need to understand the theory of how the methods work, but just as importantly understand how to implement and interpret them using social scientific questions of interest and datasets
+
+## Course objectives
+
+By the end of the course, students will:
+
+* Define a range of statistical learning modeling strategies and demonstrate their theoretical properties
+* Distinguish between modeling strategies and assess their individual strengths and weaknesses
+* Read published research in the social sciences and analyze their modeling strategy
+* Implement statistical learning algorithms using Python and/or R
+* Utilize cross-validation methods
+* Evaluate model performance
+* Interpret the results of statistical models in terms of inference and prediction
+* Visualize information and data using appropriate graphical techniques
+* Apply statistical learning methods to standard (e.g. tabular) and non-standard (e.g. text, image, video) datasets
+* Utilize stylistic principles of coding to generate reusable, interpretable code
+* Debug programs for errors
+* Generate reproducible research using computational notebooks such as [Jupyter Notebook](https://jupyter.org/) or [R Markdown](http://rmarkdown.rstudio.com/)
+
+## Prerequisites
+
+* [MACS 30000](https://github.com/UC-MACSS/persp-analysis_A18)
+* [MACS 33001](https://css18.github.io/) or similar training in math and statistics
+* CAPP 30121/MACS 30500, or a similar programming course in Python or R
+* Experience using the Git workflow from the shell or a GUI interface (no uploading via GitHub.com)
+
+I strongly recommend you do not take [PPHA 30545](https://harris.uchicago.edu/academics/programs-degrees/courses/machine-learning) or [CAPP 30254](https://github.com/dssg/MLforPublicPolicy) concurrently or subsequently. It is extremely duplicative of the content you learn in this course. For further study, choose courses that focus on a specific subset of the methods covered in MACS 30100 (e.g. linear models, deep learning) or take a course such as TTIC 31020 or CMSC 35400 to further develop your understanding of the mathematical underpinnings of machine learning algorithms
+
+# Software choices
+
+You can use either Python or R for your assignments in the course. I am language-agnostic - use whichever language in which you feel most comfortable. That said, R is my language of preference and the course notes will generally use R to implement methods for demonstrations. For those of you operating in the world of Python, I strongly encourage you to consult the materials listed on the [FAQ](/faq/#for-python-users).
+
+# Description of assignments
+
+| Assignment | Quantity | Points | Total Points | Percent |
+|------------------|----------|--------|--------------|---------|
+| Problem Sets | 10 | 10 | 100 | 83.3% |
+| Final exam | 1 | 20 | 20 | 16.7% |
+| **Total Points** | -- | -- | 120 | 100% |
+
+## General exercises
+
+* Weekly problem sets
+* Combination of theoretical and application problems
+
+### Theoretical problems
+
+* Mathematical or simulation-based exercises to demonstrate certain properties of statistical learning methods
+* Level of complexity somewhere between ISL and ESL/PRML
+* Any time you need to use mathematical notation, use proper formatting. Generally R Markdown and Jupyter Notebooks alike use $\LaTeX$-style formatting using [Pandoc](https://pandoc.org/MANUAL.html#math) or [MathJax](https://www.mathjax.org/)
+
+### Application problems
+
+* Apply the method(s) to real-world datasets
+* Implement the method correctly
+* Present the results in an informative manner
+* Interpret the results accurately
+
+## Submission process
+
+![](/img/homework_workflow.png)
+
+Homework assignments will be stored in separate Git repositories under the [`css-model`](https://github.com/css-model) organization on GitHub. To complete a homework assignment, you need to:
+
+1. **Fork** the repository
+1. **Clone** the repository to your computer
+1. Modify the files and **commit** changes to complete your solution.
+1. **Push** the changes up to GitHub.
+1. Create a **pull request** on the original repository to turn in the assignment. **Make sure to include your name in the pull request.**
+
+# Any questions?
+
+
