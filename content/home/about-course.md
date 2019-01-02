@@ -9,11 +9,11 @@ weight = 4
 +++
 
 * Instructor: [Benjamin Soltoff](http://www.bensoltoff.com), Lecturer in [Computational Social Science](http://macss.uchicago.edu)
-* Teaching Assistants: TBD
+* Teaching Assistants: Fiona Fan
 * Meeting day/time: MW 1:30-2:50pm (Saieh Hall of Economics 247)
 * Open lab session: W 3:00-4:20pm (Saieh Hall of Economics 247)
 * Office hours: Th 1-3pm (McGiffert House 209)
-* TA office hours: TBD
+* TA office hours: F 1-3pm (McGiffert House MACSS lobby)
 * Prerequisites
     * [MACS 30000](https://github.com/UC-MACSS/persp-analysis_A18)
     * [MACS 33001](https://css18.github.io/) or similar training in math and statistics
