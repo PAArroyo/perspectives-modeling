@@ -8,7 +8,7 @@ type: docs
 linktitle: Introduction to the course
 menu:
   notes:
-    parent: Theory and Model Building
+    parent: Theory and model building
     weight: 1
 ---
 
