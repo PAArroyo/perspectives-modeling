@@ -41,8 +41,9 @@ math = false
 * Introduce myself
 * Identify major course objectives
 * Identify course logistics
-* Introduce basic principles of data science workflow and programming
-* Explain how to get started in R
+* Define a model
+* Discuss how to develop a model
+* Practice generating theoretical models
 
 ## Before class
 
@@ -53,10 +54,11 @@ math = false
 
 * Slides
 
-* [Introduction to computing for the social sciences](/notes/example)
+* [Introduction to the course](notes/intro-to-course/)
 
 ### Additional readings
 
+* Varian, Hal R., ["How to Build an Economic Model in Your Spare Time"](readings/how.pdf), in *Passion and Craft: Economists at Work*, eds. Michael Szenberg, University of Michigan Press, 1997.
 
 ## What you need to do
 
