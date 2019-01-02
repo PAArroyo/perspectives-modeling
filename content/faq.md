@@ -34,7 +34,8 @@ All assignments will be completed using either [Python](https://www.python.org/)
 ### For R users
 
 * [R for Data Science](http://r4ds.had.co.nz/) -- Garrett Grolemund and Hadley Wickham
-* [ggplot2: Elegant Graphics for Data Analysis, 2nd Edition](http://link.springer.com.proxy.uchicago.edu/book/10.1007/978-3-319-24277-4) -- Hadley Wickham
+* [The Tidynomicon: A Brief Introduction to R for Python Programmers](https://gvwilson.github.io/tidynomicon/)
+* [`ggplot2`: Elegant Graphics for Data Analysis, 2nd Edition](http://link.springer.com.proxy.uchicago.edu/book/10.1007/978-3-319-24277-4) -- Hadley Wickham
 * [Advanced R](http://adv-r.had.co.nz/) -- Hadley Wickham
 * [RStudio Cheatsheets](https://www.rstudio.com/resources/cheatsheets/) -- printable cheat sheets for common R tasks and features
 
