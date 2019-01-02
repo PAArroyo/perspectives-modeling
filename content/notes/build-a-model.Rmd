@@ -1,0 +1,32 @@
+---
+title: Building a model
+date: 2019-01-01T00:00:00.000Z
+    
+draft: false
+type: docs
+
+linktitle: Building a model
+menu:
+  notes:
+    parent: Theory and model building
+    weight: 2
+---
+
+# Definition of a model
+
+
+## Theory
+
+
+## Data generating process
+
+
+# 7 steps to building a model
+
+1. Get an idea
+1. Decide to pursue the idea
+1. Examine the literature (or don't)
+1. Build your model
+1. Make mistakes
+1. (Re)Turn to the literature
+1. Give a seminar
