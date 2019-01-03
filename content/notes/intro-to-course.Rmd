@@ -45,6 +45,21 @@ By the end of the course, students will:
 
 I strongly recommend you do not take [PPHA 30545](https://harris.uchicago.edu/academics/programs-degrees/courses/machine-learning) or [CAPP 30254](https://github.com/dssg/MLforPublicPolicy) concurrently or subsequently. It is extremely duplicative of the content you learn in this course. For further study, choose courses that focus on a specific subset of the methods covered in MACS 30100 (e.g. linear models, deep learning) or take a course such as TTIC 31020 or CMSC 35400 to further develop your understanding of the mathematical underpinnings of machine learning algorithms
 
+## Topic roadmap
+
+| Week | Monday | Wednesday |
+|------|-------------------------------------------------|-----------------------------------------------------|
+| 1 | Theory and model building | Model fitting and selection |
+| 2 | Exploratory data analysis/descriptive analytics | Unsupervised learning |
+| 3 | MLK (no class) | Linear regression |
+| 4 | Logistic regression/LDA | Prototype methods (naive Bayes & nearest neighbors) |
+| 5 | Resampling methods | Linear model selection and regulation |
+| 6 | Non-linear regression | Kernel smoothing methods |
+| 7 | Tree-based inference | Tree-based inference |
+| 8 | Support vector machines | Interpreting model results |
+| 9 | Neural networks | Neural networks |
+| 10 | Deep learning (TensorFlow and Keras) | Deep learning (text and sequences) |
+
 # Software choices
 
 You can use either Python or R for your assignments in the course. I am language-agnostic - use whichever language in which you feel most comfortable. That said, R is my language of preference and the course notes will generally use R to implement methods for demonstrations. For those of you operating in the world of Python, I strongly encourage you to consult the materials listed on the [FAQ](/faq/#for-python-users).
