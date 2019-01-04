@@ -38,12 +38,18 @@ math = false
 
 ## Overview
 
-* 
+* Define statistical learning
+* Distinguish between statistical and machine learning
+* Assess the trade-off between prediction accuracy and model interpretability
+* Define and demonstrate the bias-variance trade-off
+* Define decision theory and identify generic methods for evaluating the performance of statistical models
 
 ## Before class
 
 * ISL ch 2
 * PRML ch 1
+    * Ch 1.2 is a succinct review of probability theory for those needing a refresher
+    * Focus most closely on ch 1.5
 
 ## Slides and class materials
 
