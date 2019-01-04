@@ -61,4 +61,4 @@ a. Generalize the explanatory model -- that is, induce the most general, abstrac
 a. Induce an alternative model that also has the original observation as a consequence.
 a. For each of the two general models produced in (b) and (c), derive two interesting predictions (four predictions in total). Be sure the logical connection between your model and your predictions is explicitly stated and that any assumed facts concerning the world are made explicit.
 
-# 
+# Selecting and fitting a model
