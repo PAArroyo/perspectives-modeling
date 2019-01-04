@@ -5,6 +5,9 @@ date: 2019-01-07T13:30:00-06:00  # Schedule page publish date.
 draft: false
 type: docs
 
+bibliography: [../../static/bib/sources.bib]
+link-citations: true
+
 linktitle: Building a model
 menu:
   notes:
@@ -14,9 +17,13 @@ menu:
 
 # Definition of a model
 
+A **model** is a simplified representation of the real world.^[This section is derived from @lave1993introduction.] They are simplified representations because it is impossible to represent the full complexity of the world, and because many minute details are unnecessary. Building models requires substantial trial-and-error; you build an initial model using a training set of observations, evaluate its effectiveness based on its ability to correctly predict new observations, then revise your model to improve your predictions.
+
+**This does not mean that models are evaluated purely on their predictive power** -- in fact, much of social science is focused on **inference**, or explaining causal relationships between variables. A model can have high predictive power, yet not explain clearly the relationship between variables or define how $X$ causes $Y$ to change. Certain statistical methods such as tree-based inference or deep learning can produce highly powerful models, yet have no clear explanation as to how $X$ leads to $Y$.
 
 ## Theory
 
+**Theory** and **model** are frequently used interchangably. Some texts such as @lave1993introduction define them to be the same thing. Others distinguish between the two concepts. @king1994designing
 
 ## Data generating process
 
@@ -30,3 +37,5 @@ menu:
 1. Make mistakes
 1. (Re)Turn to the literature
 1. Give a seminar
+
+# References {.no-cite}

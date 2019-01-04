@@ -5,6 +5,9 @@ date: 2019-01-07T13:30:00-06:00  # Schedule page publish date.
 draft: false
 type: docs
 
+bibliography: [../../static/bib/sources.bib]
+link-citations: true
+
 linktitle: Building a model
 menu:
   notes:
@@ -20,13 +23,17 @@ menu:
 <li><a href="#data-generating-process"><span class="toc-section-number">1.2</span> Data generating process</a></li>
 </ul></li>
 <li><a href="#steps-to-building-a-model"><span class="toc-section-number">2</span> 7 steps to building a model</a></li>
+<li><a href="#references">References</a></li>
 </ul>
 </div>
 
 <div id="definition-of-a-model" class="section level1">
 <h1><span class="header-section-number">1</span> Definition of a model</h1>
+<p>A <strong>model</strong> is a simplified representation of the real world.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> They are simplified representations because it is impossible to represent the full complexity of the world, and because many minute details are unnecessary. Building models requires substantial trial-and-error; you build an initial model using a training set of observations, evaluate its effectiveness based on its ability to correctly predict new observations, then revise your model to improve your predictions.</p>
+<p><strong>This does not mean that models are evaluated purely on their predictive power</strong> – in fact, much of social science is focused on <strong>inference</strong>, or explaining causal relationships between variables. A model can have high predictive power, yet not explain clearly the relationship between variables or define how <span class="math inline">\(X\)</span> causes <span class="math inline">\(Y\)</span> to change. Certain statistical methods such as tree-based inference or deep learning can produce highly powerful models, yet have no clear explanation as to how <span class="math inline">\(X\)</span> leads to <span class="math inline">\(Y\)</span>.</p>
 <div id="theory" class="section level2">
 <h2><span class="header-section-number">1.1</span> Theory</h2>
+<p><strong>Theory</strong> and <strong>model</strong> are frequently used interchangably. Some texts such as <span class="citation">Lave and March (<a href="#ref-lave1993introduction">1993</a>)</span> define them to be the same thing. Others distinguish between the two concepts. <span class="citation">King, Keohane, and Verba (<a href="#ref-king1994designing">1994</a>)</span></p>
 </div>
 <div id="data-generating-process" class="section level2">
 <h2><span class="header-section-number">1.2</span> Data generating process</h2>
@@ -42,5 +49,22 @@ menu:
 <li>Make mistakes</li>
 <li>(Re)Turn to the literature</li>
 <li>Give a seminar</li>
+</ol>
+</div>
+<div id="references" class="section level1 unnumbered no-cite">
+<h1>References</h1>
+<div id="refs" class="references">
+<div id="ref-king1994designing">
+<p>King, Gary, Robert O Keohane, and Sidney Verba. 1994. <em>Designing Social Inquiry: Scientific Inference in Qualitative Research</em>. Princeton university press.</p>
+</div>
+<div id="ref-lave1993introduction">
+<p>Lave, Charles A, and James G March. 1993. <em>An Introduction to Models in the Social Sciences</em>. University Press of America.</p>
+</div>
+</div>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>This section is derived from <span class="citation">Lave and March (<a href="#ref-lave1993introduction">1993</a>)</span>.<a href="#fnref1">↩</a></p></li>
 </ol>
 </div>
