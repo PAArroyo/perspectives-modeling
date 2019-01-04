@@ -39,6 +39,17 @@ All assignments will be completed using either [Python](https://www.python.org/)
 * [Advanced R](http://adv-r.had.co.nz/) -- Hadley Wickham
 * [RStudio Cheatsheets](https://www.rstudio.com/resources/cheatsheets/) -- printable cheat sheets for common R tasks and features
 
+### $\LaTeX$
+
+* [Install $\LaTeX$](https://www.latex-project.org/get/#tex-distributions) - get the appropriate distribution for your operating system
+* [Tutorial to get started](https://github.com/UC-MACSS/persp-analysis_A18/tree/master/Tutorials/LaTeX) - tutorial from Perspectives on Computational Analysis
+* [Cheatsheet for math symbols](http://web.ift.uib.no/Teori/KURS/WRK/TeX/symALL.html) - extremely helpful for any mathematical notation
+* [Documentation for $\LaTeX$](https://www.overleaf.com/learn) - most times if you have a problem with $\LaTeX$, just Google it. This site has a pretty thorough documentation for typesetting different kinds of content (e.g. paragraphs, fonts, lists, mathematical expressions, figures/tables). It's a pretty handy reference, even if you don't use their online editor.
+* Get a $\LaTeX$ editor - technically, you can use any text editor to edit `.tex` or `.bib` files. It is usually helpful to work with an editor specifically designed for $\LaTeX$. There are [lots of options available, some for free and some for a license](https://en.wikipedia.org/wiki/Comparison_of_TeX_editors). A few I would recommend from personal experience:
+    * [WinEdt](http://www.winedt.com/) - all-purpose $\LaTeX$ editor for Windows (and only Windows). When I still used Windows this was a suitable editor for my needs
+    * [Texmaker](http://www.xm1math.net/texmaker/) - free cross-platform $\LaTeX$ editor I have used since switching to MacOS. Extensive support for all kinds of syntax and document types.
+    * [RStudio](https://www.rstudio.com/) - if you have installed your Tex distribution, RStudio can also be used to edit and compile $\LaTeX$ documents directly. I tend to use this as most of my $\LaTeX$ usage is for mathematical expressions embedded in R Markdown documents. If you tend to use notebooks in your work, you can simply use RStudio (or Jupyter Notebooks) to incorporate $\LaTeX$ mathematical notation as necessary.
+
 ### Additional resources
 
 * [DataCamp](https://www.datacamp.com/home) - DataCamp offers interactive R and Python courses on topics in data science, statistics, and machine learning. These are a supplement to our primary textbook and lessons. Introductory DataCamp courses are free, whereas premium courses generally cost a fee. As a participant in this course, you have free access to all premium courses for the duration of the term. None of the DataCamp modules are required for this course -- they are available purely as an optional component. You will receive an email in the first week of class inviting your to register. Make sure to sign up for an account using your UChicago email address, or the link will not work.
