@@ -53,12 +53,12 @@ math = false
 ## Slides and class materials
 
 * Slides
-
 * [Introduction to the course](notes/intro-to-course/)
+* [Building a model](notes/build-a-model/)
 
 ### Additional readings
 
-* Varian, Hal R., ["How to Build an Economic Model in Your Spare Time"](readings/how.pdf), in *Passion and Craft: Economists at Work*, eds. Michael Szenberg, University of Michigan Press, 1997.
 
 ## What you need to do
 
+* [Register your GitHub username for the course](https://goo.gl/forms/vqwIztpqLb5Dhs3e2) -- all homework assignments will be in **private repositories**. Private repos can only be seen and edited by members of our [course organization](https://github.com/css-model). Once you register your GitHub account, I will invite you to join the course organization. If you don't register your account, you won't have access to any of the homework assignments.
