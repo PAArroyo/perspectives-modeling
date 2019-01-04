@@ -1,0 +1,64 @@
+---
+title: "Homework 01: Model Building and Model Selection/Fitting"
+date: 2019-01-07T13:30:00-06:00  # Schedule page publish date
+
+draft: true
+type: post
+
+summary: "Practice building theoretical models and assessing how to select optimal statistical learning algorithms."
+---
+
+# Overview
+
+Due before class January 14th.
+
+# Fork the `hw01` repository
+
+Go [here](https://github.com/css-model/hw07) to fork the repo for homework 01.
+
+# Building models (5 points)
+
+For each of the following prompts, produce 800-1200 word written responses. Only PDF or [Markdown](https://www.markdownguide.org/) (`.md`) submissions will be graded. Using $\LaTeX$ is a great option - see the [recommended materials](https://model.uchicago.edu/faq/#latex) to get started.
+
+## Deviant aggressive behavior
+
+Consider four well-known and widely believed theories of socially deviant aggressive behavior (e.g. criminal behavior, revolutionary behavior, rude behavior):
+
+* **Theory I**: Deviant aggressive behavior is learned from experience. Individuals in a society learn to do those things for which they receive rewards and to avoid those things for which they receive punishment.
+* **Theory II**: Deviant aggressive behavior is a symbolic expression of hostility toward personal authority figures. When an individual is frustrated in his personal life, he becomes angry toward parents, bosses, or public officials. He will express this anger by deviant aggressive behavior.
+* **Theory III**: Deviant aggressive behavior is the rational action of oppressed individuals. Social rules systematically discriminate among people. People who are most hurt by the rules are least likely to profit from conforming to them and thus do conform less.
+* **Theory IV**: Deviant aggressive behavior is a social role. Individuals are socialized into the role through contact with a deviant subculture.
+    
+Answer the following questions:
+    
+1. What social policy would be appropriate to reduce deviant aggressive behavior if Theory I were correct? Theory II? Theory III? Theory IV?
+1. During the past ten years, American society has been running a series of "experiments" with deviant aggressive behavior. Take any one of these experiments (e.g. #MeToo, mass shootings, political rhetoric) and discuss what we have learned about the four theories from this series of experiments.
+
+## The need for a college education
+
+Over the past 50+ years, the minimum education requirements set by employers have increased significantly. In particular, the proportion of jobs "requiring" a college degree has greatly increased.
+
+a. The following explanatory model was produced by a student:
+
+    > The reason for this is that college graduates are smarter.
+    
+    Using rule 1 of the [three rules of thumb](https://model.uchicago.edu/notes/build-a-model/#three-rules-of-thumb-for-model-building), try to put a sense of process into the model. What are employers looking for in the first place? Have their goals changed over time, and if so, why? Have the people seeking jobs changed in some way over time? How would this change interact with employers' wishes to produce the increased education requirement? Do not focus on specific answers to these questions. They are intended only to help build a better model
+a. Using the third rule of thumb, produce another model that is a more general version of one you produced in (a).
+a. Using the model from (b), make at least three interesting predictions. Use the second rule of thumb and look for natural experiments to which the model may be applied, and then say what your model predicts for those situations. Depending on how your model has evolved, you may or may not find some of these natural experiments useful:
+    * Instances involving other kinds of potential employee characteristics such as age, sex, race, strength, technical skills
+    * Other kinds of decisions made by employers such as product quality, where to locate new plants
+    * Predicted changes in the educational system or training programs
+    * Other kinds of changes in the characteristics of those seeking employment
+    
+    Be sure that the logical connection between your model and your predictions is clearly stated; and if you are using some facts about the world, state them explicitly.^[Treat them like assumptions -- they do not have to be documented, but they do have to be explicitly stated so that your derivation can be understood by others.]
+
+## Waiting until the last minute
+
+> People often do things at the last minute (students turning in papers, professors grading exams, and so on).
+
+a. Ask yourself **why** the observation might be true and write down your explanations.
+a. Generalize the explanatory model -- that is, induce the most general, abstract model you can produce that still has the original observation as a consequence.
+a. Induce an alternative model that also has the original observation as a consequence.
+a. For each of the two general models produced in (b) and (c), derive two interesting predictions (four predictions in total). Be sure the logical connection between your model and your predictions is explicitly stated and that any assumed facts concerning the world are made explicit.
+
+# 
