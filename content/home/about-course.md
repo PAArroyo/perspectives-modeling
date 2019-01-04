@@ -17,7 +17,7 @@ weight = 4
 * Prerequisites
     * [MACS 30000](https://github.com/UC-MACSS/persp-analysis_A18)
     * [MACS 33001](https://css18.github.io/) or similar training in math and statistics
-    * CAPP 30121/MACS 30500, or a similar programming course in Python or R
+    * [CAPP 30121](https://www.classes.cs.uchicago.edu/archive/2018/fall/30121-1/)/[MACS 30500](https://cfss.uchicago.edu/), or a similar programming course in Python or R
 * Requirements: Bring your own laptop
 
 # Course Description
