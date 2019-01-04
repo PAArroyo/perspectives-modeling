@@ -79,6 +79,22 @@ How then does one go about building a model? @varian2016build identifies several
     > [Your model] should be as simple as possible...but no simpler.
 * Then generalize your model piece by piece
 
+### Three rules of thumb for model building
+
+See @lave1993introduction 2.9 for more detail.
+
+#### Think "process"
+
+A good model is almost always a statement about a process, and many bad models fail ecause they have no sense of process. When you build a model, look at it for a moment and see if it has some statement of process
+
+#### Develop interesting implications
+
+Much of the fun in model building lies in finding interesting implications in your models. In research you will repeatedly be asked to develop interesting implications from some model. Whether something is considered interesting obviously involves a judgment, but there is a good strategy for producing interesting predictions: look for natural experiments.
+
+#### Look for generality
+
+Ordinarily, the more situations a model applies to, the better it is and the greater the variety of possible implications. Finding generality involves the ordinary process of generalizing nouns and verbs.
+
 ## Make mistakes
 
 ![Famous advice from Ms. Frizzle](https://i2.wp.com/www.sherrylwilson.com/wp-content/uploads/2015/07/Educents-Blog-6.png?w=570&ssl=1)
