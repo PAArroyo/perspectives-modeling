@@ -1,6 +1,6 @@
 +++
 title = "Selecting and Fitting a Model"
-date = 2019-01-01T00:00:00  # Schedule page publish date.
+date = 2019-01-03T13:30:00  # Schedule page publish date.
 draft = false
 type = "talk"
 

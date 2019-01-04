@@ -1,6 +1,6 @@
 +++
 title = "Martin Luther King Jr. Day"
-date = 2019-01-01T00:00:00  # Schedule page publish date.
+date = 2019-01-14T13:30:00  # Schedule page publish date.
 draft = false
 type = "talk"
 
