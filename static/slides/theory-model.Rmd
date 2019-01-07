@@ -23,8 +23,6 @@ library(broom)
 theme_set(theme_minimal(base_size = 20))
 ```
 
----
-
 # Quick hits
 
 ## Instructional staff
