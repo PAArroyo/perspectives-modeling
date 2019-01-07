@@ -74,7 +74,7 @@ How then does one go about building a model? @varian2016build identifies several
 * Work a simple example first
     * KISS: Keep It Simple Stupid
     
-    ![Albert Einstein](http://2.bp.blogspot.com/-bRoNlTFFl4k/T8BDgLJQCJI/AAAAAAAAAwI/Mc9VGyhwYXA/s400/einstein-if-you-cant-explain-it-simply-you-dont-understand-it-well-enough.jpg)
+    ![Albert Einstein](https://2.bp.blogspot.com/-bRoNlTFFl4k/T8BDgLJQCJI/AAAAAAAAAwI/Mc9VGyhwYXA/s400/einstein-if-you-cant-explain-it-simply-you-dont-understand-it-well-enough.jpg)
     
     > [Your model] should be as simple as possible...but no simpler.
 * Then generalize your model piece by piece
