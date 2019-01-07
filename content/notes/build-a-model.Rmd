@@ -24,7 +24,7 @@ A **model** is a simplified representation of the real world.^[This section is d
 
 ## Model vs. theory
 
-**Theory** and **model** are frequently used interchangably. Some texts such as @lave1993introduction define them to be the same thing. Others distinguish between the two concepts. @king1994designing defines a social science **theory** as "a reasoned and precise speculation about the answer to a research question, including a statement about why the proposed solution is correct" (p. 19), whereas a **model** is a simplification of, and approximation to, some aspect of the world. Models can take on many forms, including mathematical, verbal, or pictorial. Economists lean towards mathematical models using very precise (mathematical) language which enables them to succinctly define all the components and relevant variables in a model. Other fields such as sociology and political science have adapted some of these techniques (such as formal or game theory) to support their own research. Often though models may take on a less precise mathematical form, in favor of a textual description of the processes which explain or lead to the output of the model.
+**Theory** and **model** are frequently used interchangeably. Some texts such as @lave1993introduction define them to be the same thing. Others distinguish between the two concepts. @king1994designing defines a social science **theory** as "a reasoned and precise speculation about the answer to a research question, including a statement about why the proposed solution is correct" (p. 19), whereas a **model** is a simplification of, and approximation to, some aspect of the world. Models can take on many forms, including mathematical, verbal, or pictorial. Economists lean towards mathematical models using very precise (mathematical) language which enables them to succinctly define all the components and relevant variables in a model. Other fields such as sociology and political science have adapted some of these techniques (such as formal or game theory) to support their own research. Often though models may take on a less precise mathematical form, in favor of a textual description of the processes which explain or lead to the output of the model.
 
 # 7 steps to building a model
 
@@ -85,7 +85,7 @@ See @lave1993introduction 2.9 for more detail.
 
 #### Think "process"
 
-A good model is almost always a statement about a process, and many bad models fail ecause they have no sense of process. When you build a model, look at it for a moment and see if it has some statement of process
+A good model is almost always a statement about a process, and many bad models fail because they have no sense of process. When you build a model, look at it for a moment and see if it has some statement of process
 
 #### Develop interesting implications
 
