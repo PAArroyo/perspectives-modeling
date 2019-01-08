@@ -243,20 +243,26 @@ $$- \sum_{c=1}^M y_{o,c} \log(p_{o,c})$$
 
 # Estimating the expected test error
 
-## Train-validation-test
+How can we estimate the expected test error rate when all we are given is a single data set? If our data set is sufficiently large, we randomly divide it into three parts:^[Assuming we have a standard cross-sectional data set.]
 
-## Analytic methods
+1. Training set - used to fit the models
+1. Validation set - used to estimate prediction error for model selection
+1. Test set - used for assessment of the generalization error of the final chosen model
 
-### AIC
+A general rule of thumb suggests 50% allocated for training, and 25% each for validation and testing.
+
+Commonly though, we do not have enough observations to allocate for each of these purposes. Remember that the fewer observations allocated to the training set, the more noisy the estimated model will be. Computational approaches such as cross-validation and bootstrapping allow us to efficiently use (and re-use) observations to provide reasonable samples for training, validating, and testing. We will cover those separately. Today, we consider a few methods which attempt to use the entire data set for training but still approximate the validation step analytically. These were used historically when computational power was not as prevalent.
+
+## AIC
 
 
-### BIC
+## BIC
 
 
-### MDL
+## MDL
 
 
-### SRM
+## SRM
 
 # Session Info {.toc-ignore}
 

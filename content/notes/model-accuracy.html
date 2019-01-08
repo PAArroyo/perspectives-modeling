@@ -71,13 +71,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#bayes-classifier"><span class="toc-section-number">4.2</span> Bayes classifier</a></li>
 </ul></li>
 <li><a href="#estimating-the-expected-test-error"><span class="toc-section-number">5</span> Estimating the expected test error</a><ul>
-<li><a href="#train-validation-test"><span class="toc-section-number">5.1</span> Train-validation-test</a></li>
-<li><a href="#analytic-methods"><span class="toc-section-number">5.2</span> Analytic methods</a><ul>
-<li><a href="#aic"><span class="toc-section-number">5.2.1</span> AIC</a></li>
-<li><a href="#bic"><span class="toc-section-number">5.2.2</span> BIC</a></li>
-<li><a href="#mdl"><span class="toc-section-number">5.2.3</span> MDL</a></li>
-<li><a href="#srm"><span class="toc-section-number">5.2.4</span> SRM</a></li>
-</ul></li>
+<li><a href="#aic"><span class="toc-section-number">5.1</span> AIC</a></li>
+<li><a href="#bic"><span class="toc-section-number">5.2</span> BIC</a></li>
+<li><a href="#mdl"><span class="toc-section-number">5.3</span> MDL</a></li>
+<li><a href="#srm"><span class="toc-section-number">5.4</span> SRM</a></li>
 </ul></li>
 <li><a href="#session-info"><span class="toc-section-number">6</span> Session Info</a></li>
 <li><a href="#references"><span class="toc-section-number">7</span> References</a></li>
@@ -263,23 +260,25 @@ train_test_mse <span class="op">%&gt;%</span>
 </div>
 <div id="estimating-the-expected-test-error" class="section level1">
 <h1><span class="header-section-number">5</span> Estimating the expected test error</h1>
-<div id="train-validation-test" class="section level2">
-<h2><span class="header-section-number">5.1</span> Train-validation-test</h2>
+<p>How can we estimate the expected test error rate when all we are given is a single data set? If our data set is sufficiently large, we randomly divide it into three parts:<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<ol style="list-style-type: decimal">
+<li>Training set - used to fit the models</li>
+<li>Validation set - used to estimate prediction error for model selection</li>
+<li>Test set - used for assessment of the generalization error of the final chosen model</li>
+</ol>
+<p>A general rule of thumb suggests 50% allocated for training, and 25% each for validation and testing.</p>
+<p>Commonly though, we do not have enough observations to allocate for each of these purposes. Remember that the fewer observations allocated to the training set, the more noisy the estimated model will be. Computational approaches such as cross-validation and bootstrapping allow us to efficiently use (and re-use) observations to provide reasonable samples for training, validating, and testing. We will cover those separately. Today, we consider a few methods which attempt to use the entire data set for training but still approximate the validation step analytically. These were used historically when computational power was not as prevalent.</p>
+<div id="aic" class="section level2">
+<h2><span class="header-section-number">5.1</span> AIC</h2>
 </div>
-<div id="analytic-methods" class="section level2">
-<h2><span class="header-section-number">5.2</span> Analytic methods</h2>
-<div id="aic" class="section level3">
-<h3><span class="header-section-number">5.2.1</span> AIC</h3>
+<div id="bic" class="section level2">
+<h2><span class="header-section-number">5.2</span> BIC</h2>
 </div>
-<div id="bic" class="section level3">
-<h3><span class="header-section-number">5.2.2</span> BIC</h3>
+<div id="mdl" class="section level2">
+<h2><span class="header-section-number">5.3</span> MDL</h2>
 </div>
-<div id="mdl" class="section level3">
-<h3><span class="header-section-number">5.2.3</span> MDL</h3>
-</div>
-<div id="srm" class="section level3">
-<h3><span class="header-section-number">5.2.4</span> SRM</h3>
-</div>
+<div id="srm" class="section level2">
+<h2><span class="header-section-number">5.4</span> SRM</h2>
 </div>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
@@ -379,4 +378,10 @@ train_test_mse <span class="op">%&gt;%</span>
 <ul>
 <li>This page is derived in part from <a href="http://varianceexplained.org/files/loess.html">“Creating a LOESS animation with <code>gganimate</code>”</a> by David Robinson.</li>
 </ul>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Assuming we have a standard cross-sectional data set.<a href="#fnref1">↩</a></p></li>
+</ol>
 </div>
