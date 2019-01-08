@@ -5,37 +5,41 @@ date: 2019-01-07T13:30:00-06:00  # Schedule page publish date
 draft: true
 type: post
 
+output:
+  blogdown::html_page:
+    number_sections: false
+
 summary: "Practice building theoretical models and assessing how to select optimal statistical learning algorithms."
 ---
 
 
 <div id="TOC">
 <ul>
-<li><a href="#overview"><span class="toc-section-number">1</span> Overview</a></li>
-<li><a href="#fork-the-hw01-repository"><span class="toc-section-number">2</span> Fork the <code>hw01</code> repository</a></li>
-<li><a href="#building-models-5-points"><span class="toc-section-number">3</span> Building models (5 points)</a><ul>
-<li><a href="#deviant-aggressive-behavior"><span class="toc-section-number">3.1</span> Deviant aggressive behavior</a></li>
-<li><a href="#the-need-for-a-college-education"><span class="toc-section-number">3.2</span> The need for a college education</a></li>
-<li><a href="#waiting-until-the-last-minute"><span class="toc-section-number">3.3</span> Waiting until the last minute</a></li>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#fork-the-hw01-repository">Fork the <code>hw01</code> repository</a></li>
+<li><a href="#building-models-5-points">Building models (5 points)</a><ul>
+<li><a href="#deviant-aggressive-behavior">Deviant aggressive behavior</a></li>
+<li><a href="#the-need-for-a-college-education">The need for a college education</a></li>
+<li><a href="#waiting-until-the-last-minute">Waiting until the last minute</a></li>
 </ul></li>
-<li><a href="#selecting-and-fitting-a-model-5-points"><span class="toc-section-number">4</span> Selecting and fitting a model (5 points)</a></li>
+<li><a href="#selecting-and-fitting-a-model-5-points">Selecting and fitting a model (5 points)</a></li>
 </ul>
 </div>
 
 <p><span class="math display">\[\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}}\]</span></p>
 <div id="overview" class="section level1">
-<h1><span class="header-section-number">1</span> Overview</h1>
+<h1>Overview</h1>
 <p>Due before class January 14th.</p>
 </div>
 <div id="fork-the-hw01-repository" class="section level1">
-<h1><span class="header-section-number">2</span> Fork the <code>hw01</code> repository</h1>
-<p>Go <a href="https://github.com/css-model/hw07">here</a> to fork the repo for homework 01.</p>
+<h1>Fork the <code>hw01</code> repository</h1>
+<p>Go <a href="https://github.com/css-model/hw01">here</a> to fork the repo for homework 01.</p>
 </div>
 <div id="building-models-5-points" class="section level1">
-<h1><span class="header-section-number">3</span> Building models (5 points)</h1>
+<h1>Building models (5 points)</h1>
 <p>For each of the following prompts, produce 800-1200 word written responses. Only PDF or <a href="https://www.markdownguide.org/">Markdown</a> (<code>.md</code>) submissions will be graded. Using <span class="math inline">\(\LaTeX\)</span> is a great option - see the <a href="https://model.uchicago.edu/faq/#latex">recommended materials</a> to get started.</p>
 <div id="deviant-aggressive-behavior" class="section level2">
-<h2><span class="header-section-number">3.1</span> Deviant aggressive behavior</h2>
+<h2>Deviant aggressive behavior</h2>
 <p>Consider four well-known and widely believed theories of socially deviant aggressive behavior (e.g. criminal behavior, revolutionary behavior, rude behavior):</p>
 <ul>
 <li><strong>Theory I</strong>: Deviant aggressive behavior is learned from experience. Individuals in a society learn to do those things for which they receive rewards and to avoid those things for which they receive punishment.</li>
@@ -50,7 +54,7 @@ summary: "Practice building theoretical models and assessing how to select optim
 </ol>
 </div>
 <div id="the-need-for-a-college-education" class="section level2">
-<h2><span class="header-section-number">3.2</span> The need for a college education</h2>
+<h2>The need for a college education</h2>
 <p>Over the past 50+ years, the minimum education requirements set by employers have increased significantly. In particular, the proportion of jobs “requiring” a college degree has greatly increased.</p>
 <ol style="list-style-type: lower-alpha">
 <li><p>The following explanatory model was produced by a student:</p>
@@ -70,7 +74,7 @@ Using rule 1 of the <a href="https://model.uchicago.edu/notes/build-a-model/#thr
 </ol>
 </div>
 <div id="waiting-until-the-last-minute" class="section level2">
-<h2><span class="header-section-number">3.3</span> Waiting until the last minute</h2>
+<h2>Waiting until the last minute</h2>
 <blockquote>
 <p>People often do things at the last minute (students turning in papers, professors grading exams, and so on).</p>
 </blockquote>
@@ -83,7 +87,7 @@ Using rule 1 of the <a href="https://model.uchicago.edu/notes/build-a-model/#thr
 </div>
 </div>
 <div id="selecting-and-fitting-a-model-5-points" class="section level1">
-<h1><span class="header-section-number">4</span> Selecting and fitting a model (5 points)</h1>
+<h1>Selecting and fitting a model (5 points)</h1>
 <ol style="list-style-type: decimal">
 <li>For each part, indicate whether we would generally expect the performance of a flexible statistical learning method to be better or worse than an inflexible method. Justify your answer.
 <ol style="list-style-type: lower-alpha">

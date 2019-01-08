@@ -5,6 +5,10 @@ date: 2019-01-07T13:30:00-06:00  # Schedule page publish date
 draft: true
 type: post
 
+output:
+  blogdown::html_page:
+    number_sections: false
+
 summary: "Practice building theoretical models and assessing how to select optimal statistical learning algorithms."
 ---
 
@@ -16,7 +20,7 @@ Due before class January 14th.
 
 # Fork the `hw01` repository
 
-Go [here](https://github.com/css-model/hw07) to fork the repo for homework 01.
+Go [here](https://github.com/css-model/hw01) to fork the repo for homework 01.
 
 # Building models (5 points)
 
