@@ -1,0 +1,382 @@
+---
+title: Assessing model accuracy
+date: 2019-01-09T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Selecting and fitting a model
+    weight: 2
+---
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+<div id="TOC">
+<ul>
+<li><a href="#reducible-vs.irreducible-error"><span class="toc-section-number">1</span> Reducible vs. irreducible error</a></li>
+<li><a href="#quality-of-fit"><span class="toc-section-number">2</span> Quality of fit</a><ul>
+<li><a href="#training-vs.test-error"><span class="toc-section-number">2.1</span> Training vs. test error</a></li>
+<li><a href="#optimism-of-training-error"><span class="toc-section-number">2.2</span> Optimism of training error</a></li>
+</ul></li>
+<li><a href="#bias-variance-trade-off"><span class="toc-section-number">3</span> Bias-variance trade-off</a><ul>
+<li><a href="#bias-variance-decomposition"><span class="toc-section-number">3.1</span> Bias-variance decomposition</a></li>
+</ul></li>
+<li><a href="#applications-to-classification-models"><span class="toc-section-number">4</span> Applications to classification models</a><ul>
+<li><a href="#loss-functions"><span class="toc-section-number">4.1</span> Loss functions</a><ul>
+<li><a href="#error-rate"><span class="toc-section-number">4.1.1</span> Error rate</a></li>
+<li><a href="#cross-entropy"><span class="toc-section-number">4.1.2</span> Cross-entropy</a></li>
+</ul></li>
+<li><a href="#bayes-classifier"><span class="toc-section-number">4.2</span> Bayes classifier</a></li>
+</ul></li>
+<li><a href="#estimating-the-expected-test-error"><span class="toc-section-number">5</span> Estimating the expected test error</a><ul>
+<li><a href="#train-validation-test"><span class="toc-section-number">5.1</span> Train-validation-test</a></li>
+<li><a href="#analytic-methods"><span class="toc-section-number">5.2</span> Analytic methods</a><ul>
+<li><a href="#aic"><span class="toc-section-number">5.2.1</span> AIC</a></li>
+<li><a href="#bic"><span class="toc-section-number">5.2.2</span> BIC</a></li>
+<li><a href="#mdl"><span class="toc-section-number">5.2.3</span> MDL</a></li>
+<li><a href="#srm"><span class="toc-section-number">5.2.4</span> SRM</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#session-info"><span class="toc-section-number">6</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">7</span> References</a></li>
+</ul>
+</div>
+
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse)
+<span class="kw">library</span>(broom)
+<span class="kw">library</span>(here)
+<span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
+<p><span class="math display">\[\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}}\]</span></p>
+<div id="reducible-vs.irreducible-error" class="section level1">
+<h1><span class="header-section-number">1</span> Reducible vs. irreducible error</h1>
+<p>Consider a set of inouts <span class="math inline">\(X\)</span> and an outcome <span class="math inline">\(Y\)</span>. We can estimate a generic function</p>
+<p><span class="math display">\[\hat{Y} = \hat{f}(X)\]</span></p>
+<p>where <span class="math inline">\(\hat{f}\)</span> is our estimate for the true functional form <span class="math inline">\(f\)</span>, and <span class="math inline">\(\hat{Y}\)</span> is the resulting prediction for <span class="math inline">\(Y\)</span>. Different statistical learning algorithms will lead us to different estimates of <span class="math inline">\(\hat{f}\)</span> and therefore different <span class="math inline">\(\hat{Y}\)</span>. The accuracy of <span class="math inline">\(\hat{Y}\)</span> depends on two major components:</p>
+<ol style="list-style-type: decimal">
+<li>Reducible error</li>
+<li>Irreducible error</li>
+</ol>
+<p><strong>Reducible error</strong> is error generated by using an inappropriate or suboptimal technique to estimate <span class="math inline">\(f\)</span>. If we improve on the technique, the reducible error can be reduced. Even if we perfectly estimated <span class="math inline">\(f\)</span> such that</p>
+<p><span class="math display">\[\hat{Y} = f(X)\]</span></p>
+<p>our predictions would still not guaranteed to be accurate. That is because the true data-generating process which created <span class="math inline">\(Y\)</span> is actually a function of <span class="math inline">\(\epsilon\)</span>,</p>
+<p><span class="math display">\[Y = f(X) + \epsilon\]</span></p>
+<p>Therefore variability associated with <span class="math inline">\(\epsilon\)</span> also effects the accuracy of our predictions. No matter how well we estimate <span class="math inline">\(f\)</span>, by definition we cannot estimate <span class="math inline">\(\epsilon\)</span>.</p>
+<p><span class="math inline">\(\epsilon\)</span> could be driven by a number of factors, such as unmeasured variables useful in predicting <span class="math inline">\(Y\)</span>, or inherently unmeasurable variation in the subject or observation. Assuming <span class="math inline">\(\hat{f}\)</span> and <span class="math inline">\(X\)</span> are fixed, we can show that</p>
+<p><span class="math display">\[
+\begin{align}
+\E(Y - \bar{Y})^2 &amp;= \E[f(X) + \epsilon - \hat{f}(X)]^2 \\
+&amp;= \underbrace{[f(X) - \hat{f}(X)]^2}_{\text{Reducible}} + \underbrace{\Var (\epsilon)}_{\text{Irreducible}}
+\end{align}
+\]</span></p>
+<p>where <span class="math inline">\(\E(Y - \bar{Y})^2\)</span> is the expected value of the squared difference between the predicted and actual value of <span class="math inline">\(Y\)</span> and <span class="math inline">\(\Var(\epsilon)\)</span> is the variance associated with the error term <span class="math inline">\(\epsilon\)</span>.</p>
+<p>Irreducible error is potentially managed by ensuring we have a well-specified <a href="/notes/build-a-model">model</a> that captures all the necessary variables, but in the end there will always be an unexplainable component to our statistical learning model. Reducible error, on the other hand, is more easily managed by selecting an appropriate statistical learning method for a given problem.</p>
+</div>
+<div id="quality-of-fit" class="section level1">
+<h1><span class="header-section-number">2</span> Quality of fit</h1>
+<p>In order to evaluate how well a statistical learning method performs on a given data set, we need to define a measure for how well its predictions actually match the observed data. This is variously known as a <strong>loss</strong> or <strong>cost</strong> function <span class="math inline">\(L(Y, \hat{f}(X))\)</span>, where <span class="math inline">\(Y\)</span> is the outcome of interest, <span class="math inline">\(X\)</span> is the input(s), and a prediction model <span class="math inline">\(\hat{f}(X)\)</span> that has been estimated using a training set <span class="math inline">\(\tau\)</span>. These functions take the generic form</p>
+<p><span class="math display">\[
+L(Y, \hat{f}(X)) = \left\{
+        \begin{array}{ll}
+            (Y - \hat{f}(X))^2 &amp; \quad \text{squared error} \\
+            \mid Y - \hat{f}(X) \mid &amp; \quad \text{absolute error}
+        \end{array}
+    \right.
+\]</span></p>
+<p>Different loss functions are appropriate for different kinds of outcomes of interest. For regression problems with a continuous outcome of interest, the most common loss function is the <strong>mean squared error</strong> (MSE), defined as</p>
+<p><span class="math display">\[MSE = \frac{1}{N} \sum_{i = 1}^{N}{(y_i - \hat{f}(x_i))^2}\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(y_i =\)</span> the observed response value for the <span class="math inline">\(i\)</span>th observation</li>
+<li><span class="math inline">\(\hat{f}(x_i) =\)</span> the predicted response value for the <span class="math inline">\(i\)</span>th observation given by <span class="math inline">\(\hat{f}\)</span></li>
+<li><span class="math inline">\(N =\)</span> the total number of observations</li>
+</ul>
+<p>Our goal is to identify a model that generates the smallest possible MSE. The MSE is an absolute measure of fit because its value depends on the measurement units of the response variable <span class="math inline">\(Y\)</span>. It will be small if predicted values <span class="math inline">\(\hat{Y}\)</span> are close to the actual values <span class="math inline">\(Y\)</span>, and will be large if for some/all observations the predicted and actual values differ significantly.</p>
+<blockquote>
+<p><strong>Root mean squared error</strong> (RMSE) is the square root of MSE. It is also commonly seen in statistical packages as a model accuracy metric. You can use that as well, however we will use MSE because it is associated with <strong>variance</strong> (<span class="math inline">\(\sigma^2\)</span>), whereas RMSE is associated with <strong>standard deviation</strong> (<span class="math inline">\(\sigma\)</span>). Variance has certain statistical properties that are missing from standard deviation, so we will use MSE.</p>
+</blockquote>
+<div id="training-vs.test-error" class="section level2">
+<h2><span class="header-section-number">2.1</span> Training vs. test error</h2>
+<p>The equation above more formally defines the <strong>training error</strong></p>
+<p><span class="math display">\[\overline{\text{Err}} = \frac{1}{N} \sum_{i = 1}^{N}{L(y_i, \hat{f}(x_i))}\]</span></p>
+<p>which is the average loss over the training sample. However this is not actually the quantity we care about. We already know the values of <span class="math inline">\(Y\)</span> for the training data. Instead, we want to use the model to predict or explain the outcome of interest for an independent <strong>test set</strong> of data. So in truth, we want to know the <strong>test error</strong>, or the error/loss for an independent test set:</p>
+<p><span class="math display">\[\text{Err}_\tau = \E[L(Y, \hat{f}(X)) | \tau]\]</span></p>
+<p>Since we often do not have a test set (or could generate multiple potential test sets), we can instead frame this as the expected test error</p>
+<p><span class="math display">\[\text{Err} = \E[L(Y, \hat{f}(X))] = \E[\text{Err}_\tau]\]</span></p>
+<p>The expectation averages over everything that is random, including the randomness in the training set that produced <span class="math inline">\(\hat{f}\)</span>. Our goal is to estimate <span class="math inline">\(\text{Err}_\tau\)</span>, though in practice we tend to estimate the expected error <span class="math inline">\(\text{Err}\)</span> instead.</p>
+</div>
+<div id="optimism-of-training-error" class="section level2">
+<h2><span class="header-section-number">2.2</span> Optimism of training error</h2>
+<p>It would be nice if we could use the training error as an estimate for the test/expected error. Alas, we cannot. Most statistical learning methods specifically attempt to minimize the training error (think least squares regression). This produces a relatively low training error, but does not guarantee a correspondingly low test error. In fact, it can have the opposite relationship – as the training error decreases, the test error can actually increase.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># simulate data from ISL figure 2.9</span>
+sim_mse &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x =</span> <span class="kw">runif</span>(<span class="dt">n =</span> <span class="fl">1e02</span>, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">100</span>),
+  <span class="dt">y =</span> <span class="fl">5.055901</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.1848551</span><span class="op">*</span>x <span class="op">+</span><span class="st"> </span><span class="fl">0.00748706</span><span class="op">*</span>x<span class="op">^</span><span class="dv">2</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.00005543478</span><span class="op">*</span>x<span class="op">^</span><span class="dv">3</span> <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="fl">1e02</span>, <span class="dt">sd =</span> <span class="fl">0.5</span>)
+)
+
+<span class="co"># model fit</span>
+<span class="kw">ggplot</span>(sim_mse, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> <span class="cf">function</span>(x) <span class="fl">5.055901</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.1848551</span><span class="op">*</span>x <span class="op">+</span><span class="st"> </span><span class="fl">0.00748706</span><span class="op">*</span>x<span class="op">^</span><span class="dv">2</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.00005543478</span><span class="op">*</span>x<span class="op">^</span><span class="dv">3</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;lm&quot;</span>), <span class="dt">method =</span> lm, <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;spline-low&quot;</span>), <span class="dt">method =</span> lm,
+              <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span>splines<span class="op">::</span><span class="kw">ns</span>(x, <span class="dv">5</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;spline-high&quot;</span>), <span class="dt">method =</span> lm,
+              <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span>splines<span class="op">::</span><span class="kw">ns</span>(x, <span class="dv">20</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Training data points&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Models estimated on training set&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
+<p><img src="/notes/model-accuracy_files/figure-html/sim-train-model-1.png" width="672" /></p>
+<p>Here I synthesize an example dataset and fit three separate models to it: a linear regression fit, and two <strong>splines</strong> which permit more flexible relationships between <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>. Notice that as the flexibility increases, the models are more likely to fit the data. That is, the training MSE will decrease. But this does not guarantee the test MSE also decreases. Consider the trained models applied to an independent test set generated from the same underlying process:</p>
+<p>It is not entirely clear, but these models no longer perform as well as compared to the training data. This divergence increases as the flexibility of the model increases.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_mse_test &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x =</span> <span class="kw">runif</span>(<span class="dt">n =</span> <span class="fl">1e04</span>, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">100</span>),
+  <span class="dt">y =</span> <span class="fl">5.055901</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.1848551</span><span class="op">*</span>x <span class="op">+</span><span class="st"> </span><span class="fl">0.00748706</span><span class="op">*</span>x<span class="op">^</span><span class="dv">2</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.00005543478</span><span class="op">*</span>x<span class="op">^</span><span class="dv">3</span> <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="fl">1e04</span>, <span class="dt">sd =</span> <span class="fl">0.5</span>)
+)
+
+<span class="co"># train vs. test MSE</span>
+train_test_mse &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">df =</span> <span class="dv">2</span><span class="op">:</span><span class="dv">30</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">model =</span> <span class="kw">map</span>(df, <span class="op">~</span><span class="st"> </span><span class="kw">lm</span>(y <span class="op">~</span><span class="st"> </span>splines<span class="op">::</span><span class="kw">ns</span>(x, .x), <span class="dt">data =</span> sim_mse)),
+         <span class="dt">pred =</span> <span class="kw">map</span>(model, augment),
+         <span class="dt">mse_train =</span> <span class="kw">map_dbl</span>(pred, <span class="op">~</span><span class="st"> </span><span class="kw">mean</span>(.<span class="op">$</span>.resid<span class="op">^</span><span class="dv">2</span>)),
+         <span class="dt">pred_test =</span> <span class="kw">map</span>(model, augment, <span class="dt">newdata =</span> sim_mse_test),
+         <span class="dt">mse_test =</span> <span class="kw">map_dbl</span>(pred_test, <span class="op">~</span><span class="st"> </span><span class="kw">mean</span>((.<span class="op">$</span>y <span class="op">-</span><span class="st"> </span>.<span class="op">$</span>.fitted)<span class="op">^</span><span class="dv">2</span>))) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">gather</span>(mse, value, mse_train, mse_test) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">mse =</span> <span class="kw">str_remove</span>(mse, <span class="st">&quot;mse_&quot;</span>),
+         <span class="dt">mse =</span> <span class="kw">str_to_title</span>(mse))
+
+train_test_mse <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(df, value, <span class="dt">color =</span> mse)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_x_log10</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="st">&quot;Flexibility&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Mean squared error&quot;</span>,
+       <span class="dt">color =</span> <span class="ot">NULL</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
+<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
+<p><img src="/notes/model-accuracy_files/figure-html/sim-test-mse-1.png" width="672" /></p>
+<p>This discrepancy holds true for any data set and any statistical learning method. As the model flexibility increases, training MSE will decrease but the test MSE may not. When a given method generates a small training MSE and a large test MSE, we are said to be <strong>overfitting</strong> the data. The model is being tuned too closely to the training set of observations, and is no longer <strong>generalizable</strong>. It is detecting artifacts and random patterns specific to the single set of observations but which don’t really exist in the data-generating process.</p>
+</div>
+</div>
+<div id="bias-variance-trade-off" class="section level1">
+<h1><span class="header-section-number">3</span> Bias-variance trade-off</h1>
+<div id="bias-variance-decomposition" class="section level2">
+<h2><span class="header-section-number">3.1</span> Bias-variance decomposition</h2>
+<p><strong>Bias</strong> defines the error that is introduced by approximating a real-life problem using a simplified model. In the context of statistical learning, this is the amount by which the average of our estimate differs from the true mean:</p>
+<p><span class="math display">\[\text{Bias} = \E[\hat{f}(x_o)] - f(x_0)\]</span></p>
+<p>Generally speaking, we want to have little-to-no bias in our estimates; otherwise we are consistently estimating an incorrect value for <span class="math inline">\(\hat{f}(x_0)\)</span>.</p>
+<p><strong>Variance</strong> refers to the amount by which <span class="math inline">\(\hat{f}\)</span> would change if we estimated it using a different training data set. Formally, it is the expected squared deviation of <span class="math inline">\(\hat{f}(x_0)\)</span> around its mean:</p>
+<p><span class="math display">\[\text{Variance} = \E[\hat{f}(x_0) - \E[\hat{f}(x_0)]]^2\]</span></p>
+<p>If we assume that <span class="math inline">\(Y = f(X) + \epsilon\)</span> where <span class="math inline">\(\E[\epsilon] = 0\)</span> and <span class="math inline">\(\Var(\epsilon) = \sigma^2_\epsilon\)</span>, we can derive an expression for the expected prediction error of a regression fit <span class="math inline">\(\hat{f}(X)\)</span> at an input point <span class="math inline">\(X = x_0\)</span> using squared-error loss:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{Err}(x_0) &amp;= \E[(Y - \hat{f}(x_0))^2 | X = x_0] \\
+&amp;= \sigma^2_\epsilon + [\E[\hat{f}(x_o)] - f(x_0)]^2 + \E[\hat{f}(x_0) - \E[\hat{f}(x_0)]]^2 \\
+&amp;= \sigma^2_\epsilon + \text{Bias}^2(\hat{f}(x_o)) + \Var(\hat{f}(x_0)) \\
+&amp;= \text{Irreducible Error} + \text{Bias}^2 + \text{Variance}
+\end{align}
+\]</span></p>
+<p>In order to minimize the expected test error rate, we need a statistical learning method that has both <strong>low bias</strong> and <strong>low variance</strong>. The difficulty is that few, if any, methods satisfy both requirements. As flexibility increases, the bias of a model will decrease but the variance will increase. Again, this is related to the problem of overfitting our training data set.</p>
+</div>
+</div>
+<div id="applications-to-classification-models" class="section level1">
+<h1><span class="header-section-number">4</span> Applications to classification models</h1>
+<p>The same basic principles apply to classification problems. The major difference is how we specify the loss function for a qualitative outcome.</p>
+<div id="loss-functions" class="section level2">
+<h2><span class="header-section-number">4.1</span> Loss functions</h2>
+<div id="error-rate" class="section level3">
+<h3><span class="header-section-number">4.1.1</span> Error rate</h3>
+<p>The most common approach is the <strong>error rate</strong>, or the proportion of mistakes that are made if we apply our estimate <span class="math inline">\(\hat{f}\)</span> to the observations:</p>
+<p><span class="math display">\[\frac{1}{n} \sum_{n = 1}^{n} I(y_i \neq \hat{y}_i)\]</span></p>
+<p>where <span class="math inline">\(\hat{y}_i\)</span> is the predicted classification label for the <span class="math inline">\(i\)</span>th observation using some estimated function <span class="math inline">\(\hat{f}\)</span>, and <span class="math inline">\(I(y_i \neq \hat{y}_i)\)</span> is an <strong>indicator</strong> function that equals 1 if <span class="math inline">\(y_i \neq \hat{y}_i\)</span> and 0 if <span class="math inline">\(y_i = \hat{y}_i\)</span> (i.e. if the observation was correctly classified).</p>
+<p>The equation above refers to the <strong>training error rate</strong> because, as with the training MSE, it is computed using the training data set. The <strong>test error rate</strong> associated with a test set of observations of the form <span class="math inline">\((x_0, y_0)\)</span> is given by</p>
+<p><span class="math display">\[\overline{I(y_0 \neq \hat{y}_0)}\]</span></p>
+<p>where <span class="math inline">\(\hat{y}_0\)</span> is the predicted class label that results from applying the classifier to the test observation with predictor <span class="math inline">\(x_0\)</span>.</p>
+</div>
+<div id="cross-entropy" class="section level3">
+<h3><span class="header-section-number">4.1.2</span> Cross-entropy</h3>
+<p>Another commonly employed loss function for deep learning models is <strong>cross-entropy</strong>, or <strong>log loss</strong>. Cross-entropy loss increases as the predicted probability diverges from the actual label. So predicting a probability of <span class="math inline">\(0.75\)</span> when the actual observation label is 1 is not as bad as predicting a probability of <span class="math inline">\(0.1\)</span> when the actual observation label is 1. A perfect model would have a log loss of 0.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(
+  <span class="dt">prob =</span> <span class="kw">seq</span>(<span class="fl">0.001</span>, <span class="dv">1</span>, <span class="dt">by =</span> <span class="fl">0.001</span>),
+  <span class="dt">log_loss =</span> <span class="op">-</span><span class="kw">log</span>(prob)
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(prob, log_loss)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Log loss when true label = 1&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Predicted probability&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Log loss&quot;</span>)</code></pre></div>
+<p><img src="/notes/model-accuracy_files/figure-html/cross-entropy-1.png" width="672" /></p>
+<p>Log loss penalizes both false-positives and false-negatives, but more strongly penalizes predictions that are confident and wrong. In binary classification where the number of classes <span class="math inline">\(M = 2\)</span>, cross-entropy can be calculated as:</p>
+<p><span class="math display">\[-(y \log(p) + (1 - y) \log(1 - p))\]</span></p>
+<p>If <span class="math inline">\(M &gt; 2\)</span>, we calculate a separate loss for each class label per observation and sum the result:</p>
+<p><span class="math display">\[- \sum_{c=1}^M y_{o,c} \log(p_{o,c})\]</span></p>
+</div>
+</div>
+<div id="bayes-classifier" class="section level2">
+<h2><span class="header-section-number">4.2</span> Bayes classifier</h2>
+</div>
+</div>
+<div id="estimating-the-expected-test-error" class="section level1">
+<h1><span class="header-section-number">5</span> Estimating the expected test error</h1>
+<div id="train-validation-test" class="section level2">
+<h2><span class="header-section-number">5.1</span> Train-validation-test</h2>
+</div>
+<div id="analytic-methods" class="section level2">
+<h2><span class="header-section-number">5.2</span> Analytic methods</h2>
+<div id="aic" class="section level3">
+<h3><span class="header-section-number">5.2.1</span> AIC</h3>
+</div>
+<div id="bic" class="section level3">
+<h3><span class="header-section-number">5.2.2</span> BIC</h3>
+</div>
+<div id="mdl" class="section level3">
+<h3><span class="header-section-number">5.2.3</span> MDL</h3>
+</div>
+<div id="srm" class="section level3">
+<h3><span class="header-section-number">5.2.4</span> SRM</h3>
+</div>
+</div>
+</div>
+<div id="session-info" class="section level1 toc-ignore">
+<h1><span class="header-section-number">6</span> Session Info</h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
+<pre><code>## ─ Session info ──────────────────────────────────────────────────────────
+##  setting  value                       
+##  version  R version 3.5.2 (2018-12-20)
+##  os       macOS Mojave 10.14.2        
+##  system   x86_64, darwin15.6.0        
+##  ui       X11                         
+##  language (EN)                        
+##  collate  en_US.UTF-8                 
+##  ctype    en_US.UTF-8                 
+##  tz       America/Chicago             
+##  date     2019-01-08                  
+## 
+## ─ Packages ──────────────────────────────────────────────────────────────
+##  package     * version date       lib source                           
+##  assertthat    0.2.0   2017-04-11 [2] CRAN (R 3.5.0)                   
+##  backports     1.1.3   2018-12-14 [2] CRAN (R 3.5.0)                   
+##  bindr         0.1.1   2018-03-13 [2] CRAN (R 3.5.0)                   
+##  bindrcpp      0.2.2   2018-03-29 [1] CRAN (R 3.5.0)                   
+##  blogdown      0.9.4   2018-11-26 [1] Github (rstudio/blogdown@b2e1ed4)
+##  bookdown      0.9     2018-12-21 [1] CRAN (R 3.5.0)                   
+##  broom       * 0.5.1   2018-12-05 [2] CRAN (R 3.5.0)                   
+##  callr         3.1.1   2018-12-21 [2] CRAN (R 3.5.0)                   
+##  cellranger    1.1.0   2016-07-27 [2] CRAN (R 3.5.0)                   
+##  cli           1.0.1   2018-09-25 [1] CRAN (R 3.5.0)                   
+##  colorspace    1.3-2   2016-12-14 [2] CRAN (R 3.5.0)                   
+##  crayon        1.3.4   2017-09-16 [2] CRAN (R 3.5.0)                   
+##  desc          1.2.0   2018-05-01 [2] CRAN (R 3.5.0)                   
+##  devtools      2.0.1   2018-10-26 [1] CRAN (R 3.5.1)                   
+##  digest        0.6.18  2018-10-10 [1] CRAN (R 3.5.0)                   
+##  dplyr       * 0.7.8   2018-11-10 [1] CRAN (R 3.5.0)                   
+##  evaluate      0.12    2018-10-09 [2] CRAN (R 3.5.0)                   
+##  forcats     * 0.3.0   2018-02-19 [2] CRAN (R 3.5.0)                   
+##  fs            1.2.6   2018-08-23 [1] CRAN (R 3.5.0)                   
+##  generics      0.0.2   2018-11-29 [1] CRAN (R 3.5.0)                   
+##  ggplot2     * 3.1.0   2018-10-25 [1] CRAN (R 3.5.0)                   
+##  glue          1.3.0   2018-07-17 [2] CRAN (R 3.5.0)                   
+##  gtable        0.2.0   2016-02-26 [2] CRAN (R 3.5.0)                   
+##  haven         2.0.0   2018-11-22 [2] CRAN (R 3.5.0)                   
+##  here        * 0.1     2017-05-28 [2] CRAN (R 3.5.0)                   
+##  hms           0.4.2   2018-03-10 [2] CRAN (R 3.5.0)                   
+##  htmltools     0.3.6   2017-04-28 [1] CRAN (R 3.5.0)                   
+##  httr          1.4.0   2018-12-11 [2] CRAN (R 3.5.0)                   
+##  jsonlite      1.6     2018-12-07 [2] CRAN (R 3.5.0)                   
+##  knitr         1.21    2018-12-10 [2] CRAN (R 3.5.1)                   
+##  lattice       0.20-38 2018-11-04 [2] CRAN (R 3.5.2)                   
+##  lazyeval      0.2.1   2017-10-29 [2] CRAN (R 3.5.0)                   
+##  lubridate     1.7.4   2018-04-11 [2] CRAN (R 3.5.0)                   
+##  magrittr      1.5     2014-11-22 [2] CRAN (R 3.5.0)                   
+##  memoise       1.1.0   2017-04-21 [2] CRAN (R 3.5.0)                   
+##  modelr        0.1.2   2018-05-11 [2] CRAN (R 3.5.0)                   
+##  munsell       0.5.0   2018-06-12 [2] CRAN (R 3.5.0)                   
+##  nlme          3.1-137 2018-04-07 [2] CRAN (R 3.5.2)                   
+##  pillar        1.3.1   2018-12-15 [2] CRAN (R 3.5.0)                   
+##  pkgbuild      1.0.2   2018-10-16 [1] CRAN (R 3.5.0)                   
+##  pkgconfig     2.0.2   2018-08-16 [2] CRAN (R 3.5.1)                   
+##  pkgload       1.0.2   2018-10-29 [1] CRAN (R 3.5.0)                   
+##  plyr          1.8.4   2016-06-08 [2] CRAN (R 3.5.0)                   
+##  prettyunits   1.0.2   2015-07-13 [2] CRAN (R 3.5.0)                   
+##  processx      3.2.1   2018-12-05 [2] CRAN (R 3.5.0)                   
+##  ps            1.3.0   2018-12-21 [2] CRAN (R 3.5.0)                   
+##  purrr       * 0.2.5   2018-05-29 [2] CRAN (R 3.5.0)                   
+##  R6            2.3.0   2018-10-04 [1] CRAN (R 3.5.0)                   
+##  Rcpp          1.0.0   2018-11-07 [1] CRAN (R 3.5.0)                   
+##  readr       * 1.3.1   2018-12-21 [2] CRAN (R 3.5.0)                   
+##  readxl        1.2.0   2018-12-19 [2] CRAN (R 3.5.0)                   
+##  remotes       2.0.2   2018-10-30 [1] CRAN (R 3.5.0)                   
+##  rlang         0.3.0.1 2018-10-25 [1] CRAN (R 3.5.0)                   
+##  rmarkdown     1.11    2018-12-08 [2] CRAN (R 3.5.0)                   
+##  rprojroot     1.3-2   2018-01-03 [2] CRAN (R 3.5.0)                   
+##  rstudioapi    0.8     2018-10-02 [1] CRAN (R 3.5.0)                   
+##  rvest         0.3.2   2016-06-17 [2] CRAN (R 3.5.0)                   
+##  scales        1.0.0   2018-08-09 [1] CRAN (R 3.5.0)                   
+##  sessioninfo   1.1.1   2018-11-05 [1] CRAN (R 3.5.0)                   
+##  stringi       1.2.4   2018-07-20 [2] CRAN (R 3.5.0)                   
+##  stringr     * 1.3.1   2018-05-10 [2] CRAN (R 3.5.0)                   
+##  testthat      2.0.1   2018-10-13 [2] CRAN (R 3.5.0)                   
+##  tibble      * 2.0.0   2019-01-04 [2] CRAN (R 3.5.2)                   
+##  tidyr       * 0.8.2   2018-10-28 [2] CRAN (R 3.5.0)                   
+##  tidyselect    0.2.5   2018-10-11 [1] CRAN (R 3.5.0)                   
+##  tidyverse   * 1.2.1   2017-11-14 [2] CRAN (R 3.5.0)                   
+##  usethis       1.4.0   2018-08-14 [1] CRAN (R 3.5.0)                   
+##  withr         2.1.2   2018-03-15 [2] CRAN (R 3.5.0)                   
+##  xfun          0.4     2018-10-23 [1] CRAN (R 3.5.0)                   
+##  xml2          1.2.0   2018-01-24 [2] CRAN (R 3.5.0)                   
+##  yaml          2.2.0   2018-07-25 [2] CRAN (R 3.5.0)                   
+## 
+## [1] /Users/soltoffbc/Library/R/3.5/library
+## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
+</div>
+<div id="references" class="section level1 toc-ignore">
+<h1><span class="header-section-number">7</span> References</h1>
+<ul>
+<li>This page is derived in part from <a href="http://varianceexplained.org/files/loess.html">“Creating a LOESS animation with <code>gganimate</code>”</a> by David Robinson.</li>
+</ul>
+</div>
