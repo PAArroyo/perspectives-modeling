@@ -1,0 +1,267 @@
+---
+title: Statistical learning
+date: 2019-01-09T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Selecting and fitting a model
+    weight: 1
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(here)
+theme_set(theme_minimal())
+```
+
+# Statistical learning
+
+## What is statistical learning?
+
+**Statistical models** attempt to summarize relationships between variables by reducing the dimensionality of the data.^[These notes are a substantial summary of @james2013introduction.] For example, here we have some simulated data on sales of [Shamwow](https://www.shamwow.com/) in 200 different markets.
+
+![](/img/shamwow.jpg)
+
+Our goal is to improve sales of the Shamwow. Since we cannot directly increase sales of the product (unless we go out and buy it ourselves), our only option is to increase advertising across three potential mediums: newspaper, radio, and TV.
+
+In this example, the advertising budgets are our **input variables**, also called **independent variables**, **features**, or **predictors**. The sales of Shamwows is the **output**, also called the **dependent variable** or **response**.
+
+By plotting the variables against one another using a scatterplot, we can see there is some sort of relationship between each medium's advertising spending and Shamwow sales:
+
+```{r get_ad, message = FALSE, warning = FALSE}
+# get advertising data
+(advertising <- read_csv(here("static", "data", "Advertising.csv")) %>%
+  tbl_df() %>%
+  # remove id column
+  select(-X1))
+```
+
+```{r plot_ad, dependson="get_ad"}
+# plot separate facets for relationship between ad spending and sales
+plot_ad <- advertising %>%
+  gather(method, spend, -Sales) %>%
+  ggplot(aes(spend, Sales)) +
+  facet_wrap(~ method, scales = "free_x") +
+  geom_point() +
+  labs(x = "Spending (in thousands of dollars)")
+plot_ad
+```
+
+But there seems to be a lot of noise in the data. How can we summarize this? We can do so by estimating a mathematical equation following the general form:
+
+$$Y = f(X) + \epsilon$$
+
+where $f$ is some fixed, unknown function of the relationship between the independent variable(s) $X$ and the dependent variable $Y$, with some random error $\epsilon$.
+
+Statistical learning refers to the set of approaches for estimating $f$. There are many potential approaches to defining the functional form of $f$. One approach widely used is called **least squares** - it means that the overall solution minimizes the sum of the squares of the errors made in the results of the equation. The errors are simply the vertical difference between the actual values for $y$ and the predicted values for $y$. Applied here, the results would look like:
+
+```{r plot_ad_fit}
+plot_ad +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+However statistical learning (and machine learning) allows us to use a wide range of functional forms beyond a simple linear model.
+
+## Why estimate $f$?
+
+There are two major goals of statistical modeling: prediction and inference.
+
+### Prediction
+
+Under a system of **prediction**, we use our knowledge of the relationship between $X$ and $Y$ to predict $Y$ for given values of $X$. Often the function $f$ is treated as a **black box** - we don't care what the function is, as long as it makes accurate predictions. If we are trying to boost sales of Shamwow, we may not care why specific factors drive an increase in sales - we just want to know how to adjust our advertising budgets to maximize sales.
+
+### Inference
+
+Under a system of **inference**, we use our knowledge of $X$ and $Y$ to understand the relationship between the variables. Here we are most interested in the explanation, not the prediction. So in the Shamwow example, we may not care about actual sales of the product - instead, we may be economists who wish to understand how advertising spending influences product sales. We don't care about the actual product, we simply want to learn more about the process and **generalize** it to a wider range of settings.
+
+## How do we estimate $f$?
+
+There are two major approaches to estimating $f$: parametric and non-parametric methods.
+
+### Parametric methods
+
+Parametric methods involve a two-stage process:
+
+1. First make an assumption about the functional form of $f$. For instance, OLS assumes that the relationship between $X$ and $Y$ is **linear**. This greatly simplifies the problem of estimating the model because we know a great deal about the properties of linear models.
+1. After a model has been selected, we need to **fit** or **train** the model using the actual data. We demonstrated this previously with ordinary least squares. The estimation procedure minimizes the sum of the squares of the differences between the observed responses $Y$ and those predicted by a linear function $\hat{Y}$.
+
+```{r plot_parametric, dependson="get_ad"}
+method_model <- function(df) {
+  lm(Sales ~ spend, data = df)
+}
+
+ad_pred <- advertising %>%
+  gather(method, spend, -Sales) %>%
+  group_by(method) %>%
+  nest() %>%
+  mutate(model = map(data, method_model),
+         pred = map(model, broom::augment)) %>%
+  unnest(pred)
+
+plot_ad +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_linerange(data = ad_pred,
+                 aes(ymin = Sales, ymax = .fitted),
+                 color = "blue",
+                 alpha = .5) 
+```
+
+This is only one possible estimation procedure, but is popular because it is relatively intuitive. This model-based approach is referred to as **parametric**, because it simplifies the problem of estimating $f$ to estimating a set of parameters in the function:
+
+$$Y = \beta_0 + \beta_{1}X_1$$
+
+where $Y$ is the sales, $X_1$ is the advertising spending in a given medium (newspaper, radio, or TV), and $\beta_0$ and $\beta_1$ are parameters defining the intercept and slope of the line.
+
+The downside to parametric methods is that they assume a specific functional form of the relationship between the variables. Sometimes relationships really are linear - often however they are not. They could be curvilinear, parbolic, interactive, etc. Unless we know this *a priori* or test for all of these potential functional forms, it is possible our parametric method will not accurately summarize the relationship between $X$ and $Y$.
+
+### Non-parametric methods
+
+Non-parametric methods do not make any assumptions about the functional form of $f$. Instead, they use the data itself to estimate $f$ so that it gets as close as possible to the data points without becoming overly complex. By avoiding any assumptions about the functional form, non-parametric methods avoid the issues caused by parametic models. However, by doing so non-parametric methods require a large set of observations to avoid **overfitting** the data and obtain an accurate estimate of $f$.
+
+One non-parametric method is **locally weighted scatterplot smoothing** (LOWESS or LOESS). This method estimates a regression line based on localized subsets of the data, building up the global function $\hat{f}$ point-by-point. Here is an example of a LOESS on the `ethanol` dataset in the `lattice` package:
+
+```{r loess, echo = FALSE, warning = FALSE, message = FALSE}
+library(broom)
+library(lattice)
+
+mod <- loess(NOx ~ E, ethanol, degree = 1, span = .75)
+fit <- augment(mod)
+
+ggplot(fit, aes(E, NOx)) +
+  geom_point() +
+  geom_line(aes(y = .fitted), color = "red") +
+  labs(x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J")
+```
+
+The LOESS is built up point-by-point:
+
+```{r loess_buildup, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE}
+dat <- ethanol %>%
+  crossing(center = unique(ethanol$E)) %>%
+  mutate(dist = abs(E - center)) %>%
+  filter(rank(dist) / n() <= .75) %>%
+  mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
+
+library(gganimate)
+
+ggplot(dat, aes(E, NOx)) +
+  geom_point(aes(alpha = weight)) +
+  geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
+  geom_vline(aes(xintercept = center), lty = 2) +
+  geom_line(aes(y = .fitted), data = fit, color = "red") +
+  labs(title = "Centered over {closest_state}",
+       x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J") +
+  transition_states(center,
+                    transition_length = 2,
+                    state_length = 1) + 
+  ease_aes("cubic-in-out")
+```
+
+One important argument you can control with LOESS is the **span**, or how smooth the LOESS function will become. A larger span will result in a smoother curve, but may not be as accurate.
+
+```{r loess_span, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE}
+spans <- c(.25, .5, .75, 1)
+
+# create loess fits, one for each span
+fits <- data_frame(span = spans) %>%
+  group_by(span) %>%
+  do(augment(loess(NOx ~ E, ethanol, degree = 1, span = .$span)))
+
+# calculate weights to reproduce this with local weighted fits
+dat <- ethanol %>%
+  crossing(span = spans, center = unique(ethanol$E)) %>%
+  mutate(dist = abs(E - center)) %>%
+  filter(rank(dist) / n() <= span) %>%
+  mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
+
+# create faceted plot with changing points, local linear fits, and vertical lines,
+# and constant hollow points and loess fit
+ggplot(dat, aes(E, NOx)) +
+  geom_point(aes(alpha = weight)) +
+  geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
+  geom_vline(aes(xintercept = center), lty = 2) +
+  geom_point(shape = 1, data = ethanol, alpha = .25) +
+  geom_line(aes(y = .fitted), data = fits, color = "red") +
+  facet_wrap(~span) +
+  ylim(0, 5) +
+  ggtitle("x0 = ") +
+  labs(title = "Centered over {closest_state}",
+       x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J") +
+  transition_states(center,
+                    transition_length = 2,
+                    state_length = 1) + 
+  ease_aes("cubic-in-out")
+```
+
+## Supervised vs. unsupervised learning
+
+All the examples above implement **supervised** learning. That is, for each observation we have both the predictor measurements and the response measurements (i.e. an $X$ and $Y$). We seek to fit a model that summarizes the relationship between the predictors and response.
+
+In **unsupervised** learning, all we have is a set of measurements $X$ for a series of observations, but no corresponding response $Y$. Without an outcome measure, we cannot fit a linear regression model or employ a similar method. That does not mean we cannot use statistical learning to understand the data better. One example of unsupervised learning is **cluster analysis**. The goal is to determine whether the observations fall into distinct categories. [Latent Direchlet allocation (LDA)](https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation) is an example of cluster analysis applied to text data. In LDA, the individual words are the features or measurements we use to determine the best fitting clusters.
+
+# Statistical learning vs. machine learning
+
+I prefer to use the term **statistical learning**, but the field of statistical learning is strongly related to that of **machine learning**. Statistical learning is a subfield of statistics that focuses predominantly on **inference**. It is ues to identify underlying relationships between variables and emphasizes models and their interpretability. People employing statistical learning methods are usually concerned with uncertainty and precision of their estimates.
+
+Machine learning is a subfield of computer science and focuses more strongly on **prediction**. It typically employs larger scale applications (think of predictive analytics at Google or Netflix) and emphasizes prediction accuracy. Machine learning is happy to sacrifice model interpretability in exchange for more accurate predictions.
+
+In truth, both are quite similar approaches to inference and prediction. Both use the same major methods of modeling (parametric and non-parametric). I think of them as different languages, speaking the same thing.
+
+# Classification vs. regression
+
+Variables can be classified as **quantitative** or **qualitative**. Quantitative variables take on numeric values. In contrast, qualitative variables take on different **classes**, or discrete categories. Qualitative variables can have any number of classes, though binary categories are frequent:
+
+* Yes/no
+* Male/female
+
+Problems with a quantitative dependent variable are typically called **regression** problems, whereas qualitative dependent variables are called **classification** problems. Part of this distinction is merely semantic, but different methods may be employed depending on the type of response variable. For instance, you would not use linear regression on a qualitative response variable. Conceptually, how would you define a linear function for a response variable that takes on the values "male" or "female"? It doesn't make any conceptual sense. Instead, you can employ classification methods such as **logistic regression** to estimate the probability that based on a set of predictors a specific observation is part of a response class.
+
+That said, whether **predictors** are qualitative or quantitative is not important in determining whether the problem is one of regression or classification. As long as qualitative predictors are properly coded before the analysis is conducted, they can be used for either type of problem.
+
+# Model estimation strategies
+
+**Statistical learning** defines the modeling strategy used to estimate the functional form of $\hat{f}$. **Model estimation** defines the procedure for fitting the data to a given functional form so that we estimate the "correct" or optimal parameters for the model.
+
+For example, **generalized linear models** are a flexible class of models that allow us to estimate linear regression for response variables that have error distribution models other than the normal distribution. A GLM consists of three components:
+
+1. A **random component** specifying the conditional distribution of the response variable, $Y_i$, given the values of the predictor variables in the model. Typically these distributions are a member of the [**exponential family**](https://en.wikipedia.org/wiki/Exponential_family), a set of related probability distributions.
+1. A **linear predictor** that is a linear function of regressors:
+
+    $$\eta_i = \beta_{0} + \beta_{1}X_{i1} + \beta_{2}X_{i2} + \dots + \beta_{k}X_{ik}$$
+    
+    The regressors are prespecified functions of the explanatory variables. This is exactly like the form you've seen for [linear](persp003_linear_regression.html) and [logistic](persp004_logistic_regression.html) regression, because in fact linear and logistic regression are types of GLMs.
+1. A **link function** $g(\cdot)$ which transforms the expectation of the response variable, $\mu_i \equiv E(Y_i)$ to the linear predictor:
+
+    $$g(\mu_i) = \eta_i = \beta_{0} + \beta_{1}X_{i1} + \beta_{2}X_{i2} + \dots + \beta_{k}X_{ik}$$
+    
+    Because the link function must also be **invertible**, we can also write it as:
+    
+    $$\mu_i = g^{-1}(\eta_i) = g^{-1}(\beta_{0} + \beta_{1}X_{i1} + \beta_{2}X_{i2} + \dots + \beta_{k}X_{ik})$$
+
+    The inverted link function is also known as the **mean function**. The purpose of the link function is to relate the linear predictor to the mean of the distribution function.
+
+GLM is the statistical learning model. The major parameters of interest are the $\beta$s. How do we estimate the appropriate values for those parameters? That is, we could plug in any set of values to fit the functional form. Some values will be more accurate than others at explaining the relationship between $\boldsymbol{X}$ and $Y$. Estimation strategies will define how to calculate these optimal values. For instance, [**maximum likelihood**](https://css18.github.io/parametric-inference.html) is perhaps the most commonly employed estimation strategy, which identifies the set of parameter values that minimizes the log-likelihood function through the use of the first derivative (also known as the **gradient**).  Alternatively, one could use a Bayesian estimation strategy, or the [generalized method of moments](https://github.com/UC-MACSS/persp-model_W18/blob/master/Notebooks/GMM/GMMest.ipynb). Notice that the statistical learning algorithm is agnostic in some respects to the estimation strategy. Some estimation procedures are better than others when paired with specific statistical learning strategies. In this class, we focus primarily on the statistical learning algorithm but will discuss model estimation/optimization as necessary.
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* This page is derived in part from ["Creating a LOESS animation with `gganimate`"](http://varianceexplained.org/files/loess.html) by David Robinson.
