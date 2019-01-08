@@ -18,10 +18,11 @@ summary: "Practice building theoretical models and assessing how to select optim
 <li><a href="#the-need-for-a-college-education"><span class="toc-section-number">3.2</span> The need for a college education</a></li>
 <li><a href="#waiting-until-the-last-minute"><span class="toc-section-number">3.3</span> Waiting until the last minute</a></li>
 </ul></li>
-<li><a href="#selecting-and-fitting-a-model"><span class="toc-section-number">4</span> Selecting and fitting a model</a></li>
+<li><a href="#selecting-and-fitting-a-model-5-points"><span class="toc-section-number">4</span> Selecting and fitting a model (5 points)</a></li>
 </ul>
 </div>
 
+<p><span class="math display">\[\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}}\]</span></p>
 <div id="overview" class="section level1">
 <h1><span class="header-section-number">1</span> Overview</h1>
 <p>Due before class January 14th.</p>
@@ -81,8 +82,37 @@ Using rule 1 of the <a href="https://model.uchicago.edu/notes/build-a-model/#thr
 </ol>
 </div>
 </div>
-<div id="selecting-and-fitting-a-model" class="section level1">
-<h1><span class="header-section-number">4</span> Selecting and fitting a model</h1>
+<div id="selecting-and-fitting-a-model-5-points" class="section level1">
+<h1><span class="header-section-number">4</span> Selecting and fitting a model (5 points)</h1>
+<ol style="list-style-type: decimal">
+<li>For each part, indicate whether we would generally expect the performance of a flexible statistical learning method to be better or worse than an inflexible method. Justify your answer.
+<ol style="list-style-type: lower-alpha">
+<li>The sample size <span class="math inline">\(n\)</span> is extremely large, and the number of predictors <span class="math inline">\(p\)</span> is small.</li>
+<li>The number of predictors <span class="math inline">\(p\)</span> is extremely large, and the number of observations <span class="math inline">\(n\)</span> is small.</li>
+<li>The relationship between the predictors and response is highly non-linear.</li>
+<li>The variance of the error terms <span class="math inline">\(\sigma^2 = \Var(\epsilon)\)</span> is extremely high.</li>
+</ol></li>
+<li><p>For classification problems, the test error rate is minimized by a simple classifier that assigns each observation to the most likely class given its predictor values:</p>
+<p><span class="math display">\[\Pr(Y = j | X = x_0)\]</span></p>
+<p>where <span class="math inline">\(x_0\)</span> is the test observation and each possible class is represented by <span class="math inline">\(J\)</span>. This is a <strong>conditional probability</strong> that <span class="math inline">\(Y = j\)</span>, given the observed predictor vector <span class="math inline">\(x_0\)</span>. This classifier is known as the <strong>Bayes classifier</strong>. If the response variable is binary (i.e. two classes), the Bayes classifier corresponds to predicting class one if <span class="math inline">\(\Pr(Y = 1 | X = x_0) &gt; 0.5\)</span>, and class two otherwise.</p>
+<p>Figure 2.13 in [ISL] illustrates a simulated example defining the decision boundary for a hypothetical data set. Produce a graph illustrating this concept. Specifically, implement the following elements in your program:</p>
+<ol style="list-style-type: decimal">
+<li>For classification problems, the test error rate is minimized by a simple classifier that assigns each observation to the most likely class given its predictor values:</li>
+</ol>
+<p><span class="math display">\[\Pr(Y = j | X = x_0)\]</span></p>
+<p>where <span class="math inline">\(x_0\)</span> is the test observation and each possible class is represented by <span class="math inline">\(J\)</span>. This is a <strong>conditional probability</strong> that <span class="math inline">\(Y = j\)</span>, given the observed predictor vector <span class="math inline">\(x_0\)</span>. This classifier is known as the <strong>Bayes classifier</strong>. If the response variable is binary (i.e. two classes), the Bayes classifier corresponds to predicting class one if <span class="math inline">\(\Pr(Y = 1 | X = x_0) &gt; 0.5\)</span>, and class two otherwise.</p>
+<p>Figure 2.13 in [ISL] illustrates a simulated example defining the decision boundary for a hypothetical data set. Produce a graph illustrating this concept. Specifically, implement the following elements in your program:</p>
+<ol style="list-style-type: lower-alpha">
+<li>Set your random number generator seed.</li>
+<li>Simulate a dataset of <span class="math inline">\(N = 200\)</span> with <span class="math inline">\(X_1, X_2\)</span> where <span class="math inline">\(X_1, X_2\)</span> are random uniform variables between <span class="math inline">\([0,1]\)</span>.</li>
+<li>Calculate <span class="math inline">\(Y = X_1 + X_1^2 + X_2 + X_2^2 + \epsilon\)</span>, where <span class="math inline">\(\epsilon \sim N(\mu = 0, \theta^2 = 0.25)\)</span>.</li>
+<li><span class="math inline">\(Y\)</span> is defined in terms of the log-odds of success on the domain <span class="math inline">\([-\infty, +\infty]\)</span>. Calculate the probability of success bounded between <span class="math inline">\([0,1]\)</span>.</li>
+<li>Plot each of the data points on a graph and use color to indicate if the observation was a success or a failure.</li>
+<li>Overlay the plot with Bayes decision boundary, calculated using <span class="math inline">\(X_1, X_2\)</span>.</li>
+<li>Give your plot a meaningful title and axis labels.</li>
+<li>The colored background grid is optional.</li>
+</ol></li>
+</ol>
 </div>
 <div class="footnotes">
 <hr />

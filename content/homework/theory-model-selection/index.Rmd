@@ -8,6 +8,8 @@ type: post
 summary: "Practice building theoretical models and assessing how to select optimal statistical learning algorithms."
 ---
 
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}}$$
+
 # Overview
 
 Due before class January 14th.
@@ -61,4 +63,34 @@ a. Generalize the explanatory model -- that is, induce the most general, abstrac
 a. Induce an alternative model that also has the original observation as a consequence.
 a. For each of the two general models produced in (b) and (c), derive two interesting predictions (four predictions in total). Be sure the logical connection between your model and your predictions is explicitly stated and that any assumed facts concerning the world are made explicit.
 
-# Selecting and fitting a model
+# Selecting and fitting a model (5 points)
+
+1. For each part, indicate whether we would generally expect the performance of a flexible statistical learning method to be better or worse than an inflexible method. Justify your answer.
+    a. The sample size $n$ is extremely large, and the number of predictors $p$ is small.
+    a. The number of predictors $p$ is extremely large, and the number of observations $n$ is small.
+    a. The relationship between the predictors and response is highly non-linear.
+    a. The variance of the error terms $\sigma^2 = \Var(\epsilon)$ is extremely high.
+1. For classification problems, the test error rate is minimized by a simple classifier that assigns each observation to the most likely class given its predictor values:
+
+    $$\Pr(Y = j | X = x_0)$$
+    
+    where $x_0$ is the test observation and each possible class is represented by $J$. This is a **conditional probability** that $Y = j$, given the observed predictor vector $x_0$. This classifier is known as the **Bayes classifier**. If the response variable is binary (i.e. two classes), the Bayes classifier corresponds to predicting class one if $\Pr(Y = 1 | X = x_0) > 0.5$, and class two otherwise.
+    
+    Figure 2.13 in [ISL] illustrates a simulated example defining the decision boundary for a hypothetical data set. Produce a graph illustrating this concept. Specifically, implement the following elements in your program:
+    
+    1. For classification problems, the test error rate is minimized by a simple classifier that assigns each observation to the most likely class given its predictor values:
+
+    $$\Pr(Y = j | X = x_0)$$
+    
+    where $x_0$ is the test observation and each possible class is represented by $J$. This is a **conditional probability** that $Y = j$, given the observed predictor vector $x_0$. This classifier is known as the **Bayes classifier**. If the response variable is binary (i.e. two classes), the Bayes classifier corresponds to predicting class one if $\Pr(Y = 1 | X = x_0) > 0.5$, and class two otherwise.
+    
+    Figure 2.13 in [ISL] illustrates a simulated example defining the decision boundary for a hypothetical data set. Produce a graph illustrating this concept. Specifically, implement the following elements in your program:
+    
+    a. Set your random number generator seed.
+    a. Simulate a dataset of $N = 200$ with $X_1, X_2$ where $X_1, X_2$ are random uniform variables between $[0,1]$.
+    a. Calculate $Y = X_1 + X_1^2 + X_2 + X_2^2 + \epsilon$, where $\epsilon \sim N(\mu = 0, \theta^2 = 0.25)$.
+    a. $Y$ is defined in terms of the log-odds of success on the domain $[-\infty, +\infty]$. Calculate the probability of success bounded between $[0,1]$.
+    a. Plot each of the data points on a graph and use color to indicate if the observation was a success or a failure.
+    a. Overlay the plot with Bayes decision boundary, calculated using $X_1, X_2$.
+    a. Give your plot a meaningful title and axis labels.
+    a. The colored background grid is optional.
