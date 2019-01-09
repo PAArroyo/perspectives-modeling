@@ -113,8 +113,8 @@ It would be nice if we could use the training error as an estimate for the test/
 ```{r sim-train-model}
 # simulate data from ISL figure 2.9
 sim_mse <- tibble(
-  x = runif(n = 1e02, min = 0, max = 100),
-  y = 5.055901 - 0.1848551*x + 0.00748706*x^2 - 0.00005543478*x^3 + rnorm(1e02, sd = 0.5)
+  x = runif(n = 50, min = 0, max = 100),
+  y = 5.055901 - 0.1848551*x + 0.00748706*x^2 - 0.00005543478*x^3 + rnorm(50, sd = 0.6)
 )
 
 # model fit
@@ -136,9 +136,32 @@ ggplot(sim_mse, aes(x, y)) +
 
 Here I synthesize an example dataset and fit three separate models to it: a linear regression fit, and two **splines** which permit more flexible relationships between $X$ and $Y$. Notice that as the flexibility increases, the models are more likely to fit the data. That is, the training MSE will decrease. But this does not guarantee the test MSE also decreases. Consider the trained models applied to an independent test set generated from the same underlying process:
 
+```{r sim-test-model, dependson = "sim-train-mse"}
+sim_mse_test <- tibble(
+  x = runif(n = 50, min = 0, max = 100),
+  y = 5.055901 - 0.1848551 * x + 0.00748706 * x^2 - 0.00005543478 * x^3 + rnorm(50, sd = 0.6)
+)
+
+# model fit
+ggplot(sim_mse, aes(x, y)) +
+  geom_point(data = sim_mse_test) +
+  stat_function(fun = function(x) 5.055901 - 0.1848551*x + 0.00748706*x^2 - 0.00005543478*x^3) +
+  geom_smooth(aes(color = "lm"), method = lm, se = FALSE) +
+  geom_smooth(aes(color = "spline-low"), method = lm,
+              formula = y ~ splines::ns(x, 5), se = FALSE) +
+  geom_smooth(aes(color = "spline-high"), method = lm,
+              formula = y ~ splines::ns(x, 20), se = FALSE) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Test data points",
+       subtitle = "Models estimated on training set",
+       x = expression(X),
+       y = expression(Y)) +
+  theme(legend.position = "none")
+```
+
 It is not entirely clear, but these models no longer perform as well as compared to the training data. This divergence increases as the flexibility of the model increases.
 
-```{r sim-test-mse}
+```{r sim-test-mse, dependson = "sim-tran-model"}
 sim_mse_test <- tibble(
   x = runif(n = 1e04, min = 0, max = 100),
   y = 5.055901 - 0.1848551*x + 0.00748706*x^2 - 0.00005543478*x^3 + rnorm(1e04, sd = 0.5)
@@ -170,7 +193,7 @@ This discrepancy holds true for any data set and any statistical learning method
 
 # Bias-variance trade-off
 
-## Bias-variance decomposition
+## Bias and variance defined
 
 **Bias** defines the error that is introduced by approximating a real-life problem using a simplified model. In the context of statistical learning, this is the amount by which the average of our estimate differs from the true mean:
 
@@ -181,6 +204,8 @@ Generally speaking, we want to have little-to-no bias in our estimates; otherwis
 **Variance** refers to the amount by which $\hat{f}$ would change if we estimated it using a different training data set. Formally, it is the expected squared deviation of $\hat{f}(x_0)$ around its mean:
 
 $$\text{Variance} = \E[\hat{f}(x_0) - \E[\hat{f}(x_0)]]^2$$
+
+## Bias-variance decomposition
 
 If we assume that $Y = f(X) + \epsilon$ where $\E[\epsilon] = 0$ and $\Var(\epsilon) = \sigma^2_\epsilon$, we can derive an expression for the expected prediction error of a regression fit $\hat{f}(X)$ at an input point $X = x_0$ using squared-error loss:
 
@@ -193,7 +218,111 @@ $$
 \end{align}
 $$
 
-In order to minimize the expected test error rate, we need a statistical learning method that has both **low bias** and **low variance**. The difficulty is that few, if any, methods satisfy both requirements. As flexibility increases, the bias of a model will decrease but the variance will increase. Again, this is related to the problem of overfitting our training data set.
+In order to minimize the expected test error rate, we need a statistical learning method that has both **low bias** and **low variance**. The difficulty is that few, if any, methods satisfy both requirements. As flexibility increases, the bias of a model will decrease but the variance will increase. Consider our sample data from earlier:
+
+```{r sim-train-data, dependson = "sim-train-mse"}
+ggplot(sim_mse, aes(x, y)) +
+  geom_point() +
+  labs(title = "Training data points",
+       x = expression(X),
+       y = expression(Y))
+```
+
+A low bias, high variance modeling strategy would be to draw a curve that passes through every data point:
+
+```{r sim-data-nn, dependson = "sim-train-mse"}
+# estimate KNN model, k = 1
+sim_knn1 <- FNN::knn.reg(sim_mse,
+                         y = sim_mse$y,
+                         test = sim_mse,
+                         k = 1)
+
+sim_mse %>%
+  mutate(pred = sim_knn1$pred) %>%
+  ggplot(aes(x, y)) +
+  geom_point() +
+  geom_step(aes(y = pred)) +
+  labs(title = "Training data points",
+       x = expression(X),
+       y = expression(Y))
+```
+
+It has low bias because the training MSE is 0, but it has high variance because if we generate a new training set the model will be entirely different. Again, this is related to the problem of overfitting our training data set.
+
+Compare this to a method with high bias but low variance: a horizontal line at the mean:
+
+```{r sim-data-mean, dependson = "sim-train-mse"}
+ggplot(sim_mse, aes(x, y)) +
+  geom_point() +
+  geom_hline(yintercept = mean(sim_mse$y)) +
+  labs(title = "Training data points",
+       x = expression(X),
+       y = expression(Y))
+```
+
+The variance of our model $\hat{f}$ should be low since the mean value for any given independent sample from the population should possess the same basic characteristics. But this model has a lot more bias (aka a higher MSE) because its accuracy is not good.
+
+How do we actually account for this trade-off? That is to say, which should be most concerned with if we cannot reduce both components? Bias or variance? That entirely depends on our goals.
+
+```{r darts}
+# set number of throws
+numDarts <- 10
+
+# throw numDarts number of darts and get the coordinates where they hit
+throwDarts <- function(numDarts, reliable = TRUE, valid = TRUE) {
+  if (reliable & valid) {
+    xvals <- rnorm(numDarts, mean = 0, sd = .05)
+    yvals <- rnorm(numDarts, mean = 0, sd = .05)
+  } else if (reliable == TRUE & valid == FALSE) {
+    xvals <- rnorm(numDarts, mean = .5, sd = .05)
+    yvals <- rnorm(numDarts, mean = .4, sd = .05)
+  } else if (reliable == FALSE & valid == TRUE) {
+    xvals <- rnorm(numDarts, mean = 0, sd = .3)
+    yvals <- rnorm(numDarts, mean = 0, sd = .3)
+  } else if (reliable == FALSE & valid == FALSE) {
+    xvals <- rnorm(numDarts, mean = .5, sd = .3)
+    yvals <- rnorm(numDarts, mean = -.4, sd = .3)
+  }
+  
+  tibble(
+    x = xvals,
+    y = yvals,
+    reliable = reliable,
+    valid = valid
+  )
+}
+
+# get data for each situation
+throws <- bind_rows(
+  throwDarts(numDarts, reliable = TRUE, valid = TRUE),
+  throwDarts(numDarts, reliable = TRUE, valid = FALSE),
+  throwDarts(numDarts, reliable = FALSE, valid = TRUE),
+  throwDarts(numDarts, reliable = FALSE, valid = FALSE)
+) %>%
+  mutate(
+    reliable = ifelse(reliable, "Low Variance", "High Variance"),
+    valid = ifelse(valid, "Low Bias", "High Bias")
+  )
+
+# plot the dart board, facet by each type
+ggplot(data = throws, aes(x, y)) +
+  facet_grid(reliable ~ valid) +
+  ggforce::geom_circle(aes(x = NULL, y = NULL, x0 = 0, y0 = 0, r = 1)) +
+  geom_point(alpha = 0.5) +
+  xlim(-1, 1) +
+  ylim(-1, 1) +
+  coord_fixed() +
+  labs(title = NULL,
+       x = NULL,
+       y = NULL) +
+  annotate("point", x = 0, y = 0, size = 3)
+```
+
+Imagine that the center of the target is a model that perfectly predicts the correct values. As we move away from the bulls-eye, our predictions get worse and worse. Imagine we can repeat our entire model building process to get a number of separate hits on the target. Each hit represents an individual realization of our model, given the chance variability in the training data we gather. Sometimes we will get a good distribution of training data so we predict very well and we are close to the bulls-eye, while sometimes our training data might be full of outliers or non-standard values resulting in poorer predictions. These different realizations result in a scatter of hits on the target.^[Explanation drawn from [Understanding the Bias-Variance Tradeoff](http://scott.fortmann-roe.com/docs/BiasVariance.html).]
+
+Traditionally in statistics we are concerned with reducing the bias of our estimates. Consider one of the desirable properties of the ordinary least squares estimator: it is the [best linear unbiased estimator (BLUE)](https://en.wikipedia.org/wiki/Gauss%E2%80%93Markov_theorem). However linear regression models could be estimated with alternative estimators, such as ridge regression (see chapter 6 in [ISL]). These methods are not unbiased, but have lower variance. What is the value to such an estimator? One desirable quality is simplicity. As we will learn, ridge regression artificially biases the parameters in the regression model towards zero. This enables us to do things we could otherwise not do, such as estimate a regression model where the number of predictors is greater than the number of observations$p > n$.
+
+What if our ultimate goal is prediction? Then our primary concern is reducing the test error. Increasing bias slightly to more dramatically decrease variance could lead to a lower test error rate. In that situation, it could make sense to intentionally increase our bias.
 
 # Applications to classification models
 

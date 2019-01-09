@@ -61,7 +61,8 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#optimism-of-training-error"><span class="toc-section-number">2.2</span> Optimism of training error</a></li>
 </ul></li>
 <li><a href="#bias-variance-trade-off"><span class="toc-section-number">3</span> Bias-variance trade-off</a><ul>
-<li><a href="#bias-variance-decomposition"><span class="toc-section-number">3.1</span> Bias-variance decomposition</a></li>
+<li><a href="#bias-and-variance-defined"><span class="toc-section-number">3.1</span> Bias and variance defined</a></li>
+<li><a href="#bias-variance-decomposition"><span class="toc-section-number">3.2</span> Bias-variance decomposition</a></li>
 </ul></li>
 <li><a href="#applications-to-classification-models"><span class="toc-section-number">4</span> Applications to classification models</a><ul>
 <li><a href="#loss-functions"><span class="toc-section-number">4.1</span> Loss functions</a><ul>
@@ -148,8 +149,8 @@ L(Y, \hat{f}(X)) = \left\{
 <p>It would be nice if we could use the training error as an estimate for the test/expected error. Alas, we cannot. Most statistical learning methods specifically attempt to minimize the training error (think least squares regression). This produces a relatively low training error, but does not guarantee a correspondingly low test error. In fact, it can have the opposite relationship – as the training error decreases, the test error can actually increase.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># simulate data from ISL figure 2.9</span>
 sim_mse &lt;-<span class="st"> </span><span class="kw">tibble</span>(
-  <span class="dt">x =</span> <span class="kw">runif</span>(<span class="dt">n =</span> <span class="fl">1e02</span>, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">100</span>),
-  <span class="dt">y =</span> <span class="fl">5.055901</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.1848551</span><span class="op">*</span>x <span class="op">+</span><span class="st"> </span><span class="fl">0.00748706</span><span class="op">*</span>x<span class="op">^</span><span class="dv">2</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.00005543478</span><span class="op">*</span>x<span class="op">^</span><span class="dv">3</span> <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="fl">1e02</span>, <span class="dt">sd =</span> <span class="fl">0.5</span>)
+  <span class="dt">x =</span> <span class="kw">runif</span>(<span class="dt">n =</span> <span class="dv">50</span>, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">100</span>),
+  <span class="dt">y =</span> <span class="fl">5.055901</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.1848551</span><span class="op">*</span>x <span class="op">+</span><span class="st"> </span><span class="fl">0.00748706</span><span class="op">*</span>x<span class="op">^</span><span class="dv">2</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.00005543478</span><span class="op">*</span>x<span class="op">^</span><span class="dv">3</span> <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">50</span>, <span class="dt">sd =</span> <span class="fl">0.6</span>)
 )
 
 <span class="co"># model fit</span>
@@ -169,6 +170,27 @@ sim_mse &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/model-accuracy_files/figure-html/sim-train-model-1.png" width="672" /></p>
 <p>Here I synthesize an example dataset and fit three separate models to it: a linear regression fit, and two <strong>splines</strong> which permit more flexible relationships between <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>. Notice that as the flexibility increases, the models are more likely to fit the data. That is, the training MSE will decrease. But this does not guarantee the test MSE also decreases. Consider the trained models applied to an independent test set generated from the same underlying process:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_mse_test &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x =</span> <span class="kw">runif</span>(<span class="dt">n =</span> <span class="dv">50</span>, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">100</span>),
+  <span class="dt">y =</span> <span class="fl">5.055901</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.1848551</span> <span class="op">*</span><span class="st"> </span>x <span class="op">+</span><span class="st"> </span><span class="fl">0.00748706</span> <span class="op">*</span><span class="st"> </span>x<span class="op">^</span><span class="dv">2</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.00005543478</span> <span class="op">*</span><span class="st"> </span>x<span class="op">^</span><span class="dv">3</span> <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">50</span>, <span class="dt">sd =</span> <span class="fl">0.6</span>)
+)
+
+<span class="co"># model fit</span>
+<span class="kw">ggplot</span>(sim_mse, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">data =</span> sim_mse_test) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> <span class="cf">function</span>(x) <span class="fl">5.055901</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.1848551</span><span class="op">*</span>x <span class="op">+</span><span class="st"> </span><span class="fl">0.00748706</span><span class="op">*</span>x<span class="op">^</span><span class="dv">2</span> <span class="op">-</span><span class="st"> </span><span class="fl">0.00005543478</span><span class="op">*</span>x<span class="op">^</span><span class="dv">3</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;lm&quot;</span>), <span class="dt">method =</span> lm, <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;spline-low&quot;</span>), <span class="dt">method =</span> lm,
+              <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span>splines<span class="op">::</span><span class="kw">ns</span>(x, <span class="dv">5</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;spline-high&quot;</span>), <span class="dt">method =</span> lm,
+              <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span>splines<span class="op">::</span><span class="kw">ns</span>(x, <span class="dv">20</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Test data points&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Models estimated on training set&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
+<p><img src="/notes/model-accuracy_files/figure-html/sim-test-model-1.png" width="672" /></p>
 <p>It is not entirely clear, but these models no longer perform as well as compared to the training data. This divergence increases as the flexibility of the model increases.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_mse_test &lt;-<span class="st"> </span><span class="kw">tibble</span>(
   <span class="dt">x =</span> <span class="kw">runif</span>(<span class="dt">n =</span> <span class="fl">1e04</span>, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">100</span>),
@@ -202,13 +224,16 @@ train_test_mse <span class="op">%&gt;%</span>
 </div>
 <div id="bias-variance-trade-off" class="section level1">
 <h1><span class="header-section-number">3</span> Bias-variance trade-off</h1>
-<div id="bias-variance-decomposition" class="section level2">
-<h2><span class="header-section-number">3.1</span> Bias-variance decomposition</h2>
+<div id="bias-and-variance-defined" class="section level2">
+<h2><span class="header-section-number">3.1</span> Bias and variance defined</h2>
 <p><strong>Bias</strong> defines the error that is introduced by approximating a real-life problem using a simplified model. In the context of statistical learning, this is the amount by which the average of our estimate differs from the true mean:</p>
 <p><span class="math display">\[\text{Bias} = \E[\hat{f}(x_o)] - f(x_0)\]</span></p>
 <p>Generally speaking, we want to have little-to-no bias in our estimates; otherwise we are consistently estimating an incorrect value for <span class="math inline">\(\hat{f}(x_0)\)</span>.</p>
 <p><strong>Variance</strong> refers to the amount by which <span class="math inline">\(\hat{f}\)</span> would change if we estimated it using a different training data set. Formally, it is the expected squared deviation of <span class="math inline">\(\hat{f}(x_0)\)</span> around its mean:</p>
 <p><span class="math display">\[\text{Variance} = \E[\hat{f}(x_0) - \E[\hat{f}(x_0)]]^2\]</span></p>
+</div>
+<div id="bias-variance-decomposition" class="section level2">
+<h2><span class="header-section-number">3.2</span> Bias-variance decomposition</h2>
 <p>If we assume that <span class="math inline">\(Y = f(X) + \epsilon\)</span> where <span class="math inline">\(\E[\epsilon] = 0\)</span> and <span class="math inline">\(\Var(\epsilon) = \sigma^2_\epsilon\)</span>, we can derive an expression for the expected prediction error of a regression fit <span class="math inline">\(\hat{f}(X)\)</span> at an input point <span class="math inline">\(X = x_0\)</span> using squared-error loss:</p>
 <p><span class="math display">\[
 \begin{align}
@@ -218,7 +243,96 @@ train_test_mse <span class="op">%&gt;%</span>
 &amp;= \text{Irreducible Error} + \text{Bias}^2 + \text{Variance}
 \end{align}
 \]</span></p>
-<p>In order to minimize the expected test error rate, we need a statistical learning method that has both <strong>low bias</strong> and <strong>low variance</strong>. The difficulty is that few, if any, methods satisfy both requirements. As flexibility increases, the bias of a model will decrease but the variance will increase. Again, this is related to the problem of overfitting our training data set.</p>
+<p>In order to minimize the expected test error rate, we need a statistical learning method that has both <strong>low bias</strong> and <strong>low variance</strong>. The difficulty is that few, if any, methods satisfy both requirements. As flexibility increases, the bias of a model will decrease but the variance will increase. Consider our sample data from earlier:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(sim_mse, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Training data points&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y))</code></pre></div>
+<p><img src="/notes/model-accuracy_files/figure-html/sim-train-data-1.png" width="672" /></p>
+<p>A low bias, high variance modeling strategy would be to draw a curve that passes through every data point:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate KNN model, k = 1</span>
+sim_knn1 &lt;-<span class="st"> </span>FNN<span class="op">::</span><span class="kw">knn.reg</span>(sim_mse,
+                         <span class="dt">y =</span> sim_mse<span class="op">$</span>y,
+                         <span class="dt">test =</span> sim_mse,
+                         <span class="dt">k =</span> <span class="dv">1</span>)
+
+sim_mse <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">pred =</span> sim_knn1<span class="op">$</span>pred) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_step</span>(<span class="kw">aes</span>(<span class="dt">y =</span> pred)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Training data points&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y))</code></pre></div>
+<p><img src="/notes/model-accuracy_files/figure-html/sim-data-nn-1.png" width="672" /></p>
+<p>It has low bias because the training MSE is 0, but it has high variance because if we generate a new training set the model will be entirely different. Again, this is related to the problem of overfitting our training data set.</p>
+<p>Compare this to a method with high bias but low variance: a horizontal line at the mean:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(sim_mse, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="kw">mean</span>(sim_mse<span class="op">$</span>y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Training data points&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y))</code></pre></div>
+<p><img src="/notes/model-accuracy_files/figure-html/sim-data-mean-1.png" width="672" /></p>
+<p>The variance of our model <span class="math inline">\(\hat{f}\)</span> should be low since the mean value for any given independent sample from the population should possess the same basic characteristics. But this model has a lot more bias (aka a higher MSE) because its accuracy is not good.</p>
+<p>How do we actually account for this trade-off? That is to say, which should be most concerned with if we cannot reduce both components? Bias or variance? That entirely depends on our goals.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># set number of throws</span>
+numDarts &lt;-<span class="st"> </span><span class="dv">10</span>
+
+<span class="co"># throw numDarts number of darts and get the coordinates where they hit</span>
+throwDarts &lt;-<span class="st"> </span><span class="cf">function</span>(numDarts, <span class="dt">reliable =</span> <span class="ot">TRUE</span>, <span class="dt">valid =</span> <span class="ot">TRUE</span>) {
+  <span class="cf">if</span> (reliable <span class="op">&amp;</span><span class="st"> </span>valid) {
+    xvals &lt;-<span class="st"> </span><span class="kw">rnorm</span>(numDarts, <span class="dt">mean =</span> <span class="dv">0</span>, <span class="dt">sd =</span> .<span class="dv">05</span>)
+    yvals &lt;-<span class="st"> </span><span class="kw">rnorm</span>(numDarts, <span class="dt">mean =</span> <span class="dv">0</span>, <span class="dt">sd =</span> .<span class="dv">05</span>)
+  } <span class="cf">else</span> <span class="cf">if</span> (reliable <span class="op">==</span><span class="st"> </span><span class="ot">TRUE</span> <span class="op">&amp;</span><span class="st"> </span>valid <span class="op">==</span><span class="st"> </span><span class="ot">FALSE</span>) {
+    xvals &lt;-<span class="st"> </span><span class="kw">rnorm</span>(numDarts, <span class="dt">mean =</span> .<span class="dv">5</span>, <span class="dt">sd =</span> .<span class="dv">05</span>)
+    yvals &lt;-<span class="st"> </span><span class="kw">rnorm</span>(numDarts, <span class="dt">mean =</span> .<span class="dv">4</span>, <span class="dt">sd =</span> .<span class="dv">05</span>)
+  } <span class="cf">else</span> <span class="cf">if</span> (reliable <span class="op">==</span><span class="st"> </span><span class="ot">FALSE</span> <span class="op">&amp;</span><span class="st"> </span>valid <span class="op">==</span><span class="st"> </span><span class="ot">TRUE</span>) {
+    xvals &lt;-<span class="st"> </span><span class="kw">rnorm</span>(numDarts, <span class="dt">mean =</span> <span class="dv">0</span>, <span class="dt">sd =</span> .<span class="dv">3</span>)
+    yvals &lt;-<span class="st"> </span><span class="kw">rnorm</span>(numDarts, <span class="dt">mean =</span> <span class="dv">0</span>, <span class="dt">sd =</span> .<span class="dv">3</span>)
+  } <span class="cf">else</span> <span class="cf">if</span> (reliable <span class="op">==</span><span class="st"> </span><span class="ot">FALSE</span> <span class="op">&amp;</span><span class="st"> </span>valid <span class="op">==</span><span class="st"> </span><span class="ot">FALSE</span>) {
+    xvals &lt;-<span class="st"> </span><span class="kw">rnorm</span>(numDarts, <span class="dt">mean =</span> .<span class="dv">5</span>, <span class="dt">sd =</span> .<span class="dv">3</span>)
+    yvals &lt;-<span class="st"> </span><span class="kw">rnorm</span>(numDarts, <span class="dt">mean =</span> <span class="op">-</span>.<span class="dv">4</span>, <span class="dt">sd =</span> .<span class="dv">3</span>)
+  }
+  
+  <span class="kw">tibble</span>(
+    <span class="dt">x =</span> xvals,
+    <span class="dt">y =</span> yvals,
+    <span class="dt">reliable =</span> reliable,
+    <span class="dt">valid =</span> valid
+  )
+}
+
+<span class="co"># get data for each situation</span>
+throws &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
+  <span class="kw">throwDarts</span>(numDarts, <span class="dt">reliable =</span> <span class="ot">TRUE</span>, <span class="dt">valid =</span> <span class="ot">TRUE</span>),
+  <span class="kw">throwDarts</span>(numDarts, <span class="dt">reliable =</span> <span class="ot">TRUE</span>, <span class="dt">valid =</span> <span class="ot">FALSE</span>),
+  <span class="kw">throwDarts</span>(numDarts, <span class="dt">reliable =</span> <span class="ot">FALSE</span>, <span class="dt">valid =</span> <span class="ot">TRUE</span>),
+  <span class="kw">throwDarts</span>(numDarts, <span class="dt">reliable =</span> <span class="ot">FALSE</span>, <span class="dt">valid =</span> <span class="ot">FALSE</span>)
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(
+    <span class="dt">reliable =</span> <span class="kw">ifelse</span>(reliable, <span class="st">&quot;Low Variance&quot;</span>, <span class="st">&quot;High Variance&quot;</span>),
+    <span class="dt">valid =</span> <span class="kw">ifelse</span>(valid, <span class="st">&quot;Low Bias&quot;</span>, <span class="st">&quot;High Bias&quot;</span>)
+  )
+
+<span class="co"># plot the dart board, facet by each type</span>
+<span class="kw">ggplot</span>(<span class="dt">data =</span> throws, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">facet_grid</span>(reliable <span class="op">~</span><span class="st"> </span>valid) <span class="op">+</span>
+<span class="st">  </span>ggforce<span class="op">::</span><span class="kw">geom_circle</span>(<span class="kw">aes</span>(<span class="dt">x =</span> <span class="ot">NULL</span>, <span class="dt">y =</span> <span class="ot">NULL</span>, <span class="dt">x0 =</span> <span class="dv">0</span>, <span class="dt">y0 =</span> <span class="dv">0</span>, <span class="dt">r =</span> <span class="dv">1</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">alpha =</span> <span class="fl">0.5</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">xlim</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ylim</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">coord_fixed</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="ot">NULL</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="ot">NULL</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">annotate</span>(<span class="st">&quot;point&quot;</span>, <span class="dt">x =</span> <span class="dv">0</span>, <span class="dt">y =</span> <span class="dv">0</span>, <span class="dt">size =</span> <span class="dv">3</span>)</code></pre></div>
+<pre><code>## Warning: Removed 1 rows containing missing values (geom_point).</code></pre>
+<p><img src="/notes/model-accuracy_files/figure-html/darts-1.png" width="672" /></p>
+<p>Imagine that the center of the target is a model that perfectly predicts the correct values. As we move away from the bulls-eye, our predictions get worse and worse. Imagine we can repeat our entire model building process to get a number of separate hits on the target. Each hit represents an individual realization of our model, given the chance variability in the training data we gather. Sometimes we will get a good distribution of training data so we predict very well and we are close to the bulls-eye, while sometimes our training data might be full of outliers or non-standard values resulting in poorer predictions. These different realizations result in a scatter of hits on the target.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<p>Traditionally in statistics we are concerned with reducing the bias of our estimates. Consider one of the desirable properties of the ordinary least squares estimator: it is the <a href="https://en.wikipedia.org/wiki/Gauss%E2%80%93Markov_theorem">best linear unbiased estimator (BLUE)</a>. However linear regression models could be estimated with alternative estimators, such as ridge regression (see chapter 6 in [ISL]). These methods are not unbiased, but have lower variance. What is the value to such an estimator? One desirable quality is simplicity. As we will learn, ridge regression artificially biases the parameters in the regression model towards zero. This enables us to do things we could otherwise not do, such as estimate a regression model where the number of predictors is greater than the number of observations<span class="math inline">\(p &gt; n\)</span>.</p>
+<p>What if our ultimate goal is prediction? Then our primary concern is reducing the test error. Increasing bias slightly to more dramatically decrease variance could lead to a lower test error rate. In that situation, it could make sense to intentionally increase our bias.</p>
 </div>
 </div>
 <div id="applications-to-classification-models" class="section level1">
@@ -260,7 +374,7 @@ train_test_mse <span class="op">%&gt;%</span>
 </div>
 <div id="estimating-the-expected-test-error" class="section level1">
 <h1><span class="header-section-number">5</span> Estimating the expected test error</h1>
-<p>How can we estimate the expected test error rate when all we are given is a single data set? If our data set is sufficiently large, we randomly divide it into three parts:<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<p>How can we estimate the expected test error rate when all we are given is a single data set? If our data set is sufficiently large, we randomly divide it into three parts:<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
 <ol style="list-style-type: decimal">
 <li>Training set - used to fit the models</li>
 <li>Validation set - used to estimate prediction error for model selection</li>
@@ -294,7 +408,7 @@ train_test_mse <span class="op">%&gt;%</span>
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-01-08                  
+##  date     2019-01-09                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package     * version date       lib source                           
@@ -382,6 +496,7 @@ train_test_mse <span class="op">%&gt;%</span>
 <div class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Assuming we have a standard cross-sectional data set.<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p>Explanation drawn from <a href="http://scott.fortmann-roe.com/docs/BiasVariance.html">Understanding the Bias-Variance Tradeoff</a>.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Assuming we have a standard cross-sectional data set.<a href="#fnref2">↩</a></p></li>
 </ol>
 </div>
