@@ -32,7 +32,7 @@ theme_set(theme_minimal())
 
 **Statistical models** attempt to summarize relationships between variables by reducing the dimensionality of the data.^[These notes are a substantial summary of @james2013introduction.] For example, here we have some simulated data on sales of [Shamwow](https://www.shamwow.com/) in 200 different markets.
 
-![](/img/shamwow.jpg)
+<iframe width="560" height="315" src="https://www.youtube.com/embed/QwRISkyV_B8" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 Our goal is to improve sales of the Shamwow. Since we cannot directly increase sales of the product (unless we go out and buy it ourselves), our only option is to increase advertising across three potential mediums: newspaper, radio, and TV.
 
