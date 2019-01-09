@@ -63,6 +63,8 @@ knitr::opts_chunk$set(echo = FALSE)
 ## Slides and class materials
 
 * Slides
+* [Statistical learning](/notes/stat-learning)
+* [Assessing model accuracy](/notes/model-accuracy)
 
 ### Additional readings
 
