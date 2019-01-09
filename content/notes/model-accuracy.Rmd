@@ -27,7 +27,7 @@ library(here)
 theme_set(theme_minimal())
 ```
 
-$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}}$$
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\loglik}{\text{logLik}}$$
 
 # Reducible vs. irreducible error
 
@@ -328,9 +328,7 @@ What if our ultimate goal is prediction? Then our primary concern is reducing th
 
 The same basic principles apply to classification problems. The major difference is how we specify the loss function for a qualitative outcome.
 
-## Loss functions
-
-### Error rate
+## Error rate
 
 The most common approach is the **error rate**, or the proportion of mistakes that are made if we apply our estimate $\hat{f}$ to the observations:
 
@@ -344,7 +342,7 @@ $$\overline{I(y_0 \neq \hat{y}_0)}$$
 
 where $\hat{y}_0$ is the predicted class label that results from applying the classifier to the test observation with predictor $x_0$.
 
-### Cross-entropy
+## Cross-entropy
 
 Another commonly employed loss function for deep learning models is **cross-entropy**, or **log loss**. Cross-entropy loss increases as the predicted probability diverges from the actual label. So predicting a probability of $0.75$ when the actual observation label is 1 is not as bad as predicting a probability of $0.1$ when the actual observation label is 1. A perfect model would have a log loss of 0.
 
@@ -368,8 +366,6 @@ If $M > 2$, we calculate a separate loss for each class label per observation an
 
 $$- \sum_{c=1}^M y_{o,c} \log(p_{o,c})$$
 
-## Bayes classifier
-
 # Estimating the expected test error
 
 How can we estimate the expected test error rate when all we are given is a single data set? If our data set is sufficiently large, we randomly divide it into three parts:^[Assuming we have a standard cross-sectional data set.]
@@ -380,18 +376,58 @@ How can we estimate the expected test error rate when all we are given is a sing
 
 A general rule of thumb suggests 50% allocated for training, and 25% each for validation and testing.
 
-Commonly though, we do not have enough observations to allocate for each of these purposes. Remember that the fewer observations allocated to the training set, the more noisy the estimated model will be. Computational approaches such as cross-validation and bootstrapping allow us to efficiently use (and re-use) observations to provide reasonable samples for training, validating, and testing. We will cover those separately. Today, we consider a few methods which attempt to use the entire data set for training but still approximate the validation step analytically. These were used historically when computational power was not as prevalent.
+Commonly though, we do not have enough observations to allocate for each of these purposes. Remember that the fewer observations allocated to the training set, the more noisy the estimated model will be. Computational approaches such as cross-validation and bootstrapping allow us to efficiently use (and re-use) observations to provide reasonable samples for training, validating, and testing. We will cover those separately. Today, we consider a few methods which attempt to use the entire data set for training but still approximate the validation step analytically. These were used historically when computational power was not as prevalent. The examples focus on regression models, but these methods can be extended to classification models as well.
+
+## $C_p$
+
+The general form of the training set (in-sample) estimates for the error are
+
+$$\widehat{\text{Err}_{in}} = \overline{\text{Err}} + \hat{\omega}$$
+
+where $\hat{\omega}$ is an estimate of the average optimism (or bias) of the training error.
+
+**Mallow's $C_p$** estimates the test error as:
+
+$$C_p = \overline{\text{Err}} + 2 \times \frac{d}{N} \hat{\sigma}_\epsilon^2$$
+
+where
+
+* $d$ - number of parameters
+* $\hat{\sigma}^2$ - estimate of the variance of the error $\epsilon$ associated with each response measurement
+
+In essence, $C_p$ uses the training error as the starting point and adds a penalty of $2 \times \frac{d}{N} \hat{\sigma}_\epsilon^2$ to adjust for the bias in the training error. This approach is reasonable and actually is itself an unbiased estimator of the test error as long as $\hat{\sigma}^2$ is an unbiased estimate of $\sigma^2$. The smaller the $C_p$ statistic, the lower the test error. This statistic is only appropriate for models fit under squared error loss (such as linear regression).
 
 ## AIC
 
+The **Akaike information criterion** is similar to $C_p$ but generalizes to any situation where a log-likelihood loss function is used (e.g. maximum likelihood estimation). As $N \leadsto \infty$,
+
+$$-2 \times \E[\log (\Pr_{\hat{\Theta}}(Y)] \approx - \frac{2}{N} \times \E[\loglik] + 2 \times \frac{d}{N}$$
+
+where $\Pr_{\Theta}(Y)$ is a probability density function (PDF) for $Y$, $\hat{\Theta}$ is the maximum-likelihood estimate of $\Theta$, and $\loglik$ is the maximized log-likelihood function. For a logistic regression model using the binomial log-likelihood, we have
+
+$$AIC = -\frac{2}{N} \times \loglik + 2 \times \frac{d}{N}$$
+
+For the Gaussian model (i.e. linear regression) with variance $\sigma_\epsilon^2 = \hat{\sigma}_\epsilon^2$ assumed known,
+
+$$-2 \times \loglik = \frac{\sum_{i=1}^N (y_i - \hat{f}(x_i))^2}{\sigma_\epsilon^2}$$
+
+which is $N \times \overline{\text{Err}} / \sigma_\epsilon^2$ for squared error loss. Plugging this into our AIC equation leads us right back to 
+
+$$AIC = \overline{\text{Err}} + 2 \times \frac{d}{N} \hat{\sigma}_\epsilon^2$$
+
+To use AIC for model selection, we choose the model giving the smallest AIC over the set of models considered.
 
 ## BIC
 
+The **Bayesian information criterion** is similar to the AIC, but motivated quite differently.^[See ESL ch 7.7 for more details.] Like the AIC, it is applicable in settings where the fitting is carried out by maximization of a log-likelihood. The generic form is
 
-## MDL
+$$BIC = -2 \times \loglik + \log(N) \times d$$
 
+As with AIC, under the Gaussian model we can write this as
 
-## SRM
+$$BIC = \frac{N}{\sigma_\epsilon^2} \left[ \overline{\text{Err}} + \log (N) \times \frac{d}{N} \sigma_\epsilon^2 \right]$$
+
+Therefore BIC is proportional to AIC with the factor $2$ replaced by $\log (N)$. The major difference is that BIC tends to penalize complex models more heavily, giving preference to simpler models in selection.
 
 # Session Info {.toc-ignore}
 

@@ -65,17 +65,13 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#bias-variance-decomposition"><span class="toc-section-number">3.2</span> Bias-variance decomposition</a></li>
 </ul></li>
 <li><a href="#applications-to-classification-models"><span class="toc-section-number">4</span> Applications to classification models</a><ul>
-<li><a href="#loss-functions"><span class="toc-section-number">4.1</span> Loss functions</a><ul>
-<li><a href="#error-rate"><span class="toc-section-number">4.1.1</span> Error rate</a></li>
-<li><a href="#cross-entropy"><span class="toc-section-number">4.1.2</span> Cross-entropy</a></li>
-</ul></li>
-<li><a href="#bayes-classifier"><span class="toc-section-number">4.2</span> Bayes classifier</a></li>
+<li><a href="#error-rate"><span class="toc-section-number">4.1</span> Error rate</a></li>
+<li><a href="#cross-entropy"><span class="toc-section-number">4.2</span> Cross-entropy</a></li>
 </ul></li>
 <li><a href="#estimating-the-expected-test-error"><span class="toc-section-number">5</span> Estimating the expected test error</a><ul>
-<li><a href="#aic"><span class="toc-section-number">5.1</span> AIC</a></li>
-<li><a href="#bic"><span class="toc-section-number">5.2</span> BIC</a></li>
-<li><a href="#mdl"><span class="toc-section-number">5.3</span> MDL</a></li>
-<li><a href="#srm"><span class="toc-section-number">5.4</span> SRM</a></li>
+<li><a href="#c_p"><span class="toc-section-number">5.1</span> <span class="math inline">\(C_p\)</span></a></li>
+<li><a href="#aic"><span class="toc-section-number">5.2</span> AIC</a></li>
+<li><a href="#bic"><span class="toc-section-number">5.3</span> BIC</a></li>
 </ul></li>
 <li><a href="#session-info"><span class="toc-section-number">6</span> Session Info</a></li>
 <li><a href="#references"><span class="toc-section-number">7</span> References</a></li>
@@ -86,7 +82,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <span class="kw">library</span>(broom)
 <span class="kw">library</span>(here)
 <span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
-<p><span class="math display">\[\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}}\]</span></p>
+<p><span class="math display">\[\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\loglik}{\text{logLik}}\]</span></p>
 <div id="reducible-vs.irreducible-error" class="section level1">
 <h1><span class="header-section-number">1</span> Reducible vs. irreducible error</h1>
 <p>Consider a set of inouts <span class="math inline">\(X\)</span> and an outcome <span class="math inline">\(Y\)</span>. We can estimate a generic function</p>
@@ -338,10 +334,8 @@ throws &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
 <div id="applications-to-classification-models" class="section level1">
 <h1><span class="header-section-number">4</span> Applications to classification models</h1>
 <p>The same basic principles apply to classification problems. The major difference is how we specify the loss function for a qualitative outcome.</p>
-<div id="loss-functions" class="section level2">
-<h2><span class="header-section-number">4.1</span> Loss functions</h2>
-<div id="error-rate" class="section level3">
-<h3><span class="header-section-number">4.1.1</span> Error rate</h3>
+<div id="error-rate" class="section level2">
+<h2><span class="header-section-number">4.1</span> Error rate</h2>
 <p>The most common approach is the <strong>error rate</strong>, or the proportion of mistakes that are made if we apply our estimate <span class="math inline">\(\hat{f}\)</span> to the observations:</p>
 <p><span class="math display">\[\frac{1}{n} \sum_{n = 1}^{n} I(y_i \neq \hat{y}_i)\]</span></p>
 <p>where <span class="math inline">\(\hat{y}_i\)</span> is the predicted classification label for the <span class="math inline">\(i\)</span>th observation using some estimated function <span class="math inline">\(\hat{f}\)</span>, and <span class="math inline">\(I(y_i \neq \hat{y}_i)\)</span> is an <strong>indicator</strong> function that equals 1 if <span class="math inline">\(y_i \neq \hat{y}_i\)</span> and 0 if <span class="math inline">\(y_i = \hat{y}_i\)</span> (i.e. if the observation was correctly classified).</p>
@@ -349,8 +343,8 @@ throws &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
 <p><span class="math display">\[\overline{I(y_0 \neq \hat{y}_0)}\]</span></p>
 <p>where <span class="math inline">\(\hat{y}_0\)</span> is the predicted class label that results from applying the classifier to the test observation with predictor <span class="math inline">\(x_0\)</span>.</p>
 </div>
-<div id="cross-entropy" class="section level3">
-<h3><span class="header-section-number">4.1.2</span> Cross-entropy</h3>
+<div id="cross-entropy" class="section level2">
+<h2><span class="header-section-number">4.2</span> Cross-entropy</h2>
 <p>Another commonly employed loss function for deep learning models is <strong>cross-entropy</strong>, or <strong>log loss</strong>. Cross-entropy loss increases as the predicted probability diverges from the actual label. So predicting a probability of <span class="math inline">\(0.75\)</span> when the actual observation label is 1 is not as bad as predicting a probability of <span class="math inline">\(0.1\)</span> when the actual observation label is 1. A perfect model would have a log loss of 0.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(
   <span class="dt">prob =</span> <span class="kw">seq</span>(<span class="fl">0.001</span>, <span class="dv">1</span>, <span class="dt">by =</span> <span class="fl">0.001</span>),
@@ -368,10 +362,6 @@ throws &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
 <p><span class="math display">\[- \sum_{c=1}^M y_{o,c} \log(p_{o,c})\]</span></p>
 </div>
 </div>
-<div id="bayes-classifier" class="section level2">
-<h2><span class="header-section-number">4.2</span> Bayes classifier</h2>
-</div>
-</div>
 <div id="estimating-the-expected-test-error" class="section level1">
 <h1><span class="header-section-number">5</span> Estimating the expected test error</h1>
 <p>How can we estimate the expected test error rate when all we are given is a single data set? If our data set is sufficiently large, we randomly divide it into three parts:<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
@@ -381,18 +371,40 @@ throws &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
 <li>Test set - used for assessment of the generalization error of the final chosen model</li>
 </ol>
 <p>A general rule of thumb suggests 50% allocated for training, and 25% each for validation and testing.</p>
-<p>Commonly though, we do not have enough observations to allocate for each of these purposes. Remember that the fewer observations allocated to the training set, the more noisy the estimated model will be. Computational approaches such as cross-validation and bootstrapping allow us to efficiently use (and re-use) observations to provide reasonable samples for training, validating, and testing. We will cover those separately. Today, we consider a few methods which attempt to use the entire data set for training but still approximate the validation step analytically. These were used historically when computational power was not as prevalent.</p>
+<p>Commonly though, we do not have enough observations to allocate for each of these purposes. Remember that the fewer observations allocated to the training set, the more noisy the estimated model will be. Computational approaches such as cross-validation and bootstrapping allow us to efficiently use (and re-use) observations to provide reasonable samples for training, validating, and testing. We will cover those separately. Today, we consider a few methods which attempt to use the entire data set for training but still approximate the validation step analytically. These were used historically when computational power was not as prevalent. The examples focus on regression models, but these methods can be extended to classification models as well.</p>
+<div id="c_p" class="section level2">
+<h2><span class="header-section-number">5.1</span> <span class="math inline">\(C_p\)</span></h2>
+<p>The general form of the training set (in-sample) estimates for the error are</p>
+<p><span class="math display">\[\widehat{\text{Err}_{in}} = \overline{\text{Err}} + \hat{\omega}\]</span></p>
+<p>where <span class="math inline">\(\hat{\omega}\)</span> is an estimate of the average optimism (or bias) of the training error.</p>
+<p><strong>Mallow’s <span class="math inline">\(C_p\)</span></strong> estimates the test error as:</p>
+<p><span class="math display">\[C_p = \overline{\text{Err}} + 2 \times \frac{d}{N} \hat{\sigma}_\epsilon^2\]</span></p>
+<p>where</p>
+<ul>
+<li><span class="math inline">\(d\)</span> - number of parameters</li>
+<li><span class="math inline">\(\hat{\sigma}^2\)</span> - estimate of the variance of the error <span class="math inline">\(\epsilon\)</span> associated with each response measurement</li>
+</ul>
+<p>In essence, <span class="math inline">\(C_p\)</span> uses the training error as the starting point and adds a penalty of <span class="math inline">\(2 \times \frac{d}{N} \hat{\sigma}_\epsilon^2\)</span> to adjust for the bias in the training error. This approach is reasonable and actually is itself an unbiased estimator of the test error as long as <span class="math inline">\(\hat{\sigma}^2\)</span> is an unbiased estimate of <span class="math inline">\(\sigma^2\)</span>. The smaller the <span class="math inline">\(C_p\)</span> statistic, the lower the test error. This statistic is only appropriate for models fit under squared error loss (such as linear regression).</p>
+</div>
 <div id="aic" class="section level2">
-<h2><span class="header-section-number">5.1</span> AIC</h2>
+<h2><span class="header-section-number">5.2</span> AIC</h2>
+<p>The <strong>Akaike information criterion</strong> is similar to <span class="math inline">\(C_p\)</span> but generalizes to any situation where a log-likelihood loss function is used (e.g. maximum likelihood estimation). As <span class="math inline">\(N \leadsto \infty\)</span>,</p>
+<p><span class="math display">\[-2 \times \E[\log (\Pr_{\hat{\Theta}}(Y)] \approx - \frac{2}{N} \times \E[\loglik] + 2 \times \frac{d}{N}\]</span></p>
+<p>where <span class="math inline">\(\Pr_{\Theta}(Y)\)</span> is a probability density function (PDF) for <span class="math inline">\(Y\)</span>, <span class="math inline">\(\hat{\Theta}\)</span> is the maximum-likelihood estimate of <span class="math inline">\(\Theta\)</span>, and <span class="math inline">\(\loglik\)</span> is the maximized log-likelihood function. For a logistic regression model using the binomial log-likelihood, we have</p>
+<p><span class="math display">\[AIC = -\frac{2}{N} \times \loglik + 2 \times \frac{d}{N}\]</span></p>
+<p>For the Gaussian model (i.e. linear regression) with variance <span class="math inline">\(\sigma_\epsilon^2 = \hat{\sigma}_\epsilon^2\)</span> assumed known,</p>
+<p><span class="math display">\[-2 \times \loglik = \frac{\sum_{i=1}^N (y_i - \hat{f}(x_i))^2}{\sigma_\epsilon^2}\]</span></p>
+<p>which is <span class="math inline">\(N \times \overline{\text{Err}} / \sigma_\epsilon^2\)</span> for squared error loss. Plugging this into our AIC equation leads us right back to</p>
+<p><span class="math display">\[AIC = \overline{\text{Err}} + 2 \times \frac{d}{N} \hat{\sigma}_\epsilon^2\]</span></p>
+<p>To use AIC for model selection, we choose the model giving the smallest AIC over the set of models considered.</p>
 </div>
 <div id="bic" class="section level2">
-<h2><span class="header-section-number">5.2</span> BIC</h2>
-</div>
-<div id="mdl" class="section level2">
-<h2><span class="header-section-number">5.3</span> MDL</h2>
-</div>
-<div id="srm" class="section level2">
-<h2><span class="header-section-number">5.4</span> SRM</h2>
+<h2><span class="header-section-number">5.3</span> BIC</h2>
+<p>The <strong>Bayesian information criterion</strong> is similar to the AIC, but motivated quite differently.<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> Like the AIC, it is applicable in settings where the fitting is carried out by maximization of a log-likelihood. The generic form is</p>
+<p><span class="math display">\[BIC = -2 \times \loglik + \log(N) \times d\]</span></p>
+<p>As with AIC, under the Gaussian model we can write this as</p>
+<p><span class="math display">\[BIC = \frac{N}{\sigma_\epsilon^2} \left[ \overline{\text{Err}} + \log (N) \times \frac{d}{N} \sigma_\epsilon^2 \right]\]</span></p>
+<p>Therefore BIC is proportional to AIC with the factor <span class="math inline">\(2\)</span> replaced by <span class="math inline">\(\log (N)\)</span>. The major difference is that BIC tends to penalize complex models more heavily, giving preference to simpler models in selection.</p>
 </div>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
@@ -498,5 +510,6 @@ throws &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
 <ol>
 <li id="fn1"><p>Explanation drawn from <a href="http://scott.fortmann-roe.com/docs/BiasVariance.html">Understanding the Bias-Variance Tradeoff</a>.<a href="#fnref1">↩</a></p></li>
 <li id="fn2"><p>Assuming we have a standard cross-sectional data set.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>See ESL ch 7.7 for more details.<a href="#fnref3">↩</a></p></li>
 </ol>
 </div>
