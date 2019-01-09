@@ -93,12 +93,6 @@ Using rule 1 of the <a href="https://model.uchicago.edu/notes/build-a-model/#thr
 <p><span class="math display">\[\Pr(Y = j | X = x_0)\]</span></p>
 <p>where <span class="math inline">\(x_0\)</span> is the test observation and each possible class is represented by <span class="math inline">\(J\)</span>. This is a <strong>conditional probability</strong> that <span class="math inline">\(Y = j\)</span>, given the observed predictor vector <span class="math inline">\(x_0\)</span>. This classifier is known as the <strong>Bayes classifier</strong>. If the response variable is binary (i.e. two classes), the Bayes classifier corresponds to predicting class one if <span class="math inline">\(\Pr(Y = 1 | X = x_0) &gt; 0.5\)</span>, and class two otherwise.</p>
 <p>Figure 2.13 in [ISL] illustrates a simulated example defining the decision boundary for a hypothetical data set. Produce a graph illustrating this concept. Specifically, implement the following elements in your program:</p>
-<ol style="list-style-type: decimal">
-<li>For classification problems, the test error rate is minimized by a simple classifier that assigns each observation to the most likely class given its predictor values:</li>
-</ol>
-<p><span class="math display">\[\Pr(Y = j | X = x_0)\]</span></p>
-<p>where <span class="math inline">\(x_0\)</span> is the test observation and each possible class is represented by <span class="math inline">\(J\)</span>. This is a <strong>conditional probability</strong> that <span class="math inline">\(Y = j\)</span>, given the observed predictor vector <span class="math inline">\(x_0\)</span>. This classifier is known as the <strong>Bayes classifier</strong>. If the response variable is binary (i.e. two classes), the Bayes classifier corresponds to predicting class one if <span class="math inline">\(\Pr(Y = 1 | X = x_0) &gt; 0.5\)</span>, and class two otherwise.</p>
-<p>Figure 2.13 in [ISL] illustrates a simulated example defining the decision boundary for a hypothetical data set. Produce a graph illustrating this concept. Specifically, implement the following elements in your program:</p>
 <ol style="list-style-type: lower-alpha">
 <li>Set your random number generator seed.</li>
 <li>Simulate a dataset of <span class="math inline">\(N = 200\)</span> with <span class="math inline">\(X_1, X_2\)</span> where <span class="math inline">\(X_1, X_2\)</span> are random uniform variables between <span class="math inline">\([0,1]\)</span>.</li>

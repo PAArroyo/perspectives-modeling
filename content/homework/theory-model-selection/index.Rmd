@@ -78,14 +78,6 @@ For each of the following questions, produce brief written answers and/or the re
     
     Figure 2.13 in [ISL] illustrates a simulated example defining the decision boundary for a hypothetical data set. Produce a graph illustrating this concept. Specifically, implement the following elements in your program:
     
-    1. For classification problems, the test error rate is minimized by a simple classifier that assigns each observation to the most likely class given its predictor values:
-
-    $$\Pr(Y = j | X = x_0)$$
-    
-    where $x_0$ is the test observation and each possible class is represented by $J$. This is a **conditional probability** that $Y = j$, given the observed predictor vector $x_0$. This classifier is known as the **Bayes classifier**. If the response variable is binary (i.e. two classes), the Bayes classifier corresponds to predicting class one if $\Pr(Y = 1 | X = x_0) > 0.5$, and class two otherwise.
-    
-    Figure 2.13 in [ISL] illustrates a simulated example defining the decision boundary for a hypothetical data set. Produce a graph illustrating this concept. Specifically, implement the following elements in your program:
-    
     a. Set your random number generator seed.
     a. Simulate a dataset of $N = 200$ with $X_1, X_2$ where $X_1, X_2$ are random uniform variables between $[0,1]$.
     a. Calculate $Y = X_1 + X_1^2 + X_2 + X_2^2 + \epsilon$, where $\epsilon \sim N(\mu = 0, \theta^2 = 0.25)$.
