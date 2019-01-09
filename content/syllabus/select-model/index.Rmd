@@ -62,7 +62,10 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Slides and class materials
 
-* Slides
+```{r slides}
+knitr::include_url("/slides/select-model.html", height = "505px")
+```
+
 * [Statistical learning](/notes/stat-learning)
 * [Assessing model accuracy](/notes/model-accuracy)
 
@@ -74,3 +77,4 @@ knitr::opts_chunk$set(echo = FALSE)
 ## What you need to do
 
 * [Register your GitHub username for the course](https://goo.gl/forms/vqwIztpqLb5Dhs3e2) -- all homework assignments will be in **private repositories**. Private repos can only be seen and edited by members of our [course organization](https://github.com/css-model). Once you register your GitHub account, I will invite you to join the course organization. If you don't register your account, you won't have access to any of the homework assignments.
+* Start [homework 01](/homework/theory-model-selection/)
