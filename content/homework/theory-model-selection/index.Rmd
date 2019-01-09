@@ -58,22 +58,18 @@ a. Using the model from (b), make at least three interesting predictions. Use th
     
     Be sure that the logical connection between your model and your predictions is clearly stated; and if you are using some facts about the world, state them explicitly.^[Treat them like assumptions -- they do not have to be documented, but they do have to be explicitly stated so that your derivation can be understood by others.]
 
-## Waiting until the last minute
-
-> People often do things at the last minute (students turning in papers, professors grading exams, and so on).
-
-a. Ask yourself **why** the observation might be true and write down your explanations.
-a. Generalize the explanatory model -- that is, induce the most general, abstract model you can produce that still has the original observation as a consequence.
-a. Induce an alternative model that also has the original observation as a consequence.
-a. For each of the two general models produced in (b) and (c), derive two interesting predictions (four predictions in total). Be sure the logical connection between your model and your predictions is explicitly stated and that any assumed facts concerning the world are made explicit.
-
 # Selecting and fitting a model (5 points)
+
+For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). Any questions requiring code should be reproducible. Recommended document formats are $\LaTeX$ rendered as PDF, Jupyter Notebook (`.ipynb`), or R Markdown (`.Rmd`) rendered as `github_document` or `pdf_document`.
 
 1. For each part, indicate whether we would generally expect the performance of a flexible statistical learning method to be better or worse than an inflexible method. Justify your answer.
     a. The sample size $n$ is extremely large, and the number of predictors $p$ is small.
     a. The number of predictors $p$ is extremely large, and the number of observations $n$ is small.
     a. The relationship between the predictors and response is highly non-linear.
     a. The variance of the error terms $\sigma^2 = \Var(\epsilon)$ is extremely high.
+1. Bias-variance decomposition
+    a. Generate a graph of typical (squared) bias, variance, training error, test error, and Bayes (irreducible) error curves, on a single plot, as we go from less flexible statistical learning methods towards more flexible approaches. The $x$-axis should represent the amount of flexibility in the method, and the $y$-axis should represent the values for each curve. There should be five curves. Make sure to label each one.
+    a. Explain why each of the five curves has the shape displayed in part (a).
 1. For classification problems, the test error rate is minimized by a simple classifier that assigns each observation to the most likely class given its predictor values:
 
     $$\Pr(Y = j | X = x_0)$$
