@@ -1,0 +1,811 @@
+---
+title: "Selecting and Fitting a Model"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2)
+
+library(tidyverse)
+library(here)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 20))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\loglik}{\text{logLik}}$$
+
+# Statistical learning
+
+> Attempt to summarize relationships between variables by reducing the dimensionality of the data
+
+--
+
+.center[
+<iframe width="560" height="315" src="https://www.youtube.com/embed/QwRISkyV_B8" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+]
+
+---
+
+# Improve Shamwow sales
+
+* Sales of Shamwows (output)
+* Advertising budget (input)
+    * Newspaper
+    * Radio
+    * TV
+    
+---
+
+class: center
+
+# Improve Shamwow sales
+
+```{r get_ad, message = FALSE, warning = FALSE}
+# get advertising data
+advertising <- read_csv(here("static", "data", "Advertising.csv")) %>%
+  tbl_df() %>%
+  # remove id column
+  select(-X1)
+```
+
+```{r plot_ad, dependson="get_ad"}
+# plot separate facets for relationship between ad spending and sales
+plot_ad <- advertising %>%
+  gather(method, spend, -Sales) %>%
+  ggplot(aes(spend, Sales)) +
+  facet_wrap(~ method, scales = "free_x") +
+  geom_point() +
+  labs(x = "Spending (in thousands of dollars)")
+plot_ad
+```
+
+---
+
+# Statistical learning
+
+$$Y = f(X) + \epsilon$$
+
+* Set of approaches for estimating $f$
+* Least squares
+
+--
+
+.center[
+
+```{r plot_ad_fit, fig.height=6}
+plot_ad +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+]
+---
+
+# Why estimate $f$?
+
+## Prediction
+
+* Use our knowledge of the relationship between $X$ and $Y$ to predict $Y$ for given values of $X$
+* Treat $f$ as a black box
+
+--
+
+## Inference
+
+* Use our knowledge of $X$ and $Y$ to understand the relationship between the variables
+* Interested in the explanation, not the prediction
+* Learn about the process and generalize it
+
+--
+
+> How do we estimate $f$?
+
+---
+
+# Parametric methods
+
+1. Make an assumption about the functional form of $f$
+1. After a model has been selected, fit the data to the functional form
+
+--
+
+.center[
+```{r plot_parametric, dependson="get_ad", fig.height=6}
+method_model <- function(df) {
+  lm(Sales ~ spend, data = df)
+}
+
+ad_pred <- advertising %>%
+  gather(method, spend, -Sales) %>%
+  group_by(method) %>%
+  nest() %>%
+  mutate(model = map(data, method_model),
+         pred = map(model, broom::augment)) %>%
+  unnest(pred)
+
+plot_ad +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_linerange(data = ad_pred,
+                 aes(ymin = Sales, ymax = .fitted),
+                 color = "blue",
+                 alpha = .5) 
+```
+]
+
+---
+
+# Parametric methods
+
+* Simplify the problem of estimating $f$ to a set of parameters in a function
+
+    $$Y = \beta_0 + \beta_{1}X_1$$
+
+* Assumes a specific functional form
+* What if relationship is linear? What if it is not?
+* Requires a priori knowledge
+
+---
+
+# Non-parametric methods
+
+* No assumptions about the specific functional form of $f$
+* Use the data directly to estimate $f$
+* Get close to the data points without becoming overly complex
+* Requires a large set of observations to avoid overfitting
+
+---
+
+# Locally weighted scatterplot smoothing
+
+* Estimates a regression line based on localized subsets of the data
+* Builds up the global function $\hat{f}$ point-by-point
+
+--
+
+.center[
+```{r loess, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6}
+library(broom)
+library(lattice)
+
+mod <- loess(NOx ~ E, ethanol, degree = 1, span = .75)
+fit <- augment(mod)
+
+ggplot(fit, aes(E, NOx)) +
+  geom_point() +
+  geom_line(aes(y = .fitted), color = "red") +
+  labs(x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J")
+```
+]
+
+---
+
+# Locally weighted scatterplot smoothing
+
+* Estimates a regression line based on localized subsets of the data
+* Builds up the global function $\hat{f}$ point-by-point
+
+.center[
+
+```{r loess_buildup, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4}
+dat <- ethanol %>%
+  crossing(center = unique(ethanol$E)) %>%
+  mutate(dist = abs(E - center)) %>%
+  filter(rank(dist) / n() <= .75) %>%
+  mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
+
+library(gganimate)
+
+ggplot(dat, aes(E, NOx)) +
+  geom_point(aes(alpha = weight)) +
+  geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
+  geom_vline(aes(xintercept = center), lty = 2) +
+  geom_line(aes(y = .fitted), data = fit, color = "red") +
+  labs(title = "Centered over {closest_state}",
+       x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J") +
+  transition_states(center,
+                    transition_length = 2,
+                    state_length = 1) +
+  ease_aes("cubic-in-out")
+```
+]
+
+---
+
+# Locally weighted scatterplot smoothing
+
+* Controlling the span
+
+.center[
+
+```{r loess_span, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4}
+spans <- c(.25, .5, .75, 1)
+
+# create loess fits, one for each span
+fits <- data_frame(span = spans) %>%
+  group_by(span) %>%
+  do(augment(loess(NOx ~ E, ethanol, degree = 1, span = .$span)))
+
+# calculate weights to reproduce this with local weighted fits
+dat <- ethanol %>%
+  crossing(span = spans, center = unique(ethanol$E)) %>%
+  mutate(dist = abs(E - center)) %>%
+  filter(rank(dist) / n() <= span) %>%
+  mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
+
+# create faceted plot with changing points, local linear fits, and vertical lines,
+# and constant hollow points and loess fit
+ggplot(dat, aes(E, NOx)) +
+  geom_point(aes(alpha = weight)) +
+  geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
+  geom_vline(aes(xintercept = center), lty = 2) +
+  geom_point(shape = 1, data = ethanol, alpha = .25) +
+  geom_line(aes(y = .fitted), data = fits, color = "red") +
+  facet_wrap(~span) +
+  ylim(0, 5) +
+  ggtitle("x0 = ") +
+  labs(title = "Centered over {closest_state}",
+       x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J") +
+  transition_states(center,
+                    transition_length = 2,
+                    state_length = 1) +
+  ease_aes("cubic-in-out")
+```
+]
+
+---
+
+class: center
+
+# Accuracy vs. interpretability
+
+```{r trade-off}
+tribble(
+  ~method, ~flex, ~interpret,
+  "Subset selection", 0, 1,
+  "Lasso regression", 0, 1,
+  "Least squares", 0.3, .8,
+  "Generalized additive models", 0.5, 0.5,
+  "Decision trees", 0.5, 0.5,
+  "Bagging, boosting", 0.9, 0.2,
+  "Support vector machines", 0.8, 0.1,
+  "Deep learning", 1, 0
+) %>%
+  ggplot(aes(flex, interpret)) +
+  ggrepel::geom_text_repel(aes(label = method),
+                           segment.colour = NA) +
+  scale_x_continuous(breaks = c(0, 1),
+                     labels = c("Low", "High")) +
+  scale_y_continuous(breaks = c(0, 1),
+                     labels = c("Low", "High")) +
+  labs(x = "Flexibility",
+       y = "Interpretability") +
+  theme_classic() +
+  theme(panel.grid = element_blank())
+```
+
+---
+
+# Supervised vs. unsupervised learning
+
+* Supervised learning
+* Unsupervised learning
+
+---
+
+# Learning
+
+* Statistical learning
+* Machine learning
+
+--
+* Different origins
+* Different goals
+
+--
+* Lots of overlap
+
+---
+
+# Classification vs. regression
+
+* Quantitative variables
+    * `0, 5, 3.5`
+--
+* Qualitative variables
+    * Discrete classes/categories
+    * Yes/no
+    * Male/female
+--
+* Methods for regression
+* Methods for classification
+* Focus on the predictors
+
+---
+
+# Model estimation strategies
+
+* Statistical learning
+* Model estimation
+
+---
+
+# Generalized linear models
+
+* Flexible class of models
+* Estimate linear regression for response variables that have error distribution models other than the normal distribution
+
+--
+* Components
+    1. Random component specifying the conditional distribution of the response variable $Y_i$
+    1. Linear predictor
+        $$\eta_i = \beta_{0} + \beta_{1}X_{i1} + \beta_{2}X_{i2} + \dots + \beta_{k}X_{ik}$$
+    1. Link function $g(\cdot)$ which transforms the expectation of the response variable, $\mu_i \equiv E(Y_i)$ to the linear predictor:
+        $$g(\mu_i) = \eta_i = \beta_{0} + \beta_{1}X_{i1} + \beta_{2}X_{i2} + \dots + \beta_{k}X_{ik}$$
+
+--
+
+* GLM is the statistical learning model
+* How to estimate the model?
+    * Maximum likelihood
+    * Generalized method of moments
+    * Bayesian MCMC
+
+---
+
+# Reducible vs. irreducible error
+
+$$\hat{Y} = \hat{f}(X)$$
+
+* Different statistical learning algorithms lead to different estimates of $\hat{f}$ and $\hat{Y}$.
+* Accuracy of $\hat{Y}$ depends on:
+
+--
+
+### Reducible error
+
+* Error generated by using an inappropriate or suboptimal technique to estimate $f$
+* Reducible error can be reduced
+
+--
+
+### Irreducible error
+
+$$\hat{Y} = f(X)$$
+
+--
+
+$$Y = f(X) + \epsilon$$
+
+---
+
+# Reducible vs. irreducible error
+
+$$
+\begin{align}
+\E(Y - \bar{Y})^2 &= \E[f(X) + \epsilon - \hat{f}(X)]^2 \\
+&= \underbrace{[f(X) - \hat{f}(X)]^2}_{\text{Reducible}} + \underbrace{\Var (\epsilon)}_{\text{Irreducible}}
+\end{align}
+$$
+
+---
+
+# Quality of fit
+
+$$
+L(Y, \hat{f}(X)) =
+\begin{cases}
+    (Y - \hat{f}(X))^2 & \quad \text{squared error} \\
+    \mid Y - \hat{f}(X) \mid & \quad \text{absolute error}
+\end{cases}
+$$
+
+* Loss/cost function
+
+--
+
+* Mean squared error
+
+    $$MSE = \frac{1}{N} \sum_{i = 1}^{N}{(y_i - \hat{f}(x_i))^2}$$
+
+    * $y_i =$ the observed response value for the $i$th observation
+    * $\hat{f}(x_i) =$ the predicted response value for the $i$th observation given by $\hat{f}$
+    * $N =$ the total number of observations
+* Identify a model that generates the smallest possible MSE
+
+---
+
+# Training vs. test error
+
+* Training error
+    
+    $$\overline{\text{Err}} = \frac{1}{N} \sum_{i = 1}^{N}{L(y_i, \hat{f}(x_i))}$$
+
+--
+
+* Test error
+
+    $$\text{Err}_\tau = \E[L(Y, \hat{f}(X)) | \tau]$$
+
+--
+
+* Expected test error
+
+    $$\text{Err} = \E[L(Y, \hat{f}(X))] = \E[\text{Err}_\tau]$$
+
+---
+
+class: center
+
+# Optimism of training error
+
+```{r sim-train-model}
+# simulate data from ISL figure 2.9
+sim_mse <- tibble(
+  x = runif(n = 50, min = 0, max = 100),
+  y = 5.055901 - 0.1848551*x + 0.00748706*x^2 - 0.00005543478*x^3 + rnorm(50, sd = 0.6)
+)
+
+# model fit
+ggplot(sim_mse, aes(x, y)) +
+  geom_point() +
+  stat_function(fun = function(x) 5.055901 - 0.1848551*x + 0.00748706*x^2 - 0.00005543478*x^3) +
+  geom_smooth(aes(color = "lm"), method = lm, se = FALSE) +
+  geom_smooth(aes(color = "spline-low"), method = lm,
+              formula = y ~ splines::ns(x, 5), se = FALSE) +
+  geom_smooth(aes(color = "spline-high"), method = lm,
+              formula = y ~ splines::ns(x, 20), se = FALSE) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Training data points",
+       subtitle = "Models estimated on training set",
+       x = expression(X),
+       y = expression(Y)) +
+  theme(legend.position = "none")
+```
+
+---
+
+class: center
+
+# Optimism of training error
+
+```{r sim-test-model, dependson = "sim-train-mse"}
+sim_mse_test <- tibble(
+  x = runif(n = 50, min = 0, max = 100),
+  y = 5.055901 - 0.1848551 * x + 0.00748706 * x^2 - 0.00005543478 * x^3 + rnorm(50, sd = 0.6)
+)
+
+# model fit
+ggplot(sim_mse, aes(x, y)) +
+  geom_point(data = sim_mse_test) +
+  stat_function(fun = function(x) 5.055901 - 0.1848551*x + 0.00748706*x^2 - 0.00005543478*x^3) +
+  geom_smooth(aes(color = "lm"), method = lm, se = FALSE) +
+  geom_smooth(aes(color = "spline-low"), method = lm,
+              formula = y ~ splines::ns(x, 5), se = FALSE) +
+  geom_smooth(aes(color = "spline-high"), method = lm,
+              formula = y ~ splines::ns(x, 20), se = FALSE) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Test data points",
+       subtitle = "Models estimated on training set",
+       x = expression(X),
+       y = expression(Y)) +
+  theme(legend.position = "none")
+```
+
+---
+
+class: center
+
+# Optimism of training error
+
+```{r sim-test-mse, dependson = "sim-tran-model"}
+sim_mse_test <- tibble(
+  x = runif(n = 1e04, min = 0, max = 100),
+  y = 5.055901 - 0.1848551*x + 0.00748706*x^2 - 0.00005543478*x^3 + rnorm(1e04, sd = 0.5)
+)
+
+# train vs. test MSE
+train_test_mse <- tibble(df = 2:30) %>%
+  mutate(model = map(df, ~ lm(y ~ splines::ns(x, .x), data = sim_mse)),
+         pred = map(model, augment),
+         mse_train = map_dbl(pred, ~ mean(.$.resid^2)),
+         pred_test = map(model, augment, newdata = sim_mse_test),
+         mse_test = map_dbl(pred_test, ~ mean((.$y - .$.fitted)^2))) %>%
+  gather(mse, value, mse_train, mse_test) %>%
+  mutate(mse = str_remove(mse, "mse_"),
+         mse = str_to_title(mse))
+
+train_test_mse %>%
+  ggplot(aes(df, value, color = mse)) +
+  geom_smooth(se = FALSE) +
+  scale_color_brewer(type = "qual") +
+  scale_x_log10() +
+  labs(x = "Flexibility",
+       y = "Mean squared error",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Bias-variance trade-off
+
+## Bias
+
+* Error that is introduced by approximating a real-life problem using a simplified model
+
+    $$\text{Bias} = \E[\hat{f}(x_o)] - f(x_0)$$
+
+--
+
+## Variance
+
+* Amount by which $\hat{f}$ would change if we estimated it using a different training data set
+
+    $$\text{Variance} = \E[\hat{f}(x_0) - \E[\hat{f}(x_0)]]^2$$
+
+---
+
+# Bias-variance decomposition
+
+* Assume $Y = f(X) + \epsilon$
+    * $\E[\epsilon] = 0$
+    * $\Var(\epsilon) = \sigma^2_\epsilon$
+* Expected prediction error of a regression fit $\hat{f}(X)$ at an input point $X = x_0$ using squared-error loss:
+
+$$
+\begin{align}
+\text{Err}(x_0) &= \E[(Y - \hat{f}(x_0))^2 | X = x_0] \\
+&= \sigma^2_\epsilon + [\E[\hat{f}(x_o)] - f(x_0)]^2 + \E[\hat{f}(x_0) - \E[\hat{f}(x_0)]]^2 \\
+&= \sigma^2_\epsilon + \text{Bias}^2(\hat{f}(x_o)) + \Var(\hat{f}(x_0)) \\
+&= \text{Irreducible Error} + \text{Bias}^2 + \text{Variance}
+\end{align}
+$$
+
+---
+
+class: center
+
+# Simulated data
+
+```{r sim-train-data, dependson = "sim-train-mse"}
+ggplot(sim_mse, aes(x, y)) +
+  geom_point() +
+  labs(title = "Training data points",
+       x = expression(X),
+       y = expression(Y))
+```
+
+---
+
+class: center
+
+# Low bias, high variance
+
+```{r sim-data-nn, dependson = "sim-train-mse"}
+# estimate KNN model, k = 1
+sim_knn1 <- FNN::knn.reg(sim_mse,
+                         y = sim_mse$y,
+                         test = sim_mse,
+                         k = 1)
+
+sim_mse %>%
+  mutate(pred = sim_knn1$pred) %>%
+  ggplot(aes(x, y)) +
+  geom_point() +
+  geom_step(aes(y = pred)) +
+  labs(title = "Training data points",
+       x = expression(X),
+       y = expression(Y))
+```
+
+---
+
+class: center
+
+# High bias, low variance
+
+```{r sim-data-mean, dependson = "sim-train-mse"}
+ggplot(sim_mse, aes(x, y)) +
+  geom_point() +
+  geom_hline(yintercept = mean(sim_mse$y)) +
+  labs(title = "Training data points",
+       x = expression(X),
+       y = expression(Y))
+```
+
+---
+
+class: center
+
+# What do we want?
+
+```{r darts}
+# set number of throws
+numDarts <- 10
+
+# throw numDarts number of darts and get the coordinates where they hit
+throwDarts <- function(numDarts, reliable = TRUE, valid = TRUE) {
+  if (reliable & valid) {
+    xvals <- rnorm(numDarts, mean = 0, sd = .05)
+    yvals <- rnorm(numDarts, mean = 0, sd = .05)
+  } else if (reliable == TRUE & valid == FALSE) {
+    xvals <- rnorm(numDarts, mean = .5, sd = .05)
+    yvals <- rnorm(numDarts, mean = .4, sd = .05)
+  } else if (reliable == FALSE & valid == TRUE) {
+    xvals <- rnorm(numDarts, mean = 0, sd = .3)
+    yvals <- rnorm(numDarts, mean = 0, sd = .3)
+  } else if (reliable == FALSE & valid == FALSE) {
+    xvals <- rnorm(numDarts, mean = .5, sd = .3)
+    yvals <- rnorm(numDarts, mean = -.4, sd = .3)
+  }
+  
+  tibble(
+    x = xvals,
+    y = yvals,
+    reliable = reliable,
+    valid = valid
+  )
+}
+
+# get data for each situation
+throws <- bind_rows(
+  throwDarts(numDarts, reliable = TRUE, valid = TRUE),
+  throwDarts(numDarts, reliable = TRUE, valid = FALSE),
+  throwDarts(numDarts, reliable = FALSE, valid = TRUE),
+  throwDarts(numDarts, reliable = FALSE, valid = FALSE)
+) %>%
+  mutate(
+    reliable = ifelse(reliable, "Low Variance", "High Variance"),
+    valid = ifelse(valid, "Low Bias", "High Bias")
+  )
+
+# plot the dart board, facet by each type
+ggplot(data = throws, aes(x, y)) +
+  facet_grid(reliable ~ valid) +
+  ggforce::geom_circle(aes(x = NULL, y = NULL, x0 = 0, y0 = 0, r = 1)) +
+  geom_point(alpha = 0.5) +
+  xlim(-1, 1) +
+  ylim(-1, 1) +
+  coord_fixed() +
+  labs(title = NULL,
+       x = NULL,
+       y = NULL) +
+  annotate("point", x = 0, y = 0, size = 3)
+```
+
+---
+
+# Applications to classification models
+
+* Same basic principles
+* New cost functions
+
+---
+
+# Error rate
+
+* Proportion of mistakes that are made if we apply our estimate $\hat{f}$ to the observations
+
+    $$\frac{1}{n} \sum_{n = 1}^{n} I(y_i \neq \hat{y}_i)$$
+
+* Difference between training and test error rate
+
+---
+
+# Cross-entropy
+
+* Cross-entropy/log loss
+* Increases as the predicted probability diverges from the actual label
+* Perfect model would have a log loss of 0
+* Penalizes false-positives and false-negatives
+* Binary classification
+
+    $$-(y \log(p) + (1 - y) \log(1 - p))$$
+
+* $M > 2$
+
+    $$- \sum_{c=1}^M y_{o,c} \log(p_{o,c})$$
+
+---
+
+class: center
+
+# Cross-entropy
+
+```{r cross-entropy, fig.height = 6}
+tibble(
+  prob = seq(0.001, 1, by = 0.001),
+  log_loss = -log(prob)
+) %>%
+  ggplot(aes(prob, log_loss)) +
+  geom_line() +
+  labs(title = "Log loss when true label = 1",
+       x = "Predicted probability",
+       y = "Log loss")
+```
+
+---
+
+# Estimating the expected test error
+
+* Partition the data set
+    1. Training set
+    1. Validation set
+    1. Test set
+* What if data set is small?
+
+--
+* Computational approaches
+* Analytical approaches
+
+---
+
+# $C_p$
+
+* General form of the training set (in-sample) estimates for the error
+
+    $$\widehat{\text{Err}_{in}} = \overline{\text{Err}} + \hat{\omega}$$
+--
+
+* Mallow's $C_p$
+
+    $$C_p = \overline{\text{Err}} + 2 \times \frac{d}{N} \hat{\sigma}_\epsilon^2$$
+
+    * $d$
+    * $\hat{\sigma}^2$
+
+---
+
+# Akaike information criterion
+
+* Generalization of $C_p$ to any situation with a log-likelihood loss function
+* As $N \leadsto \infty$,
+
+    $$-2 \times \E[\log (\Pr_{\hat{\Theta}}(Y)] \approx - \frac{2}{N} \times \E[\loglik] + 2 \times \frac{d}{N}$$
+
+--
+* Logistic regression model using the binomial log-likelihood
+
+    $$AIC = -\frac{2}{N} \times \loglik + 2 \times \frac{d}{N}$$
+
+--
+* Gaussian regression model with variance $\sigma_\epsilon^2 = \hat{\sigma}_\epsilon^2$ assumed known
+
+    $$-2 \times \loglik = \frac{\sum_{i=1}^N (y_i - \hat{f}(x_i))^2}{\sigma_\epsilon^2}$$
+
+    * Simplifies to
+
+        $$AIC = \overline{\text{Err}} + 2 \times \frac{d}{N} \hat{\sigma}_\epsilon^2$$
+
+---
+
+# Bayesian information criterion
+
+* Use for any situation with a log-likelihood loss function
+* General form
+    
+    $$BIC = -2 \times \loglik + \log(N) \times d$$
+
+--
+* Gaussian model
+
+    $$BIC = \frac{N}{\sigma_\epsilon^2} \left[ \overline{\text{Err}} + \log (N) \times \frac{d}{N} \sigma_\epsilon^2 \right]$$
+
+--
+* Proportional to AIC
+* Penalizes complex models more heavily

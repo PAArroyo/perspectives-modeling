@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Selecting and Fitting a Model</title>
+    <meta charset="utf-8">
+    <meta name="author" content="MACS 30100   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Selecting and Fitting a Model
+### <a href="https://model.uchicago.edu">MACS 30100</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\loglik}{\text{logLik}}$$`
+
+# Statistical learning
+
+&gt; Attempt to summarize relationships between variables by reducing the dimensionality of the data
+
+--
+
+.center[
+&lt;iframe width="560" height="315" src="https://www.youtube.com/embed/QwRISkyV_B8" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen&gt;&lt;/iframe&gt;
+]
+
+---
+
+# Improve Shamwow sales
+
+* Sales of Shamwows (output)
+* Advertising budget (input)
+    * Newspaper
+    * Radio
+    * TV
+    
+---
+
+class: center
+
+# Improve Shamwow sales
+
+
+
+&lt;img src="select-model_files/figure-html/plot_ad-1.png" width="504" /&gt;
+
+---
+
+# Statistical learning
+
+`$$Y = f(X) + \epsilon$$`
+
+* Set of approaches for estimating `\(f\)`
+* Least squares
+
+--
+
+.center[
+
+&lt;img src="select-model_files/figure-html/plot_ad_fit-1.png" width="504" /&gt;
+
+]
+---
+
+# Why estimate `\(f\)`?
+
+## Prediction
+
+* Use our knowledge of the relationship between `\(X\)` and `\(Y\)` to predict `\(Y\)` for given values of `\(X\)`
+* Treat `\(f\)` as a black box
+
+--
+
+## Inference
+
+* Use our knowledge of `\(X\)` and `\(Y\)` to understand the relationship between the variables
+* Interested in the explanation, not the prediction
+* Learn about the process and generalize it
+
+--
+
+&gt; How do we estimate `\(f\)`?
+
+---
+
+# Parametric methods
+
+1. Make an assumption about the functional form of `\(f\)`
+1. After a model has been selected, fit the data to the functional form
+
+--
+
+.center[
+&lt;img src="select-model_files/figure-html/plot_parametric-1.png" width="504" /&gt;
+]
+
+---
+
+# Parametric methods
+
+* Simplify the problem of estimating `\(f\)` to a set of parameters in a function
+
+    `$$Y = \beta_0 + \beta_{1}X_1$$`
+
+* Assumes a specific functional form
+* What if relationship is linear? What if it is not?
+* Requires a priori knowledge
+
+---
+
+# Non-parametric methods
+
+* No assumptions about the specific functional form of `\(f\)`
+* Use the data directly to estimate `\(f\)`
+* Get close to the data points without becoming overly complex
+* Requires a large set of observations to avoid overfitting
+
+---
+
+# Locally weighted scatterplot smoothing
+
+* Estimates a regression line based on localized subsets of the data
+* Builds up the global function `\(\hat{f}\)` point-by-point
+
+--
+
+.center[
+&lt;img src="select-model_files/figure-html/loess-1.png" width="504" /&gt;
+]
+
+---
+
+# Locally weighted scatterplot smoothing
+
+* Estimates a regression line based on localized subsets of the data
+* Builds up the global function `\(\hat{f}\)` point-by-point
+
+.center[
+
+![](select-model_files/figure-html/loess_buildup-1.gif)&lt;!-- --&gt;
+]
+
+---
+
+# Locally weighted scatterplot smoothing
+
+* Controlling the span
+
+.center[
+
+![](select-model_files/figure-html/loess_span-1.gif)&lt;!-- --&gt;
+]
+
+---
+
+class: center
+
+# Accuracy vs. interpretability
+
+&lt;img src="select-model_files/figure-html/trade-off-1.png" width="504" /&gt;
+
+---
+
+# Supervised vs. unsupervised learning
+
+* Supervised learning
+* Unsupervised learning
+
+---
+
+# Learning
+
+* Statistical learning
+* Machine learning
+
+--
+* Different origins
+* Different goals
+
+--
+* Lots of overlap
+
+---
+
+# Classification vs. regression
+
+* Quantitative variables
+    * `0, 5, 3.5`
+--
+* Qualitative variables
+    * Discrete classes/categories
+    * Yes/no
+    * Male/female
+--
+* Methods for regression
+* Methods for classification
+* Focus on the predictors
+
+---
+
+# Model estimation strategies
+
+* Statistical learning
+* Model estimation
+
+---
+
+# Generalized linear models
+
+* Flexible class of models
+* Estimate linear regression for response variables that have error distribution models other than the normal distribution
+
+--
+* Components
+    1. Random component specifying the conditional distribution of the response variable `\(Y_i\)`
+    1. Linear predictor
+        `$$\eta_i = \beta_{0} + \beta_{1}X_{i1} + \beta_{2}X_{i2} + \dots + \beta_{k}X_{ik}$$`
+    1. Link function `\(g(\cdot)\)` which transforms the expectation of the response variable, `\(\mu_i \equiv E(Y_i)\)` to the linear predictor:
+        `$$g(\mu_i) = \eta_i = \beta_{0} + \beta_{1}X_{i1} + \beta_{2}X_{i2} + \dots + \beta_{k}X_{ik}$$`
+
+--
+
+* GLM is the statistical learning model
+* How to estimate the model?
+    * Maximum likelihood
+    * Generalized method of moments
+    * Bayesian MCMC
+
+---
+
+# Reducible vs. irreducible error
+
+`$$\hat{Y} = \hat{f}(X)$$`
+
+* Different statistical learning algorithms lead to different estimates of `\(\hat{f}\)` and `\(\hat{Y}\)`.
+* Accuracy of `\(\hat{Y}\)` depends on:
+
+--
+
+### Reducible error
+
+* Error generated by using an inappropriate or suboptimal technique to estimate `\(f\)`
+* Reducible error can be reduced
+
+--
+
+### Irreducible error
+
+`$$\hat{Y} = f(X)$$`
+
+--
+
+`$$Y = f(X) + \epsilon$$`
+
+---
+
+# Reducible vs. irreducible error
+
+$$
+`\begin{align}
+\E(Y - \bar{Y})^2 &amp;= \E[f(X) + \epsilon - \hat{f}(X)]^2 \\
+&amp;= \underbrace{[f(X) - \hat{f}(X)]^2}_{\text{Reducible}} + \underbrace{\Var (\epsilon)}_{\text{Irreducible}}
+\end{align}`
+$$
+
+---
+
+# Quality of fit
+
+$$
+L(Y, \hat{f}(X)) =
+`\begin{cases}
+    (Y - \hat{f}(X))^2 &amp; \quad \text{squared error} \\
+    \mid Y - \hat{f}(X) \mid &amp; \quad \text{absolute error}
+\end{cases}`
+$$
+
+* Loss/cost function
+
+--
+
+* Mean squared error
+
+    `$$MSE = \frac{1}{N} \sum_{i = 1}^{N}{(y_i - \hat{f}(x_i))^2}$$`
+
+    * `\(y_i =\)` the observed response value for the `\(i\)`th observation
+    * `\(\hat{f}(x_i) =\)` the predicted response value for the `\(i\)`th observation given by `\(\hat{f}\)`
+    * `\(N =\)` the total number of observations
+* Identify a model that generates the smallest possible MSE
+
+---
+
+# Training vs. test error
+
+* Training error
+    
+    `$$\overline{\text{Err}} = \frac{1}{N} \sum_{i = 1}^{N}{L(y_i, \hat{f}(x_i))}$$`
+
+--
+
+* Test error
+
+    `$$\text{Err}_\tau = \E[L(Y, \hat{f}(X)) | \tau]$$`
+
+--
+
+* Expected test error
+
+    `$$\text{Err} = \E[L(Y, \hat{f}(X))] = \E[\text{Err}_\tau]$$`
+
+---
+
+class: center
+
+# Optimism of training error
+
+&lt;img src="select-model_files/figure-html/sim-train-model-1.png" width="504" /&gt;
+
+---
+
+class: center
+
+# Optimism of training error
+
+&lt;img src="select-model_files/figure-html/sim-test-model-1.png" width="504" /&gt;
+
+---
+
+class: center
+
+# Optimism of training error
+
+&lt;img src="select-model_files/figure-html/sim-test-mse-1.png" width="504" /&gt;
+
+---
+
+# Bias-variance trade-off
+
+## Bias
+
+* Error that is introduced by approximating a real-life problem using a simplified model
+
+    `$$\text{Bias} = \E[\hat{f}(x_o)] - f(x_0)$$`
+
+--
+
+## Variance
+
+* Amount by which `\(\hat{f}\)` would change if we estimated it using a different training data set
+
+    `$$\text{Variance} = \E[\hat{f}(x_0) - \E[\hat{f}(x_0)]]^2$$`
+
+---
+
+# Bias-variance decomposition
+
+* Assume `\(Y = f(X) + \epsilon\)`
+    * `\(\E[\epsilon] = 0\)`
+    * `\(\Var(\epsilon) = \sigma^2_\epsilon\)`
+* Expected prediction error of a regression fit `\(\hat{f}(X)\)` at an input point `\(X = x_0\)` using squared-error loss:
+
+$$
+`\begin{align}
+\text{Err}(x_0) &amp;= \E[(Y - \hat{f}(x_0))^2 | X = x_0] \\
+&amp;= \sigma^2_\epsilon + [\E[\hat{f}(x_o)] - f(x_0)]^2 + \E[\hat{f}(x_0) - \E[\hat{f}(x_0)]]^2 \\
+&amp;= \sigma^2_\epsilon + \text{Bias}^2(\hat{f}(x_o)) + \Var(\hat{f}(x_0)) \\
+&amp;= \text{Irreducible Error} + \text{Bias}^2 + \text{Variance}
+\end{align}`
+$$
+
+---
+
+class: center
+
+# Simulated data
+
+&lt;img src="select-model_files/figure-html/sim-train-data-1.png" width="504" /&gt;
+
+---
+
+class: center
+
+# Low bias, high variance
+
+&lt;img src="select-model_files/figure-html/sim-data-nn-1.png" width="504" /&gt;
+
+---
+
+class: center
+
+# High bias, low variance
+
+&lt;img src="select-model_files/figure-html/sim-data-mean-1.png" width="504" /&gt;
+
+---
+
+class: center
+
+# What do we want?
+
+&lt;img src="select-model_files/figure-html/darts-1.png" width="504" /&gt;
+
+---
+
+# Applications to classification models
+
+* Same basic principles
+* New cost functions
+
+---
+
+# Error rate
+
+* Proportion of mistakes that are made if we apply our estimate `\(\hat{f}\)` to the observations
+
+    `$$\frac{1}{n} \sum_{n = 1}^{n} I(y_i \neq \hat{y}_i)$$`
+
+* Difference between training and test error rate
+
+---
+
+# Cross-entropy
+
+* Cross-entropy/log loss
+* Increases as the predicted probability diverges from the actual label
+* Perfect model would have a log loss of 0
+* Penalizes false-positives and false-negatives
+* Binary classification
+
+    `$$-(y \log(p) + (1 - y) \log(1 - p))$$`
+
+* `\(M &gt; 2\)`
+
+    `$$- \sum_{c=1}^M y_{o,c} \log(p_{o,c})$$`
+
+---
+
+class: center
+
+# Cross-entropy
+
+&lt;img src="select-model_files/figure-html/cross-entropy-1.png" width="504" /&gt;
+
+---
+
+# Estimating the expected test error
+
+* Partition the data set
+    1. Training set
+    1. Validation set
+    1. Test set
+* What if data set is small?
+
+--
+* Computational approaches
+* Analytical approaches
+
+---
+
+# `\(C_p\)`
+
+* General form of the training set (in-sample) estimates for the error
+
+    `$$\widehat{\text{Err}_{in}} = \overline{\text{Err}} + \hat{\omega}$$`
+--
+
+* Mallow's `\(C_p\)`
+
+    `$$C_p = \overline{\text{Err}} + 2 \times \frac{d}{N} \hat{\sigma}_\epsilon^2$$`
+
+    * `\(d\)`
+    * `\(\hat{\sigma}^2\)`
+
+---
+
+# Akaike information criterion
+
+* Generalization of `\(C_p\)` to any situation with a log-likelihood loss function
+* As `\(N \leadsto \infty\)`,
+
+    `$$-2 \times \E[\log (\Pr_{\hat{\Theta}}(Y)] \approx - \frac{2}{N} \times \E[\loglik] + 2 \times \frac{d}{N}$$`
+
+--
+* Logistic regression model using the binomial log-likelihood
+
+    `$$AIC = -\frac{2}{N} \times \loglik + 2 \times \frac{d}{N}$$`
+
+--
+* Gaussian regression model with variance `\(\sigma_\epsilon^2 = \hat{\sigma}_\epsilon^2\)` assumed known
+
+    `$$-2 \times \loglik = \frac{\sum_{i=1}^N (y_i - \hat{f}(x_i))^2}{\sigma_\epsilon^2}$$`
+
+    * Simplifies to
+
+        `$$AIC = \overline{\text{Err}} + 2 \times \frac{d}{N} \hat{\sigma}_\epsilon^2$$`
+
+---
+
+# Bayesian information criterion
+
+* Use for any situation with a log-likelihood loss function
+* General form
+    
+    `$$BIC = -2 \times \loglik + \log(N) \times d$$`
+
+--
+* Gaussian model
+
+    `$$BIC = \frac{N}{\sigma_\epsilon^2} \left[ \overline{\text{Err}} + \log (N) \times \frac{d}{N} \sigma_\epsilon^2 \right]$$`
+
+--
+* Proportional to AIC
+* Penalizes complex models more heavily
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
