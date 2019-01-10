@@ -1,13 +1,13 @@
 +++
 title = "Resampling Methods"
-date = 2019-01-28T13:30:00  # Schedule page publish date.
+date = 2019-01-26T13:30:00  # Schedule page publish date.
 draft = false
 type = "talk"
 
 # Talk start and end times.
 #   End time can optionally be hidden by prefixing the line with `#`.
-time_start = 2019-02-04T13:30:00
-time_end = 2019-02-04T15:00:00
+time_start = 2019-01-30T13:30:00
+time_end = 2019-01-30T15:00:00
 
 # Authors. Comma separated list, e.g. `["Bob Smith", "David Jones"]`.
 authors = []
