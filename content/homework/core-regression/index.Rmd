@@ -12,7 +12,7 @@ output:
 summary: "Verify assumptions of regression framework and practice building/interpreting regression models."
 ---
 
-$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}}$$
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}}
 
 # Overview
 
@@ -32,7 +32,7 @@ Your repository should be split into 3 major documents:
 1. Responses to Joe Biden exercises
 1. Responses to voter turnout exercises
 
-Each document should be **reproducible**. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (`.ipynb`) or R Markdown (`.Rmd`) rendered as `pdf_document`.^[`html_document` cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in `.md` documents. :sad:]
+Each document should be **reproducible**. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (`.ipynb`) or R Markdown (`.Rmd`) rendered as `pdf_document`.^[`html_document` cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in `.md` documents `r emo::ji("sad")`]
 
 # Conceptual exercises (5 points)
 

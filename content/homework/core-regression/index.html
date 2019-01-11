@@ -26,7 +26,6 @@ summary: "Verify assumptions of regression framework and practice building/inter
 </ul>
 </div>
 
-<p><span class="math display">\[\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}}\]</span></p>
 <div id="overview" class="section level1">
 <h1>Overview</h1>
 <p>Due before class January 21th.</p>
@@ -53,16 +52,16 @@ summary: "Verify assumptions of regression framework and practice building/inter
 <li><p>For the case of a bivariate regression <span class="math inline">\(Y_i = \beta_0 + \beta_1 X_i + \epsilon_i\)</span> where <span class="math inline">\(\epsilon_i \sim N(0, \sigma^2)\)</span>, show via simulation that:</p>
 <ol style="list-style-type: lower-alpha">
 <li>The OLS estimator <span class="math inline">\(\hat{\beta}_1\)</span> is an unbiased estimator of <span class="math inline">\(\beta_1\)</span>.</li>
-<li><span class="math inline">\(\Var(\hat{\beta}_1)\)</span> is increasing in <span class="math inline">\(\sigma^2\)</span>.</li>
+<li><span class="math inline">\({\mathrm{Var}}(\hat{\beta}_1)\)</span> is increasing in <span class="math inline">\(\sigma^2\)</span>.</li>
 </ol></li>
 <li><p>Consider a model like:</p>
 <p><span class="math display">\[Y_i = \beta_0 + \beta_1 X_{1i} + \beta_2 X_{2i} + \beta_3 X_{3i} + \epsilon_i\]</span></p>
 <p>where <span class="math inline">\(Y, \boldsymbol{X}, \epsilon\)</span> meet all the usual assumptions of the classical linear regression model, each <span class="math inline">\(X_i\)</span> is a random normal variable, <span class="math inline">\(\text{corr} (X_1, X_2) \in (-1, 1)\)</span> and <span class="math inline">\(\text{corr} (X_1, X_3) = \text{corr} (X_2, X_3) = 0\)</span>.</p>
 <p>Using simulations, show:</p>
 <ol style="list-style-type: lower-alpha">
-<li>The relationship between <span class="math inline">\(\text{corr} (X_1, X_2)\)</span> and <span class="math inline">\(\widehat{\se(\hat{\beta}_1)}\)</span> for <span class="math inline">\(N = 100\)</span>.</li>
+<li>The relationship between <span class="math inline">\(\text{corr} (X_1, X_2)\)</span> and <span class="math inline">\(\widehat{{\text{se}}(\hat{\beta}_1)}\)</span> for <span class="math inline">\(N = 100\)</span>.</li>
 <li>How the relationship changes as <span class="math inline">\(N \rightarrow \infty\)</span>.</li>
-<li>The relationship between <span class="math inline">\(\text{corr} (X_1, X_2)\)</span> and <span class="math inline">\(\widehat{\se(\hat{\beta}_3)}\)</span>.</li>
+<li>The relationship between <span class="math inline">\(\text{corr} (X_1, X_2)\)</span> and <span class="math inline">\(\widehat{{\text{se}}(\hat{\beta}_3)}\)</span>.</li>
 </ol>
 <p>Hint: To generate two random normal variables that are correlated to a particular degree:</p>
 <ul>
@@ -171,7 +170,7 @@ summary: "Verify assumptions of regression framework and practice building/inter
 <div class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents. :sad:<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 😿<a href="#fnref1">↩</a></p></li>
 <li id="fn2"><p>Feeling thermometers are a common metric in survey research used to gauge attitudes or feelings of warmth towards individuals and institutions. They range from 0-100, with 0 indicating extreme coldness and 100 indicating extreme warmth.<a href="#fnref2">↩</a></p></li>
 <li id="fn3"><p>Independents must be left out to serve as the baseline category, otherwise we would encounter perfect multicollinearity.<a href="#fnref3">↩</a></p></li>
 <li id="fn4"><p><a href="http://onlinelibrary.wiley.com.proxy.uchicago.edu/doi/10.1111/ssqu.12173/abstract">Ojeda, C. (2015). Depression and political participation. <em>Social Science Quarterly</em>, 96(5), 1226-1243.</a><a href="#fnref4">↩</a></p></li>
