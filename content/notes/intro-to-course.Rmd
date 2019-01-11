@@ -47,15 +47,15 @@ I strongly recommend you do not take [PPHA 30545](https://harris.uchicago.edu/ac
 ## Topic roadmap
 
 | Week | Monday | Wednesday |
-|------|-------------------------------------------------|-----------------------------------------------------|
+|------|---------------------------------------|-----------------------------------------------------|
 | 1 | Theory and model building | Model fitting and selection |
-| 2 | Exploratory data analysis/descriptive analytics | Unsupervised learning |
-| 3 | MLK (no class) | Linear regression |
-| 4 | Logistic regression/LDA | Prototype methods (naive Bayes & nearest neighbors) |
-| 5 | Resampling methods | Linear model selection and regulation |
-| 6 | Non-linear regression | Kernel smoothing methods |
+| 2 | Linear regression | Logistic regression/LDA |
+| 3 | MLK (no class) | Prototype methods (naive Bayes & nearest neighbors) |
+| 4 | Interpreting model results | Resampling methods |
+| 5 | Linear model selection and regulation | Non-linear regression |
+| 6 | Kernel smoothing methods | Support vector machines |
 | 7 | Tree-based inference | Tree-based inference |
-| 8 | Support vector machines | Interpreting model results |
+| 8 | Dimension reduction | Clustering |
 | 9 | Neural networks | Neural networks |
 | 10 | Deep learning (TensorFlow and Keras) | Deep learning (text and sequences) |
 
