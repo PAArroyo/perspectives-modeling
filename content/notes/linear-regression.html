@@ -1,0 +1,499 @@
+---
+title: Overview of linear regression
+date: 2019-01-14T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Linear regression
+    weight: 1
+---
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+<div id="TOC">
+<ul>
+<li><a href="#linear-regression"><span class="toc-section-number">1</span> Linear regression</a></li>
+<li><a href="#estimating-hatbeta"><span class="toc-section-number">2</span> Estimating <span class="math inline">\(\hat{\beta}\)</span></a><ul>
+<li><a href="#least-squares-estimator"><span class="toc-section-number">2.1</span> Least squares estimator</a></li>
+<li><a href="#multivariate-formulation"><span class="toc-section-number">2.2</span> Multivariate formulation</a></li>
+</ul></li>
+<li><a href="#gauss-markov-theorem"><span class="toc-section-number">3</span> Gauss-Markov theorem</a><ul>
+<li><a href="#do-we-want-this"><span class="toc-section-number">3.1</span> Do we want this?</a></li>
+</ul></li>
+<li><a href="#extensions"><span class="toc-section-number">4</span> Extensions</a><ul>
+<li><a href="#removing-the-additive-assumption"><span class="toc-section-number">4.1</span> Removing the additive assumption</a></li>
+<li><a href="#removing-the-linear-assumption"><span class="toc-section-number">4.2</span> Removing the linear assumption</a></li>
+</ul></li>
+<li><a href="#session-info"><span class="toc-section-number">5</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">6</span> References</a></li>
+</ul>
+</div>
+
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse)
+<span class="kw">library</span>(here)
+<span class="kw">library</span>(broom)
+<span class="kw">library</span>(modelr)
+<span class="kw">library</span>(knitr)
+<span class="kw">library</span>(patchwork)
+
+<span class="kw">set.seed</span>(<span class="dv">1234</span>)
+<span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
+<p>A linear regression model assumes that the regression function <span class="math inline">\({\mathrm{E}}(Y|X)\)</span> is linear in the inputs <span class="math inline">\(X_1, \ldots, X_p\)</span>. They are extremely popular in the field of statistics, largely because they do not require substantial computational power to estimate. That said, even today linear regression is an important tool for any computational social scientist.</p>
+<ul>
+<li>They are simple and lend themselves well to conducting inference, as their interpretations are (relatively) straightforward.</li>
+<li>If the relationship is truly linear, then linear models will be accurate. Even if the relationship is not truly linear, linear regression can still produce meaningfully relevant predictions.</li>
+<li>Linear models are not restricted to the original inputs <span class="math inline">\(X_1, \ldots, X_p\)</span> - they can be transformed to expand the scope of linear models and work even in the context of nonlinear relationships (e.g. parabolic terms, interaction terms).</li>
+</ul>
+<div id="linear-regression" class="section level1">
+<h1><span class="header-section-number">1</span> Linear regression</h1>
+<p>The simplest form of regression is when <span class="math inline">\(X\)</span> is simple (one-dimensional) and <span class="math inline">\({\mathrm{E}}(Y|X)\)</span> is assumed to be linear:</p>
+<p><span class="math display">\[{\mathrm{E}}(Y|X) = \beta_0 + \beta_1 X\]</span></p>
+<p>This model is called the <strong>simple linear regression model</strong>. We make the further assumption that <span class="math inline">\({\mathrm{Var}}(\epsilon_i | X = x) = \sigma^2\)</span> does not depend on <span class="math inline">\(x\)</span>. Thus the linear regression model is:</p>
+<p><span class="math display">\[Y_i = \beta_0 + \beta_1 X_i + \epsilon_i\]</span></p>
+<p>where <span class="math inline">\({\mathrm{E}}(\epsilon_i | X_i) = 0\)</span> and <span class="math inline">\({\mathrm{Var}}(\epsilon_i | X_i) = \sigma^2\)</span>. The unknown parameters in the model are the intercept <span class="math inline">\(\beta_0\)</span> and the slope <span class="math inline">\(\beta_1\)</span> and the variance <span class="math inline">\(\sigma^2\)</span>. Let <span class="math inline">\(\hat{\beta}_0\)</span> and <span class="math inline">\(\hat{\beta}_1\)</span> denote estimates of <span class="math inline">\(\beta_0\)</span> and <span class="math inline">\(\beta_1\)</span>. The <strong>fitted line</strong> is</p>
+<p><span class="math display">\[\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X\]</span></p>
+<p>The <strong>predicted values</strong> or <strong>fitted values</strong> are</p>
+<p><span class="math display">\[\hat{Y}_i = \hat{\beta}_0 + \hat{\beta}_1 X_i\]</span></p>
+<p>and the <strong>residuals</strong> are defined as</p>
+<p><span class="math display">\[\hat{\epsilon}_i = Y_i - \hat{Y}_i = Y_i - (\hat{\beta}_0 + \hat{\beta}_1 X)\]</span></p>
+<p>The <strong>residual sum of squares</strong> or RSS measures how well the line fits the data. It is defined by</p>
+<p><span class="math display">\[
+\begin{align}
+\text{RSS}(\beta) &amp;= \sum_{i=1}^N \hat{\epsilon}_i^2 \\
+&amp;= \sum_{i=1}^N (Y_i - f(X_i))^2 \\
+&amp;= \sum_{i=1}^N \left(Y_i - \beta_0 - \sum_{j=1}^p X_{ij} \beta_j\right)^2
+\end{align}
+\]</span></p>
+</div>
+<div id="estimating-hatbeta" class="section level1">
+<h1><span class="header-section-number">2</span> Estimating <span class="math inline">\(\hat{\beta}\)</span></h1>
+<p>What is an appropriate way to estimate the <span class="math inline">\(\beta\)</span>s? We could fit many lines to this data, some better than others.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(sim1, <span class="kw">aes</span>(x, y)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_point</span>()</code></pre></div>
+<p><img src="/notes/linear-regression_files/figure-html/sim-plot-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">models &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">a1 =</span> <span class="kw">runif</span>(<span class="dv">250</span>, <span class="op">-</span><span class="dv">20</span>, <span class="dv">40</span>),
+  <span class="dt">a2 =</span> <span class="kw">runif</span>(<span class="dv">250</span>, <span class="op">-</span><span class="dv">5</span>, <span class="dv">5</span>)
+)
+
+<span class="kw">ggplot</span>(sim1, <span class="kw">aes</span>(x, y)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_abline</span>(<span class="kw">aes</span>(<span class="dt">intercept =</span> a1, <span class="dt">slope =</span> a2), <span class="dt">data =</span> models, <span class="dt">alpha =</span> <span class="dv">1</span><span class="op">/</span><span class="dv">4</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>()</code></pre></div>
+<p><img src="/notes/linear-regression_files/figure-html/sim-random-fit-1.png" width="672" /></p>
+<p>We should seek estimators with some set of desired qualities. Classically, two desired qualities for an estimator are <strong>unbiasedness</strong> and <strong>efficiency</strong>.</p>
+<ul>
+<li>Unbiased
+<ul>
+<li><span class="math inline">\(E(\hat{\beta}) = \beta\)</span></li>
+<li>Estimator that “gets it right” vis-a-vis <span class="math inline">\(\beta\)</span></li>
+</ul></li>
+<li>Efficient
+<ul>
+<li><span class="math inline">\(\min(Var(\hat{\beta}))\)</span></li>
+<li>Not only do we get it right, but for any given sample used to generate the model we never want to be too far off from “right”</li>
+</ul></li>
+</ul>
+<div id="least-squares-estimator" class="section level2">
+<h2><span class="header-section-number">2.1</span> Least squares estimator</h2>
+<p>The <strong>least squares estimates</strong> are the values <span class="math inline">\(\hat{\beta}_0, \hat{\beta}_1\)</span> that minimize the RSS.</p>
+<p><span class="math display">\[\min(\text{RSS})\]</span></p>
+<p>This requires a bit of calculus to solve.</p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{RSS} &amp;= \sum_{i=1}^n \hat{\epsilon}_i^2 \\
+\sum_{i=1}^n (\hat{\epsilon}_i)^2 &amp;= \sum_{i=1}^n (Y_i - (\beta_0 + \beta_1 X_i))^2\\
+f(\beta_0, \beta_1 | x_i, y_i) &amp; = \sum_{i=1}^n (Y_i - \beta_0 - \beta_1 X_i )^2\\
+\dfrac{\partial{ f(\beta_0, \beta_1 | x_i, y_i)}}{\partial \beta_0} &amp; = -2 (\sum_{i=1}^n (Y_i - \beta_0 - \beta_1 X_i))\\
+&amp; = \sum_{i=1}^n -2Y_i + 2\beta_0 + 2\beta_1 X_i\\
+0 &amp; = \sum_{i=1}^n -2Y_{i} + 2\beta_0 + 2\beta_1 X_i\\
+0 &amp; = -2 \sum_{i=1}^n Y_{i} +  2\sum_{i=1}^n \beta_0 +  2\beta_1 \sum_{i=1}^n X_i\\
+0 &amp; = -2 \sum_{i=1}^n Y_{i} +  (n \times 2\beta_0) +  2\beta_1 \sum_{i=1}^n X_i\\
+n \times 2\beta_0 &amp; = 2 \sum_{i=1}^n Y_i - 2\beta_1 \sum_{i=1}^n X_i\\
+\hat \beta_0 &amp; = \dfrac{2 \sum_{i=1}^n Y_i}{2n} - \dfrac{2\beta_1 \sum_{i=1}^n X_i}{2n}\\
+&amp; =  \dfrac{\sum_{i=1}^n Y_i}{n} - \beta_1\dfrac{ \sum_{i=1}^n X_i}{n}\\
+ \hat \beta_0 &amp; = \bar{Y}_n - \beta_1 \bar{X}_n
+\end{aligned}
+\]</span></p>
+<p><span class="math display">\[
+\begin{aligned}
+\dfrac{\partial{ f(\beta_0, \beta_1 | x_i, y_i)}}{\partial \beta_1} &amp; = \sum_{i=1}^n -2X_i(Y_i - \beta_0 - \beta_1 X_i) \\
+&amp; =  \sum_{i=1}^n -2Y_iX_i + 2\beta_0X_i + 2\beta_1 X_i^2\\
+0 &amp; =  \sum_{i=1}^n -2Y_iX_i + 2\beta_0 \sum_{i=1}^nX_i + 2\beta_1  \sum_{i=1}^n X_i^2\\
+&amp; =  \sum_{i=1}^n -2Y_iX_i + 2 (\bar{Y}_n - \beta_1 \bar{X}_n) \sum_{i=1}^nX_i + 2\beta_1  \sum_{i=1}^n X_i^2\\
+&amp; = \sum_{i=1}^n -2Y_iX_i + 2\bar{Y}_n \sum_{i=1}^nX_i - 2\beta_1 \bar{X}_n\sum_{i=1}^nX_i + 2\beta_1  \sum_{i=1}^n X_i^2\\
+2\beta_1  \sum_{i=1}^n X_i^2 - 2\beta_1 \bar{X}_n\sum_{i=1}^nX_i  &amp; = \sum_{i=1}^n 2Y_iX_i  - 2\bar{Y}_n \sum_{i=1}^nX_i\\
+\beta_1 ( \sum_{i=1}^n X_i^2 - \bar{X}_n\sum_{i=1}^nX_i ) &amp; = \sum_{i=1}^n Y_iX_i  - \bar{Y}_n \sum_{i=1}^nX_i\\
+\hat \beta_1 &amp; = \dfrac{ \sum_{i=1}^n Y_iX_i  - \bar{Y}_n \sum_{i=1}^nX_i}{ \sum_{i=1}^n X_i^2 - \bar{X}_n\sum_{i=1}^nX_i}\\
+ \hat \beta_0 &amp; = \bar{Y}_n - \hat{\beta}_1 \bar{X}_n
+\end{aligned}
+\]</span></p>
+<p>Recall that we also need an estimate for <span class="math inline">\(\sigma^2\)</span>. An unbiased estimate turns out to be:</p>
+<p><span class="math display">\[\hat{\sigma}^2 = \left( \frac{1}{n - 2} \right) \sum_{i=1}^n \hat{\epsilon}_i^2\]</span></p>
+<p>In reality, we will typically assume <span class="math inline">\(\sigma^2\)</span> is a constant but unknown value. We can optimize to find values for the <span class="math inline">\(\hat{\beta}\)</span>s without explicitly estimating <span class="math inline">\(\sigma^2\)</span>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim1_mod &lt;-<span class="st"> </span><span class="kw">lm</span>(y <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> sim1)
+
+dist2 &lt;-<span class="st"> </span>sim1 <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">add_predictions</span>(sim1_mod) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(
+    <span class="dt">dodge =</span> <span class="kw">rep</span>(<span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>) <span class="op">/</span><span class="st"> </span><span class="dv">20</span>, <span class="dv">10</span>),
+    <span class="dt">x1 =</span> x <span class="op">+</span><span class="st"> </span>dodge
+  )
+
+<span class="kw">ggplot</span>(dist2, <span class="kw">aes</span>(x1, y)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">color =</span> <span class="st">&quot;grey40&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">color =</span> <span class="st">&quot;grey40&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_linerange</span>(<span class="kw">aes</span>(<span class="dt">ymin =</span> y, <span class="dt">ymax =</span> pred), <span class="dt">color =</span> <span class="st">&quot;#3366FF&quot;</span>)</code></pre></div>
+<p><img src="/notes/linear-regression_files/figure-html/sim-lm-1.png" width="672" /></p>
+</div>
+<div id="multivariate-formulation" class="section level2">
+<h2><span class="header-section-number">2.2</span> Multivariate formulation</h2>
+<p><span class="math display">\[\mathbf{Y} = \mathbf{X} \boldsymbol{\beta} + \mathbf{u}\]</span></p>
+<ul>
+<li><span class="math inline">\(\mathbf{Y}\)</span>: <span class="math inline">\(N\times 1\)</span> vector</li>
+<li><span class="math inline">\(\mathbf{X}\)</span>: <span class="math inline">\(N \times K\)</span> matrix</li>
+<li><span class="math inline">\(\boldsymbol{\beta}\)</span>: <span class="math inline">\(K \times 1\)</span> vector</li>
+<li><span class="math inline">\(\mathbf{u}\)</span>: <span class="math inline">\(N\times 1\)</span> vector</li>
+<li><span class="math inline">\(i \in \{1,\ldots,N \}\)</span></li>
+<li><p><span class="math inline">\(k \in \{1,\ldots,K \}\)</span></p>
+<p><span class="math display">\[Y_i = \beta_0 + \beta_1X_{1i} + \beta_2 X_{2i} + \ldots + \beta_K X_{Ki} + u_i\]</span></p></li>
+</ul>
+<p><span class="math display">\[
+\begin{aligned}
+\mathbf{u} &amp;= \mathbf{Y} - \mathbf{X}\boldsymbol{\beta} \\
+\mathbf{u}&#39;\mathbf{u} &amp;= (\mathbf{Y} - \mathbf{X}\boldsymbol{\beta})&#39;(\mathbf{Y} - \mathbf{X}\boldsymbol{\beta}) \\
+&amp;= \mathbf{Y&#39;Y} - 2 \boldsymbol{\beta}&#39; \mathbf{X&#39;Y&#39;} + \boldsymbol{\beta}&#39; \mathbf{X&#39;X} \boldsymbol{\beta}
+\end{aligned}
+\]</span></p>
+<ul>
+<li><span class="math inline">\(\mathbf{u}&#39;\mathbf{u}\)</span> equivalent to squaring each element <span class="math inline">\(u_i\)</span></li>
+<li>Last term on the last line
+<ul>
+<li><span class="math inline">\((\mathbf{X}\boldsymbol{\beta})&#39; = \boldsymbol{\beta}&#39;\mathbf{X}&#39;\)</span></li>
+<li><span class="math inline">\(\boldsymbol{\beta}&#39;\mathbf{X}&#39;\mathbf{Y}\)</span> is a scalar value (<span class="math inline">\((1 \times K) \times (K \times N) \times (N \times 1))\)</span>, so it is equal to its transpose <span class="math inline">\(\mathbf{Y}&#39;\mathbf{X}\boldsymbol{\beta}\)</span></li>
+</ul></li>
+</ul>
+<p><span class="math display">\[
+\begin{aligned}
+\frac{\partial\mathbf{u}&#39; \mathbf{u}}{\partial \boldsymbol{\beta}}  &amp;= -2\mathbf{X&#39;Y} + 2\boldsymbol{X&#39;X\beta} \\
+0  &amp;= -2\mathbf{X&#39;Y} + 2\mathbf{X&#39;X} \boldsymbol{\beta} \\
+0 &amp;= -\mathbf{X&#39;Y} + \mathbf{X&#39;X}\boldsymbol{\beta} \\
+\mathbf{X&#39;Y} &amp;= \mathbf{X&#39;X\beta} \\
+(\mathbf{X&#39;X})^{-1}\mathbf{X&#39;Y} &amp;= (\mathbf{X&#39;X})^{-1}\mathbf{X&#39;X}\boldsymbol{\beta} \\
+(\mathbf{X&#39;X})^{-1}\mathbf{X&#39;Y} &amp;= \mathbf{I}\boldsymbol{\beta} \\
+(\mathbf{X&#39;X})^{-1}\mathbf{X&#39;Y} &amp;= \boldsymbol{\beta} \\
+\end{aligned}
+\]</span></p>
+<ul>
+<li>Variability in <span class="math inline">\(\mathbf{X}\)</span> times <span class="math inline">\(\boldsymbol{\beta}\)</span> is equal to covariation in <span class="math inline">\(\mathbf{X}\)</span> and <span class="math inline">\(\mathbf{Y}\)</span>
+<ul>
+<li>Same as the bivariate setup</li>
+</ul></li>
+<li><p>Pre-multiply by the inverse to get the final equation</p></li>
+<li><span class="math inline">\(\mathbf{X&#39;Y}\)</span>: covariance of <span class="math inline">\(\mathbf{X}\)</span> and <span class="math inline">\(\mathbf{Y}\)</span></li>
+<li><span class="math inline">\(\mathbf{X&#39;X}\)</span>: variance of <span class="math inline">\(\mathbf{X}\)</span></li>
+<li><p>Premultiplying <span class="math inline">\(\mathbf{X&#39;Y}\)</span> by <span class="math inline">\((\mathbf{X&#39;X})^{-1}\)</span>: dividing <span class="math inline">\(\mathbf{X&#39;Y}\)</span> by <span class="math inline">\(\mathbf{X&#39;X}\)</span></p></li>
+</ul>
+</div>
+</div>
+<div id="gauss-markov-theorem" class="section level1">
+<h1><span class="header-section-number">3</span> Gauss-Markov theorem</h1>
+<p>The <strong>Gauss-Markov theorem</strong> asserts a unique property of the least squares estimator. Among all linear unbiased estimates, the least squares estimate of <span class="math inline">\(\beta\)</span> will have the smallest variance. That is, the least squares estimator is the Best Linear Unbiased Estimator (BLUE). Another way of thinking of this is that least squares is the best approach for estimating <span class="math inline">\(\beta\)</span> given the specific statistical definition. That is, it assumes we want a linear unbiased estimator.</p>
+<p><span class="math display">\[
+\begin{aligned}
+\hat{\beta}_1 &amp;= \frac{\sum (X_i - \bar{X})(Y_i - \bar{Y})}{\sum (X_i - \bar{X})^2} \\
+&amp;= \frac{\sum (X_i - \bar{X})Y_i}{\sum (X_i - \bar{X})^2} - \frac{\bar{Y}(X_i - \bar{X})}{\sum (X_i - \bar{X})^2} \\
+&amp;= \frac{\sum (X_i - \bar{X})Y_i}{\sum (X_i - \bar{X})^2} \\
+&amp;= \sum k_i Y_i
+\end{aligned}
+\]</span></p>
+<p>where <span class="math inline">\(k_i\)</span> is a weighting function <span class="math inline">\(\frac{\sum (X_i - \bar{X})}{\sum (X_i - \bar{X})^2}\)</span>.</p>
+<ul>
+<li>Wipe out the second fraction because <span class="math inline">\(\sum(X_i - \bar{X}) = 0\)</span>)</li>
+<li><span class="math inline">\(\hat{\beta}_1\)</span> is a weighted combination of the <span class="math inline">\(Y_i\)</span>s, with weights corresponding to <span class="math inline">\(K\)</span></li>
+</ul>
+<p><span class="math inline">\(k_i\)</span> is the result of a weighting function defined by <span class="math inline">\(X_i, \bar{X}\)</span>, and this least squares method for estimating <span class="math inline">\(k_i\)</span>. Consider now a new weighting function <span class="math inline">\(w_i\)</span>:</p>
+<p><span class="math display">\[\tilde{\beta}_1 = \sum w_i Y_i\]</span></p>
+<p>What happens to <span class="math inline">\(\hat{\beta}_1\)</span>?</p>
+<p><span class="math display">\[
+\begin{aligned}
+{\mathrm{E}}(\tilde{\beta}_1) &amp;= \sum w_i {\mathrm{E}}(Y_i) \\
+&amp;= \sum w_i (\beta_0 + \beta_1 X_i) \\
+&amp;= \beta_0 \sum w_i + \beta_1 \sum w_i X_i
+\end{aligned}
+\]</span></p>
+<p>In order for <span class="math inline">\({\mathrm{E}}(\tilde{\beta}_1)\)</span> to be unbiased (i.e. <span class="math inline">\({\mathrm{E}}(\tilde{\beta}_1) = 0\)</span>), <span class="math inline">\(\sum w_i = 0\)</span> and <span class="math inline">\(\sum (w_i X_i) = 1\)</span>. Otherwise <span class="math inline">\(\tilde{\beta}_1 \neq \beta_1\)</span>. The sum of the weights has to be 0 and the sum of the weights times <span class="math inline">\(X_i\)</span> must sum to 1. This is what we get with the OLS estimator. Any other estimator will give biased estimates of <span class="math inline">\(\beta_1\)</span></p>
+<div id="do-we-want-this" class="section level2">
+<h2><span class="header-section-number">3.1</span> Do we want this?</h2>
+<p>While unbiasedness is a nice statistical property, it is not the only criteria we should consider in formulating a model, even a linear model. Consider the mean squared error (MSE) of an estimator <span class="math inline">\(\tilde{\theta}\)</span> in estimating <span class="math inline">\(\theta\)</span>:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{MSE} (\tilde{\theta}) &amp;= {\mathrm{E}}(\tilde{\theta} - \theta)^2 \\
+&amp;= {\mathrm{Var}}(\tilde{\theta}) + [{\mathrm{E}}(\tilde{\theta}) - \theta]^2 + \text{Irreducible error}
+\end{align}
+\]</span></p>
+<p>The first term is the variance of the estimator and the second term is the <span class="math inline">\(\text{Bias}^2\)</span>. According to Gauss-Markov, the least squares estimator has the smallest MSE of all linear estimators with no bias. However, there could exist <strong>biased estimators</strong> with even smaller MSEs. That is because their variance could be substantially smaller compared to the least squares estimator, leading to an overall lower MSE. Such an estimator trades a little bias for a substantial reduction in variance. For example, ridge or lasso regression are alternative estimating strategies for linear regression models that intentionally shink the least squares estimates of the parameters towards zero. This increases the bias of the estimators, but can lead to lower overall error in the model.</p>
+</div>
+</div>
+<div id="extensions" class="section level1">
+<h1><span class="header-section-number">4</span> Extensions</h1>
+<p>There are two major approaches to extending the standard linear regression model. Recall that linear models assume that the conditional relationship <span class="math inline">\({\mathrm{E}}(Y|X)\)</span> is <strong>additive</strong> and <strong>linear</strong>. Additive means that the effect of changes in a specific predictor <span class="math inline">\(X_j\)</span> on the response <span class="math inline">\(Y\)</span> is independent of the values for the other predictors. Linear means the relationship between <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span> is one-to-one (i.e. monotonic) across the entire domain of <span class="math inline">\(X\)</span>.</p>
+<div id="removing-the-additive-assumption" class="section level2">
+<h2><span class="header-section-number">4.1</span> Removing the additive assumption</h2>
+<p>See <a href="/notes/interaction-terms/">here</a> for more details.</p>
+</div>
+<div id="removing-the-linear-assumption" class="section level2">
+<h2><span class="header-section-number">4.2</span> Removing the linear assumption</h2>
+<p><strong>Polynomial regression</strong> relaxes the linearity assumption. Instead of fitting a model</p>
+<p><span class="math display">\[Y_i = \beta_0 + \beta_{1}X_{i} + \epsilon_{i}\]</span></p>
+<p>we instead fit a polynomial function:</p>
+<p><span class="math display">\[Y_i = \beta_0 + \beta_{1}X_{i} + \beta_{2}X_i^2 + \beta_{3}X_i^3 + \dots + \beta_{d}X_i^d + \epsilon_i\]</span></p>
+<p>As <span class="math inline">\(d\)</span> increases, the linear model’s flexibility increases. We still use least squares to estimate the parameters, which are also interpreted in the same way.</p>
+<p>Let’s take a look at the <a href="/homework/core-regression">Joe Biden feeling thermometer data</a> and estimate a polynomial regression of the relationship between age and attitudes towards Biden as measured on a 0-100 feeling thermometer:</p>
+<p><span class="math display">\[\text{Biden}_i = \beta_0 + \beta_1 \text{Age} + \beta_2 \text{Age}^2 + \beta_3 \text{Age}^3 + \beta_4 \text{Age}^4\]</span></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get data</span>
+biden &lt;-<span class="st"> </span><span class="kw">read_csv</span>(<span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;biden.csv&quot;</span>))</code></pre></div>
+<pre><code>## Parsed with column specification:
+## cols(
+##   biden = col_double(),
+##   female = col_double(),
+##   age = col_double(),
+##   educ = col_double(),
+##   dem = col_double(),
+##   rep = col_double()
+## )</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate linear model</span>
+<span class="kw">ggplot</span>(biden, <span class="kw">aes</span>(age, biden)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">alpha =</span> .<span class="dv">25</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> lm) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Linear regression of Biden feeling thermometer&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;With 95% confidence interval&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Biden thermometer rating&quot;</span>)</code></pre></div>
+<p><img src="/notes/linear-regression_files/figure-html/biden-age-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate polynomial model</span>
+biden_age &lt;-<span class="st"> </span><span class="kw">glm</span>(biden <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(<span class="dt">x =</span> age, <span class="dt">degree =</span> <span class="dv">4</span>, <span class="dt">raw =</span> <span class="ot">TRUE</span>), <span class="dt">data =</span> biden)
+<span class="kw">tidy</span>(biden_age)</code></pre></div>
+<pre><code>## # A tibble: 5 x 5
+##   term                                estimate  std.error statistic p.value
+##   &lt;chr&gt;                                  &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;
+## 1 (Intercept)                          3.75e+1    2.49e+1      1.50   0.133
+## 2 poly(x = age, degree = 4, raw =…     2.37e+0    2.28e+0      1.04   0.299
+## 3 poly(x = age, degree = 4, raw =…    -8.33e-2    7.30e-2     -1.14   0.254
+## 4 poly(x = age, degree = 4, raw =…     1.22e-3    9.76e-4      1.25   0.211
+## 5 poly(x = age, degree = 4, raw =…    -6.22e-6    4.64e-6     -1.34   0.180</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># plot the model results</span>
+<span class="kw">ggplot</span>(biden, <span class="kw">aes</span>(age, biden)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">alpha =</span> .<span class="dv">25</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> lm, <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(<span class="dt">x =</span> x, <span class="dt">degree =</span> <span class="dv">4</span>, <span class="dt">raw =</span> <span class="ot">TRUE</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Polynomial regression of Biden feeling thermometer&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;With 95% confidence interval&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Biden thermometer rating&quot;</span>)</code></pre></div>
+<p><img src="/notes/linear-regression_files/figure-html/biden-age-2.png" width="672" /></p>
+<p>When interpreting the model, we don’t look to any individual parameters since they are all based on the same variable. Instead we fit the function to the full range of potential values for age and examine the relationship.</p>
+<p>In the figure above I graphed the predicted values with 95% confidence intervals. In the case of ordinary linear regression, this is easy to estimate. The <strong>standard error</strong> is a measure of variance for the estimated parameter and defined by the square root of the diagonal of the variance-covariance matrix:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">vcov</span>(biden_age) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">kable</span>(<span class="dt">caption =</span> <span class="st">&quot;Variance-covariance matrix of Biden polynomial regression&quot;</span>,
+        <span class="dt">digits =</span> <span class="dv">5</span>)</code></pre></div>
+<table>
+<caption><span id="tab:biden-matrix">Table 4.1: </span>Variance-covariance matrix of Biden polynomial regression</caption>
+<thead>
+<tr class="header">
+<th></th>
+<th align="right">(Intercept)</th>
+<th align="right">poly(x = age, degree = 4, raw = TRUE)1</th>
+<th align="right">poly(x = age, degree = 4, raw = TRUE)2</th>
+<th align="right">poly(x = age, degree = 4, raw = TRUE)3</th>
+<th align="right">poly(x = age, degree = 4, raw = TRUE)4</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>(Intercept)</td>
+<td align="right">620.00316</td>
+<td align="right">-56.31558</td>
+<td align="right">1.76432</td>
+<td align="right">-0.02291</td>
+<td align="right">0.00011</td>
+</tr>
+<tr class="even">
+<td>poly(x = age, degree = 4, raw = TRUE)1</td>
+<td align="right">-56.31558</td>
+<td align="right">5.20765</td>
+<td align="right">-0.16556</td>
+<td align="right">0.00218</td>
+<td align="right">-0.00001</td>
+</tr>
+<tr class="odd">
+<td>poly(x = age, degree = 4, raw = TRUE)2</td>
+<td align="right">1.76432</td>
+<td align="right">-0.16556</td>
+<td align="right">0.00533</td>
+<td align="right">-0.00007</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="even">
+<td>poly(x = age, degree = 4, raw = TRUE)3</td>
+<td align="right">-0.02291</td>
+<td align="right">0.00218</td>
+<td align="right">-0.00007</td>
+<td align="right">0.00000</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="odd">
+<td>poly(x = age, degree = 4, raw = TRUE)4</td>
+<td align="right">0.00011</td>
+<td align="right">-0.00001</td>
+<td align="right">0.00000</td>
+<td align="right">0.00000</td>
+<td align="right">0.00000</td>
+</tr>
+</tbody>
+</table>
+<p>Confidence intervals are typically plus/minus 1.96 times the standard error for the parameter. However for polynomial regression, this is more complicated. Suppose we compute the fit at a particular value of age, <span class="math inline">\(x_0\)</span>:</p>
+<p><span class="math display">\[\hat{f}(X_0) = \hat{\beta}_0 + \hat{\beta}_1 X_{0} + \hat{\beta}_2 X_{0}^2 + \hat{\beta}_3 X_{0}^3 + \hat{\beta}_4 X_{0}^4\]</span></p>
+<p>What is the variance of the fit for this point, i.e. <span class="math inline">\(\text{Var}(\hat{f}(x_o))\)</span>. The variance is now a function not only of <span class="math inline">\(\hat{\beta}_1\)</span>, but the variance of each of the estimated parameters <span class="math inline">\(\hat{\beta}_j\)</span> as well as the covariances between the pairs of estimated parameters (i.e. the off-diagonal elements). We use all of this information to estimate the <strong>pointwise</strong> standard error of <span class="math inline">\(\hat{f}(x_0)\)</span>, which is the square-root of the variance <span class="math inline">\(\text{Var}(\hat{f}(x_o))\)</span>.</p>
+</div>
+</div>
+<div id="session-info" class="section level1 toc-ignore">
+<h1><span class="header-section-number">5</span> Session Info</h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
+<pre><code>## ─ Session info ──────────────────────────────────────────────────────────
+##  setting  value                       
+##  version  R version 3.5.2 (2018-12-20)
+##  os       macOS Mojave 10.14.2        
+##  system   x86_64, darwin15.6.0        
+##  ui       X11                         
+##  language (EN)                        
+##  collate  en_US.UTF-8                 
+##  ctype    en_US.UTF-8                 
+##  tz       America/Chicago             
+##  date     2019-01-14                  
+## 
+## ─ Packages ──────────────────────────────────────────────────────────────
+##  package     * version date       lib source                              
+##  assertthat    0.2.0   2017-04-11 [2] CRAN (R 3.5.0)                      
+##  backports     1.1.3   2018-12-14 [2] CRAN (R 3.5.0)                      
+##  bindr         0.1.1   2018-03-13 [2] CRAN (R 3.5.0)                      
+##  bindrcpp      0.2.2   2018-03-29 [1] CRAN (R 3.5.0)                      
+##  blogdown      0.9.4   2018-11-26 [1] Github (rstudio/blogdown@b2e1ed4)   
+##  bookdown      0.9     2018-12-21 [1] CRAN (R 3.5.0)                      
+##  broom       * 0.5.1   2018-12-05 [2] CRAN (R 3.5.0)                      
+##  callr         3.1.1   2018-12-21 [2] CRAN (R 3.5.0)                      
+##  cellranger    1.1.0   2016-07-27 [2] CRAN (R 3.5.0)                      
+##  cli           1.0.1   2018-09-25 [1] CRAN (R 3.5.0)                      
+##  colorspace    1.3-2   2016-12-14 [2] CRAN (R 3.5.0)                      
+##  crayon        1.3.4   2017-09-16 [2] CRAN (R 3.5.0)                      
+##  desc          1.2.0   2018-05-01 [2] CRAN (R 3.5.0)                      
+##  devtools      2.0.1   2018-10-26 [1] CRAN (R 3.5.1)                      
+##  digest        0.6.18  2018-10-10 [1] CRAN (R 3.5.0)                      
+##  dplyr       * 0.7.8   2018-11-10 [1] CRAN (R 3.5.0)                      
+##  evaluate      0.12    2018-10-09 [2] CRAN (R 3.5.0)                      
+##  forcats     * 0.3.0   2018-02-19 [2] CRAN (R 3.5.0)                      
+##  fs            1.2.6   2018-08-23 [1] CRAN (R 3.5.0)                      
+##  generics      0.0.2   2018-11-29 [1] CRAN (R 3.5.0)                      
+##  ggplot2     * 3.1.0   2018-10-25 [1] CRAN (R 3.5.0)                      
+##  glue          1.3.0   2018-07-17 [2] CRAN (R 3.5.0)                      
+##  gtable        0.2.0   2016-02-26 [2] CRAN (R 3.5.0)                      
+##  haven         2.0.0   2018-11-22 [2] CRAN (R 3.5.0)                      
+##  here        * 0.1     2017-05-28 [2] CRAN (R 3.5.0)                      
+##  hms           0.4.2   2018-03-10 [2] CRAN (R 3.5.0)                      
+##  htmltools     0.3.6   2017-04-28 [1] CRAN (R 3.5.0)                      
+##  httr          1.4.0   2018-12-11 [2] CRAN (R 3.5.0)                      
+##  jsonlite      1.6     2018-12-07 [2] CRAN (R 3.5.0)                      
+##  knitr       * 1.21    2018-12-10 [2] CRAN (R 3.5.1)                      
+##  lattice       0.20-38 2018-11-04 [2] CRAN (R 3.5.2)                      
+##  lazyeval      0.2.1   2017-10-29 [2] CRAN (R 3.5.0)                      
+##  lubridate     1.7.4   2018-04-11 [2] CRAN (R 3.5.0)                      
+##  magrittr      1.5     2014-11-22 [2] CRAN (R 3.5.0)                      
+##  memoise       1.1.0   2017-04-21 [2] CRAN (R 3.5.0)                      
+##  modelr      * 0.1.2   2018-05-11 [2] CRAN (R 3.5.0)                      
+##  munsell       0.5.0   2018-06-12 [2] CRAN (R 3.5.0)                      
+##  nlme          3.1-137 2018-04-07 [2] CRAN (R 3.5.2)                      
+##  patchwork   * 0.0.1   2018-09-06 [1] Github (thomasp85/patchwork@7fb35b1)
+##  pillar        1.3.1   2018-12-15 [2] CRAN (R 3.5.0)                      
+##  pkgbuild      1.0.2   2018-10-16 [1] CRAN (R 3.5.0)                      
+##  pkgconfig     2.0.2   2018-08-16 [2] CRAN (R 3.5.1)                      
+##  pkgload       1.0.2   2018-10-29 [1] CRAN (R 3.5.0)                      
+##  plyr          1.8.4   2016-06-08 [2] CRAN (R 3.5.0)                      
+##  prettyunits   1.0.2   2015-07-13 [2] CRAN (R 3.5.0)                      
+##  processx      3.2.1   2018-12-05 [2] CRAN (R 3.5.0)                      
+##  ps            1.3.0   2018-12-21 [2] CRAN (R 3.5.0)                      
+##  purrr       * 0.2.5   2018-05-29 [2] CRAN (R 3.5.0)                      
+##  R6            2.3.0   2018-10-04 [1] CRAN (R 3.5.0)                      
+##  Rcpp          1.0.0   2018-11-07 [1] CRAN (R 3.5.0)                      
+##  readr       * 1.3.1   2018-12-21 [2] CRAN (R 3.5.0)                      
+##  readxl        1.2.0   2018-12-19 [2] CRAN (R 3.5.0)                      
+##  remotes       2.0.2   2018-10-30 [1] CRAN (R 3.5.0)                      
+##  rlang         0.3.0.1 2018-10-25 [1] CRAN (R 3.5.0)                      
+##  rmarkdown     1.11    2018-12-08 [2] CRAN (R 3.5.0)                      
+##  rprojroot     1.3-2   2018-01-03 [2] CRAN (R 3.5.0)                      
+##  rstudioapi    0.8     2018-10-02 [1] CRAN (R 3.5.0)                      
+##  rvest         0.3.2   2016-06-17 [2] CRAN (R 3.5.0)                      
+##  scales        1.0.0   2018-08-09 [1] CRAN (R 3.5.0)                      
+##  sessioninfo   1.1.1   2018-11-05 [1] CRAN (R 3.5.0)                      
+##  stringi       1.2.4   2018-07-20 [2] CRAN (R 3.5.0)                      
+##  stringr     * 1.3.1   2018-05-10 [2] CRAN (R 3.5.0)                      
+##  testthat      2.0.1   2018-10-13 [2] CRAN (R 3.5.0)                      
+##  tibble      * 2.0.0   2019-01-04 [2] CRAN (R 3.5.2)                      
+##  tidyr       * 0.8.2   2018-10-28 [2] CRAN (R 3.5.0)                      
+##  tidyselect    0.2.5   2018-10-11 [1] CRAN (R 3.5.0)                      
+##  tidyverse   * 1.2.1   2017-11-14 [2] CRAN (R 3.5.0)                      
+##  usethis       1.4.0   2018-08-14 [1] CRAN (R 3.5.0)                      
+##  withr         2.1.2   2018-03-15 [2] CRAN (R 3.5.0)                      
+##  xfun          0.4     2018-10-23 [1] CRAN (R 3.5.0)                      
+##  xml2          1.2.0   2018-01-24 [2] CRAN (R 3.5.0)                      
+##  yaml          2.2.0   2018-07-25 [2] CRAN (R 3.5.0)                      
+## 
+## [1] /Users/soltoffbc/Library/R/3.5/library
+## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
+</div>
+<div id="references" class="section level1 toc-ignore">
+<h1><span class="header-section-number">6</span> References</h1>
+<ul>
+<li>Some material drawn from <a href="https://link-springer-com.proxy.uchicago.edu/book/10.1007%2F978-0-387-21736-9"><strong>All of Statistics</strong></a> by Larry Wasserman</li>
+</ul>
+</div>

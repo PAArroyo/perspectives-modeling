@@ -1,0 +1,333 @@
+---
+title: Overview of linear regression
+date: 2019-01-14T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Linear regression
+    weight: 1
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(here)
+library(broom)
+library(modelr)
+library(knitr)
+library(patchwork)
+
+set.seed(1234)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+A linear regression model assumes that the regression function $\E(Y|X)$ is linear in the inputs $X_1, \ldots, X_p$. They are extremely popular in the field of statistics, largely because they do not require substantial computational power to estimate. That said, even today linear regression is an important tool for any computational social scientist.
+
+* They are simple and lend themselves well to conducting inference, as their interpretations are (relatively) straightforward.
+* If the relationship is truly linear, then linear models will be accurate. Even if the relationship is not truly linear, linear regression can still produce meaningfully relevant predictions.
+* Linear models are not restricted to the original inputs $X_1, \ldots, X_p$ - they can be transformed to expand the scope of linear models and work even in the context of nonlinear relationships (e.g. parabolic terms, interaction terms).
+
+# Linear regression
+
+The simplest form of regression is when $X$ is simple (one-dimensional) and $\E(Y|X)$ is assumed to be linear:
+
+$$\E(Y|X) = \beta_0 + \beta_1 X$$
+
+This model is called the **simple linear regression model**. We make the further assumption that $\Var (\epsilon_i | X = x) = \sigma^2$ does not depend on $x$. Thus the linear regression model is:
+
+$$Y_i = \beta_0 + \beta_1 X_i + \epsilon_i$$
+
+where $\E (\epsilon_i | X_i) = 0$ and $\Var (\epsilon_i | X_i) = \sigma^2$. The unknown parameters in the model are the intercept $\beta_0$ and the slope $\beta_1$ and the variance $\sigma^2$. Let $\hat{\beta}_0$ and $\hat{\beta}_1$ denote estimates of $\beta_0$ and $\beta_1$. The **fitted line** is
+
+$$\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X$$
+
+The **predicted values** or **fitted values** are
+
+$$\hat{Y}_i = \hat{\beta}_0 + \hat{\beta}_1 X_i$$
+
+and the **residuals** are defined as
+
+$$\hat{\epsilon}_i = Y_i - \hat{Y}_i = Y_i - (\hat{\beta}_0 + \hat{\beta}_1 X)$$
+
+The **residual sum of squares** or RSS measures how well the line fits the data. It is defined by
+
+$$
+\begin{align}
+\text{RSS}(\beta) &= \sum_{i=1}^N \hat{\epsilon}_i^2 \\
+&= \sum_{i=1}^N (Y_i - f(X_i))^2 \\
+&= \sum_{i=1}^N \left(Y_i - \beta_0 - \sum_{j=1}^p X_{ij} \beta_j\right)^2
+\end{align}
+$$
+
+# Estimating $\hat{\beta}$
+
+What is an appropriate way to estimate the $\beta$s? We could fit many lines to this data, some better than others.
+
+```{r sim-plot}
+ggplot(sim1, aes(x, y)) + 
+  geom_point()
+```
+
+```{r sim-random-fit}
+models <- tibble(
+  a1 = runif(250, -20, 40),
+  a2 = runif(250, -5, 5)
+)
+
+ggplot(sim1, aes(x, y)) + 
+  geom_abline(aes(intercept = a1, slope = a2), data = models, alpha = 1/4) +
+  geom_point()
+```
+
+We should seek estimators with some set of desired qualities. Classically, two desired qualities for an estimator are **unbiasedness** and **efficiency**.  
+
+* Unbiased
+    * $E(\hat{\beta}) = \beta$
+    * Estimator that "gets it right" vis-a-vis $\beta$
+* Efficient
+    * $\min(Var(\hat{\beta}))$
+    * Not only do we get it right, but for any given sample used to generate the model we never want to be too far off from "right"
+    
+## Least squares estimator
+
+The **least squares estimates** are the values $\hat{\beta}_0, \hat{\beta}_1$ that minimize the RSS.
+
+$$\min(\text{RSS})$$
+
+This requires a bit of calculus to solve.
+
+$$
+\begin{aligned}
+\text{RSS} &= \sum_{i=1}^n \hat{\epsilon}_i^2 \\
+\sum_{i=1}^n (\hat{\epsilon}_i)^2 &= \sum_{i=1}^n (Y_i - (\beta_0 + \beta_1 X_i))^2\\
+f(\beta_0, \beta_1 | x_i, y_i) & = \sum_{i=1}^n (Y_i - \beta_0 - \beta_1 X_i )^2\\
+\dfrac{\partial{ f(\beta_0, \beta_1 | x_i, y_i)}}{\partial \beta_0} & = -2 (\sum_{i=1}^n (Y_i - \beta_0 - \beta_1 X_i))\\
+& = \sum_{i=1}^n -2Y_i + 2\beta_0 + 2\beta_1 X_i\\
+0 & = \sum_{i=1}^n -2Y_{i} + 2\beta_0 + 2\beta_1 X_i\\
+0 & = -2 \sum_{i=1}^n Y_{i} +  2\sum_{i=1}^n \beta_0 +  2\beta_1 \sum_{i=1}^n X_i\\
+0 & = -2 \sum_{i=1}^n Y_{i} +  (n \times 2\beta_0) +  2\beta_1 \sum_{i=1}^n X_i\\
+n \times 2\beta_0 & = 2 \sum_{i=1}^n Y_i - 2\beta_1 \sum_{i=1}^n X_i\\
+\hat \beta_0 & = \dfrac{2 \sum_{i=1}^n Y_i}{2n} - \dfrac{2\beta_1 \sum_{i=1}^n X_i}{2n}\\
+& =  \dfrac{\sum_{i=1}^n Y_i}{n} - \beta_1\dfrac{ \sum_{i=1}^n X_i}{n}\\
+ \hat \beta_0 & = \bar{Y}_n - \beta_1 \bar{X}_n
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+\dfrac{\partial{ f(\beta_0, \beta_1 | x_i, y_i)}}{\partial \beta_1} & = \sum_{i=1}^n -2X_i(Y_i - \beta_0 - \beta_1 X_i) \\
+& =  \sum_{i=1}^n -2Y_iX_i + 2\beta_0X_i + 2\beta_1 X_i^2\\
+0 & =  \sum_{i=1}^n -2Y_iX_i + 2\beta_0 \sum_{i=1}^nX_i + 2\beta_1  \sum_{i=1}^n X_i^2\\
+& =  \sum_{i=1}^n -2Y_iX_i + 2 (\bar{Y}_n - \beta_1 \bar{X}_n) \sum_{i=1}^nX_i + 2\beta_1  \sum_{i=1}^n X_i^2\\
+& = \sum_{i=1}^n -2Y_iX_i + 2\bar{Y}_n \sum_{i=1}^nX_i - 2\beta_1 \bar{X}_n\sum_{i=1}^nX_i + 2\beta_1  \sum_{i=1}^n X_i^2\\
+2\beta_1  \sum_{i=1}^n X_i^2 - 2\beta_1 \bar{X}_n\sum_{i=1}^nX_i  & = \sum_{i=1}^n 2Y_iX_i  - 2\bar{Y}_n \sum_{i=1}^nX_i\\
+\beta_1 ( \sum_{i=1}^n X_i^2 - \bar{X}_n\sum_{i=1}^nX_i ) & = \sum_{i=1}^n Y_iX_i  - \bar{Y}_n \sum_{i=1}^nX_i\\
+\hat \beta_1 & = \dfrac{ \sum_{i=1}^n Y_iX_i  - \bar{Y}_n \sum_{i=1}^nX_i}{ \sum_{i=1}^n X_i^2 - \bar{X}_n\sum_{i=1}^nX_i}\\
+ \hat \beta_0 & = \bar{Y}_n - \hat{\beta}_1 \bar{X}_n
+\end{aligned}
+$$
+
+Recall that we also need an estimate for $\sigma^2$. An unbiased estimate turns out to be:
+
+$$\hat{\sigma}^2 = \left( \frac{1}{n - 2} \right) \sum_{i=1}^n \hat{\epsilon}_i^2$$
+
+In reality, we will typically assume $\sigma^2$ is a constant but unknown value. We can optimize to find values for the $\hat{\beta}$s without explicitly estimating $\sigma^2$.
+
+```{r sim-lm}
+sim1_mod <- lm(y ~ x, data = sim1)
+
+dist2 <- sim1 %>%
+  add_predictions(sim1_mod) %>%
+  mutate(
+    dodge = rep(c(-1, 0, 1) / 20, 10),
+    x1 = x + dodge
+  )
+
+ggplot(dist2, aes(x1, y)) + 
+  geom_smooth(method = "lm", color = "grey40", se = FALSE) +
+  geom_point(color = "grey40") +
+  geom_linerange(aes(ymin = y, ymax = pred), color = "#3366FF")
+```
+
+## Multivariate formulation
+
+$$\mathbf{Y} = \mathbf{X} \boldsymbol{\beta} + \mathbf{u}$$
+
+* $\mathbf{Y}$: $N\times 1$ vector
+* $\mathbf{X}$: $N \times K$ matrix
+* $\boldsymbol{\beta}$: $K \times 1$ vector
+* $\mathbf{u}$: $N\times 1$ vector
+* $i \in \{1,\ldots,N \}$
+* $k \in \{1,\ldots,K \}$
+
+    $$Y_i = \beta_0 + \beta_1X_{1i} + \beta_2 X_{2i} + \ldots + \beta_K X_{Ki} + u_i$$
+
+$$
+\begin{aligned}
+\mathbf{u} &= \mathbf{Y} - \mathbf{X}\boldsymbol{\beta} \\
+\mathbf{u}'\mathbf{u} &= (\mathbf{Y} - \mathbf{X}\boldsymbol{\beta})'(\mathbf{Y} - \mathbf{X}\boldsymbol{\beta}) \\
+&= \mathbf{Y'Y} - 2 \boldsymbol{\beta}' \mathbf{X'Y'} + \boldsymbol{\beta}' \mathbf{X'X} \boldsymbol{\beta}
+\end{aligned}
+$$
+
+* $\mathbf{u}'\mathbf{u}$ equivalent to squaring each element $u_i$
+* Last term on the last line
+    * $(\mathbf{X}\boldsymbol{\beta})' = \boldsymbol{\beta}'\mathbf{X}'$
+    * $\boldsymbol{\beta}'\mathbf{X}'\mathbf{Y}$ is a scalar value ($(1 \times K) \times (K \times N) \times (N \times 1))$, so it is equal to its transpose $\mathbf{Y}'\mathbf{X}\boldsymbol{\beta}$
+
+$$
+\begin{aligned}
+\frac{\partial\mathbf{u}' \mathbf{u}}{\partial \boldsymbol{\beta}}  &= -2\mathbf{X'Y} + 2\boldsymbol{X'X\beta} \\
+0  &= -2\mathbf{X'Y} + 2\mathbf{X'X} \boldsymbol{\beta} \\
+0 &= -\mathbf{X'Y} + \mathbf{X'X}\boldsymbol{\beta} \\
+\mathbf{X'Y} &= \mathbf{X'X\beta} \\
+(\mathbf{X'X})^{-1}\mathbf{X'Y} &= (\mathbf{X'X})^{-1}\mathbf{X'X}\boldsymbol{\beta} \\
+(\mathbf{X'X})^{-1}\mathbf{X'Y} &= \mathbf{I}\boldsymbol{\beta} \\
+(\mathbf{X'X})^{-1}\mathbf{X'Y} &= \boldsymbol{\beta} \\
+\end{aligned}
+$$
+
+* Variability in $\mathbf{X}$ times $\boldsymbol{\beta}$ is equal to covariation in $\mathbf{X}$ and $\mathbf{Y}$
+    * Same as the bivariate setup
+* Pre-multiply by the inverse to get the final equation
+
+* $\mathbf{X'Y}$: covariance of $\mathbf{X}$ and $\mathbf{Y}$
+* $\mathbf{X'X}$: variance of $\mathbf{X}$
+* Premultiplying $\mathbf{X'Y}$ by $(\mathbf{X'X})^{-1}$: dividing $\mathbf{X'Y}$ by $\mathbf{X'X}$
+
+# Gauss-Markov theorem
+
+The **Gauss-Markov theorem** asserts a unique property of the least squares estimator. Among all linear unbiased estimates, the least squares estimate of $\beta$ will have the smallest variance. That is, the least squares estimator is the Best Linear Unbiased Estimator (BLUE). Another way of thinking of this is that least squares is the best approach for estimating $\beta$ given the specific statistical definition. That is, it assumes we want a linear unbiased estimator.
+
+$$
+\begin{aligned}
+\hat{\beta}_1 &= \frac{\sum (X_i - \bar{X})(Y_i - \bar{Y})}{\sum (X_i - \bar{X})^2} \\
+&= \frac{\sum (X_i - \bar{X})Y_i}{\sum (X_i - \bar{X})^2} - \frac{\bar{Y}(X_i - \bar{X})}{\sum (X_i - \bar{X})^2} \\
+&= \frac{\sum (X_i - \bar{X})Y_i}{\sum (X_i - \bar{X})^2} \\
+&= \sum k_i Y_i
+\end{aligned}
+$$
+
+where $k_i$ is a weighting function $\frac{\sum (X_i - \bar{X})}{\sum (X_i - \bar{X})^2}$.
+
+* Wipe out the second fraction because $\sum(X_i - \bar{X}) = 0$)
+* $\hat{\beta}_1$ is a weighted combination of the $Y_i$s, with weights corresponding to $K$
+
+$k_i$ is the result of a weighting function defined by $X_i, \bar{X}$, and this least squares method for estimating $k_i$. Consider now a new weighting function $w_i$:
+
+$$\tilde{\beta}_1 = \sum w_i Y_i$$
+
+What happens to $\hat{\beta}_1$?
+
+$$
+\begin{aligned}
+\E(\tilde{\beta}_1) &= \sum w_i \E(Y_i) \\
+&= \sum w_i (\beta_0 + \beta_1 X_i) \\
+&= \beta_0 \sum w_i + \beta_1 \sum w_i X_i
+\end{aligned}
+$$
+
+In order for $\E(\tilde{\beta}_1)$ to be unbiased (i.e. $\E(\tilde{\beta}_1) = 0$), $\sum w_i = 0$ and $\sum (w_i X_i) = 1$. Otherwise $\tilde{\beta}_1 \neq \beta_1$. The sum of the weights has to be 0 and the sum of the weights times $X_i$ must sum to 1. This is what we get with the OLS estimator. Any other estimator will give biased estimates of $\beta_1$
+
+## Do we want this?
+
+While unbiasedness is a nice statistical property, it is not the only criteria we should consider in formulating a model, even a linear model. Consider the mean squared error (MSE) of an estimator $\tilde{\theta}$ in estimating $\theta$:
+
+$$
+\begin{align}
+\text{MSE} (\tilde{\theta}) &= \E (\tilde{\theta} - \theta)^2 \\
+&= \Var (\tilde{\theta}) + [\E (\tilde{\theta}) - \theta]^2 + \text{Irreducible error}
+\end{align}
+$$
+
+The first term is the variance of the estimator and the second term is the $\text{Bias}^2$. According to Gauss-Markov, the least squares estimator has the smallest MSE of all linear estimators with no bias. However, there could exist **biased estimators** with even smaller MSEs. That is because their variance could be substantially smaller compared to the least squares estimator, leading to an overall lower MSE. Such an estimator trades a little bias for a substantial reduction in variance. For example, ridge or lasso regression are alternative estimating strategies for linear regression models that intentionally shink the least squares estimates of the parameters towards zero. This increases the bias of the estimators, but can lead to lower overall error in the model.
+
+# Extensions
+
+There are two major approaches to extending the standard linear regression model. Recall that linear models assume that the conditional relationship $\E(Y|X)$ is **additive** and **linear**. Additive means that the effect of changes in a specific predictor $X_j$ on the response $Y$ is independent of the values for the other predictors. Linear means the relationship between $X$ and $Y$ is one-to-one (i.e. monotonic) across the entire domain of $X$.
+
+## Removing the additive assumption
+
+See [here](/notes/interaction-terms/) for more details.
+
+## Removing the linear assumption
+
+**Polynomial regression** relaxes the linearity assumption. Instead of fitting a model
+
+$$Y_i = \beta_0 + \beta_{1}X_{i} + \epsilon_{i}$$
+
+we instead fit a polynomial function:
+
+$$Y_i = \beta_0 + \beta_{1}X_{i} + \beta_{2}X_i^2 + \beta_{3}X_i^3 + \dots + \beta_{d}X_i^d + \epsilon_i$$
+
+As $d$ increases, the linear model's flexibility increases. We still use least squares to estimate the parameters, which are also interpreted in the same way.
+
+Let's take a look at the [Joe Biden feeling thermometer data](/homework/core-regression) and estimate a polynomial regression of the relationship between age and attitudes towards Biden as measured on a 0-100 feeling thermometer:
+
+$$\text{Biden}_i = \beta_0 + \beta_1 \text{Age} + \beta_2 \text{Age}^2 + \beta_3 \text{Age}^3 + \beta_4 \text{Age}^4$$
+
+```{r biden-age}
+# get data
+biden <- read_csv(here("static", "data", "biden.csv"))
+
+# estimate linear model
+ggplot(biden, aes(age, biden)) +
+  geom_point(alpha = .25) +
+  geom_smooth(method = lm) +
+  labs(title = "Linear regression of Biden feeling thermometer",
+       subtitle = "With 95% confidence interval",
+       x = "Age",
+       y = "Biden thermometer rating")
+
+# estimate polynomial model
+biden_age <- glm(biden ~ poly(x = age, degree = 4, raw = TRUE), data = biden)
+tidy(biden_age)
+
+# plot the model results
+ggplot(biden, aes(age, biden)) +
+  geom_point(alpha = .25) +
+  geom_smooth(method = lm, formula = y ~ poly(x = x, degree = 4, raw = TRUE)) +
+  labs(title = "Polynomial regression of Biden feeling thermometer",
+       subtitle = "With 95% confidence interval",
+       x = "Age",
+       y = "Biden thermometer rating")
+```
+
+When interpreting the model, we don't look to any individual parameters since they are all based on the same variable. Instead we fit the function to the full range of potential values for age and examine the relationship.
+
+In the figure above I graphed the predicted values with 95% confidence intervals. In the case of ordinary linear regression, this is easy to estimate. The **standard error** is a measure of variance for the estimated parameter and defined by the square root of the diagonal of the variance-covariance matrix:
+
+```{r biden-matrix}
+vcov(biden_age) %>%
+  kable(caption = "Variance-covariance matrix of Biden polynomial regression",
+        digits = 5)
+```
+
+Confidence intervals are typically plus/minus 1.96 times the standard error for the parameter. However for polynomial regression, this is more complicated. Suppose we compute the fit at a particular value of age, $x_0$:
+
+$$\hat{f}(X_0) = \hat{\beta}_0 + \hat{\beta}_1 X_{0} + \hat{\beta}_2 X_{0}^2 + \hat{\beta}_3 X_{0}^3 + \hat{\beta}_4 X_{0}^4$$
+
+What is the variance of the fit for this point, i.e. $\text{Var}(\hat{f}(x_o))$. The variance is now a function not only of $\hat{\beta}_1$, but the variance of each of the estimated parameters $\hat{\beta}_j$ as well as the covariances between the pairs of estimated parameters (i.e. the off-diagonal elements). We use all of this information to estimate the **pointwise** standard error of $\hat{f}(x_0)$, which is the square-root of the variance $\text{Var}(\hat{f}(x_o))$.
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* Some material drawn from [**All of Statistics**](https://link-springer-com.proxy.uchicago.edu/book/10.1007%2F978-0-387-21736-9) by Larry Wasserman
+
