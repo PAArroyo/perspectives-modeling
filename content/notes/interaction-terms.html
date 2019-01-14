@@ -1,5 +1,5 @@
 ---
-title: Interaction terms in linear regression models
+title: Interaction terms
 date: 2019-01-14T13:30:00-06:00  # Schedule page publish date.
     
 draft: false
@@ -112,9 +112,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <h1><span class="header-section-number">1</span> Multiplicative interaction models</h1>
 <div id="additive-model" class="section level2">
 <h2><span class="header-section-number">1.1</span> Additive model</h2>
-<p>Consider a linear additive model of the form:</p>
+<p>Consider a linear additive model of the form:<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
 <p><span class="math display">\[Y = \beta_0 + \beta_1 X + \beta_2 Z + \epsilon_i\]</span></p>
-<p>By definition, we expect <span class="math inline">\(\beta_1\)</span> to estimate the direct effect (or relationship) of <span class="math inline">\(X_1\)</span> on <span class="math inline">\(Y\)</span> independent of <span class="math inline">\(Z\)</span>.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> A data generating process with a continuous value for <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span> and a dichotomous value for <span class="math inline">\(Z\)</span> following this functional form would look like:</p>
+<p>By definition, we expect <span class="math inline">\(\beta_1\)</span> to estimate the direct effect (or relationship) of <span class="math inline">\(X_1\)</span> on <span class="math inline">\(Y\)</span> independent of <span class="math inline">\(Z\)</span>.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> A data generating process with a continuous value for <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span> and a dichotomous value for <span class="math inline">\(Z\)</span> following this functional form would look like:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">n_sim &lt;-<span class="st"> </span><span class="dv">100</span>
 
 additive &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x =</span> <span class="kw">runif</span>(n_sim),
@@ -144,7 +144,7 @@ additive &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span 
 <h2><span class="header-section-number">1.2</span> Multiplicative interaction model</h2>
 <p>But the additive functional form only makes sense if you theoretically believe the effects of <span class="math inline">\(X\)</span> and <span class="math inline">\(Z\)</span> are independent. Consider instead a simple interactive model with three variables:</p>
 <p><span class="math display">\[Y = \beta_0 + \beta_1 X + \beta_2 Z + \beta_3 XZ + \epsilon_i\]</span></p>
-<p>Here <span class="math inline">\(XZ\)</span> is just that: <span class="math inline">\(X\)</span> multiplied by <span class="math inline">\(Z\)</span>. <span class="math inline">\(\beta_1\)</span> and <span class="math inline">\(\beta_2\)</span> are commonly (and erroneously) referred to as the <strong>direct effects</strong> of <span class="math inline">\(X\)</span> and <span class="math inline">\(Z\)</span> on <span class="math inline">\(Y\)</span>,<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> and <span class="math inline">\(\beta_3\)</span> as the coefficient for the <strong>interaction term</strong>.</p>
+<p>Here <span class="math inline">\(XZ\)</span> is just that: <span class="math inline">\(X\)</span> multiplied by <span class="math inline">\(Z\)</span>. <span class="math inline">\(\beta_1\)</span> and <span class="math inline">\(\beta_2\)</span> are commonly (and erroneously) referred to as the <strong>direct effects</strong> of <span class="math inline">\(X\)</span> and <span class="math inline">\(Z\)</span> on <span class="math inline">\(Y\)</span>,<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> and <span class="math inline">\(\beta_3\)</span> as the coefficient for the <strong>interaction term</strong>.</p>
 <p>With the variables multiplied together, the net impact of <span class="math inline">\(X\)</span> on <span class="math inline">\(Y\)</span> is now defined by:</p>
 <p><span class="math display">\[
 \begin{split}
@@ -915,11 +915,17 @@ instant_effect &lt;-<span class="st"> </span><span class="cf">function</span>(mo
 <ul>
 <li>Code for estimating marginal effects is drawn from <a href="http://www.statsblogs.com/2013/08/27/creating-marginal-effect-plots-for-linear-regression-models-in-r/">Creating Marginal Effect Plots for Linear Regression Models in R</a></li>
 </ul>
+<div id="refs" class="references">
+<div id="ref-brambor2006understanding">
+<p>Brambor, Thomas, William Roberts Clark, and Matt Golder. 2006. “Understanding Interaction Models: Improving Empirical Analyses.” <em>Political Analysis</em> 14 (1). Cambridge University Press: 63–82.</p>
+</div>
+</div>
 </div>
 <div class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Likewise for <span class="math inline">\(\beta_2\)</span>.<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>Brambor et. al. define <span class="math inline">\(X\)</span> and <span class="math inline">\(Z\)</span> as the <strong>constitutive terms</strong><a href="#fnref2">↩</a></p></li>
+<li id="fn1"><p>Much of the following material comes from <span class="citation">Brambor, Clark, and Golder (<a href="#ref-brambor2006understanding">2006</a>)</span>.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Likewise for <span class="math inline">\(\beta_2\)</span>.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>Brambor et. al. define <span class="math inline">\(X\)</span> and <span class="math inline">\(Z\)</span> as the <strong>constitutive terms</strong><a href="#fnref3">↩</a></p></li>
 </ol>
 </div>
