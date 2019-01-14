@@ -1,0 +1,390 @@
+---
+title: "Linear Regression"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2)
+
+library(tidyverse)
+library(here)
+library(broom)
+library(modelr)
+library(knitr)
+library(patchwork)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 20))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+# Linear regression
+
+* Assumes $\E(Y|X)$ is linear in the inputs $X_1, \ldots, X_p$
+* Popular for a multitude of reasons
+    * Simple to interpret
+    * Easy(ish) to estimate
+    * Highly adaptable, even to non-linear relationships
+
+---
+
+# Key concepts
+
+* Simple linear regression model
+
+    $$\E(Y|X) = \beta_0 + \beta_1 X$$
+--
+
+* Further assume that $\Var (\epsilon_i | X = x) = \sigma^2$ does not depend on $x$
+
+    $$Y_i = \beta_0 + \beta_1 X_i + \epsilon_i$$
+
+    * $\E (\epsilon_i | X_i) = 0$
+    * $\Var (\epsilon_i | X_i) = \sigma^2$
+    * $\beta_0\, \beta_1, \sigma^2$
+
+---
+
+# Key concepts
+
+* Let $\hat{\beta}_0$ and $\hat{\beta}_1$ denote estimates of $\beta_0$ and $\beta_1$
+* Fitted line
+
+    $$\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X$$
+
+* Fitted/predicted values
+
+    $$\hat{Y}_i = \hat{\beta}_0 + \hat{\beta}_1 X_i$$
+
+* Residuals
+
+    $$\hat{\epsilon}_i = Y_i - \hat{Y}_i = Y_i - (\hat{\beta}_0 + \hat{\beta}_1 X)$$
+
+---
+
+# Residual sum of squares (RSS)
+
+$$
+\begin{align}
+\text{RSS}(\beta) &= \sum_{i=1}^N \hat{\epsilon}_i^2 \\
+&= \sum_{i=1}^N (Y_i - f(X_i))^2 \\
+&= \sum_{i=1}^N \left(Y_i - \beta_0 - \sum_{j=1}^p X_{ij} \beta_j\right)^2
+\end{align}
+$$
+
+---
+
+class: center
+
+# Estimating $\hat{\beta}$
+
+```{r sim-plot}
+ggplot(sim1, aes(x, y)) + 
+  geom_point()
+```
+
+---
+
+class: center
+
+# Estimating $\hat{\beta}$
+
+```{r sim-random-fit}
+models <- tibble(
+  a1 = runif(250, -20, 40),
+  a2 = runif(250, -5, 5)
+)
+
+ggplot(sim1, aes(x, y)) + 
+  geom_abline(aes(intercept = a1, slope = a2), data = models, alpha = 1/4) +
+  geom_point()
+```
+
+---
+
+# Estimating $\hat{\beta}$
+
+* Classically desired properties
+* Unbiased
+    * $E(\hat{\beta}) = \beta$
+    * Estimator that "gets it right" vis-a-vis $\beta$
+* Efficient
+    * $\min(Var(\hat{\beta}))$
+    * Not only do we get it right, but for any given sample used to generate the model we never want to be too far off from "right"
+
+---
+
+# Least squares estimator
+
+* Values $\hat{\beta}_0, \hat{\beta}_1$ that minimize the RSS
+
+    $$\min(\text{RSS})$$
+
+---
+
+# Least squares estimator
+
+$$
+\begin{aligned}
+\text{RSS} &= \sum_{i=1}^n \hat{\epsilon}_i^2 \\
+\sum_{i=1}^n (\hat{\epsilon}_i)^2 &= \sum_{i=1}^n (Y_i - (\beta_0 + \beta_1 X_i))^2\\
+f(\beta_0, \beta_1 | x_i, y_i) & = \sum_{i=1}^n (Y_i - \beta_0 - \beta_1 X_i )^2
+\end{aligned}
+$$
+
+---
+
+# Least squares estimator
+
+$$
+\begin{aligned}
+\dfrac{\partial{ f(\beta_0, \beta_1 | x_i, y_i)}}{\partial \beta_0} & = -2 (\sum_{i=1}^n (Y_i - \beta_0 - \beta_1 X_i))\\
+& = \sum_{i=1}^n -2Y_i + 2\beta_0 + 2\beta_1 X_i\\
+0 & = \sum_{i=1}^n -2Y_{i} + 2\beta_0 + 2\beta_1 X_i\\
+0 & = -2 \sum_{i=1}^n Y_{i} +  2\sum_{i=1}^n \beta_0 +  2\beta_1 \sum_{i=1}^n X_i\\
+0 & = -2 \sum_{i=1}^n Y_{i} +  (n \times 2\beta_0) +  2\beta_1 \sum_{i=1}^n X_i\\
+n \times 2\beta_0 & = 2 \sum_{i=1}^n Y_i - 2\beta_1 \sum_{i=1}^n X_i\\
+\hat \beta_0 & = \dfrac{2 \sum_{i=1}^n Y_i}{2n} - \dfrac{2\beta_1 \sum_{i=1}^n X_i}{2n}\\
+& =  \dfrac{\sum_{i=1}^n Y_i}{n} - \beta_1\dfrac{ \sum_{i=1}^n X_i}{n}\\
+ \hat \beta_0 & = \bar{Y}_n - \beta_1 \bar{X}_n
+\end{aligned}
+$$
+
+---
+
+# Least squares estimator
+
+$$
+\begin{aligned}
+\dfrac{\partial{ f(\beta_0, \beta_1 | x_i, y_i)}}{\partial \beta_1} & = \sum_{i=1}^n -2X_i(Y_i - \beta_0 - \beta_1 X_i) \\
+& =  \sum_{i=1}^n -2Y_iX_i + 2\beta_0X_i + 2\beta_1 X_i^2\\
+0 & =  \sum_{i=1}^n -2Y_iX_i + 2\beta_0 \sum_{i=1}^nX_i + 2\beta_1  \sum_{i=1}^n X_i^2\\
+& =  \sum_{i=1}^n -2Y_iX_i + 2 (\bar{Y}_n - \beta_1 \bar{X}_n) \sum_{i=1}^nX_i + 2\beta_1  \sum_{i=1}^n X_i^2\\
+& = \sum_{i=1}^n -2Y_iX_i + 2\bar{Y}_n \sum_{i=1}^nX_i - 2\beta_1 \bar{X}_n\sum_{i=1}^nX_i + 2\beta_1  \sum_{i=1}^n X_i^2\\
+2\beta_1  \sum_{i=1}^n X_i^2 - 2\beta_1 \bar{X}_n\sum_{i=1}^nX_i  & = \sum_{i=1}^n 2Y_iX_i  - 2\bar{Y}_n \sum_{i=1}^nX_i\\
+\beta_1 ( \sum_{i=1}^n X_i^2 - \bar{X}_n\sum_{i=1}^nX_i ) & = \sum_{i=1}^n Y_iX_i  - \bar{Y}_n \sum_{i=1}^nX_i\\
+\hat \beta_1 & = \dfrac{ \sum_{i=1}^n Y_iX_i  - \bar{Y}_n \sum_{i=1}^nX_i}{ \sum_{i=1}^n X_i^2 - \bar{X}_n\sum_{i=1}^nX_i}\\
+ \hat \beta_0 & = \bar{Y}_n - \hat{\beta}_1 \bar{X}_n
+\end{aligned}
+$$
+
+$$\hat{\sigma}^2 = \left( \frac{1}{n - 2} \right) \sum_{i=1}^n \hat{\epsilon}_i^2$$
+
+---
+
+class: center
+
+# Least squares estimator
+
+```{r sim-lm}
+sim1_mod <- lm(y ~ x, data = sim1)
+
+dist2 <- sim1 %>%
+  add_predictions(sim1_mod) %>%
+  mutate(
+    dodge = rep(c(-1, 0, 1) / 20, 10),
+    x1 = x + dodge
+  )
+
+ggplot(dist2, aes(x1, y)) + 
+  geom_smooth(method = "lm", color = "grey40", se = FALSE) +
+  geom_point(color = "grey40") +
+  geom_linerange(aes(ymin = y, ymax = pred), color = "#3366FF")
+```
+
+---
+
+# Multivariate formulation
+
+$$\mathbf{Y} = \mathbf{X} \boldsymbol{\beta} + \mathbf{u}$$
+
+* $\mathbf{Y}$: $N\times 1$ vector
+* $\mathbf{X}$: $N \times K$ matrix
+* $\boldsymbol{\beta}$: $K \times 1$ vector
+* $\mathbf{u}$: $N\times 1$ vector
+* $i \in \{1,\ldots,N \}$
+* $k \in \{1,\ldots,K \}$
+
+--
+
+    $$Y_i = \beta_0 + \beta_1X_{1i} + \beta_2 X_{2i} + \ldots + \beta_K X_{Ki} + u_i$$
+
+---
+
+# Multivariate formulation
+
+$$
+\begin{aligned}
+\mathbf{u} &= \mathbf{Y} - \mathbf{X}\boldsymbol{\beta} \\
+\mathbf{u}'\mathbf{u} &= (\mathbf{Y} - \mathbf{X}\boldsymbol{\beta})'(\mathbf{Y} - \mathbf{X}\boldsymbol{\beta}) \\
+&= \mathbf{Y'Y} - 2 \boldsymbol{\beta}' \mathbf{X'Y'} + \boldsymbol{\beta}' \mathbf{X'X} \boldsymbol{\beta}
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+\frac{\partial\mathbf{u}' \mathbf{u}}{\partial \boldsymbol{\beta}}  &= -2\mathbf{X'Y} + 2\boldsymbol{X'X\beta} \\
+0  &= -2\mathbf{X'Y} + 2\mathbf{X'X} \boldsymbol{\beta} \\
+0 &= -\mathbf{X'Y} + \mathbf{X'X}\boldsymbol{\beta} \\
+\mathbf{X'Y} &= \mathbf{X'X\beta} \\
+(\mathbf{X'X})^{-1}\mathbf{X'Y} &= (\mathbf{X'X})^{-1}\mathbf{X'X}\boldsymbol{\beta} \\
+(\mathbf{X'X})^{-1}\mathbf{X'Y} &= \mathbf{I}\boldsymbol{\beta} \\
+(\mathbf{X'X})^{-1}\mathbf{X'Y} &= \boldsymbol{\beta} \\
+\end{aligned}
+$$
+
+---
+
+# Gauss-Markov theorem
+
+* Among all linear unbiased estimates, the least squares estimate of $\beta$ will have the smallest variance
+* Best Linear Unbiased Estimator (BLUE)
+
+---
+
+# Gauss-Markov theorem
+
+$$
+\begin{aligned}
+\hat{\beta}_1 &= \frac{\sum (X_i - \bar{X})(Y_i - \bar{Y})}{\sum (X_i - \bar{X})^2} \\
+&= \frac{\sum (X_i - \bar{X})Y_i}{\sum (X_i - \bar{X})^2} - \frac{\bar{Y}(X_i - \bar{X})}{\sum (X_i - \bar{X})^2} \\
+&= \frac{\sum (X_i - \bar{X})Y_i}{\sum (X_i - \bar{X})^2} \\
+&= \sum k_i Y_i
+\end{aligned}
+$$
+
+
+---
+
+# Gauss-Markov theorem
+
+* Consider now a new weighting function $w_i$:
+
+    $$\tilde{\beta}_1 = \sum w_i Y_i$$
+
+* What happens to $\hat{\beta}_1$?
+
+$$
+\begin{align}
+\E(\tilde{\beta}_1) &= \sum w_i \E(Y_i) \\
+&= \sum w_i (\beta_0 + \beta_1 X_i) \\
+&= \beta_0 \sum w_i + \beta_1 \sum w_i X_i
+\end{align}
+$$
+
+---
+
+# Do we want this?
+
+$$
+\begin{align}
+\text{MSE} (\tilde{\theta}) &= \E (\tilde{\theta} - \theta)^2 \\
+&= \Var (\tilde{\theta}) + [\E (\tilde{\theta}) - \theta]^2 + \text{Irreducible error}
+\end{align}
+$$
+
+---
+
+# Extensions
+
+* Additive assumption
+* Linearity assumption
+
+---
+
+# Removing the linear assumption
+
+* Linear model
+
+    $$Y_i = \beta_0 + \beta_{1}X_{i} + \epsilon_{i}$$
+
+* Polynomial model
+
+    $$Y_i = \beta_0 + \beta_{1}X_{i} + \beta_{2}X_i^2 + \beta_{3}X_i^3 + \dots + \beta_{d}X_i^d + \epsilon_i$$
+
+---
+
+class: center
+
+# Joe Biden feeling thermometer
+
+```{r biden}
+# get data
+biden <- read_csv(here("static", "data", "biden.csv"))
+
+# histogram of biden variable
+ggplot(biden, aes(biden)) +
+  geom_histogram() +
+  labs(title = "Biden feeling thermometer",
+       x = "Biden thermometer rating",
+       y = "Number of observations")
+```
+
+---
+
+class: center
+
+# Joe Biden feeling thermometer
+
+$$\text{Biden}_i = \beta_0 + \beta_1 \text{Age}$$
+
+```{r biden-age, fig.height = 7}
+# estimate linear model
+ggplot(biden, aes(age, biden)) +
+  geom_point(alpha = .25) +
+  geom_smooth(method = lm) +
+  labs(title = "Linear regression of Biden feeling thermometer",
+       subtitle = "With 95% confidence interval",
+       x = "Age",
+       y = "Biden thermometer rating")
+```
+
+---
+
+class: center
+
+# Joe Biden feeling thermometer
+
+$$\text{Biden}_i = \beta_0 + \beta_1 \text{Age} + \beta_2 \text{Age}^2 + \beta_3 \text{Age}^3 + \beta_4 \text{Age}^4$$
+
+```{r biden-poly}
+# estimate polynomial model
+biden_age <- glm(biden ~ poly(x = age, degree = 4, raw = TRUE), data = biden)
+
+# plot the model results
+ggplot(biden, aes(age, biden)) +
+  geom_point(alpha = .25) +
+  geom_smooth(method = lm, formula = y ~ poly(x = x, degree = 4, raw = TRUE)) +
+  labs(title = "Polynomial regression of Biden feeling thermometer",
+       subtitle = "With 95% confidence interval",
+       x = "Age",
+       y = "Biden thermometer rating")
+```
+
+---
+
+# Removing the linear assumption
+
+## Pointwise standard error
+
+```{r biden-matrix}
+vcov(biden_age) %>%
+  kable(caption = "Variance-covariance matrix of Biden polynomial regression",
+        digits = 5,
+        format='html')
+```
