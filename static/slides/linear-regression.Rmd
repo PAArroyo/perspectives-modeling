@@ -388,3 +388,97 @@ vcov(biden_age) %>%
         digits = 5,
         format='html')
 ```
+
+---
+
+# Assumptions of linear regression models
+
+$$Y_i = \beta_0 + \beta_1 X_i + \epsilon_i$$
+
+> The key assumptions of linear regression concern the behavior of the errors
+
+---
+
+# Assumptions of linear regression models
+
+* Linearity
+* Constant variance
+* Normality
+* Independence
+* Fixed $X$
+* $X$ is not invariant
+
+---
+
+# Linearity
+
+$$\E(\epsilon_i) \equiv E(\epsilon_i | X_i) = 0$$
+
+$$
+\begin{aligned}
+\mu_i \equiv E(Y_i) \equiv E(Y | X_i) &= E(\beta_0 + \beta_1 X_i + \epsilon_i) \\
+\mu_i &= \beta_0 + \beta_1 X_i + E(\epsilon_i) \\
+\mu_i &= \beta_0 + \beta_1 X_i + 0 \\
+\mu_i &= \beta_0 + \beta_1 X_i
+\end{aligned}
+$$
+
+---
+
+# Constant variance
+
+* The variance of the errors is the same regardless of the values of $X$
+
+    $$\Var(\epsilon_i | X_i) = \sigma^2$$
+
+---
+
+# Normality
+
+* The errors are assumed to be normally distributed
+
+    $$\epsilon_i \mid X_i \sim N(0, \sigma^2)$$
+
+---
+
+# Independence
+
+* Observations are sampled independently from one another
+* Any pair of errors $\epsilon_i$ and $\epsilon_j$ are independent for $i \neq j$.
+
+---
+
+# Fixed $X$
+
+* $X$ is assumed to be fixed or measured without error and independent of the error
+* Experimental design
+* Observational study
+
+    $$\epsilon_i \sim N(0, \sigma^2), \text{for } i = 1, \dots, n$$
+
+---
+
+# $X$ is not invariant
+
+```{r invariant}
+data_frame(x = 1,
+           y = rnorm(10)) %>%
+  ggplot(aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "You cannot regress this",
+       subtitle = "Slope is undefined")
+```
+
+---
+
+# Handling violations of assumptions
+
+* Ooopsie
+* Inference can be
+    * Tricky
+    * Biased
+    * Inefficient
+    * Error prone
+* Move to more robust inferential method
+* Diagnose assumption violations and solve them in the OLS framework
