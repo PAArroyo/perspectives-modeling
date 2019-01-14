@@ -283,6 +283,13 @@ $$\text{Biden}_i = \beta_0 + \beta_1 \text{Age} + \beta_2 \text{Age}^2 + \beta_3
 # get data
 biden <- read_csv(here("static", "data", "biden.csv"))
 
+# histogram of biden variable
+ggplot(biden, aes(biden)) +
+  geom_histogram() +
+  labs(title = "Biden feeling thermometer",
+       x = "Biden thermometer rating",
+       y = "Number of observations")
+
 # estimate linear model
 ggplot(biden, aes(age, biden)) +
   geom_point(alpha = .25) +

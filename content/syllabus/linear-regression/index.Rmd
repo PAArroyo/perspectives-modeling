@@ -59,6 +59,13 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Slides and class materials
 
+```{r slides}
+knitr::include_url("/slides/linear-regression.html", height = "505px")
+```
+
+* [Overview of linear regression](/notes/linear-regression/)
+* [Diagnostic tests for linear regression](/notes/ols-diagnostics/)
+* [Interaction terms in linear regression models](/notes/interaction-terms/)
 
 ### Additional readings
 
