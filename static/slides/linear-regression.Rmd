@@ -24,6 +24,7 @@ library(broom)
 library(modelr)
 library(knitr)
 library(patchwork)
+library(plotly)
 
 set.seed(1234)
 theme_set(theme_minimal(base_size = 20))
@@ -209,47 +210,6 @@ ggplot(dist2, aes(x1, y)) +
 
 ---
 
-# Multivariate formulation
-
-$$\mathbf{Y} = \mathbf{X} \boldsymbol{\beta} + \mathbf{u}$$
-
-* $\mathbf{Y}$: $N\times 1$ vector
-* $\mathbf{X}$: $N \times K$ matrix
-* $\boldsymbol{\beta}$: $K \times 1$ vector
-* $\mathbf{u}$: $N\times 1$ vector
-* $i \in \{1,\ldots,N \}$
-* $k \in \{1,\ldots,K \}$
-
---
-
-    $$Y_i = \beta_0 + \beta_1X_{1i} + \beta_2 X_{2i} + \ldots + \beta_K X_{Ki} + u_i$$
-
----
-
-# Multivariate formulation
-
-$$
-\begin{aligned}
-\mathbf{u} &= \mathbf{Y} - \mathbf{X}\boldsymbol{\beta} \\
-\mathbf{u}'\mathbf{u} &= (\mathbf{Y} - \mathbf{X}\boldsymbol{\beta})'(\mathbf{Y} - \mathbf{X}\boldsymbol{\beta}) \\
-&= \mathbf{Y'Y} - 2 \boldsymbol{\beta}' \mathbf{X'Y'} + \boldsymbol{\beta}' \mathbf{X'X} \boldsymbol{\beta}
-\end{aligned}
-$$
-
-$$
-\begin{aligned}
-\frac{\partial\mathbf{u}' \mathbf{u}}{\partial \boldsymbol{\beta}}  &= -2\mathbf{X'Y} + 2\boldsymbol{X'X\beta} \\
-0  &= -2\mathbf{X'Y} + 2\mathbf{X'X} \boldsymbol{\beta} \\
-0 &= -\mathbf{X'Y} + \mathbf{X'X}\boldsymbol{\beta} \\
-\mathbf{X'Y} &= \mathbf{X'X\beta} \\
-(\mathbf{X'X})^{-1}\mathbf{X'Y} &= (\mathbf{X'X})^{-1}\mathbf{X'X}\boldsymbol{\beta} \\
-(\mathbf{X'X})^{-1}\mathbf{X'Y} &= \mathbf{I}\boldsymbol{\beta} \\
-(\mathbf{X'X})^{-1}\mathbf{X'Y} &= \boldsymbol{\beta} \\
-\end{aligned}
-$$
-
----
-
 # Gauss-Markov theorem
 
 * Among all linear unbiased estimates, the least squares estimate of $\beta$ will have the smallest variance
@@ -267,7 +227,6 @@ $$
 &= \sum k_i Y_i
 \end{aligned}
 $$
-
 
 ---
 
@@ -304,6 +263,326 @@ $$
 
 * Additive assumption
 * Linearity assumption
+
+---
+
+class: center
+
+# Removing the additive assumption
+
+$$Y = \beta_0 + \beta_1 X + \beta_2 Z + \epsilon_i$$
+
+```{r sim-linear}
+n_sim <- 100
+
+additive <- data_frame(x = runif(n_sim),
+                       z = runif(n_sim)) %>%
+  mutate(z = ifelse(z > .5, 1, 0),
+         y = x + z + rnorm(n_sim))
+
+additive %>%
+  add_predictions(lm(y ~ x + z, data = .)) %>%
+  ggplot(aes(x, y, color = factor(z))) +
+  geom_point() +
+  geom_line(aes(y = pred)) +
+  theme(legend.position = "none")
+```
+
+---
+
+# Additive model
+
+$$\E[Y] = \beta_0 + \beta_1 X + \beta_2 Z$$
+
+$$\frac{\delta \E[Y]}{\delta X} = \beta_1$$
+
+$$\frac{\delta \E[Y]}{\delta Z} = \beta_2$$
+
+---
+
+# Multiplicative interaction model
+
+$$Y = \beta_0 + \beta_1 X + \beta_2 Z + \beta_3 XZ + \epsilon_i$$
+
+* Direct effects
+* Constitutive terms
+* Interaction term
+
+---
+
+# Multiplicative interaction model
+
+$$
+\begin{align}
+\E[Y] & = \beta_0 + \beta_1 X + \beta_2 Z + \beta_3 XZ \\
+     & = \beta_0 + \beta_2 Z + (\beta_1 + \beta_3 Z) X
+\end{align}
+$$
+
+$$\frac{\delta \E[Y]}{\delta X} = \beta_1 + \beta_3 Z$$
+
+$$\E[Y] = \beta_0 + \beta_2 Z + \psi_1 X$$
+
+$$
+\begin{align}
+\E[Y] & = \beta_0 + \beta_1 X + (\beta_2 + \beta_3 X) Z \\
+     & = \beta_0 + \beta_1 X + \psi_2 Z
+\end{align}
+$$
+
+---
+
+# Multiplicative interaction model
+
+* Conditional impact
+* If $Z = 0$, then:
+    
+$$
+\begin{align}
+\E[Y] & = \beta_0 + \beta_1 X + \beta_2 (0) + \beta_3 X (0) \\
+     & = \beta_0 + \beta_1 X
+\end{align}
+$$
+        
+* If $X = 0$, then:
+    
+$$
+\begin{align}
+\E[Y] & = \beta_0 + \beta_1 (0) + \beta_2 Z + \beta_3 (0) Z \\
+     & = \beta_0 + \beta_2 Z
+\end{align}
+$$
+* $\psi_1 = \beta_1$ and $\psi_2 = \beta_2$
+* $+\beta_3$ and $-\beta_3$
+* $\psi_1$ and $\psi_2$
+
+---
+
+# Conducting inference
+
+* Obtaining estimates of parameters
+
+    $$\hat{\psi}_1 = \hat{\beta}_1 + \hat{\beta}_3 Z$$
+    $$\hat{\psi}_2 = \hat{\beta}_2 + \hat{\beta}_3 X$$
+    
+* Obtaining estimates of standard errors
+
+---
+
+# Conducting inference
+
+1. $\text{Var}(aX) = a^2 \text{Var}(X)$
+1. $\text{Var}(X+Y) = \text{Var}(X) + \text{Var}(Y) + 2 \text{Cov}(X,Y)$
+1. $\text{Cov}(X, aY) = a \text{Cov}(X,Y)$
+
+--
+
+$$\widehat{\text{Var}(\hat{\psi}_1}) = \widehat{\text{Var} (\hat{\beta}_1)} +Z^2  \widehat{\text{Var} (\hat{\beta}_3)} + 2 Z \widehat{\text{Cov} (\hat{\beta}_1, \hat{\beta}_3)}$$
+
+$$\widehat{\text{Var}(\hat{\psi}_2}) = \widehat{\text{Var} (\hat{\beta}_2)} + X^2  \widehat{\text{Var} (\hat{\beta}_3)} + 2 X \widehat{\text{Cov} (\hat{\beta}_2, \hat{\beta}_3)}$$
+
+* Depend on $\beta_1$, $\beta_2$, and/or $\beta_3$
+* Both also depend on the level/value of the interacted variable
+
+---
+
+# Two dichtomous covariates
+
+$$Y = \beta_0 + \beta_1 D_1 + \beta_2 D_2 + \beta_3 D_1 D_2 + \epsilon_i$$
+
+$$
+\begin{align}
+\E[Y | D_1 = 0, D_2 = 0] & = \beta_0 \\
+\E[Y | D_1 = 1, D_2 = 0] & = \beta_0 + \beta_1 \\
+\E[Y | D_1 = 0, D_2 = 1] & = \beta_0 + \beta_2 \\
+\E[Y | D_1 = 1, D_2 = 1] & = \beta_0 + \beta_1 + \beta_2 + \beta_3 \\
+\end{align}
+$$
+
+---
+
+class: center
+
+# Two dichtomous covariates
+
+```{r sim-two-dich}
+two_dich <- data_frame(x = runif(n_sim),
+                       z = runif(n_sim)) %>%
+  mutate_at(vars(x, z), funs(ifelse(. > .5, 1, 0))) %>%
+  mutate(y = 10 + 20 * x - 20 * z + 40 * (x * z) + rnorm(n_sim, 0, 5))
+```
+
+```{r sim-two-dich-hist}
+ggplot(two_dich, aes(y, color = interaction(x, z))) +
+  geom_density() +
+  scale_color_discrete(labels = c("D1 = D2 = 0",
+                                  "D1 = 1, D2 = 0",
+                                  "D1 = 0, D2 = 1",
+                                  "D1 = D2 = 1"),
+                       guide = guide_legend(nrow = 2)) +
+  labs(title = expression(paste("Values of ", Y, " for various combinations of values of ", D[1], ",", D[2])),
+       x = "Value of Y",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+---
+
+class: center
+
+# Two dichtomous covariates
+
+```{r sim-two-dich-box}
+ggplot(two_dich, aes(interaction(z, x), y)) +
+  geom_boxplot() +
+  scale_x_discrete(labels = c(expression("D1 = D2 = 0"),
+                                  expression("D1 = 0, D2 = 1"),
+                                  expression("D1 = 1, D2 = 0"),
+                                  expression("D1 = D2 = 1"))) +
+  labs(title = expression(paste("Values of ", Y, " for various combinations of values of ", D[1], ",", D[2])),
+       x = NULL,
+       y = "Values of Y")
+```
+
+---
+
+class: center
+
+# One dichotomous and one continuous covariate
+
+$$Y = \beta_0 + \beta_1 X + \beta_2 D + \beta_3 XD + \epsilon_i$$
+
+$$
+\begin{align}
+\E[Y | X, D = 0] & = \beta_0 + \beta_1 X \\
+\E[Y | X, D = 1] & = (\beta_0 + \beta_2) + (\beta_1 + \beta_3) X
+\end{align}
+$$
+
+---
+
+class: center
+
+# One dichotomous and one continuous covariate
+
+```{r sim-cont-dich-00}
+data_frame(x = runif(n_sim, -2, 2),
+           z = runif(n_sim, -2, 2)) %>%
+  mutate_at(vars(z), funs(ifelse(. > .5, 1, 0))) %>%
+  mutate(y = 0 + 20 * x + 0 * z + 0 * (x * z) + rnorm(n_sim, 0, 5)) %>%
+  ggplot(aes(x, y, color = factor(z), shape = factor(z))) +
+  geom_vline(xintercept = 0, alpha = .3) +
+  geom_hline(yintercept = 0, alpha = .3) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 20) +
+  labs(title = expression({beta[2] == beta[3]} == 0),
+       color = "Z",
+       shape = "Z") +
+  theme(legend.position = "bottom")
+```
+    
+---
+
+class: center
+
+# One dichotomous and one continuous covariate
+
+```{r sim-cont-dich-01}
+data_frame(x = runif(n_sim, -2, 2),
+           z = runif(n_sim, -2, 2)) %>%
+  mutate_at(vars(z), funs(ifelse(. > .5, 1, 0))) %>%
+  mutate(y = 0 + 20 * x + 10 * z + 0 * (x * z) + rnorm(n_sim, 0, 5)) %>%
+  ggplot(aes(x, y, color = factor(z), shape = factor(z))) +
+  geom_vline(xintercept = 0, alpha = .3) +
+  geom_hline(yintercept = 0, alpha = .3) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 20) +
+  geom_abline(intercept = 10, slope = 20, linetype = 2) +
+  labs(title = expression(paste({beta[2] != 0}, ",", beta[3] == 0)),
+       color = "Z",
+       shape = "Z") +
+  theme(legend.position = "bottom")
+```
+
+---
+
+class: center
+
+# One dichotomous and one continuous covariate
+
+```{r sim-cont-dich-10}
+data_frame(x = runif(n_sim, -2, 2),
+           z = runif(n_sim, -2, 2)) %>%
+  mutate_at(vars(z), funs(ifelse(. > .5, 1, 0))) %>%
+  mutate(y = 0 + 20 * x + 0 * z + -40 * (x * z) + rnorm(n_sim, 0, 5)) %>%
+  ggplot(aes(x, y, color = factor(z), shape = factor(z))) +
+  geom_vline(xintercept = 0, alpha = .3) +
+  geom_hline(yintercept = 0, alpha = .3) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 20) +
+  geom_abline(intercept = 0, slope = -20, linetype = 2) +
+  labs(title = expression(paste({beta[2] == 0}, ",", beta[3] != 0)),
+       color = "Z",
+       shape = "Z") +
+  theme(legend.position = "bottom")
+```
+    
+---
+
+class: center
+
+# One dichotomous and one continuous covariate
+
+```{r sim-cont-dich-11}
+data_frame(x = runif(n_sim, -2, 2),
+           z = runif(n_sim, -2, 2)) %>%
+  mutate_at(vars(z), funs(ifelse(. > .5, 1, 0))) %>%
+  mutate(y = 0 + 20 * x + 20 * z + -40 * (x * z) + rnorm(n_sim, 0, 5)) %>%
+  ggplot(aes(x, y, color = factor(z), shape = factor(z))) +
+  geom_vline(xintercept = 0, alpha = .3) +
+  geom_hline(yintercept = 0, alpha = .3) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 20) +
+  geom_abline(intercept = 20, slope = -20, linetype = 2) +
+      labs(title = expression(paste(beta[2] != 0, ",", beta[3] != 0)),
+       color = "Z",
+       shape = "Z") +
+  theme(legend.position = "bottom")
+```
+
+---
+
+class: center
+
+# Two continuous covariates
+
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon_i$$
+
+```{r two-cont}
+# no interactive effects
+data_frame(x = runif(n_sim, 0, 10),
+           z = runif(n_sim, 0, 10),
+           y = 10 + 10 * x - 10 * z + 0 * x * z) %>%
+  plot_ly(x = ~x, y = ~ z, z = ~ y, type = "mesh3d") %>%
+  layout(title = "No interactive effects")
+```
+
+---
+
+class: center
+
+# Two continuous covariates
+
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 + \epsilon_i$$
+
+```{r two-cont-x}
+# inteactive effects
+data_frame(x = runif(n_sim, 0, 10),
+           z = runif(n_sim, 0, 10),
+           y = 10 + 10 * x - 10 * z + 10 * x * z) %>%
+  plot_ly(x = ~x, y = ~ z, z = ~ y, type = "mesh3d") %>%
+  layout(title = "Interactive effects")
+```
 
 ---
 
