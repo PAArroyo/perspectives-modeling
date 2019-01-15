@@ -98,7 +98,7 @@ $$\epsilon_i \sim N(0, \sigma^2), \text{for } i = 1, \dots, n$$
 If $X$ is fixed, it must vary (i.e. it's values cannot all be the same). If $X$ is random, then in the population $X$ must vary. You cannot estimate a regression line for an invariant $X$.
 
 ```{r invariant}
-data_frame(x = 1,
+tibble(x = 1,
            y = rnorm(10)) %>%
   ggplot(aes(x, y)) +
   geom_point() +
@@ -440,7 +440,7 @@ $$Y_i = 2 + 3X_i + \epsilon$$
 where $\epsilon_i$ is random error distributed normally $N(0,1)$.
 
 ```{r sim-homo}
-sim_homo <- data_frame(x = runif(1000, 0, 10),
+sim_homo <- tibble(x = runif(1000, 0, 10),
                        y = 2 + 3 * x + rnorm(1000, 0, 1))
 sim_homo_mod <- glm(y ~ x, data = sim_homo)
 
@@ -463,7 +463,7 @@ $$Y_i = 2 + 3X_i + \epsilon_i$$
 where $\epsilon_i$ is random error distributed normally $N(0,\frac{X}{2})$. Note that the variance for the error term of each observation $\epsilon_i$ is not constant, and is itself a function of $X$.
 
 ```{r sim-hetero}
-sim_hetero <- data_frame(x = runif(1000, 0, 10),
+sim_hetero <- tibble(x = runif(1000, 0, 10),
                        y = 2 + 3 * x + rnorm(1000, 0, (x / 2)))
 sim_hetero_mod <- glm(y ~ x, data = sim_hetero)
 

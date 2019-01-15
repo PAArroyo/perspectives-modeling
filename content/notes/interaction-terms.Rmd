@@ -53,7 +53,7 @@ By definition, we expect $\beta_1$ to estimate the direct effect (or relationshi
 ```{r sim-linear}
 n_sim <- 100
 
-additive <- data_frame(x = runif(n_sim),
+additive <- tibble(x = runif(n_sim),
                        z = runif(n_sim)) %>%
   mutate(z = ifelse(z > .5, 1, 0),
          y = x + z + rnorm(n_sim))
@@ -196,7 +196,7 @@ Consider data generated from the following model:
 $$Y = 10 + 20 D_1 - 20 D_2 + 40 D_1 D_2 + \epsilon, \text{ where } \epsilon \sim N(0, 5)$$
 
 ```{r sim-two-dich}
-two_dich <- data_frame(x = runif(n_sim),
+two_dich <- tibble(x = runif(n_sim),
                        z = runif(n_sim)) %>%
   mutate_at(vars(x, z), funs(ifelse(. > .5, 1, 0))) %>%
   mutate(y = 10 + 20 * x - 20 * z + 40 * (x * z) + rnorm(n_sim, 0, 5))
@@ -257,7 +257,7 @@ This suggests four possibilities:
 * $X$ has both the same slope and the same intercept for $D=0$ and $D=1$; that is, $\beta_2 = \beta_3 = 0$.
 
     ```{r sim-cont-dich-00}
-    data_frame(x = runif(n_sim, -2, 2),
+    tibble(x = runif(n_sim, -2, 2),
                z = runif(n_sim, -2, 2)) %>%
       mutate_at(vars(z), funs(ifelse(. > .5, 1, 0))) %>%
       mutate(y = 0 + 20 * x + 0 * z + 0 * (x * z) + rnorm(n_sim, 0, 5)) %>%
@@ -275,7 +275,7 @@ This suggests four possibilities:
 * $X$ has both the same slope but different intercepts for $D=0$ and $D=1$; that is, $\beta_2 \neq 0$ and $\beta_3 = 0$.
 
     ```{r sim-cont-dich-01}
-    data_frame(x = runif(n_sim, -2, 2),
+    tibble(x = runif(n_sim, -2, 2),
                z = runif(n_sim, -2, 2)) %>%
       mutate_at(vars(z), funs(ifelse(. > .5, 1, 0))) %>%
       mutate(y = 0 + 20 * x + 10 * z + 0 * (x * z) + rnorm(n_sim, 0, 5)) %>%
@@ -294,7 +294,7 @@ This suggests four possibilities:
 * $X$ has both the same intercept but different slopes for $D=0$ and $D=1$; that is, $\beta_2 = 0$ and $\beta_3 \neq 0$.
 
     ```{r sim-cont-dich-10}
-    data_frame(x = runif(n_sim, -2, 2),
+    tibble(x = runif(n_sim, -2, 2),
                z = runif(n_sim, -2, 2)) %>%
       mutate_at(vars(z), funs(ifelse(. > .5, 1, 0))) %>%
       mutate(y = 0 + 20 * x + 0 * z + -40 * (x * z) + rnorm(n_sim, 0, 5)) %>%
@@ -313,7 +313,7 @@ This suggests four possibilities:
 * $X$ has both different intercepts and different slopes for $D=0$ and $D=1$; that is, $\beta_2 \neq 0$ and $\beta_3 \neq 0$.
 
     ```{r sim-cont-dich-11}
-    data_frame(x = runif(n_sim, -2, 2),
+    tibble(x = runif(n_sim, -2, 2),
                z = runif(n_sim, -2, 2)) %>%
       mutate_at(vars(z), funs(ifelse(. > .5, 1, 0))) %>%
       mutate(y = 0 + 20 * x + 20 * z + -40 * (x * z) + rnorm(n_sim, 0, 5)) %>%
@@ -339,14 +339,14 @@ The interpretation here is that each covariate's effect on $Y$ changes **smoothl
 
 ```{r two-cont}
 # no interactive effects
-data_frame(x = runif(n_sim, 0, 10),
+tibble(x = runif(n_sim, 0, 10),
            z = runif(n_sim, 0, 10),
            y = 10 + 10 * x - 10 * z + 0 * x * z) %>%
   plot_ly(x = ~x, y = ~ z, z = ~ y, type = "mesh3d") %>%
   layout(title = "No interactive effects")
 
 # inteactive effects
-data_frame(x = runif(n_sim, 0, 10),
+tibble(x = runif(n_sim, 0, 10),
            z = runif(n_sim, 0, 10),
            y = 10 + 10 * x - 10 * z + 10 * x * z) %>%
   plot_ly(x = ~x, y = ~ z, z = ~ y, type = "mesh3d") %>%
@@ -368,7 +368,7 @@ $$\frac{\delta \E[Y]}{\delta X} = \beta_1 + 2 \beta_2 X$$
 This tells us that the marginal effect of $X$ on $Y$ depends linearly on the value of $X$ itself.
 
 ```{r poly-interact}
-data_frame(x = runif(n_sim, -2, 2)) %>%
+tibble(x = runif(n_sim, -2, 2)) %>%
   mutate(y = 10 + 10 * x - (50 * x^2) + rnorm(n_sim, 0, 5)) %>%
   add_predictions(lm(y ~ poly(x, 2, raw = TRUE), data = .)) %>%
   ggplot(aes(x, y)) +
@@ -376,7 +376,7 @@ data_frame(x = runif(n_sim, -2, 2)) %>%
   geom_line(aes(y = pred)) +
   labs(title = "Example of a quadratic relationship")
 
-data_frame(x = runif(n_sim, -2, 2)) %>%
+tibble(x = runif(n_sim, -2, 2)) %>%
   mutate(y = -500 - 20 * x + 300 * x^2 + rnorm(n_sim, 0, 50)) %>%
   add_predictions(lm(y ~ poly(x, 2, raw = TRUE), data = .)) %>%
   ggplot(aes(x, y)) +
@@ -384,7 +384,7 @@ data_frame(x = runif(n_sim, -2, 2)) %>%
   geom_line(aes(y = pred)) +
   labs(title = "Example of a quadratic relationship")
 
-data_frame(x = runif(n_sim, -2, 2)) %>%
+tibble(x = runif(n_sim, -2, 2)) %>%
   mutate(y = 10 + 10 * x - 50 * x^2 + 300 * x^3 + rnorm(n_sim, 0, 300)) %>%
   add_predictions(lm(y ~ poly(x, 3, raw = TRUE), data = .)) %>%
   ggplot(aes(x, y)) +
@@ -414,7 +414,7 @@ Y = \beta_0 &+ \beta_1 X + \beta_2 D_1 + \beta_3 D_2 + \beta_4 X D_1 \\
 $$
 
 ```{r three-way}
-data_frame(x = runif(n_sim, -2, 2),
+tibble(x = runif(n_sim, -2, 2),
            d1 = runif(n_sim),
            d2 = runif(n_sim)) %>%
   mutate_at(vars(d1, d2), funs(ifelse(. > .5, 1, 0))) %>%
@@ -642,7 +642,7 @@ instant_effect <- function(model, mod_var){
                      2 * z * cov[marg_var, int.name])
   
   # combine into data frame
-  data_frame(z = z,
+  tibble(z = z,
              dy.dx = dy.dx,
              se = se.dy.dx)
 }
