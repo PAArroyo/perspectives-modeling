@@ -44,7 +44,7 @@ The sinking of [RMS Titanic](https://en.wikipedia.org/wiki/RMS_Titanic) provided
     
 * A tragic love story
 
-    ![[Titanic (1997)](https://en.wikipedia.org/wiki/Titanic_(1997_film))](http://i.giphy.com/KSeT85Vtym7m.gif)
+    ![[Titanic (1997)](https://en.wikipedia.org/wiki/Titanic_(1997_film))](https://i.giphy.com/KSeT85Vtym7m.gif)
     
 Why did Jack have to die? Why couldn't he have made it onto a lifeboat like Cal? We may never know the answer, but we can generalize the question a bit: why did some people survive the sinking of the Titanic while others did not?
 
@@ -735,7 +735,7 @@ We've reduced the error from the useless classifier by $`r formatC(PRE(survive_a
 
 Binary classifiers such as logistic regression make two types of error.
 
-![](http://marginalrevolution.com/wp-content/uploads/2014/05/Type-I-and-II-errors1-625x468.jpg)
+![](https://marginalrevolution.com/wp-content/uploads/2014/05/Type-I-and-II-errors1-625x468.jpg)
 
 Personally I hate the terms type I and type II because I never remember which is which. The above diagram may help, but instead let's adopt the terms **false positive** and **false negative**.
 
