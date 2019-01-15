@@ -47,7 +47,13 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Overview
 
-* 
+* Define a classification problem
+* Demonstrate why linear regression is a poor method to use for classification problems
+* Introduce the logistic regression functional form
+* Distinguish between probability, odds, and log-odds
+* Identify how to calculate predicted probabilities
+* Implement multiple logistic regression and practice interpreting the parameters
+* Introduce methods for assessing the accuracy of a classifier model
 
 ## Before class
 
