@@ -104,7 +104,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <ul>
 <li>A fundamental shock to the world as its faith in supposedly indestructible technology was shattered by a chunk of ice</li>
 <li><p>Perhaps the best romantic ballad of all time</p>
-<iframe width="853" height="480" src="https://www.youtube.com/embed/FHG2oizTlpY?rel=0" frameborder="0" allowfullscreen>
+<iframe width="853" height="480" src="https://www.youtube.com/embed/WNIPqafd4As?start=175" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
 </iframe></li>
 <li><p>A tragic love story</p>
 <div class="figure">
@@ -923,8 +923,14 @@ PRE_{\text{Age x Sex}} &amp;= \frac{290 - 157}{290} \\
 <div id="confusion-matrix" class="section level3">
 <h3><span class="header-section-number">3.3.2</span> Confusion matrix</h3>
 <p>Previously all we cared about was the overall accuracy rate of the model, but we may also care about the accuracy or error rate for both types of errors. To do that, we generate a <strong>confusion matrix</strong> using the <code>confusionMatrix()</code> function from the <code>caret</code> library.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(caret)  <span class="co"># load the caret package to use the confusionMatrix function</span>
-cm_<span class="dv">5</span> &lt;-<span class="st"> </span><span class="kw">confusionMatrix</span>(<span class="kw">factor</span>(x_accuracy<span class="op">$</span>pred), <span class="kw">factor</span>(x_accuracy<span class="op">$</span>Survived))
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(caret)  <span class="co"># load the caret package to use the confusionMatrix function</span></code></pre></div>
+<pre><code>## Loading required package: lattice</code></pre>
+<pre><code>## 
+## Attaching package: &#39;caret&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     lift</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cm_<span class="dv">5</span> &lt;-<span class="st"> </span><span class="kw">confusionMatrix</span>(<span class="kw">factor</span>(x_accuracy<span class="op">$</span>pred), <span class="kw">factor</span>(x_accuracy<span class="op">$</span>Survived))
 cm_<span class="dv">5</span></code></pre></div>
 <pre><code>## Confusion Matrix and Statistics
 ## 
@@ -1074,7 +1080,7 @@ auc_x</code></pre></div>
 ##  assertthat     0.2.0      2017-04-11 [2]
 ##  backports      1.1.3      2018-12-14 [2]
 ##  bindr          0.1.1      2018-03-13 [2]
-##  bindrcpp     * 0.2.2      2018-03-29 [1]
+##  bindrcpp       0.2.2      2018-03-29 [1]
 ##  blogdown       0.9.4      2018-11-26 [1]
 ##  bookdown       0.9        2018-12-21 [1]
 ##  broom        * 0.5.1      2018-12-05 [2]
@@ -1102,7 +1108,7 @@ auc_x</code></pre></div>
 ##  gower          0.1.2      2017-02-23 [2]
 ##  gtable         0.2.0      2016-02-26 [2]
 ##  haven          2.0.0      2018-11-22 [2]
-##  here         * 0.1        2017-05-28 [2]
+##  here           0.1        2017-05-28 [2]
 ##  hms            0.4.2      2018-03-10 [2]
 ##  htmltools      0.3.6      2017-04-28 [1]
 ##  httr           1.4.0      2018-12-11 [2]
@@ -1159,7 +1165,6 @@ auc_x</code></pre></div>
 ##  tidyselect     0.2.5      2018-10-11 [1]
 ##  tidyverse    * 1.2.1      2017-11-14 [2]
 ##  timeDate       3043.102   2018-02-21 [2]
-##  titanic      * 0.1.0      2015-08-31 [2]
 ##  usethis        1.4.0      2018-08-14 [1]
 ##  withr          2.1.2      2018-03-15 [2]
 ##  xfun           0.4        2018-10-23 [1]
@@ -1250,7 +1255,6 @@ auc_x</code></pre></div>
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
