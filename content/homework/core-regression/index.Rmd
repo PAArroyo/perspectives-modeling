@@ -24,9 +24,7 @@ Go [here](https://github.com/css-model/hw02) to fork the repo for homework 02.
 
 # Submission format
 
-For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). Any questions requiring code should be reproducible. Recommended document formats are $\LaTeX$ rendered as PDF, Jupyter Notebook (`.ipynb`), or R Markdown (`.Rmd`) rendered as `github_document` or `pdf_document`.
-
-Your repository should be split into 3 major documents:
+For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). Your repository should be split into 3 major documents:
 
 1. Responses to conceptual exercises
 1. Responses to Joe Biden exercises
