@@ -1,0 +1,859 @@
+---
+title: "Logistic Regression"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2)
+
+library(tidyverse)
+library(broom)
+library(modelr)
+library(knitr)
+library(patchwork)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 20))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+class: center
+
+# Classification problems
+
+[![RMS Titanic](https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/RMS_Titanic_3.jpg/640px-RMS_Titanic_3.jpg)](https://youtu.be/FHG2oizTlpY?t=19)
+
+---
+
+class: center
+
+# Classification problems
+
+![[Titanic (1997)](https://en.wikipedia.org/wiki/Titanic_(1997_film))](https://i.giphy.com/KSeT85Vtym7m.gif)
+    
+---
+
+# Classification problems
+
+* Response is a qualitative variable
+* Difference from regression problem
+* Develop a model that assigns observations to categories or classes
+
+---
+
+# Titanic dataset
+
+```{r titanic_data, message = FALSE}
+library(titanic)
+titanic <- titanic_train %>%
+  as_tibble() %>%
+  # remove missing values
+  na.omit()
+
+glimpse(titanic)
+```
+
+---
+
+# A linear regression approach
+
+$$Y = \beta_0 + \beta_{1}X$$
+
+.center[
+
+```{r titanic_ols, fig.height = 7}
+ggplot(titanic, aes(Age, Survived)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Age",
+       y = "???")
+```
+
+]
+
+---
+
+# A linear regression approach
+
+$$Y = \beta_0 + \beta_{1}X$$
+
+.center[
+
+```{r titanic_ols_old}
+ggplot(titanic, aes(Age, Survived)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, fullrange = TRUE) +
+  xlim(0, 200) +
+  labs(x = "Age",
+       y = "???")
+```
+
+]
+
+---
+
+# Logistic regression
+
+$$\Pr(Y) = \Pr(\text{survival} = \text{yes} | \text{age})$$
+
+---
+
+# The linear function
+
+$$f(X) = \beta_0 + \beta_{1}X$$
+
+.center[
+
+```{r linear-demo, fig.height = 7}
+# simulate fake binary data
+sim_logit <- tibble(x = runif(1000, -5, 5),
+                        y = 0 + 1 * x)
+
+# graph it
+ggplot(sim_logit, aes(x, y)) +
+  geom_line() +
+  labs(title = "The linear function",
+       x = expression(X),
+       y = expression(f(X)))
+```
+
+]
+
+---
+
+# The logistic function
+
+$$
+\begin{align}
+f(X) &= \frac{e^{\beta_0 + \beta_{1}X}}{1 + e^{\beta_0 + \beta_{1}X}} \\
+f(X) &= \frac{1}{1 + e^{-(\beta_0 + \beta_{1}X)}}
+\end{align}
+$$
+
+```{r logit}
+logit2prob <- function(x){
+  exp(x) / (1 + exp(x))
+}
+```
+
+.center[
+
+```{r logit-demo, fig.height = 6}
+sim_logit <- sim_logit %>%
+  mutate(prob = logit2prob(y))
+
+# graph it
+ggplot(sim_logit, aes(x, prob)) +
+  geom_line() +
+  labs(title = "The logistic function",
+       x = expression(X),
+       y = expression(Pr(Y)))
+```
+
+]
+
+---
+
+# Probability of surviving the Titanic
+
+$$\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age}}}{1 + e^{\beta_0 + \beta_{1}\text{Age}}}$$
+
+--
+
+```{r titanic_age_glm}
+survive_age <- glm(Survived ~ Age, data = titanic, family = binomial)
+summary(survive_age)
+```
+
+---
+
+class: center
+
+# Probability of surviving the Titanic
+
+```{r titanic_age_glm_plot}
+# generate predicted values
+survive_age_pred <- titanic %>%
+  add_predictions(survive_age) %>%
+  # predicted values are in the log-odds form - convert to probabilities
+  mutate(prob = logit2prob(pred))
+
+ggplot(survive_age_pred, aes(Age)) +
+  geom_point(aes(y = Survived)) +
+  geom_line(aes(y = prob), color = "blue", size = 1) +
+  labs(x = "Age",
+       y = "Probability of surviving the Titanic")
+```
+
+---
+
+class: center
+
+# Probability of surviving the Titanic
+
+```{r titanic_age_glm_plot_wide}
+ggplot(titanic, aes(Age, Survived)) +
+  geom_point() +
+  # use geom_smooth for out-of-sample range plotting
+  geom_smooth(method = "glm", method.args = list(family = "binomial"),
+              se = FALSE, fullrange = TRUE, color = "blue", size = 1) +
+  xlim(0,200) +
+  labs(x = "Age",
+       y = "Probability of surviving the Titanic")
+```
+
+---
+
+# Generating predicted probabilities
+
+```{r prob-30, include = FALSE}
+prob30 <- predict(survive_age, newdata = tibble(Age = 30), type = "response")
+```
+
+$$
+\begin{align}
+\Pr(\text{Survival}) &= \frac{e^{\beta_0 + \beta_{1} \times 30}}{1 + e^{\beta_0 + \beta_{1} \times 30}} \\
+&= \frac{e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 30}}{1 + e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 30}} \\
+&= `r formatC(prob30[[1]], digits = 3)`
+\end{align}
+$$
+
+---
+
+# Odds
+
+$$\frac{\Pr(Y)}{1 - \Pr(Y)} = e^{\beta_0 + \beta_{1}X}$$
+
+* Range is $[0,\infty]$
+
+```{r odds}
+prob2odds <- function(x){
+  x / (1 - x)
+}
+```
+
+.center[
+
+```{r odds-demo, fig.height = 6}
+sim_logit <- sim_logit %>%
+  mutate(odds = prob2odds(prob))
+
+# graph it
+ggplot(sim_logit, aes(x, odds)) +
+  geom_line() +
+  labs(title = "The logistic function",
+       x = expression(X),
+       y = "Odds of Y")
+```
+
+]
+
+---
+
+# Odds
+
+$$\frac{\Pr(\text{Survived})}{\Pr(\text{Died})}$$
+
+* Odds of $4$
+* Odds of $\dfrac{1}{4}$
+
+---
+
+class: center
+
+# Odds of surviving the Titanic
+
+$$\frac{\Pr(\text{Survival})}{1 - \Pr(\text{Survival})} = e^{\beta_0 + \beta_{1}\text{Age}}$$
+
+```{r titanic-odds-plot, fig.height = 7}
+survive_age_pred <- survive_age_pred %>%
+  mutate(odds = prob2odds(prob))
+
+ggplot(survive_age_pred, aes(Age, odds)) +
+  geom_line(color = "blue", size = 1) +
+  labs(x = "Age",
+       y = "Odds of surviving the Titanic")
+```
+
+---
+
+# Log-odds
+
+$$\log\left(\frac{\Pr(X)}{1 - \Pr(x)}\right) = \beta_0 + \beta_{1}X$$
+
+```{r log-odds}
+prob2logodds <- function(x){
+  log(prob2odds(x))
+}
+```
+
+.center[
+
+```{r log-odds-demo, fig.height = 7}
+sim_logit <- sim_logit %>%
+  mutate(logodds = prob2logodds(prob))
+
+# graph it
+ggplot(sim_logit, aes(x, logodds)) +
+  geom_line() +
+  labs(title = "The logistic function",
+       x = expression(X),
+       y = "Log-odds of Y")
+```
+
+]
+
+---
+
+# Log-odds of surviving the Titanic
+
+$$\log\left(\frac{\Pr(\text{Survival})}{1 - \Pr(\text{Survival})}\right) = \beta_0 + \beta_{1}\text{Age}$$
+
+--
+
+```{r survive-age-param}
+tidy(survive_age)
+```
+
+$$\log\left(\frac{\Pr(\text{Survival})}{1 - \Pr(\text{Survival})}\right) = `r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times \text{Age}$$
+
+---
+
+class: center
+
+# Log-odds of surviving the Titanic
+
+```{r log-odds-plot}
+ggplot(survive_age_pred, aes(Age, pred)) +
+  geom_line(color = "blue", size = 1) +
+  labs(x = "Age",
+       y = "Log-odds of surviving the Titanic")
+```
+
+---
+
+# First difference
+
+```{r first-diff-2030, include = FALSE}
+pred_fd_2030 <- predict(survive_age, newdata = tibble(Age = c(20, 30)), type = "response")
+```
+
+$$
+\begin{align}
+\Pr(\text{Survival}_{30 - 20}) &= \frac{e^{\beta_0 + \beta_{1}30}}{1 + e^{\beta_0 + \beta_{1}30}} - \frac{e^{\beta_0 + \beta_{1}20}}{1 + e^{\beta_0 + \beta_{1}20}} \\
+&= \frac{e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 30}}{1 + e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 30}} - \frac{e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 20}}{1 + e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 20}} \\
+&= `r pred_fd_2030[[2]]` - `r pred_fd_2030[[1]]` \\
+&= `r formatC(pred_fd_2030[[2]] - pred_fd_2030[[1]], digits = 3)`
+\end{align}
+$$
+
+--
+
+```{r first-diff-4050, include = FALSE}
+pred_fd_4050 <- predict(survive_age, newdata = tibble(Age = c(40, 50)), type = "response")
+```
+
+$$
+\begin{align}
+\Pr(\text{Survival}_{50 - 40}) &= \frac{e^{\beta_0 + \beta_{1}50}}{1 + e^{\beta_0 + \beta_{1}50}} - \frac{e^{\beta_0 + \beta_{1}40}}{1 + e^{\beta_0 + \beta_{1}40}} \\
+ &= \frac{e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 50}}{1 + e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 50}} - \frac{e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 40}}{1 + e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 40}} \\
+&= `r pred_fd_4050[[2]]` - `r pred_fd_4050[[1]]` \\
+&= `r formatC(pred_fd_4050[[2]] - pred_fd_4050[[1]], digits = 3)`
+\end{align}
+$$
+
+---
+
+class: center
+
+# Plotting predicted probabilities
+
+```{r make_age_pred, include = FALSE}
+titanic_age <- titanic %>%
+  data_grid(Age)
+titanic_age
+```
+
+```{r logit2, ref.label="logit", eval = FALSE}
+logit2prob <- function(x){
+  exp(x) / (1 + exp(x))
+}
+```
+
+```{r extract_modelr, dependson="make_age_pred", include = FALSE}
+library(modelr)
+
+titanic_age <- titanic_age %>%
+  add_predictions(survive_age) %>%
+  mutate(pred = logit2prob(pred))
+titanic_age
+```
+
+```{r plot_pred, dependson="make_age_pred"}
+ggplot(titanic_age, aes(Age, pred)) +
+  geom_line() +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(title = "Relationship between age and surviving the Titanic",
+       y = "Predicted probability of survival")
+```
+
+---
+
+class: center
+
+# Women and children first
+
+![](https://upload.wikimedia.org/wikipedia/commons/3/37/Wreck_of_the_Birkenhead.jpg)
+
+---
+
+# Multiple predictors
+
+$$\Pr(Y) = \frac{e^{\beta_0 + \beta_{1}X_1 + \dots + \beta_{p}X_{p}}}{1 + e^{\beta_0 + \beta_{1}X_1 + \dots + \beta_{p}X_{p}}}$$
+
+$$\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}$$
+
+--
+
+```{r survive_age_woman}
+survive_age_woman <- glm(Survived ~ Age + Sex, data = titanic,
+                         family = binomial)
+summary(survive_age_woman)
+```
+
+---
+
+class: center
+
+# Multiple predictors
+
+```{r survive_age_woman_pred, include = FALSE}
+titanic_age_sex <- titanic %>%
+  data_grid(Age, Sex) %>%
+  add_predictions(survive_age_woman) %>%
+  mutate(pred = logit2prob(pred))
+titanic_age_sex
+```
+
+```{r survive_age_woman_plot, dependson="survive_age_woman"}
+ggplot(titanic_age_sex, aes(Age, pred, color = Sex)) +
+  geom_line() +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(title = "Probability of surviving the Titanic",
+       subtitle = "Age + Sex",
+       y = "Predicted probability of survival",
+       color = "Sex")
+```
+
+---
+
+# Predicted probabilities and first differences in multiple variable models
+
+* Log-odds functional form
+* Predicted probability functional form
+
+--
+
+$$\Pr(Y) = \frac{e^{\beta_0 + \beta_{1}X_1 + \beta_{2}X_2}}{1 + e^{\beta_0 + \beta_{1}X_1 + \beta_{2}X_2}}$$
+
+---
+
+# Predicted probabilities and first differences in multiple variable models
+
+```{r fd-non-parallel}
+# estimate logistic regression model of age and fare
+age_fare <- glm(Survived ~ Age + Fare, data = titanic, family = binomial)
+tidy(age_fare)
+```
+
+```{r fd-non-parallel-pred}
+# generate predicted values
+age_fare_pred <- titanic %>%
+  data_grid(Age, Fare = seq(0, max(Fare), by = 100)) %>%
+  add_predictions(age_fare) %>%
+  mutate(prob = logit2prob(pred),
+         Fare = factor(Fare, levels = rev(seq(0, max(Fare), by = 100))))
+```
+
+---
+
+# Predicted probabilities and first differences in multiple variable models
+
+.pull-left[
+
+$$\log\left(\frac{\Pr(\text{Survival})}{1 - \Pr(\text{Survival})}\right) = \beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Fare}$$
+
+$$\log\left(\frac{\Pr(\text{Survival})}{1 - \Pr(\text{Survival})}\right) = (\beta_0 + \beta_{2}\text{Fare}) + \beta_{1}\text{Age}$$
+
+]
+
+.pull-right[
+
+```{r fd-non-parallel-logodds}
+# plot the new log-odds lines
+ggplot(age_fare_pred, aes(Age, pred, group = Fare, color = Fare)) +
+  geom_line() +
+  labs(title = "Log-odds of survival",
+       subtitle = "Age + Fare model",
+       x = "Age",
+       y = "Log-odds of survival")
+```
+
+]
+
+---
+
+# Predicted probabilities and first differences in multiple variable models
+
+.pull-left[
+
+$$\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Fare}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Fare}}}$$
+
+$$\Pr(\text{Survival}) = \frac{e^{(\beta_0 + \beta_{2}\text{Fare}) + \beta_{1}\text{Age}}}{1 + e^{(\beta_0 + \beta_{2}\text{Fare}) + \beta_{1}\text{Age}}}$$
+
+]
+
+.pull-right[
+
+```{r fd-non-parallel-prob}
+# plot the new probability lines
+ggplot(age_fare_pred, aes(Age, prob, group = Fare, color = Fare)) +
+  geom_line() +
+  labs(title = "Predicted probability of survival",
+       subtitle = "Age + Fare model",
+       x = "Age",
+       y = "Predicted probability of survival")
+```
+
+]
+
+---
+
+# Interactive terms
+
+$$\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}$$
+
+--
+
+$$\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex} + \beta_{3} \times \text{Age} \times \text{Sex}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex} + \beta_{3} \times \text{Age} \times \text{Sex}}}$$
+
+---
+
+# Interaction terms
+
+```{r age_woman_cross}
+survive_age_woman_x <- glm(Survived ~ Age * Sex, data = titanic,
+                           family = binomial)
+tidy(survive_age_woman_x)
+```
+
+--
+
+$$
+\begin{align}
+\Pr(\text{Survival}_{female}) &= \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 0}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 0}} \\
+&= \frac{e^{\beta_0 + \beta_{1}\text{Age}}}{1 + e^{\beta_0 + \beta_{1}\text{Age}}}
+\end{align}
+$$
+
+--
+
+$$
+\begin{align}
+\Pr(\text{Survival}_{male}) &= \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 1}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 1}} \\
+&= \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age}}} \\
+&= \frac{e^{\beta_0 + (\beta_{1} + \beta_{3})\text{Age}}}{1 + e^{\beta_0 + (\beta_{1} + \beta_{3})\text{Age}}}
+\end{align}
+$$
+
+---
+
+class: center
+
+# Interaction terms
+
+```{r age_woman_cross_pred, dependson="age_woman_cross", include = FALSE}
+titanic_age_sex_x <- titanic %>%
+  data_grid(Age, Sex) %>%
+  add_predictions(survive_age_woman_x) %>%
+  mutate(prob = logit2prob(pred))
+titanic_age_sex_x
+```
+
+```{r age_woman_plot_logodds, dependson="age_woman_cross"}
+ggplot(titanic_age_sex_x, aes(Age, pred, color = Sex)) +
+  geom_line() +
+  labs(title = "Log-odds of surviving the Titanic",
+       x = "Age",
+       y = "Log-odds of survival",
+       color = "Sex")
+```
+
+---
+
+class: center
+
+# Interaction terms
+
+```{r age_woman_plot_prob, dependson="age_woman_cross"}
+# join data frames of interactive and non-interactive model
+bind_rows(list("Age + Sex" = titanic_age_sex %>%
+                 rename(prob = pred),
+               "Age x Sex" = titanic_age_sex_x), .id = "id") %>%
+  # plot the two models
+  ggplot(aes(Age, prob, color = Sex, linetype = id)) +
+  geom_line() +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(title = "Probability of surviving the Titanic",
+       x = "Age",
+       y = "Predicted probability of survival",
+       color = "Sex",
+       linetype = "Model")
+```
+
+---
+
+# Evaluating model accuracy
+
+* Error rate
+* Proportional reduction in error
+* Receiver operating characteristics (ROC) curve and area under the curve (AUC)
+
+---
+
+# Error rate
+
+```{r accuracy_age, dependson="titanic_age_glm"}
+age_accuracy <- titanic %>%
+  add_predictions(survive_age) %>%
+  mutate(pred = logit2prob(pred),
+         pred = as.numeric(pred > .5))
+```
+
+* Convert predicted probabilities into predictions
+* Compare predictions to observed value
+* Fraction incorrectly predicted is the error rate
+--
+
+* Age only model - $`r formatC(mean(age_accuracy$Survived != age_accuracy$pred, na.rm = TRUE) * 100, digits = 3)`\%$ error rate
+* What is the baseline for comparison?
+
+---
+
+# Useless classifier
+
+```{r mode}
+# create a function to calculate the modal value of a vector
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+```
+
+* All predictions based on the modal category
+* Titanic baseline - everyone dies
+--
+
+* Age only model - $`r formatC(mean(age_accuracy$Survived != age_accuracy$pred, na.rm = TRUE) * 100, digits = 3)`\%$ error rate
+* Useless classifier - $`r formatC(mean(age_accuracy$Survived != getmode(age_accuracy$Survived), na.rm = TRUE) * 100, digits = 3)`\%$ error rate
+
+---
+
+# Useless classifier
+
+.center[
+
+```{r plot-pred2, ref.label="plot_pred", fig.height = 7}
+```
+
+]
+
+--
+
+```{r accuracy_age_sex_x, dependson="age_woman_cross"}
+x_accuracy <- titanic %>%
+  add_predictions(survive_age_woman_x) %>%
+  mutate(pred = logit2prob(pred),
+         prob = pred,
+         pred = as.numeric(pred > .5))
+```
+
+* Age x sex model - `r formatC(mean(x_accuracy$Survived != x_accuracy$pred, na.rm = TRUE) * 100, digits = 3)`% error rate
+
+---
+
+# Proportional reduction in error
+
+$$PRE = \frac{E_1 - E_2}{E_1}$$
+
+* $E_1$
+* $E_2$
+* Ranges between $[0,1]$ or $[0\%,100\%]$
+
+---
+
+# Proportional reduction in error
+
+```{r pre}
+# function to calculate PRE for a logistic regression model
+PRE <- function(model){
+  # get the actual values for y from the data
+  y <- model$y
+  
+  # get the predicted values for y from the model
+  y.hat <- round(model$fitted.values)
+  
+  # calculate the errors for the null model and your model
+  E1 <- sum(y != median(y))
+  E2 <- sum(y != y.hat)
+  
+  # calculate the proportional reduction in error
+  PRE <- (E1 - E2) / E1
+  return(PRE)
+}
+```
+
+## Age-only model
+
+$$
+\begin{align}
+PRE_{\text{Age}} &= \frac{`r sum(survive_age$y != median(survive_age$y))` - `r sum(survive_age$y != round(survive_age$fitted.values))`}{`r sum(survive_age$y != median(survive_age$y))`} \\
+&= \frac{`r sum(survive_age$y != median(survive_age$y)) - sum(survive_age$y != round(survive_age$fitted.values))`}{`r sum(survive_age$y != median(survive_age$y))`} \\
+&= `r (sum(survive_age$y != median(survive_age$y)) - sum(survive_age$y != round(survive_age$fitted.values))) / sum(survive_age$y != median(survive_age$y))`\%
+\end{align}
+$$
+
+--
+
+## Age x sex model
+
+$$
+\begin{align}
+PRE_{\text{Age x Sex}} &= \frac{`r sum(survive_age_woman_x$y != median(survive_age_woman_x$y))` - `r sum(survive_age_woman_x$y != round(survive_age_woman_x$fitted.values))`}{`r sum(survive_age_woman_x$y != median(survive_age_woman_x$y))`} \\
+&= \frac{`r sum(survive_age_woman_x$y != median(survive_age_woman_x$y)) - sum(survive_age_woman_x$y != round(survive_age_woman_x$fitted.values))`}{`r sum(survive_age_woman_x$y != median(survive_age_woman_x$y))`} \\
+&= `r formatC((sum(survive_age_woman_x$y != median(survive_age_woman_x$y)) - sum(survive_age_woman_x$y != round(survive_age_woman_x$fitted.values))) / sum(survive_age_woman_x$y != median(survive_age_woman_x$y)) * 100, digits = 3)`\%
+\end{align}
+$$
+
+---
+
+class: center
+
+# Types of error
+
+![](https://marginalrevolution.com/wp-content/uploads/2014/05/Type-I-and-II-errors1-625x468.jpg)
+
+---
+
+# Confusion matrix ($.5$ threshold)
+
+```{r threshold-5, cache = FALSE}
+library(caret)  # load the caret package to use the confusionMatrix function
+cm_5 <- confusionMatrix(factor(x_accuracy$pred), factor(x_accuracy$Survived))
+cm_5
+```
+
+---
+
+# Alternative thresholds
+
+* Sensitivity/recall
+
+$$TPR = \frac{\text{Number of actual positives correctly predicted}}{\text{Number of actual positives}}$$
+
+--
+
+* Specificity
+
+$$TNR = \frac{\text{Number of actual negatives correctly predicted}}{\text{Number of actual negatives}}$$
+
+--
+
+* Establishing threshold for predictions
+* Improving class-specific accuracy
+
+---
+
+# Confusion matrix ($.8$ threshold)
+
+```{r threshold-8}
+threshold_8 <- titanic %>%
+  add_predictions(survive_age_woman_x) %>%
+  mutate(pred = logit2prob(pred),
+         pred = as.numeric(pred > .8))
+
+cm_8 <- confusionMatrix(factor(threshold_8$pred), factor(threshold_8$Survived))
+cm_8
+```
+
+---
+
+class: center
+
+# Alternative thresholds
+
+```{r threshold-compare, warning = FALSE}
+# function to calculate key stats for the Titanic data
+threshold_compare <- function(threshold, data, model){
+  # generate predictions
+  pred <- data %>%
+    add_predictions(model) %>%
+    mutate(pred = logit2prob(pred),
+           pred = as.numeric(pred > threshold))
+  
+  # get confusion matrix
+  cm <- confusionMatrix(factor(pred$pred), factor(pred$Survived))
+  
+  # extract sensitivity and threshold to tibble
+  tibble(threshold = threshold,
+             sensitivity = cm$byClass[["Sensitivity"]],
+             specificity = cm$byClass[["Specificity"]],
+             accuracy = cm$overall[["Accuracy"]])
+}
+
+threshold_x <- seq(0, 1, by = .001) %>%
+  map_df(threshold_compare, titanic, survive_age_woman_x) 
+
+threshold_x %>%
+  gather(measure, value, -threshold) %>%
+  mutate(measure = factor(measure, labels = c("Accuracy", "Sensitivity", "Specificity"))) %>%
+  ggplot(aes(threshold, value, color = measure, linetype = measure)) +
+  geom_line() +
+  labs(x = "Threshold",
+       y = "Accuracy rate",
+       color = "Measure",
+       linetype = "Measure")
+```
+
+---
+
+# Receiver operating characteristics (ROC) curve
+
+.center[
+
+```{r roc-ggplot, fig.height = 6}
+ggplot(threshold_x, aes(1 - specificity, sensitivity)) +
+  geom_line() +
+  geom_abline(slope = 1, linetype = 2, color = "grey")
+```
+
+]
+
+--
+
+* Area under the curve
