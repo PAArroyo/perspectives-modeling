@@ -451,9 +451,13 @@ survive_age_pred &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</
 <div id="generating-predicted-probabilities" class="section level3">
 <h3><span class="header-section-number">2.1.2</span> Generating predicted probabilities</h3>
 <p>To generate predicted probabilities, just substitute your specified values for <span class="math inline">\(X\)</span> in the original <span class="math inline">\(\Pr(\text{Survival})\)</span> equation. So for instance, the predicted probability of surviving the Titanic for a 30 year old is</p>
-<p><span class="math display">\[\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1} \times 30}}{1 + e^{\beta_0 + \beta_{1} \times 30}}\]</span></p>
-<p><span class="math display">\[\Pr(\text{Survival}) = \frac{e^{-0.0567236 + -0.0109635 \times 30}}{1 + e^{-0.0567236 + -0.0109635 \times 30}}\]</span></p>
-<p><span class="math display">\[\Pr(\text{Survival}) = 0.405\]</span></p>
+<p><span class="math display">\[
+\begin{align}
+\Pr(\text{Survival}) &amp;= \frac{e^{\beta_0 + \beta_{1} \times 30}}{1 + e^{\beta_0 + \beta_{1} \times 30}} \\
+&amp;= \frac{e^{-0.0567236 + -0.0109635 \times 30}}{1 + e^{-0.0567236 + -0.0109635 \times 30}} \\
+&amp;= 0.405
+\end{align}
+\]</span></p>
 </div>
 </div>
 <div id="odds" class="section level2">
@@ -644,7 +648,7 @@ titanic_age</code></pre></div>
 ## AIC: 755.96
 ## 
 ## Number of Fisher Scoring iterations: 4</code></pre>
-<p>The parameters essentially tell us the relationship between each individual predictor and the response, <strong>independent of other predictors</strong>. So this model tells us the relationship between age and survival, after controlling for the effects of gender. Likewise, it also tells us the relationship between gender and survival, after controlling for the effects of age. To get a better visualization of this, let’s use <code>data_grid()</code> and <code>add_predictions()</code> again:</p>
+<p>The parameters essentially tell us the relationship between each individual predictor and the response, <strong>independent of other predictors</strong>. So this model tells us the relationship between age and survival, after controlling for the effects of sex. Likewise, it also tells us the relationship between sex and survival, after controlling for the effects of age. To get a better visualization of this, let’s use <code>data_grid()</code> and <code>add_predictions()</code> again:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_age_sex &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">data_grid</span>(Age, Sex) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">add_predictions</span>(survive_age_woman) <span class="op">%&gt;%</span>
@@ -664,7 +668,7 @@ titanic_age_sex</code></pre></div>
 ##  9  0.92 female 0.781
 ## 10  0.92 male   0.233
 ## # … with 166 more rows</code></pre>
-<p>With these predicted probabilities, we can now plot the separate effects of age and gender:</p>
+<p>With these predicted probabilities, we can now plot the separate effects of age and sex:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(titanic_age_sex, <span class="kw">aes</span>(Age, pred, <span class="dt">color =</span> Sex)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
 <span class="st">  </span><span class="kw">scale_y_continuous</span>(<span class="dt">limits =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)) <span class="op">+</span>
@@ -673,11 +677,11 @@ titanic_age_sex</code></pre></div>
        <span class="dt">y =</span> <span class="st">&quot;Predicted probability of survival&quot;</span>,
        <span class="dt">color =</span> <span class="st">&quot;Sex&quot;</span>)</code></pre></div>
 <p><img src="/notes/logistic-regression_files/figure-html/survive_age_woman_plot-1.png" width="672" /></p>
-<p>Substantively, this graph illustrates a key fact about surviving the sinking of the Titanic - age was not really a dominant factor. Instead, one’s gender was much more important. Females survived at much higher rates than males, regardless of age.</p>
+<p>Substantively, this graph illustrates a key fact about surviving the sinking of the Titanic - age was not really a dominant factor. Instead, one’s sex was much more important. Females survived at much higher rates than males, regardless of age.</p>
 </div>
 <div id="predicted-probabilities-and-first-differences-in-multiple-variable-models" class="section level2">
 <h2><span class="header-section-number">2.7</span> Predicted probabilities and first differences in multiple variable models</h2>
-<p>Mathematically, the result is two lines that are parallel to each other <strong>in the log-odds functional form</strong>. The addition of the gender parameter acts like an second intercept when we compare age to probability of survival. All that happens is the line shifts up or down based on the estimated gender parameter.</p>
+<p>Mathematically, the result is two lines that are parallel to each other <strong>in the log-odds functional form</strong>. The addition of the sex parameter acts like an second intercept when we compare age to probability of survival. All that happens is the line shifts up or down based on the estimated sex parameter.</p>
 <p>In terms of predicted probabilities and first differences, <strong>this is not true</strong>. Remember the logistic function:</p>
 <p><span class="math display">\[\Pr(Y) = \frac{e^{\beta_0 + \beta_{1}X_1 + \beta_{2}X_2}}{1 + e^{\beta_0 + \beta_{1}X_1 + \beta_{2}X_2}}\]</span></p>
 <p>Because of the exponential transformation, <span class="math inline">\(\beta_2\)</span> now has a non-linear impact on the predicted probabilities. For clarity, let’s estimate a logistic regression model of the effect of age and fare on survival:</p>
@@ -725,11 +729,11 @@ age_fare_pred &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</spa
 </div>
 <div id="interactive-terms" class="section level2">
 <h2><span class="header-section-number">2.8</span> Interactive terms</h2>
-<p>The additive assumption of linear regression also holds true for logistic regression: the relationships between predictors and responses are independent from one another. So for the age and gender example, we assume our function <span class="math inline">\(f\)</span> is:</p>
+<p>The additive assumption of linear regression also holds true for logistic regression: the relationships between predictors and responses are independent from one another. So for the age and sex example, we assume our function <span class="math inline">\(f\)</span> is:</p>
 <p><span class="math display">\[\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}\]</span></p>
 <p>However once again, that is an assumption. What if the relationship between age and the probability of survival is actually dependent on whether or not the individual is a female? That is, the parameter for age is different for men and women? This possibility would take the functional form:</p>
 <p><span class="math display">\[\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex} + \beta_{3} \times \text{Age} \times \text{Sex}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex} + \beta_{3} \times \text{Age} \times \text{Sex}}}\]</span></p>
-<p>This is considered an <strong>interaction</strong> between age and gender. To estimate this in R, we simply specify <code>Age * Sex</code> in our formula for the <code>glm()</code> function:<a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a></p>
+<p>This is considered an <strong>interaction</strong> between age and sex. To estimate this in R, we simply specify <code>Age * Sex</code> in our formula for the <code>glm()</code> function:<a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">survive_age_woman_x &lt;-<span class="st"> </span><span class="kw">glm</span>(Survived <span class="op">~</span><span class="st"> </span>Age <span class="op">*</span><span class="st"> </span>Sex, <span class="dt">data =</span> titanic,
                            <span class="dt">family =</span> binomial)
 <span class="kw">summary</span>(survive_age_woman_x)</code></pre></div>
@@ -757,7 +761,7 @@ age_fare_pred &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</spa
 ## AIC: 748.4
 ## 
 ## Number of Fisher Scoring iterations: 4</code></pre>
-<p>How can we interpret these parameters? Because the gender variable is binary (0 if female, 1 if male), it acts as a switch on the regression equation. So for women, the relationship between age and probability of survival is:<a href="#fn8" class="footnoteRef" id="fnref8"><sup>8</sup></a></p>
+<p>How can we interpret these parameters? Because the sex variable is binary (0 if female, 1 if male), it acts as a switch on the regression equation. So for women, the relationship between age and probability of survival is:<a href="#fn8" class="footnoteRef" id="fnref8"><sup>8</sup></a></p>
 <p><span class="math display">\[\Pr(\text{Survival}_{female}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 0}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 0}}\]</span></p>
 <p>which reduces to</p>
 <p><span class="math display">\[\Pr(\text{Survival}_{female}) = \frac{e^{\beta_0 + \beta_{1}\text{Age}}}{1 + e^{\beta_0 + \beta_{1}\text{Age}}}\]</span></p>
@@ -770,7 +774,7 @@ age_fare_pred &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</spa
 &amp;= \frac{e^{\beta_0 + (\beta_{1} + \beta_{3})\text{Age}}}{1 + e^{\beta_0 + (\beta_{1} + \beta_{3})\text{Age}}}
 \end{align}
 \]</span></p>
-<p>Let’s plot the interactive effects of age and gender by estimating the log-odds and predicted probability of survival.</p>
+<p>Let’s plot the interactive effects of age and sex by estimating the log-odds and predicted probability of survival.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_age_sex_x &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">data_grid</span>(Age, Sex) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">add_predictions</span>(survive_age_woman_x) <span class="op">%&gt;%</span>
@@ -814,9 +818,6 @@ titanic_age_sex_x</code></pre></div>
 <p><img src="/notes/logistic-regression_files/figure-html/age_woman_plot_prob-1.png" width="672" /></p>
 <p>And now our minds are blown once again! For women, as age increases the probability of survival also increases. However for men, we see the opposite relationship: as age increases the probability of survival <strong>decreases</strong>. Again, the basic principle of saving women and children first can be seen empirically in the estimated probability of survival. Male children are treated similarly to female children, and their survival is prioritized. Even still, the probability of survival is always worse for men than women, but the regression function clearly shows a difference from our previous results.</p>
 <p>You may think then that it makes sense to throw in interaction terms (and potentially quadratic terms) willy-nilly to all your regression models since we never know for sure if the relationship is strictly linear and independent. You could do that, but once you start adding more predictors (3, 4, 5, etc.) that will get very difficult to keep track of (five-way interactions are extremely difficult to interpret - even three-way get to be problematic). The best advice is to use theory and your domain knowledge as your guide. Do you have a reason to believe the relationship should be interactive? If so, test for it. If not, don’t.</p>
-<blockquote>
-<p>For the purposes of simplification, here we use the training data to evaluate model accuracy. <a href="/notes/model-accuracy/#optimism-of-training-error">We know this is biased.</a> We will return to the issue of training/test error when we discuss resampling methods.</p>
-</blockquote>
 </div>
 </div>
 <div id="evaluating-model-accuracy" class="section level1">
@@ -827,6 +828,9 @@ titanic_age_sex_x</code></pre></div>
 <li>Proportional reduction in error</li>
 <li>Receiver operating characteristics (ROC) curve and area under the curve (AUC)</li>
 </ul>
+<blockquote>
+<p>For the purposes of simplification, here we use the training data to evaluate model accuracy. <a href="/notes/model-accuracy/#optimism-of-training-error">We know this is biased.</a> We will return to the issue of training/test error when we discuss resampling methods.</p>
+</blockquote>
 <div id="error-rate" class="section level2">
 <h2><span class="header-section-number">3.1</span> Error rate</h2>
 <p>One evalation criteria simply asks: how accurate are the predictions? For instance, how often did our basic model just using age correctly predict who survived and died? Typically this statistic is framed in terms of the <strong>error rate</strong>, as we want a quantity to be <strong>minimized</strong>. First we need to get the predicted probabilities for each individual in the original dataset and convert the probability to a prediction - that is, classify the individual as either a <strong>survivor</strong> or <strong>dead</strong>. The standard threshold for binary classification problems is <span class="math inline">\(.5\)</span>; any individual with a predicted probability greater than or equal to <span class="math inline">\(.5\)</span> would be classified as a 1 (or survivor), and any predicted probability less than <span class="math inline">\(.5\)</span> would be classified as a 0 (or dead).<a href="#fn9" class="footnoteRef" id="fnref9"><sup>9</sup></a> Once we make our predictions, then we calculate what percentage of predictions were wrong.</p>
@@ -850,7 +854,7 @@ getmode &lt;-<span class="st"> </span><span class="cf">function</span>(v) {
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Relationship between age and surviving the Titanic&quot;</span>,
        <span class="dt">y =</span> <span class="st">&quot;Predicted probability of survival&quot;</span>)</code></pre></div>
 <p><img src="/notes/logistic-regression_files/figure-html/plot-pred2-1.png" width="672" /></p>
-<p>Oh yeah. If you look at the graph, the predicted probability curve for age is always below <span class="math inline">\(.5\)</span> for the potential age range, so the model actually does act like a modal model - it always predicts death. So our fancy logistic regression model does no better than the useless classifier. What about our interactive age and gender model?</p>
+<p>Oh yeah. If you look at the graph, the predicted probability curve for age is always below <span class="math inline">\(.5\)</span> for the potential age range, so the model actually does act like a modal model - it always predicts death. So our fancy logistic regression model does no better than the useless classifier. What about our interactive age and sex model?</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x_accuracy &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">add_predictions</span>(survive_age_woman_x) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">pred =</span> <span class="kw">logit2prob</span>(pred),
@@ -859,7 +863,7 @@ getmode &lt;-<span class="st"> </span><span class="cf">function</span>(v) {
 
 <span class="kw">mean</span>(x_accuracy<span class="op">$</span>Survived <span class="op">!=</span><span class="st"> </span>x_accuracy<span class="op">$</span>pred, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)</code></pre></div>
 <pre><code>## [1] 0.219888</code></pre>
-<p>This model is much better. Just by knowing an individual’s age and gender, we can predict with 22% error whether he/she lives or dies.</p>
+<p>This model is much better. Just by knowing an individual’s age and sex, we can predict with 22% error whether he/she lives or dies.</p>
 </div>
 <div id="proportional-reduction-in-error" class="section level2">
 <h2><span class="header-section-number">3.2</span> Proportional reduction in error</h2>
@@ -890,10 +894,10 @@ PRE_{\text{Age}} &amp;= \frac{290 - 290}{290} \\
 &amp;= 0\%
 \end{align}
 \]</span></p>
-<p>For the interactive age and gender model, the PRE is</p>
+<p>For the interactive age and sex model, the PRE is</p>
 <p><span class="math display">\[
 \begin{align}
-PRE_{\text{Age x Gender}} &amp;= \frac{290 - 157}{290} \\
+PRE_{\text{Age x Sex}} &amp;= \frac{290 - 157}{290} \\
 &amp;= \frac{133}{290} \\
 &amp;= 45.9\%
 \end{align}
@@ -919,14 +923,8 @@ PRE_{\text{Age x Gender}} &amp;= \frac{290 - 157}{290} \\
 <div id="confusion-matrix" class="section level3">
 <h3><span class="header-section-number">3.3.2</span> Confusion matrix</h3>
 <p>Previously all we cared about was the overall accuracy rate of the model, but we may also care about the accuracy or error rate for both types of errors. To do that, we generate a <strong>confusion matrix</strong> using the <code>confusionMatrix()</code> function from the <code>caret</code> library.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(caret)  <span class="co"># load the caret package to use the confusionMatrix function</span></code></pre></div>
-<pre><code>## Loading required package: lattice</code></pre>
-<pre><code>## 
-## Attaching package: &#39;caret&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:purrr&#39;:
-## 
-##     lift</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cm_<span class="dv">5</span> &lt;-<span class="st"> </span><span class="kw">confusionMatrix</span>(<span class="kw">factor</span>(x_accuracy<span class="op">$</span>pred), <span class="kw">factor</span>(x_accuracy<span class="op">$</span>Survived))
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(caret)  <span class="co"># load the caret package to use the confusionMatrix function</span>
+cm_<span class="dv">5</span> &lt;-<span class="st"> </span><span class="kw">confusionMatrix</span>(<span class="kw">factor</span>(x_accuracy<span class="op">$</span>pred), <span class="kw">factor</span>(x_accuracy<span class="op">$</span>Survived))
 cm_<span class="dv">5</span></code></pre></div>
 <pre><code>## Confusion Matrix and Statistics
 ## 
@@ -1112,7 +1110,6 @@ auc_x</code></pre></div>
 ##  iterators      1.0.10     2018-07-13 [2]
 ##  jsonlite       1.6        2018-12-07 [2]
 ##  knitr        * 1.21       2018-12-10 [2]
-##  labeling       0.3        2014-08-23 [2]
 ##  lattice      * 0.20-38    2018-11-04 [2]
 ##  lava           1.6.4      2018-11-25 [2]
 ##  lazyeval       0.2.1      2017-10-29 [2]
@@ -1208,7 +1205,6 @@ auc_x</code></pre></div>
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.1)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1278,7 +1274,7 @@ auc_x</code></pre></div>
 <li id="fn2"><p><code>library(titanic)</code> contains both <code>titanic_train</code> and <code>titanic_test</code>. We want to use only <code>titanic_train</code> today. We’ll discuss the importance of <code>titanic_test</code> next week.<a href="#fnref2">↩</a></p></li>
 <li id="fn3"><p>Given Rose’s condition in the present-day of the film, it’s not outside the realm of possibility.<a href="#fnref3">↩</a></p></li>
 <li id="fn4"><p>Alternatively, you may see the function written</p>
-<p><span class="math display">\[p(X) = \frac{1}{1 + e^{-(\beta_0 + \beta_{1}X)}}\]</span><a href="#fnref4">↩</a></p></li>
+<p><span class="math display">\[\Pr(X) = \frac{1}{1 + e^{-(\beta_0 + \beta_{1}X)}}\]</span><a href="#fnref4">↩</a></p></li>
 <li id="fn5"><p>The threshold can be adjusted depending on how conservative or risky of a prediction you wish to make.<a href="#fnref5">↩</a></p></li>
 <li id="fn6"><p>Alternatively, we can use <code>broom::augment()</code> to add predicted probabilities for the original dataset:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(broom)

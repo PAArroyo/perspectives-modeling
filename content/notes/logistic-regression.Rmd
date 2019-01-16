@@ -260,15 +260,17 @@ No more predictions that a 200 year old has a $-.1$ probability of surviving!
 
 To generate predicted probabilities, just substitute your specified values for $X$ in the original $\Pr(\text{Survival})$ equation. So for instance, the predicted probability of surviving the Titanic for a 30 year old is
 
-$$\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1} \times 30}}{1 + e^{\beta_0 + \beta_{1} \times 30}}$$
-
-$$\Pr(\text{Survival}) = \frac{e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 30}}{1 + e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 30}}$$
-
 ```{r prob-30, include = FALSE}
 prob30 <- predict(survive_age, newdata = tibble(Age = 30), type = "response")
 ```
 
-$$\Pr(\text{Survival}) = `r formatC(prob30[[1]], digits = 3)`$$
+$$
+\begin{align}
+\Pr(\text{Survival}) &= \frac{e^{\beta_0 + \beta_{1} \times 30}}{1 + e^{\beta_0 + \beta_{1} \times 30}} \\
+&= \frac{e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 30}}{1 + e^{`r coef(survive_age)[[1]]` + `r coef(survive_age)[[2]]` \times 30}} \\
+&= `r formatC(prob30[[1]], digits = 3)`
+\end{align}
+$$
 
 ## Odds
 
@@ -468,7 +470,7 @@ survive_age_woman <- glm(Survived ~ Age + Sex, data = titanic,
 summary(survive_age_woman)
 ```
 
-The parameters essentially tell us the relationship between each individual predictor and the response, **independent of other predictors**. So this model tells us the relationship between age and survival, after controlling for the effects of gender. Likewise, it also tells us the relationship between gender and survival, after controlling for the effects of age. To get a better visualization of this, let's use `data_grid()` and `add_predictions()` again:
+The parameters essentially tell us the relationship between each individual predictor and the response, **independent of other predictors**. So this model tells us the relationship between age and survival, after controlling for the effects of sex. Likewise, it also tells us the relationship between sex and survival, after controlling for the effects of age. To get a better visualization of this, let's use `data_grid()` and `add_predictions()` again:
 
 ```{r survive_age_woman_pred}
 titanic_age_sex <- titanic %>%
@@ -478,7 +480,7 @@ titanic_age_sex <- titanic %>%
 titanic_age_sex
 ```
 
-With these predicted probabilities, we can now plot the separate effects of age and gender:
+With these predicted probabilities, we can now plot the separate effects of age and sex:
 
 ```{r survive_age_woman_plot, dependson="survive_age_woman"}
 ggplot(titanic_age_sex, aes(Age, pred, color = Sex)) +
@@ -490,11 +492,11 @@ ggplot(titanic_age_sex, aes(Age, pred, color = Sex)) +
        color = "Sex")
 ```
 
-Substantively, this graph illustrates a key fact about surviving the sinking of the Titanic - age was not really a dominant factor. Instead, one's gender was much more important. Females survived at much higher rates than males, regardless of age.
+Substantively, this graph illustrates a key fact about surviving the sinking of the Titanic - age was not really a dominant factor. Instead, one's sex was much more important. Females survived at much higher rates than males, regardless of age.
 
 ## Predicted probabilities and first differences in multiple variable models
 
-Mathematically, the result is two lines that are parallel to each other **in the log-odds functional form**. The addition of the gender parameter acts like an second intercept when we compare age to probability of survival. All that happens is the line shifts up or down based on the estimated gender parameter.
+Mathematically, the result is two lines that are parallel to each other **in the log-odds functional form**. The addition of the sex parameter acts like an second intercept when we compare age to probability of survival. All that happens is the line shifts up or down based on the estimated sex parameter.
 
 In terms of predicted probabilities and first differences, **this is not true**. Remember the logistic function:
 
@@ -559,7 +561,7 @@ So when calculating first differences and predicted probabilities for a single v
 
 ## Interactive terms
 
-The additive assumption of linear regression also holds true for logistic regression: the relationships between predictors and responses are independent from one another. So for the age and gender example, we assume our function $f$ is:
+The additive assumption of linear regression also holds true for logistic regression: the relationships between predictors and responses are independent from one another. So for the age and sex example, we assume our function $f$ is:
 
 $$\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}$$
 
@@ -567,7 +569,7 @@ However once again, that is an assumption. What if the relationship between age 
 
 $$\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex} + \beta_{3} \times \text{Age} \times \text{Sex}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex} + \beta_{3} \times \text{Age} \times \text{Sex}}}$$
 
-This is considered an **interaction** between age and gender. To estimate this in R, we simply specify `Age * Sex` in our formula for the `glm()` function:^[R automatically includes constituent terms, so this turns into `Age + Sex + Age * Sex`. [Generally you always want to include constituent terms in a regression model with an interaction.](https://pan-oxfordjournals-org.proxy.uchicago.edu/content/14/1/63.full.pdf+html)]
+This is considered an **interaction** between age and sex. To estimate this in R, we simply specify `Age * Sex` in our formula for the `glm()` function:^[R automatically includes constituent terms, so this turns into `Age + Sex + Age * Sex`. [Generally you always want to include constituent terms in a regression model with an interaction.](https://pan-oxfordjournals-org.proxy.uchicago.edu/content/14/1/63.full.pdf+html)]
 
 ```{r age_woman_cross}
 survive_age_woman_x <- glm(Survived ~ Age * Sex, data = titanic,
@@ -575,7 +577,7 @@ survive_age_woman_x <- glm(Survived ~ Age * Sex, data = titanic,
 summary(survive_age_woman_x)
 ```
 
-How can we interpret these parameters? Because the gender variable is binary (0 if female, 1 if male), it acts as a switch on the regression equation. So for women, the relationship between age and probability of survival is:^[$\beta_{2}\text{sex}$ can be factored out since it does not contain age as a constituent term.]
+How can we interpret these parameters? Because the sex variable is binary (0 if female, 1 if male), it acts as a switch on the regression equation. So for women, the relationship between age and probability of survival is:^[$\beta_{2}\text{sex}$ can be factored out since it does not contain age as a constituent term.]
 
 $$\Pr(\text{Survival}_{female}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 0}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 0}}$$
 
@@ -596,7 +598,7 @@ $$
 \end{align}
 $$
 
-Let's plot the interactive effects of age and gender by estimating the log-odds and predicted probability of survival.
+Let's plot the interactive effects of age and sex by estimating the log-odds and predicted probability of survival.
 
 ```{r age_woman_cross_pred, dependson="age_woman_cross"}
 titanic_age_sex_x <- titanic %>%
@@ -637,8 +639,6 @@ And now our minds are blown once again! For women, as age increases the probabil
 
 You may think then that it makes sense to throw in interaction terms (and potentially quadratic terms) willy-nilly to all your regression models since we never know for sure if the relationship is strictly linear and independent. You could do that, but once you start adding more predictors (3, 4, 5, etc.) that will get very difficult to keep track of (five-way interactions are extremely difficult to interpret - even three-way get to be problematic). The best advice is to use theory and your domain knowledge as your guide. Do you have a reason to believe the relationship should be interactive? If so, test for it. If not, don't.
 
-> For the purposes of simplification, here we use the training data to evaluate model accuracy. [We know this is biased.](/notes/model-accuracy/#optimism-of-training-error) We will return to the issue of training/test error when we discuss resampling methods.
-
 # Evaluating model accuracy
 
 We need a method to evaluate the overall accuracy of a model. This allows us to determine if we have a good or bad model (at least based on predictive power), and compare alternative model specifications to each other. For classification methods such as logistic regression, there are a few different metrics we can use:
@@ -646,6 +646,8 @@ We need a method to evaluate the overall accuracy of a model. This allows us to 
 * Error rate
 * Proportional reduction in error
 * Receiver operating characteristics (ROC) curve and area under the curve (AUC)
+
+> For the purposes of simplification, here we use the training data to evaluate model accuracy. [We know this is biased.](/notes/model-accuracy/#optimism-of-training-error) We will return to the issue of training/test error when we discuss resampling methods.
 
 ## Error rate
 
@@ -675,9 +677,9 @@ Instead we should compare the model's error rate to a simple but useless classif
 ```{r plot-pred2, ref.label="plot_pred"}
 ```
 
-Oh yeah. If you look at the graph, the predicted probability curve for age is always below $.5$ for the potential age range, so the model actually does act like a modal model - it always predicts death. So our fancy logistic regression model does no better than the useless classifier. What about our interactive age and gender model?
+Oh yeah. If you look at the graph, the predicted probability curve for age is always below $.5$ for the potential age range, so the model actually does act like a modal model - it always predicts death. So our fancy logistic regression model does no better than the useless classifier. What about our interactive age and sex model?
 
-```{r accuracy_age_gender_x, dependson="age_woman_cross"}
+```{r accuracy_age_sex_x, dependson="age_woman_cross"}
 x_accuracy <- titanic %>%
   add_predictions(survive_age_woman_x) %>%
   mutate(pred = logit2prob(pred),
@@ -687,7 +689,7 @@ x_accuracy <- titanic %>%
 mean(x_accuracy$Survived != x_accuracy$pred, na.rm = TRUE)
 ```
 
-This model is much better. Just by knowing an individual's age and gender, we can predict with `r formatC(mean(x_accuracy$Survived != x_accuracy$pred, na.rm = TRUE) * 100, digits = 3)`% error whether he/she lives or dies.
+This model is much better. Just by knowing an individual's age and sex, we can predict with `r formatC(mean(x_accuracy$Survived != x_accuracy$pred, na.rm = TRUE) * 100, digits = 3)`% error whether he/she lives or dies.
 
 ## Proportional reduction in error
 
@@ -726,11 +728,11 @@ PRE_{\text{Age}} &= \frac{`r sum(survive_age$y != median(survive_age$y))` - `r s
 \end{align}
 $$
 
-For the interactive age and gender model, the PRE is
+For the interactive age and sex model, the PRE is
 
 $$
 \begin{align}
-PRE_{\text{Age x Gender}} &= \frac{`r sum(survive_age_woman_x$y != median(survive_age_woman_x$y))` - `r sum(survive_age_woman_x$y != round(survive_age_woman_x$fitted.values))`}{`r sum(survive_age_woman_x$y != median(survive_age_woman_x$y))`} \\
+PRE_{\text{Age x Sex}} &= \frac{`r sum(survive_age_woman_x$y != median(survive_age_woman_x$y))` - `r sum(survive_age_woman_x$y != round(survive_age_woman_x$fitted.values))`}{`r sum(survive_age_woman_x$y != median(survive_age_woman_x$y))`} \\
 &= \frac{`r sum(survive_age_woman_x$y != median(survive_age_woman_x$y)) - sum(survive_age_woman_x$y != round(survive_age_woman_x$fitted.values))`}{`r sum(survive_age_woman_x$y != median(survive_age_woman_x$y))`} \\
 &= `r formatC((sum(survive_age_woman_x$y != median(survive_age_woman_x$y)) - sum(survive_age_woman_x$y != round(survive_age_woman_x$fitted.values))) / sum(survive_age_woman_x$y != median(survive_age_woman_x$y)) * 100, digits = 3)`\%
 \end{align}
@@ -859,7 +861,7 @@ With an AUC of `r formatC(auc_x, digits = 3)`, this model performs decently.
 
 [^logit]: Alternatively, you may see the function written
 
-    $$p(X) = \frac{1}{1 + e^{-(\beta_0 + \beta_{1}X)}}$$
+    $$\Pr(X) = \frac{1}{1 + e^{-(\beta_0 + \beta_{1}X)}}$$
 
 [^augment]: Alternatively, we can use `broom::augment()` to add predicted probabilities for the original dataset:
 
