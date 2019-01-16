@@ -393,7 +393,7 @@ sim_logit &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span cla
        <span class="dt">x =</span> <span class="kw">expression</span>(X),
        <span class="dt">y =</span> <span class="kw">expression</span>(<span class="kw">Pr</span>(Y)))</code></pre></div>
 <p><img src="/notes/logistic-regression_files/figure-html/logit-demo-1.png" width="672" /></p>
-<p>The logistic transformation produces an S-shaped curve that preserves ordering; that is, larger values of <span class="math inline">\(X\)</span> will also result in larger values of <span class="math inline">\(\Pr(Y)\)</span>, but the relationship is now <strong>curvilinear</strong>. <span class="math inline">\(\Pr(Y)\)</span> will never decrease below 0 and never exceed 1, so the predicted probabilities will always have inherent meaning.</p>
+<p>The logistic transformation produces an S-shaped curve that preserves ordering; that is, larger values of <span class="math inline">\(X\)</span> will also result in larger values of <span class="math inline">\(\Pr(X)\)</span>, but the relationship is now <strong>curvilinear</strong>. <span class="math inline">\(\Pr(X)\)</span> will never decrease below 0 and never exceed 1, so the predicted probabilities will always have inherent meaning.</p>
 <div id="probability-of-surviving-the-titanic" class="section level3">
 <h3><span class="header-section-number">2.1.1</span> Probability of surviving the Titanic</h3>
 <p><span class="math display">\[\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age}}}{1 + e^{\beta_0 + \beta_{1}\text{Age}}}\]</span></p>
@@ -477,7 +477,6 @@ survive_age_pred &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</
 <p>Essentially it is the probability of one outcome divided by the probability of the other outcome. So in this example, it is</p>
 <p><span class="math display">\[\frac{\Pr(\text{Survived})}{\Pr(\text{Died})}\]</span></p>
 <p>So an odds of <span class="math inline">\(4\)</span> for an individual means they are 4 times more likely to survive than die, whereas an odds of <span class="math inline">\(\frac{1}{4}\)</span> means the odds of surviving are <span class="math inline">\(.25\)</span> as large as the odds of dying (i.e. the odds are higher you will die than survive).</p>
-<p>Odds are typically used in the context of gambling since they are easier to follow when establishing a betting strategy. For example, consider an American football game between the Cleveland Browns and the Pittsburgh Steelers. If the odds are 1 in 4 (<span class="math inline">\(\frac{1}{4}\)</span>) of the Pittsburgh Steelers winning a game against the Cleveland Browns and you believe the Steelers will win, this means you must bet $4 in order to win a payoff of $1 if the Steelers win.<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a> However if you are a die-hard Browns fan and want to bet on them winning, the odds of the Browns winning are 4 to 1 (<span class="math inline">\(\frac{4}{1}\)</span>) - it means you must bet $1 to earn a payoff of $4 if the Browns in fact win.</p>
 <div id="odds-of-surviving-the-titanic" class="section level3">
 <h3><span class="header-section-number">2.2.1</span> Odds of surviving the Titanic</h3>
 <p>We can convert the probability of surviving the Titanic to the odds of surviving the Titanic.</p>
@@ -536,15 +535,23 @@ survive_age_pred &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</
 <div id="discussing-the-results-in-terms-of-probabilities" class="section level4">
 <h4><span class="header-section-number">2.3.1.1</span> Discussing the results in terms of probabilities</h4>
 <p>To interpret them in terms of probabilities, you need to specify your initial value for age. So for example, an increase in age from 20 to 30 is calculated by taking the <strong>first difference</strong>, or the expected change in probability given a particular change in the predictor. While it looks messy, all you do is calculate the predicted probability of survival for age 20 and 30 and calculate the difference.</p>
-<p><span class="math display">\[p(\text{Survival}_{30 - 20}) = \frac{e^{\beta_0 + \beta_{1}30}}{1 + e^{\beta_0 + \beta_{1}30}} - \frac{e^{\beta_0 + \beta_{1}20}}{1 + e^{\beta_0 + \beta_{1}20}}\]</span></p>
-<p><span class="math display">\[p(\text{Survival}_{30 - 20}) = \frac{e^{-0.0567236 + -0.0109635 \times 30}}{1 + e^{-0.0567236 + -0.0109635 \times 30}} - \frac{e^{-0.0567236 + -0.0109635 \times 20}}{1 + e^{-0.0567236 + -0.0109635 \times 20}}\]</span></p>
-<p><span class="math display">\[p(\text{Survival}_{30 - 20}) = 0.4047704 - 0.4314365\]</span></p>
-<p><span class="math display">\[p(\text{Survival}_{30 - 20}) = -0.0267\]</span></p>
+<p><span class="math display">\[
+\begin{align}
+\Pr(\text{Survival}_{30 - 20}) &amp;= \frac{e^{\beta_0 + \beta_{1}30}}{1 + e^{\beta_0 + \beta_{1}30}} - \frac{e^{\beta_0 + \beta_{1}20}}{1 + e^{\beta_0 + \beta_{1}20}} \\
+&amp;= \frac{e^{-0.0567236 + -0.0109635 \times 30}}{1 + e^{-0.0567236 + -0.0109635 \times 30}} - \frac{e^{-0.0567236 + -0.0109635 \times 20}}{1 + e^{-0.0567236 + -0.0109635 \times 20}} \\
+&amp;= 0.4047704 - 0.4314365 \\
+&amp;= -0.0267
+\end{align}
+\]</span></p>
 <p>However, compare this to the change in predicted probability of survival from age 40 to 50.</p>
-<p><span class="math display">\[p(\text{Survival}_{50 - 40}) = \frac{e^{\beta_0 + \beta_{1}50}}{1 + e^{\beta_0 + \beta_{1}50}} - \frac{e^{\beta_0 + \beta_{1}40}}{1 + e^{\beta_0 + \beta_{1}40}}\]</span></p>
-<p><span class="math display">\[p(\text{Survival}_{50 - 40}) = \frac{e^{-0.0567236 + -0.0109635 \times 50}}{1 + e^{-0.0567236 + -0.0109635 \times 50}} - \frac{e^{-0.0567236 + -0.0109635 \times 40}}{1 + e^{-0.0567236 + -0.0109635 \times 40}}\]</span></p>
-<p><span class="math display">\[p(\text{Survival}_{50 - 40}) = 0.3532243 - 0.3786548\]</span></p>
-<p><span class="math display">\[p(\text{Survival}_{50 - 40}) = -0.0254\]</span></p>
+<p><span class="math display">\[
+\begin{align}
+\Pr(\text{Survival}_{50 - 40}) &amp;= \frac{e^{\beta_0 + \beta_{1}50}}{1 + e^{\beta_0 + \beta_{1}50}} - \frac{e^{\beta_0 + \beta_{1}40}}{1 + e^{\beta_0 + \beta_{1}40}} \\
+ &amp;= \frac{e^{-0.0567236 + -0.0109635 \times 50}}{1 + e^{-0.0567236 + -0.0109635 \times 50}} - \frac{e^{-0.0567236 + -0.0109635 \times 40}}{1 + e^{-0.0567236 + -0.0109635 \times 40}} \\
+&amp;= 0.3532243 - 0.3786548 \\
+&amp;= -0.0254
+\end{align}
+\]</span></p>
 <p>Again, the relationship between age and the probability of survival is only weakly curvilinear, but you can already see that the first difference will depend on your initial starting value for age.</p>
 </div>
 </div>
@@ -573,7 +580,7 @@ titanic_age</code></pre></div>
 ##  9  4   
 ## 10  5   
 ## # … with 78 more rows</code></pre>
-<p>Next we use the <code>add_predictions()</code> function to produce the predicted probabilities. This worked very well for linear models; unfortunately it is not perfect for logistic regression because as you I mentioned above, logistic regression directly estimates the <a href="https://wiki.lesswrong.com/wiki/Log_odds"><strong>log-odds</strong></a> for the outcome. Instead, we want the plain old predicted probability. To do this, we use this custom function to convert from log-odds to predicted probabilties:<a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a></p>
+<p>Next we use the <code>add_predictions()</code> function to produce the predicted probabilities. This worked very well for linear models; unfortunately it is not perfect for logistic regression because as you I mentioned above, logistic regression directly estimates the <a href="https://wiki.lesswrong.com/wiki/Log_odds"><strong>log-odds</strong></a> for the outcome. Instead, we want the plain old predicted probability. To do this, we use this custom function to convert from log-odds to predicted probabilties:<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">logit2prob &lt;-<span class="st"> </span><span class="cf">function</span>(x){
   <span class="kw">exp</span>(x) <span class="op">/</span><span class="st"> </span>(<span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">exp</span>(x))
 }</code></pre></div>
@@ -608,7 +615,7 @@ titanic_age</code></pre></div>
 <div id="multiple-predictors" class="section level2">
 <h2><span class="header-section-number">2.6</span> Multiple predictors</h2>
 <p>But as the old principle of the sea goes, <a href="https://en.wikipedia.org/wiki/Women_and_children_first">“women and children first”</a>. What if age isn’t the only factor effecting survival? Fortunately logistic regression handles multiple predictors in the form:</p>
-<p><span class="math display">\[\Pr(X) = \frac{e^{\beta_0 + \beta_{1}X_1 + \dots + \beta_{p}X_{p}}}{1 + e^{\beta_0 + \beta_{1}X_1 + \dots + \beta_{p}X_{p}}}\]</span></p>
+<p><span class="math display">\[\Pr(Y) = \frac{e^{\beta_0 + \beta_{1}X_1 + \dots + \beta_{p}X_{p}}}{1 + e^{\beta_0 + \beta_{1}X_1 + \dots + \beta_{p}X_{p}}}\]</span></p>
 <p>In our next model, let’s consider the relationship between age, sex, and survival. The logistic function takes the form:</p>
 <p><span class="math display">\[\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}\]</span></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">survive_age_woman &lt;-<span class="st"> </span><span class="kw">glm</span>(Survived <span class="op">~</span><span class="st"> </span>Age <span class="op">+</span><span class="st"> </span>Sex, <span class="dt">data =</span> titanic,
@@ -672,7 +679,7 @@ titanic_age_sex</code></pre></div>
 <h2><span class="header-section-number">2.7</span> Predicted probabilities and first differences in multiple variable models</h2>
 <p>Mathematically, the result is two lines that are parallel to each other <strong>in the log-odds functional form</strong>. The addition of the gender parameter acts like an second intercept when we compare age to probability of survival. All that happens is the line shifts up or down based on the estimated gender parameter.</p>
 <p>In terms of predicted probabilities and first differences, <strong>this is not true</strong>. Remember the logistic function:</p>
-<p><span class="math display">\[\Pr(X) = \frac{e^{\beta_0 + \beta_{1}X_1 + \beta_{2}X_2}}{1 + e^{\beta_0 + \beta_{1}X_1 + \beta_{2}X_2}}\]</span></p>
+<p><span class="math display">\[\Pr(Y) = \frac{e^{\beta_0 + \beta_{1}X_1 + \beta_{2}X_2}}{1 + e^{\beta_0 + \beta_{1}X_1 + \beta_{2}X_2}}\]</span></p>
 <p>Because of the exponential transformation, <span class="math inline">\(\beta_2\)</span> now has a non-linear impact on the predicted probabilities. For clarity, let’s estimate a logistic regression model of the effect of age and fare on survival:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate logistic regression model of age and fare</span>
 age_fare &lt;-<span class="st"> </span><span class="kw">glm</span>(Survived <span class="op">~</span><span class="st"> </span>Age <span class="op">+</span><span class="st"> </span>Fare, <span class="dt">data =</span> titanic, <span class="dt">family =</span> binomial)
@@ -722,7 +729,7 @@ age_fare_pred &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</spa
 <p><span class="math display">\[\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex}}}\]</span></p>
 <p>However once again, that is an assumption. What if the relationship between age and the probability of survival is actually dependent on whether or not the individual is a female? That is, the parameter for age is different for men and women? This possibility would take the functional form:</p>
 <p><span class="math display">\[\Pr(\text{Survival}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex} + \beta_{3} \times \text{Age} \times \text{Sex}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{2}\text{Sex} + \beta_{3} \times \text{Age} \times \text{Sex}}}\]</span></p>
-<p>This is considered an <strong>interaction</strong> between age and gender. To estimate this in R, we simply specify <code>Age * Sex</code> in our formula for the <code>glm()</code> function:<a href="#fn8" class="footnoteRef" id="fnref8"><sup>8</sup></a></p>
+<p>This is considered an <strong>interaction</strong> between age and gender. To estimate this in R, we simply specify <code>Age * Sex</code> in our formula for the <code>glm()</code> function:<a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">survive_age_woman_x &lt;-<span class="st"> </span><span class="kw">glm</span>(Survived <span class="op">~</span><span class="st"> </span>Age <span class="op">*</span><span class="st"> </span>Sex, <span class="dt">data =</span> titanic,
                            <span class="dt">family =</span> binomial)
 <span class="kw">summary</span>(survive_age_woman_x)</code></pre></div>
@@ -750,15 +757,19 @@ age_fare_pred &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</spa
 ## AIC: 748.4
 ## 
 ## Number of Fisher Scoring iterations: 4</code></pre>
-<p>How can we interpret these parameters? Because the gender variable is binary (0 if female, 1 if male), it acts as a switch on the regression equation. So for women, the relationship between age and probability of survival is:<a href="#fn9" class="footnoteRef" id="fnref9"><sup>9</sup></a></p>
+<p>How can we interpret these parameters? Because the gender variable is binary (0 if female, 1 if male), it acts as a switch on the regression equation. So for women, the relationship between age and probability of survival is:<a href="#fn8" class="footnoteRef" id="fnref8"><sup>8</sup></a></p>
 <p><span class="math display">\[\Pr(\text{Survival}_{female}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 0}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 0}}\]</span></p>
 <p>which reduces to</p>
 <p><span class="math display">\[\Pr(\text{Survival}_{female}) = \frac{e^{\beta_0 + \beta_{1}\text{Age}}}{1 + e^{\beta_0 + \beta_{1}\text{Age}}}\]</span></p>
 <p>However for men, the resulting equation looks different:</p>
 <p><span class="math display">\[\Pr(\text{Survival}_{male}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 1}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age} \times 1}}\]</span></p>
 <p>which reduces to</p>
-<p><span class="math display">\[\Pr(\text{Survival}_{male}) = \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age}}}\]</span></p>
-<p><span class="math display">\[\Pr(\text{Survival}_{male}) = \frac{e^{\beta_0 + (\beta_{1} + \beta_{3})\text{Age}}}{1 + e^{\beta_0 + (\beta_{1} + \beta_{3})\text{Age}}}\]</span></p>
+<p><span class="math display">\[
+\begin{align}
+\Pr(\text{Survival}_{male}) &amp;= \frac{e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age}}}{1 + e^{\beta_0 + \beta_{1}\text{Age} + \beta_{3} \times \text{Age}}} \\
+&amp;= \frac{e^{\beta_0 + (\beta_{1} + \beta_{3})\text{Age}}}{1 + e^{\beta_0 + (\beta_{1} + \beta_{3})\text{Age}}}
+\end{align}
+\]</span></p>
 <p>Let’s plot the interactive effects of age and gender by estimating the log-odds and predicted probability of survival.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_age_sex_x &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">data_grid</span>(Age, Sex) <span class="op">%&gt;%</span>
@@ -803,6 +814,9 @@ titanic_age_sex_x</code></pre></div>
 <p><img src="/notes/logistic-regression_files/figure-html/age_woman_plot_prob-1.png" width="672" /></p>
 <p>And now our minds are blown once again! For women, as age increases the probability of survival also increases. However for men, we see the opposite relationship: as age increases the probability of survival <strong>decreases</strong>. Again, the basic principle of saving women and children first can be seen empirically in the estimated probability of survival. Male children are treated similarly to female children, and their survival is prioritized. Even still, the probability of survival is always worse for men than women, but the regression function clearly shows a difference from our previous results.</p>
 <p>You may think then that it makes sense to throw in interaction terms (and potentially quadratic terms) willy-nilly to all your regression models since we never know for sure if the relationship is strictly linear and independent. You could do that, but once you start adding more predictors (3, 4, 5, etc.) that will get very difficult to keep track of (five-way interactions are extremely difficult to interpret - even three-way get to be problematic). The best advice is to use theory and your domain knowledge as your guide. Do you have a reason to believe the relationship should be interactive? If so, test for it. If not, don’t.</p>
+<blockquote>
+<p>For the purposes of simplification, here we use the training data to evaluate model accuracy. <a href="/notes/model-accuracy/#optimism-of-training-error">We know this is biased.</a> We will return to the issue of training/test error when we discuss resampling methods.</p>
+</blockquote>
 </div>
 </div>
 <div id="evaluating-model-accuracy" class="section level1">
@@ -815,7 +829,7 @@ titanic_age_sex_x</code></pre></div>
 </ul>
 <div id="error-rate" class="section level2">
 <h2><span class="header-section-number">3.1</span> Error rate</h2>
-<p>One evalation criteria simply asks: how accurate are the predictions? For instance, how often did our basic model just using age correctly predict who survived and died? Typically this statistic is framed in terms of the <strong>error rate</strong>, as we want a quantity to be <strong>minimized</strong>. First we need to get the predicted probabilities for each individual in the original dataset and convert the probability to a prediction - that is, classify the individual as either a <strong>survivor</strong> or <strong>dead</strong>. The standard threshold for binary classification problems is <span class="math inline">\(.5\)</span>; any individual with a predicted probability greater than or equal to <span class="math inline">\(.5\)</span> would be classified as a 1 (or survivor), and any predicted probability less than <span class="math inline">\(.5\)</span> would be classified as a 0 (or dead).<a href="#fn10" class="footnoteRef" id="fnref10"><sup>10</sup></a> Once we make our predictions, then we calculate what percentage of predictions were wrong.</p>
+<p>One evalation criteria simply asks: how accurate are the predictions? For instance, how often did our basic model just using age correctly predict who survived and died? Typically this statistic is framed in terms of the <strong>error rate</strong>, as we want a quantity to be <strong>minimized</strong>. First we need to get the predicted probabilities for each individual in the original dataset and convert the probability to a prediction - that is, classify the individual as either a <strong>survivor</strong> or <strong>dead</strong>. The standard threshold for binary classification problems is <span class="math inline">\(.5\)</span>; any individual with a predicted probability greater than or equal to <span class="math inline">\(.5\)</span> would be classified as a 1 (or survivor), and any predicted probability less than <span class="math inline">\(.5\)</span> would be classified as a 0 (or dead).<a href="#fn9" class="footnoteRef" id="fnref9"><sup>9</sup></a> Once we make our predictions, then we calculate what percentage of predictions were wrong.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">age_accuracy &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">add_predictions</span>(survive_age) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">pred =</span> <span class="kw">logit2prob</span>(pred),
@@ -869,13 +883,21 @@ PRE &lt;-<span class="st"> </span><span class="cf">function</span>(model){
   <span class="kw">return</span>(PRE)
 }</code></pre></div>
 <p>So for the age-only model, the PRE is</p>
-<p><span class="math display">\[PRE_{\text{Age}} = \frac{290 - 290}{290}\]</span></p>
-<p><span class="math display">\[PRE_{\text{Age}} = \frac{0}{290}\]</span></p>
-<p><span class="math display">\[PRE_{\text{Age}} = 0\%\]</span></p>
+<p><span class="math display">\[
+\begin{align}
+PRE_{\text{Age}} &amp;= \frac{290 - 290}{290} \\
+&amp;= \frac{0}{290} \\
+&amp;= 0\%
+\end{align}
+\]</span></p>
 <p>For the interactive age and gender model, the PRE is</p>
-<p><span class="math display">\[PRE_{\text{Age x Gender}} = \frac{290 - 157}{290}\]</span></p>
-<p><span class="math display">\[PRE_{\text{Age x Gender}} = \frac{133}{290}\]</span></p>
-<p><span class="math display">\[PRE_{\text{Age x Gender}} = 45.9\%\]</span></p>
+<p><span class="math display">\[
+\begin{align}
+PRE_{\text{Age x Gender}} &amp;= \frac{290 - 157}{290} \\
+&amp;= \frac{133}{290} \\
+&amp;= 45.9\%
+\end{align}
+\]</span></p>
 <p>We’ve reduced the error from the useless classifier by <span class="math inline">\(45.9\%\)</span></p>
 </div>
 <div id="receiver-operating-characteristics-roc-curve" class="section level2">
@@ -994,883 +1016,9 @@ threshold_compare &lt;-<span class="st"> </span><span class="cf">function</span>
 }
 
 threshold_x &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dt">by =</span> .<span class="dv">001</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">map_df</span>(threshold_compare, titanic, survive_age_woman_x) </code></pre></div>
-<pre><code>## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
+<span class="st">  </span><span class="kw">map_df</span>(threshold_compare, titanic, survive_age_woman_x) 
 
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.
-
-## Warning in confusionMatrix.default(factor(pred$pred),
-## factor(pred$Survived)): Levels are not in the same order for reference and
-## data. Refactoring data to match.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">threshold_x <span class="op">%&gt;%</span>
+threshold_x <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">gather</span>(measure, value, <span class="op">-</span>threshold) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">measure =</span> <span class="kw">factor</span>(measure, <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;Accuracy&quot;</span>, <span class="st">&quot;Sensitivity&quot;</span>, <span class="st">&quot;Specificity&quot;</span>))) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(threshold, value, <span class="dt">color =</span> measure, <span class="dt">linetype =</span> measure)) <span class="op">+</span>
@@ -1928,7 +1076,7 @@ auc_x</code></pre></div>
 ##  assertthat     0.2.0      2017-04-11 [2]
 ##  backports      1.1.3      2018-12-14 [2]
 ##  bindr          0.1.1      2018-03-13 [2]
-##  bindrcpp       0.2.2      2018-03-29 [1]
+##  bindrcpp     * 0.2.2      2018-03-29 [1]
 ##  blogdown       0.9.4      2018-11-26 [1]
 ##  bookdown       0.9        2018-12-21 [1]
 ##  broom        * 0.5.1      2018-12-05 [2]
@@ -1956,7 +1104,7 @@ auc_x</code></pre></div>
 ##  gower          0.1.2      2017-02-23 [2]
 ##  gtable         0.2.0      2016-02-26 [2]
 ##  haven          2.0.0      2018-11-22 [2]
-##  here           0.1        2017-05-28 [2]
+##  here         * 0.1        2017-05-28 [2]
 ##  hms            0.4.2      2018-03-10 [2]
 ##  htmltools      0.3.6      2017-04-28 [1]
 ##  httr           1.4.0      2018-12-11 [2]
@@ -1964,6 +1112,7 @@ auc_x</code></pre></div>
 ##  iterators      1.0.10     2018-07-13 [2]
 ##  jsonlite       1.6        2018-12-07 [2]
 ##  knitr        * 1.21       2018-12-10 [2]
+##  labeling       0.3        2014-08-23 [2]
 ##  lattice      * 0.20-38    2018-11-04 [2]
 ##  lava           1.6.4      2018-11-25 [2]
 ##  lazyeval       0.2.1      2017-10-29 [2]
@@ -2013,6 +1162,7 @@ auc_x</code></pre></div>
 ##  tidyselect     0.2.5      2018-10-11 [1]
 ##  tidyverse    * 1.2.1      2017-11-14 [2]
 ##  timeDate       3043.102   2018-02-21 [2]
+##  titanic      * 0.1.0      2015-08-31 [2]
 ##  usethis        1.4.0      2018-08-14 [1]
 ##  withr          2.1.2      2018-03-15 [2]
 ##  xfun           0.4        2018-10-23 [1]
@@ -2058,6 +1208,7 @@ auc_x</code></pre></div>
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -2112,6 +1263,7 @@ auc_x</code></pre></div>
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ## 
 ## [1] /Users/soltoffbc/Library/R/3.5/library
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
@@ -2128,8 +1280,7 @@ auc_x</code></pre></div>
 <li id="fn4"><p>Alternatively, you may see the function written</p>
 <p><span class="math display">\[p(X) = \frac{1}{1 + e^{-(\beta_0 + \beta_{1}X)}}\]</span><a href="#fnref4">↩</a></p></li>
 <li id="fn5"><p>The threshold can be adjusted depending on how conservative or risky of a prediction you wish to make.<a href="#fnref5">↩</a></p></li>
-<li id="fn6"><p>Given <a href="http://www.footballdb.com/teams/nfl/pittsburgh-steelers/teamvsteam?opp=8">recent history</a>, this will probably occur.<a href="#fnref6">↩</a></p></li>
-<li id="fn7"><p>Alternatively, we can use <code>broom::augment()</code> to add predicted probabilities for the original dataset:</p>
+<li id="fn6"><p>Alternatively, we can use <code>broom::augment()</code> to add predicted probabilities for the original dataset:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(broom)
 
 <span class="kw">augment</span>(survive_age, <span class="dt">newdata =</span> titanic, <span class="dt">type.predict =</span> <span class="st">&quot;response&quot;</span>) <span class="op">%&gt;%</span>
@@ -2153,9 +1304,9 @@ auc_x</code></pre></div>
 <li><code>newdata = titanic</code> - produces a data frame containing all the original variables + the predicted probability for the observation</li>
 <li><code>type.predict = &quot;response&quot;</code> - ensures we get the predicted probabilities, not the logged version</li>
 </ul>
-<a href="#fnref7">↩</a></li>
-<li id="fn8"><p>R automatically includes constituent terms, so this turns into <code>Age + Sex + Age * Sex</code>. <a href="https://pan-oxfordjournals-org.proxy.uchicago.edu/content/14/1/63.full.pdf+html">Generally you always want to include constituent terms in a regression model with an interaction.</a><a href="#fnref8">↩</a></p></li>
-<li id="fn9"><p><span class="math inline">\(\beta_{2}\text{sex}\)</span> can be factored out since it does not contain age as a constituent term.<a href="#fnref9">↩</a></p></li>
-<li id="fn10"><p>We will discuss later on the effect of different threshold values.<a href="#fnref10">↩</a></p></li>
+<a href="#fnref6">↩</a></li>
+<li id="fn7"><p>R automatically includes constituent terms, so this turns into <code>Age + Sex + Age * Sex</code>. <a href="https://pan-oxfordjournals-org.proxy.uchicago.edu/content/14/1/63.full.pdf+html">Generally you always want to include constituent terms in a regression model with an interaction.</a><a href="#fnref7">↩</a></p></li>
+<li id="fn8"><p><span class="math inline">\(\beta_{2}\text{sex}\)</span> can be factored out since it does not contain age as a constituent term.<a href="#fnref8">↩</a></p></li>
+<li id="fn9"><p>We will discuss later on the effect of different threshold values.<a href="#fnref9">↩</a></p></li>
 </ol>
 </div>
