@@ -50,8 +50,8 @@ Note: when I specify for you to demonstrate or show **via simulation**, you shou
     Using simulations, show:
 
     a. The relationship between $\text{corr} (X_1, X_2)$ and $\widehat{\se(\hat{\beta}_1)}$ for $N = 100$.
+    a. The relationship between $\text{corr} (X_1, X_2)$ and $\widehat{\se(\hat{\beta}_3)}$ for $N = 100$.
     a. How the relationship changes as $N \rightarrow \infty$.
-    a. The relationship between $\text{corr} (X_1, X_2)$ and $\widehat{\se(\hat{\beta}_3)}$.
 
     Hint: To generate two random normal variables that are correlated to a particular degree:
     
