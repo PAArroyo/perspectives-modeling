@@ -1,0 +1,407 @@
+---
+title: Naive Bayes
+date: 2019-01-23T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Classification
+    weight: 3
+---
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+<div id="TOC">
+<ul>
+<li><a href="#overview-of-naive-bayes"><span class="toc-section-number">1</span> Overview of Naive Bayes</a><ul>
+<li><a href="#bayes-theorem"><span class="toc-section-number">1.1</span> Bayes theorem</a></li>
+<li><a href="#simplified-classifier"><span class="toc-section-number">1.2</span> Simplified classifier</a></li>
+<li><a href="#laplace-smoother"><span class="toc-section-number">1.3</span> Laplace smoother</a></li>
+<li><a href="#benefitsdrawbacks"><span class="toc-section-number">1.4</span> Benefits/drawbacks</a></li>
+</ul></li>
+<li><a href="#implementation-with-attrition"><span class="toc-section-number">2</span> Implementation with <code>attrition</code></a></li>
+<li><a href="#session-info"><span class="toc-section-number">3</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">4</span> References</a></li>
+</ul>
+</div>
+
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse)
+<span class="kw">library</span>(broom)
+<span class="kw">library</span>(rsample)
+<span class="kw">library</span>(patchwork)
+
+<span class="kw">set.seed</span>(<span class="dv">1234</span>)
+<span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
+<div id="overview-of-naive-bayes" class="section level1">
+<h1><span class="header-section-number">1</span> Overview of Naive Bayes</h1>
+<p>The <strong>Naive Bayes</strong> classifier is a simple probabilistic classifier based on Bayes theorem with strong assumptions regarding independence. Historically it was favored due to its computational efficiency and relative levels of success with classification problems. While more modern classification methods can and do outperform Naive Bayes, it remains popular for even complex problems.</p>
+<p>To illustrate the naive Bayes classifier, we will use the <code>attrition</code> data set from the <code>rsample</code> package. The goal is to predict employee attrition.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># convert some numeric variables to factors</span>
+attrition &lt;-<span class="st"> </span>attrition <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(
+    <span class="dt">JobLevel =</span> <span class="kw">factor</span>(JobLevel),
+    <span class="dt">StockOptionLevel =</span> <span class="kw">factor</span>(StockOptionLevel),
+    <span class="dt">TrainingTimesLastYear =</span> <span class="kw">factor</span>(TrainingTimesLastYear)
+  )
+
+<span class="kw">glimpse</span>(attrition)</code></pre></div>
+<pre><code>## Observations: 1,470
+## Variables: 31
+## $ Age                      &lt;int&gt; 41, 49, 37, 33, 27, 32, 59, 30, 38, 36,…
+## $ Attrition                &lt;fct&gt; Yes, No, Yes, No, No, No, No, No, No, N…
+## $ BusinessTravel           &lt;fct&gt; Travel_Rarely, Travel_Frequently, Trave…
+## $ DailyRate                &lt;int&gt; 1102, 279, 1373, 1392, 591, 1005, 1324,…
+## $ Department               &lt;fct&gt; Sales, Research_Development, Research_D…
+## $ DistanceFromHome         &lt;int&gt; 1, 8, 2, 3, 2, 2, 3, 24, 23, 27, 16, 15…
+## $ Education                &lt;ord&gt; College, Below_College, College, Master…
+## $ EducationField           &lt;fct&gt; Life_Sciences, Life_Sciences, Other, Li…
+## $ EnvironmentSatisfaction  &lt;ord&gt; Medium, High, Very_High, Very_High, Low…
+## $ Gender                   &lt;fct&gt; Female, Male, Male, Female, Male, Male,…
+## $ HourlyRate               &lt;int&gt; 94, 61, 92, 56, 40, 79, 81, 67, 44, 94,…
+## $ JobInvolvement           &lt;ord&gt; High, Medium, Medium, High, High, High,…
+## $ JobLevel                 &lt;fct&gt; 2, 2, 1, 1, 1, 1, 1, 1, 3, 2, 1, 2, 1, …
+## $ JobRole                  &lt;fct&gt; Sales_Executive, Research_Scientist, La…
+## $ JobSatisfaction          &lt;ord&gt; Very_High, Medium, High, High, Medium, …
+## $ MaritalStatus            &lt;fct&gt; Single, Married, Single, Married, Marri…
+## $ MonthlyIncome            &lt;int&gt; 5993, 5130, 2090, 2909, 3468, 3068, 267…
+## $ MonthlyRate              &lt;int&gt; 19479, 24907, 2396, 23159, 16632, 11864…
+## $ NumCompaniesWorked       &lt;int&gt; 8, 1, 6, 1, 9, 0, 4, 1, 0, 6, 0, 0, 1, …
+## $ OverTime                 &lt;fct&gt; Yes, No, Yes, Yes, No, No, Yes, No, No,…
+## $ PercentSalaryHike        &lt;int&gt; 11, 23, 15, 11, 12, 13, 20, 22, 21, 13,…
+## $ PerformanceRating        &lt;ord&gt; Excellent, Outstanding, Excellent, Exce…
+## $ RelationshipSatisfaction &lt;ord&gt; Low, Very_High, Medium, High, Very_High…
+## $ StockOptionLevel         &lt;fct&gt; 0, 1, 0, 0, 1, 0, 3, 1, 0, 2, 1, 0, 1, …
+## $ TotalWorkingYears        &lt;int&gt; 8, 10, 7, 8, 6, 8, 12, 1, 10, 17, 6, 10…
+## $ TrainingTimesLastYear    &lt;fct&gt; 0, 3, 3, 3, 3, 2, 3, 2, 2, 3, 5, 3, 1, …
+## $ WorkLifeBalance          &lt;ord&gt; Bad, Better, Better, Better, Better, Go…
+## $ YearsAtCompany           &lt;int&gt; 6, 10, 0, 8, 2, 7, 1, 1, 9, 7, 5, 9, 5,…
+## $ YearsInCurrentRole       &lt;int&gt; 4, 7, 0, 7, 2, 7, 0, 0, 7, 7, 4, 5, 2, …
+## $ YearsSinceLastPromotion  &lt;int&gt; 0, 1, 0, 3, 2, 3, 0, 0, 1, 7, 0, 0, 4, …
+## $ YearsWithCurrManager     &lt;int&gt; 5, 7, 0, 0, 2, 6, 0, 0, 8, 7, 3, 8, 3, …</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Create training and test data sets</span>
+split &lt;-<span class="st"> </span><span class="kw">initial_split</span>(attrition, <span class="dt">prop =</span> .<span class="dv">7</span>)
+train &lt;-<span class="st"> </span><span class="kw">training</span>(split)
+test &lt;-<span class="st"> </span><span class="kw">testing</span>(split)</code></pre></div>
+<div id="bayes-theorem" class="section level2">
+<h2><span class="header-section-number">1.1</span> Bayes theorem</h2>
+<p><strong>Bayes’ theorem</strong> is a fundamental component of both probability and incorporates the concept of <strong>conditional probability</strong>, the probability of event <span class="math inline">\(A\)</span> given that event <span class="math inline">\(B\)</span> has occurred:</p>
+<p><span class="math display">\[\Pr(A | B)\]</span></p>
+<p>In the context of the attrition data, we seek the probability of an employee belonging to attrition class <span class="math inline">\(C_k\)</span> (where <span class="math inline">\(C_\text{yes} = \text{attrition}\)</span> and <span class="math inline">\(C_\text{no} = \text{non-attrition}\)</span>) given its predictor values <span class="math inline">\(X_1, X_2, \ldots, X_p\)</span>. This can be written as <span class="math inline">\(\Pr (C_k | X_1, X_2, \ldots, X_p)\)</span>.</p>
+<p>The Bayesian formula for calculating this probability is</p>
+<p><span class="math display">\[\Pr (C_k | X) = \frac{\Pr (C_k) \times \Pr (X | C_k)}{\Pr(X)}\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(\Pr (C_k)\)</span> is the <strong>prior</strong> probability of the outcome. That is, based on the historical data, what is the unconditional probability of an employee attriting or not? From earlier, we saw the probability of attriting was about 16.1% and the probability of not attriting was 83.9%.</li>
+<li><span class="math inline">\(\Pr (X)\)</span> is the probability of the predictor variables (same as <span class="math inline">\(\Pr(C_k | X_1, X_2, \ldots, X_p\)</span>). This is the <strong>evidence</strong>, or the probability of each observed combination of predictor variables based on the historical data.</li>
+<li><span class="math inline">\(\Pr (X | C_k)\)</span> is the <strong>conditional probability</strong> or the <strong>likelihood</strong>. Essentially, for each class of the response variable, what is the probability of observing the predictor values?</li>
+<li><span class="math inline">\(\Pr (C_k | X)\)</span> is the <strong>posterior probability</strong>. By combining our observed information, we update the prior information on probabilities to compute a posterior probability that an observation has class <span class="math inline">\(C_k\)</span>.</li>
+</ul>
+<p><span class="math display">\[\text{Posterior} = \frac{\text{Prior} \times \text{Likelihood}}{\text{Evidence}}\]</span></p>
+<p>While simplistic, this formula becomes complex and difficult to solve as the number of predictors increases. To compute the posterior probability for a response variable with <span class="math inline">\(m\)</span> classes and a dataset with <span class="math inline">\(p\)</span> predictors, this approach would require <span class="math inline">\(m^p\)</span> probabilities computed. So for this dataset, we have 2 classes and 31, requiring 2,147,483,648 probabilities computed.</p>
+</div>
+<div id="simplified-classifier" class="section level2">
+<h2><span class="header-section-number">1.2</span> Simplified classifier</h2>
+<p>To make the calculations simpler and therefore <strong>naive</strong>, naive Bayes assumes the predictor variables are <strong>conditionally independent</strong> of one another given the response value. This assumption is extremely strong, and in fact is violated by most datasets including our <code>attrition</code> data. Several of the variables are moderately to strongly correlated.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">train <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">filter</span>(Attrition <span class="op">==</span><span class="st"> &quot;Yes&quot;</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select_if</span>(is.numeric) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">cor</span>() <span class="op">%&gt;%</span>
+<span class="st">  </span>corrplot<span class="op">::</span><span class="kw">corrplot</span>()</code></pre></div>
+<p><img src="/notes/naive-bayes_files/figure-html/attrition-cor-1.png" width="672" /></p>
+<p>But in so doing, this assumption reduces the number of calculations necessary for the posterior probability, as it is the product of the probability distribution for each individual variable conditioned on the response class.</p>
+<p><span class="math display">\[\Pr (C_k | X) = \prod_{i=1}^n \Pr(X_i | C_k)\]</span></p>
+<p>Now we only need to compute <span class="math inline">\(m \times p\)</span> probabilities (e.g. 62 probabilities for the <code>attrition</code> dataset), a far more managable task.</p>
+<p>For categorical variables, this computation is quite simple as you just use the frequencies from the data. But for continuous predictor variables, we typically make an additional assumption of normality so that we can use the probability from the variable’s probability density function (PDF). Sometimes this assumption is fair, and sometimes it is not.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">train <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">select</span>(Age, DailyRate, DistanceFromHome, HourlyRate, MonthlyIncome, MonthlyRate) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">gather</span>(metric, value) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(value, <span class="dt">fill =</span> metric)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_density</span>(<span class="dt">show.legend =</span> <span class="ot">FALSE</span>) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">scale_fill_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>metric, <span class="dt">scales =</span> <span class="st">&quot;free&quot;</span>)</code></pre></div>
+<p><img src="/notes/naive-bayes_files/figure-html/attrition-normal-1.png" width="672" /></p>
+<p>Potential solutions include:</p>
+<ul>
+<li>Transform the variable. Use something like a <a href="https://en.wikipedia.org/wiki/Power_transform">Box-Cox</a> or log transformation to reshape the variable into something more approximately normal.</li>
+<li>Use a different PDF. This could be another parametric PDF, or a non-parametric kernel density estimate<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> to more accurately represent the empirical PDF.</li>
+</ul>
+</div>
+<div id="laplace-smoother" class="section level2">
+<h2><span class="header-section-number">1.3</span> Laplace smoother</h2>
+<p>Another concern with naive Bayes classification is since it uses the product of feature probabilities conditioned on each response class, what happens when a new observation includes a feature value that never occurs for one or more levels of a response class? By default, <span class="math inline">\(\Pr (X_i | C_k) = 0\)</span> for this individual feature, this zero ripples through the multiplication of all features, and forces the posterior probability to be zero for that class.</p>
+<p>Instead, a solution to this problem uses a <strong>Laplace smoother</strong>. The smoother adds a small number to each of the counts in the frequencies for each feature, which ensures that each feature has a non-zero probability of occuring for each class. Typically, a value of one or two for the Laplace smoother is sufficient.</p>
+</div>
+<div id="benefitsdrawbacks" class="section level2">
+<h2><span class="header-section-number">1.4</span> Benefits/drawbacks</h2>
+<p>Naive Bayes is a good classifier because it is simple, computationally efficient (i.e. fast), performs well even with small amounts of training data, and scales well to large data sets. Its greatest weakness is that it relies on the assumption of equally important and independent features which results in biased posterior probabilities. Even though this assumption is often wrong, the algorithm still performs surprisingly well. Given the method for converting probabilities into predictions, we actually don’t care as much about the exact posterior probability as we do the rank ordering of propensities for each class <span class="math inline">\(C_k\)</span>. That is, which class is most likely relative to all of the possible classes?</p>
+</div>
+</div>
+<div id="implementation-with-attrition" class="section level1">
+<h1><span class="header-section-number">2</span> Implementation with <code>attrition</code></h1>
+<p>First we apply a naive Bayes model with 10-fold cross-validation.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(caret)</code></pre></div>
+<pre><code>## Loading required package: lattice</code></pre>
+<pre><code>## 
+## Attaching package: &#39;caret&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     lift</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># create response and feature data</span>
+features &lt;-<span class="st"> </span><span class="kw">setdiff</span>(<span class="kw">names</span>(train), <span class="st">&quot;Attrition&quot;</span>)
+x &lt;-<span class="st"> </span>train[, features]
+y &lt;-<span class="st"> </span>train<span class="op">$</span>Attrition
+
+<span class="co"># set up 10-fold cross validation procedure</span>
+train_control &lt;-<span class="st"> </span><span class="kw">trainControl</span>(
+  <span class="dt">method =</span> <span class="st">&quot;cv&quot;</span>, 
+  <span class="dt">number =</span> <span class="dv">10</span>
+  )
+
+<span class="co"># train model</span>
+nb.m1 &lt;-<span class="st"> </span><span class="kw">train</span>(
+  <span class="dt">x =</span> x,
+  <span class="dt">y =</span> y,
+  <span class="dt">method =</span> <span class="st">&quot;nb&quot;</span>,
+  <span class="dt">trControl =</span> train_control
+  )
+
+<span class="co"># results</span>
+<span class="kw">confusionMatrix</span>(nb.m1)</code></pre></div>
+<pre><code>## Cross-Validated (10 fold) Confusion Matrix 
+## 
+## (entries are percentual average cell counts across resamples)
+##  
+##           Reference
+## Prediction   No  Yes
+##        No  74.1  7.4
+##        Yes  9.8  8.6
+##                            
+##  Accuracy (average) : 0.828</code></pre>
+<p>The overall accuracy rate is not good. Our baseline model of predicting no attrition is also about 83.9 accurate, so naive Bayes with the default <strong>hyperparameters</strong> is not really doing well. Hyperparameters are values set before the learning process begins, whereas parameters are derived from the learning. So for instance, linear regression coefficients are parameters because they are estimated from the modeling process. Whereas hyperparameters are values set prior to estimating the model, such as whether or not to use the Laplace smoother.</p>
+<p>We can tune the few hyperparameters that the naive Bayes model has.</p>
+<ul>
+<li><code>usekernel</code> - use a kernel density estimate for continuous variables versus a Gaussian (normal) density estimate. This permits a more flexible nonparametric estimate of the PDF.</li>
+<li><code>adjust</code> - adjusts the bandwidth of the kernel density (larger numbers mean more flexible density estimate)</li>
+<li><code>fL</code> - incorporate the Laplace smoother.</li>
+</ul>
+<p>We can also perform some pre-processing of the data, primarily normalizing variables with Box-Cox transformations and standardizing each variable to be mean-centered with standard deviation of 1.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># set up tuning grid</span>
+search_grid &lt;-<span class="st"> </span><span class="kw">expand.grid</span>(
+  <span class="dt">usekernel =</span> <span class="kw">c</span>(<span class="ot">TRUE</span>, <span class="ot">FALSE</span>),
+  <span class="dt">fL =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">5</span>,
+  <span class="dt">adjust =</span> <span class="kw">seq</span>(<span class="dv">0</span>, <span class="dv">5</span>, <span class="dt">by =</span> <span class="dv">1</span>)
+)
+
+<span class="co"># train model</span>
+nb.m2 &lt;-<span class="st"> </span><span class="kw">train</span>(
+  <span class="dt">x =</span> x,
+  <span class="dt">y =</span> y,
+  <span class="dt">method =</span> <span class="st">&quot;nb&quot;</span>,
+  <span class="dt">trControl =</span> train_control,
+  <span class="dt">tuneGrid =</span> search_grid,
+  <span class="dt">preProc =</span> <span class="kw">c</span>(<span class="st">&quot;BoxCox&quot;</span>, <span class="st">&quot;center&quot;</span>, <span class="st">&quot;scale&quot;</span>)
+  )
+
+<span class="co"># top 5 modesl</span>
+nb.m2<span class="op">$</span>results <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">top_n</span>(<span class="dv">5</span>, <span class="dt">wt =</span> Accuracy) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">arrange</span>(<span class="kw">desc</span>(Accuracy))</code></pre></div>
+<pre><code>##   usekernel fL adjust  Accuracy     Kappa AccuracySD   KappaSD
+## 1      TRUE  1      5 0.8698760 0.3689359 0.02328398 0.1259861
+## 2      TRUE  0      4 0.8689242 0.3880080 0.02924058 0.1393290
+## 3      TRUE  0      3 0.8669727 0.4362408 0.03093760 0.1249506
+## 4      TRUE  3      5 0.8660112 0.4222160 0.02717603 0.1227028
+## 5      TRUE  1      4 0.8660018 0.4165160 0.03082547 0.1318460</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># plot search grid results</span>
+<span class="kw">plot</span>(nb.m2)</code></pre></div>
+<p><img src="/notes/naive-bayes_files/figure-html/attrition-tune-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># results for best model</span>
+<span class="kw">confusionMatrix</span>(nb.m2)</code></pre></div>
+<pre><code>## Cross-Validated (10 fold) Confusion Matrix 
+## 
+## (entries are percentual average cell counts across resamples)
+##  
+##           Reference
+## Prediction   No  Yes
+##        No  82.0 11.1
+##        Yes  1.9  5.0
+##                             
+##  Accuracy (average) : 0.8698</code></pre>
+<p>This improves the model’s performance by about 4%. If we examine the model’s performance on the final holdout test set, we see it is still not capturing a large percentage of our actual attritions (i.e. specificity):</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">pred &lt;-<span class="st"> </span><span class="kw">predict</span>(nb.m2, <span class="dt">newdata =</span> test)
+<span class="kw">confusionMatrix</span>(pred, test<span class="op">$</span>Attrition)</code></pre></div>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  No Yes
+##        No  361  49
+##        Yes   8  23
+##                                           
+##                Accuracy : 0.8707          
+##                  95% CI : (0.8358, 0.9006)
+##     No Information Rate : 0.8367          
+##     P-Value [Acc &gt; NIR] : 0.02816         
+##                                           
+##                   Kappa : 0.3863          
+##  Mcnemar&#39;s Test P-Value : 1.17e-07        
+##                                           
+##             Sensitivity : 0.9783          
+##             Specificity : 0.3194          
+##          Pos Pred Value : 0.8805          
+##          Neg Pred Value : 0.7419          
+##              Prevalence : 0.8367          
+##          Detection Rate : 0.8186          
+##    Detection Prevalence : 0.9297          
+##       Balanced Accuracy : 0.6489          
+##                                           
+##        &#39;Positive&#39; Class : No              
+## </code></pre>
+</div>
+<div id="session-info" class="section level1 toc-ignore">
+<h1><span class="header-section-number">3</span> Session Info</h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
+<pre><code>## ─ Session info ──────────────────────────────────────────────────────────
+##  setting  value                       
+##  version  R version 3.5.2 (2018-12-20)
+##  os       macOS Mojave 10.14.2        
+##  system   x86_64, darwin15.6.0        
+##  ui       X11                         
+##  language (EN)                        
+##  collate  en_US.UTF-8                 
+##  ctype    en_US.UTF-8                 
+##  tz       America/Chicago             
+##  date     2019-01-22                  
+## 
+## ─ Packages ──────────────────────────────────────────────────────────────
+##  package     * version date       lib source                              
+##  assertthat    0.2.0   2017-04-11 [2] CRAN (R 3.5.0)                      
+##  backports     1.1.3   2018-12-14 [2] CRAN (R 3.5.0)                      
+##  bindr         0.1.1   2018-03-13 [2] CRAN (R 3.5.0)                      
+##  bindrcpp      0.2.2   2018-03-29 [1] CRAN (R 3.5.0)                      
+##  blogdown      0.9.4   2018-11-26 [1] Github (rstudio/blogdown@b2e1ed4)   
+##  bookdown      0.9     2018-12-21 [1] CRAN (R 3.5.0)                      
+##  broom       * 0.5.1   2018-12-05 [2] CRAN (R 3.5.0)                      
+##  callr         3.1.1   2018-12-21 [2] CRAN (R 3.5.0)                      
+##  cellranger    1.1.0   2016-07-27 [2] CRAN (R 3.5.0)                      
+##  cli           1.0.1   2018-09-25 [1] CRAN (R 3.5.0)                      
+##  colorspace    1.3-2   2016-12-14 [2] CRAN (R 3.5.0)                      
+##  crayon        1.3.4   2017-09-16 [2] CRAN (R 3.5.0)                      
+##  desc          1.2.0   2018-05-01 [2] CRAN (R 3.5.0)                      
+##  devtools      2.0.1   2018-10-26 [1] CRAN (R 3.5.1)                      
+##  digest        0.6.18  2018-10-10 [1] CRAN (R 3.5.0)                      
+##  dplyr       * 0.7.8   2018-11-10 [1] CRAN (R 3.5.0)                      
+##  evaluate      0.12    2018-10-09 [2] CRAN (R 3.5.0)                      
+##  forcats     * 0.3.0   2018-02-19 [2] CRAN (R 3.5.0)                      
+##  fs            1.2.6   2018-08-23 [1] CRAN (R 3.5.0)                      
+##  generics      0.0.2   2018-11-29 [1] CRAN (R 3.5.0)                      
+##  ggplot2     * 3.1.0   2018-10-25 [1] CRAN (R 3.5.0)                      
+##  glue          1.3.0   2018-07-17 [2] CRAN (R 3.5.0)                      
+##  gtable        0.2.0   2016-02-26 [2] CRAN (R 3.5.0)                      
+##  haven         2.0.0   2018-11-22 [2] CRAN (R 3.5.0)                      
+##  here          0.1     2017-05-28 [2] CRAN (R 3.5.0)                      
+##  hms           0.4.2   2018-03-10 [2] CRAN (R 3.5.0)                      
+##  htmltools     0.3.6   2017-04-28 [1] CRAN (R 3.5.0)                      
+##  httr          1.4.0   2018-12-11 [2] CRAN (R 3.5.0)                      
+##  jsonlite      1.6     2018-12-07 [2] CRAN (R 3.5.0)                      
+##  knitr         1.21    2018-12-10 [2] CRAN (R 3.5.1)                      
+##  lattice       0.20-38 2018-11-04 [2] CRAN (R 3.5.2)                      
+##  lazyeval      0.2.1   2017-10-29 [2] CRAN (R 3.5.0)                      
+##  lubridate     1.7.4   2018-04-11 [2] CRAN (R 3.5.0)                      
+##  magrittr      1.5     2014-11-22 [2] CRAN (R 3.5.0)                      
+##  memoise       1.1.0   2017-04-21 [2] CRAN (R 3.5.0)                      
+##  modelr        0.1.2   2018-05-11 [2] CRAN (R 3.5.0)                      
+##  munsell       0.5.0   2018-06-12 [2] CRAN (R 3.5.0)                      
+##  nlme          3.1-137 2018-04-07 [2] CRAN (R 3.5.2)                      
+##  patchwork   * 0.0.1   2018-09-06 [1] Github (thomasp85/patchwork@7fb35b1)
+##  pillar        1.3.1   2018-12-15 [2] CRAN (R 3.5.0)                      
+##  pkgbuild      1.0.2   2018-10-16 [1] CRAN (R 3.5.0)                      
+##  pkgconfig     2.0.2   2018-08-16 [2] CRAN (R 3.5.1)                      
+##  pkgload       1.0.2   2018-10-29 [1] CRAN (R 3.5.0)                      
+##  plyr          1.8.4   2016-06-08 [2] CRAN (R 3.5.0)                      
+##  prettyunits   1.0.2   2015-07-13 [2] CRAN (R 3.5.0)                      
+##  processx      3.2.1   2018-12-05 [2] CRAN (R 3.5.0)                      
+##  ps            1.3.0   2018-12-21 [2] CRAN (R 3.5.0)                      
+##  purrr       * 0.2.5   2018-05-29 [2] CRAN (R 3.5.0)                      
+##  R6            2.3.0   2018-10-04 [1] CRAN (R 3.5.0)                      
+##  Rcpp          1.0.0   2018-11-07 [1] CRAN (R 3.5.0)                      
+##  readr       * 1.3.1   2018-12-21 [2] CRAN (R 3.5.0)                      
+##  readxl        1.2.0   2018-12-19 [2] CRAN (R 3.5.0)                      
+##  remotes       2.0.2   2018-10-30 [1] CRAN (R 3.5.0)                      
+##  rlang         0.3.0.1 2018-10-25 [1] CRAN (R 3.5.0)                      
+##  rmarkdown     1.11    2018-12-08 [2] CRAN (R 3.5.0)                      
+##  rprojroot     1.3-2   2018-01-03 [2] CRAN (R 3.5.0)                      
+##  rsample     * 0.0.3   2018-11-20 [1] CRAN (R 3.5.0)                      
+##  rstudioapi    0.8     2018-10-02 [1] CRAN (R 3.5.0)                      
+##  rvest         0.3.2   2016-06-17 [2] CRAN (R 3.5.0)                      
+##  scales        1.0.0   2018-08-09 [1] CRAN (R 3.5.0)                      
+##  sessioninfo   1.1.1   2018-11-05 [1] CRAN (R 3.5.0)                      
+##  stringi       1.2.4   2018-07-20 [2] CRAN (R 3.5.0)                      
+##  stringr     * 1.3.1   2018-05-10 [2] CRAN (R 3.5.0)                      
+##  testthat      2.0.1   2018-10-13 [2] CRAN (R 3.5.0)                      
+##  tibble      * 2.0.0   2019-01-04 [2] CRAN (R 3.5.2)                      
+##  tidyr       * 0.8.2   2018-10-28 [2] CRAN (R 3.5.0)                      
+##  tidyselect    0.2.5   2018-10-11 [1] CRAN (R 3.5.0)                      
+##  tidyverse   * 1.2.1   2017-11-14 [2] CRAN (R 3.5.0)                      
+##  usethis       1.4.0   2018-08-14 [1] CRAN (R 3.5.0)                      
+##  withr         2.1.2   2018-03-15 [2] CRAN (R 3.5.0)                      
+##  xfun          0.4     2018-10-23 [1] CRAN (R 3.5.0)                      
+##  xml2          1.2.0   2018-01-24 [2] CRAN (R 3.5.0)                      
+##  yaml          2.2.0   2018-07-25 [2] CRAN (R 3.5.0)                      
+## 
+## [1] /Users/soltoffbc/Library/R/3.5/library
+## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
+</div>
+<div id="references" class="section level1 toc-ignore">
+<h1><span class="header-section-number">4</span> References</h1>
+<ul>
+<li><a href="http://uc-r.github.io/naive_bayes">Naive Bayes Classifier</a></li>
+</ul>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>We will cover these in a couple of weeks.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>

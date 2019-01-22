@@ -1,0 +1,210 @@
+---
+title: Naive Bayes
+date: 2019-01-23T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Classification
+    weight: 3
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(broom)
+library(rsample)
+library(patchwork)
+
+set.seed(1234)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+# Overview of Naive Bayes
+
+The **Naive Bayes** classifier is a simple probabilistic classifier based on Bayes theorem with strong assumptions regarding independence. Historically it was favored due to its computational efficiency and relative levels of success with classification problems. While more modern classification methods can and do outperform Naive Bayes, it remains popular for even complex problems.
+
+To illustrate the naive Bayes classifier, we will use the `attrition` data set from the `rsample` package. The goal is to predict employee attrition.
+
+```{r attrition}
+# convert some numeric variables to factors
+attrition <- attrition %>%
+  mutate(
+    JobLevel = factor(JobLevel),
+    StockOptionLevel = factor(StockOptionLevel),
+    TrainingTimesLastYear = factor(TrainingTimesLastYear)
+  )
+
+glimpse(attrition)
+
+# Create training and test data sets
+split <- initial_split(attrition, prop = .7)
+train <- training(split)
+test <- testing(split)
+```
+
+## Bayes theorem
+
+**Bayes' theorem** is a fundamental component of both probability and incorporates the concept of **conditional probability**, the probability of event $A$ given that event $B$ has occurred:
+
+$$\Pr(A | B)$$
+
+In the context of the attrition data, we seek the probability of an employee belonging to attrition class $C_k$ (where $C_\text{yes} = \text{attrition}$ and $C_\text{no} = \text{non-attrition}$) given its predictor values $X_1, X_2, \ldots, X_p$. This can be written as $\Pr (C_k | X_1, X_2, \ldots, X_p)$.
+
+The Bayesian formula for calculating this probability is
+
+$$\Pr (C_k | X) = \frac{\Pr (C_k) \times \Pr (X | C_k)}{\Pr(X)}$$
+
+where:
+
+* $\Pr (C_k)$ is the **prior** probability of the outcome. That is, based on the historical data, what is the unconditional probability of an employee attriting or not? From earlier, we saw the probability of attriting was about `r formatC(mean(attrition$Attrition == "Yes") * 100, digits = 3)`% and the probability of not attriting was `r formatC(mean(attrition$Attrition == "No") * 100, digits = 3)`%.
+* $\Pr (X)$ is the probability of the predictor variables (same as $\Pr(C_k | X_1, X_2, \ldots, X_p$). This is the **evidence**, or the probability of each observed combination of predictor variables based on the historical data.
+* $\Pr (X | C_k)$ is the **conditional probability** or the **likelihood**. Essentially, for each class of the response variable, what is the probability of observing the predictor values?
+* $\Pr (C_k | X)$ is the **posterior probability**. By combining our observed information, we update the prior information on probabilities to compute a posterior probability that an observation has class $C_k$.
+
+$$\text{Posterior} = \frac{\text{Prior} \times \text{Likelihood}}{\text{Evidence}}$$
+
+While simplistic, this formula becomes complex and difficult to solve as the number of predictors increases. To compute the posterior probability for a response variable with $m$ classes and a dataset with $p$ predictors, this approach would require $m^p$ probabilities computed. So for this dataset, we have `r n_distinct(attrition$Attrition)` classes and `r ncol(attrition)`, requiring `r formatC(n_distinct(attrition$Attrition)^ncol(attrition), digits = 10, big.mark = ",")` probabilities computed.
+
+## Simplified classifier
+
+To make the calculations simpler and therefore **naive**, naive Bayes assumes the predictor variables are **conditionally independent** of one another given the response value. This assumption is extremely strong, and in fact is violated by most datasets including our `attrition` data. Several of the variables are moderately to strongly correlated.
+
+```{r attrition-cor, dependson = "attrition"}
+train %>%
+  filter(Attrition == "Yes") %>%
+  select_if(is.numeric) %>%
+  cor() %>%
+  corrplot::corrplot()
+```
+
+But in so doing, this assumption reduces the number of calculations necessary for the posterior probability, as it is the product of the probability distribution for each individual variable conditioned on the response class.
+
+$$\Pr (C_k | X) = \prod_{i=1}^n \Pr(X_i | C_k)$$
+
+Now we only need to compute $m \times p$ probabilities (e.g. `r n_distinct(attrition$Attrition) * ncol(attrition)` probabilities for the `attrition` dataset), a far more managable task.
+
+For categorical variables, this computation is quite simple as you just use the frequencies from the data. But for continuous predictor variables, we typically make an additional assumption of normality so that we can use the probability from the variable's probability density function (PDF). Sometimes this assumption is fair, and sometimes it is not.
+
+```{r attrition-normal}
+train %>% 
+  select(Age, DailyRate, DistanceFromHome, HourlyRate, MonthlyIncome, MonthlyRate) %>% 
+  gather(metric, value) %>% 
+  ggplot(aes(value, fill = metric)) + 
+  geom_density(show.legend = FALSE) + 
+  scale_fill_brewer(type = "qual") +
+  facet_wrap(~ metric, scales = "free")
+```
+
+Potential solutions include:
+
+* Transform the variable. Use something like a [Box-Cox](https://en.wikipedia.org/wiki/Power_transform) or log transformation to reshape the variable into something more approximately normal.
+* Use a different PDF. This could be another parametric PDF, or a non-parametric kernel density estimate^[We will cover these in a couple of weeks.] to more accurately represent the empirical PDF.
+
+## Laplace smoother
+
+Another concern with naive Bayes classification is since it uses the product of feature probabilities conditioned on each response class, what happens when a new observation includes a feature value that never occurs for one or more levels of a response class? By default, $\Pr (X_i | C_k) = 0$ for this individual feature, this zero ripples through the multiplication of all features, and forces the posterior probability to be zero for that class.
+
+Instead, a solution to this problem uses a **Laplace smoother**. The smoother adds a small number to each of the counts in the frequencies for each feature, which ensures that each feature has a non-zero probability of occuring for each class. Typically, a value of one or two for the Laplace smoother is sufficient.
+
+## Benefits/drawbacks
+
+Naive Bayes is a good classifier because it is simple, computationally efficient (i.e. fast), performs well even with small amounts of training data, and scales well to large data sets. Its greatest weakness is that it relies on the assumption of equally important and independent features which results in biased posterior probabilities. Even though this assumption is often wrong, the algorithm still performs surprisingly well. Given the method for converting probabilities into predictions, we actually don't care as much about the exact posterior probability as we do the rank ordering of propensities for each class $C_k$. That is, which class is most likely relative to all of the possible classes?
+
+# Implementation with `attrition`
+
+First we apply a naive Bayes model with 10-fold cross-validation.
+
+```{r attrition-cv, dependson = "attrition", warning = FALSE}
+library(caret)
+
+# create response and feature data
+features <- setdiff(names(train), "Attrition")
+x <- train[, features]
+y <- train$Attrition
+
+# set up 10-fold cross validation procedure
+train_control <- trainControl(
+  method = "cv", 
+  number = 10
+  )
+
+# train model
+nb.m1 <- train(
+  x = x,
+  y = y,
+  method = "nb",
+  trControl = train_control
+  )
+
+# results
+confusionMatrix(nb.m1)
+```
+
+The overall accuracy rate is not good. Our baseline model of predicting no attrition is also about `r formatC(mean(attrition$Attrition == "No") * 100, digits = 3)` accurate, so naive Bayes with the default **hyperparameters** is not really doing well. Hyperparameters are values set before the learning process begins, whereas parameters are derived from the learning. So for instance, linear regression coefficients are parameters because they are estimated from the modeling process. Whereas hyperparameters are values set prior to estimating the model, such as whether or not to use the Laplace smoother.
+
+We can tune the few hyperparameters that the naive Bayes model has.
+
+* `usekernel` - use a kernel density estimate for continuous variables versus a Gaussian (normal) density estimate. This permits a more flexible nonparametric estimate of the PDF.
+* `adjust` - adjusts the bandwidth of the kernel density (larger numbers mean more flexible density estimate)
+* `fL` - incorporate the Laplace smoother.
+
+We can also perform some pre-processing of the data, primarily normalizing variables with Box-Cox transformations and standardizing each variable to be mean-centered with standard deviation of 1.
+
+```{r attrition-tune, dependson = "attrition", warning = FALSE}
+# set up tuning grid
+search_grid <- expand.grid(
+  usekernel = c(TRUE, FALSE),
+  fL = 0:5,
+  adjust = seq(0, 5, by = 1)
+)
+
+# train model
+nb.m2 <- train(
+  x = x,
+  y = y,
+  method = "nb",
+  trControl = train_control,
+  tuneGrid = search_grid,
+  preProc = c("BoxCox", "center", "scale")
+  )
+
+# top 5 modesl
+nb.m2$results %>% 
+  top_n(5, wt = Accuracy) %>%
+  arrange(desc(Accuracy))
+
+# plot search grid results
+plot(nb.m2)
+
+# results for best model
+confusionMatrix(nb.m2)
+```
+
+This improves the model's performance by about 4%. If we examine the model's performance on the final holdout test set, we see it is still not capturing a large percentage of our actual attritions (i.e. specificity):
+
+```{r attrition-final, dependson = "attrition-tune", warning = FALSE}
+pred <- predict(nb.m2, newdata = test)
+confusionMatrix(pred, test$Attrition)
+```
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* [Naive Bayes Classifier](http://uc-r.github.io/naive_bayes)
