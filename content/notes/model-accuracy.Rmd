@@ -437,3 +437,4 @@ Therefore BIC is proportional to AIC with the factor $2$ replaced by $\log (N)$.
 # References {.toc-ignore}
 
 * This page is derived in part from ["Creating a LOESS animation with `gganimate`"](http://varianceexplained.org/files/loess.html) by David Robinson.
+* @james2013introduction

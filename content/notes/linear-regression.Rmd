@@ -337,4 +337,4 @@ What is the variance of the fit for this point, i.e. $\text{Var}(\hat{f}(x_o))$.
 # References {.toc-ignore}
 
 * Some material drawn from [**All of Statistics**](https://link-springer-com.proxy.uchicago.edu/book/10.1007%2F978-0-387-21736-9) by Larry Wasserman
-
+* @james2013introduction
