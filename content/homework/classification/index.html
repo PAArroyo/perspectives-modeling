@@ -1,0 +1,89 @@
+---
+title: "Homework 03: Classification Methods"
+date: 2019-01-21T13:30:00-06:00  # Schedule page publish date
+
+draft: false
+type: post
+
+output:
+  blogdown::html_page:
+    number_sections: false
+
+summary: "Practice implementing and interpreting various parametric and non-parametric classification methods."
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#fork-the-hw03-repository">Fork the <code>hw03</code> repository</a></li>
+<li><a href="#submission-format">Submission format</a></li>
+<li><a href="#conceptual-exercises-5-points">Conceptual exercises (5 points)</a></li>
+<li><a href="#modeling-voter-turnout-5-points">Modeling voter turnout (5 points)</a></li>
+</ul>
+</div>
+
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<p>Due before class January 28th.</p>
+</div>
+<div id="fork-the-hw03-repository" class="section level1">
+<h1>Fork the <code>hw03</code> repository</h1>
+<p>Go <a href="https://github.com/css-model/hw03">here</a> to fork the repo for homework 03.</p>
+</div>
+<div id="submission-format" class="section level1">
+<h1>Submission format</h1>
+<p>For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). Your repository should be split into 3 major documents:</p>
+<ol style="list-style-type: decimal">
+<li>Responses to conceptual exercises</li>
+<li>Responses to voter turnout exercises</li>
+</ol>
+<p>Each document should be <strong>reproducible</strong>. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (<code>.ipynb</code>) or R Markdown (<code>.Rmd</code>) rendered as <code>pdf_document</code>.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+</div>
+<div id="conceptual-exercises-5-points" class="section level1">
+<h1>Conceptual exercises (5 points)</h1>
+<p>Note: when I specify for you to demonstrate or show <strong>via simulation</strong>, you should simulate the data-generating process a minimum of 1000 times to show that the basic principle holds true repeatedly. Unless otherwise specified, assume the number of observations <span class="math inline">\(N = 1000\)</span>.</p>
+</div>
+<div id="modeling-voter-turnout-5-points" class="section level1">
+<h1>Modeling voter turnout (5 points)</h1>
+<p>An important question in American politics is why do some people participate in the political process, while others do not? Participation has a direct impact on outcomes – if you fail to participate in politics, the government and political officials are less likely to respond to your concerns. Typical explanations focus on a resource model of participation – individuals with greater resources, such as time, money, and civic skills, are more likely to participate in politics. One area of importance is understanding voter turnout, or why people participate in elections. Using the resource model of participation as a guide, we can develop several expectations. First, women, who more frequently are the primary caregiver for children and earn a lower income, are less likely to participate in elections than men. Second, older Americans, who typically have more time and higher incomes available to participate in politics, should be more likely to participate in elections than younger Americans. Finally, individuals with more years of education, who are generally more interested in politics and understand the value and benefits of participating in politics, are more likely to participate in elections than individuals with fewer years of education.</p>
+<p>While these explanations have been repeatedly tested by political scientists, an emerging theory assesses an individual’s mental health and its effect on political participation.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> Depression increases individuals’ feelings of hopelessness and political efficacy, so depressed individuals will have less desire to participate in politics. More importantly to our resource model of participation, individuals with depression suffer physical ailments such as a lack of energy, headaches, and muscle soreness which drain an individual’s energy and requires time and money to receive treatment. For these reasons, we should expect that individuals with depression are less likely to participate in election than those without symptoms of depression.</p>
+<p>The 1998 General Social Survey included several questions about the respondent’s mental health. <code>mental_health.csv</code> reports several important variables from this survey.</p>
+<ul>
+<li><code>vote96</code> - 1 if the respondent voted in the 1996 presidential election, 0 otherwise</li>
+<li><code>mhealth_sum</code> - index variable which assesses the respondent’s mental health, ranging from 0 (an individual with no depressed mood) to 9 (an individual with the most severe depressed mood)<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a></li>
+<li><code>age</code> - age of the respondent</li>
+<li><code>educ</code> - Number of years of formal education completed by the respondent</li>
+<li><code>black</code> - 1 if the respondent is black, 0 otherwise</li>
+<li><code>female</code> - 1 if the respondent is female, 0 if male</li>
+<li><code>married</code> - 1 if the respondent is currently married, 0 otherwise</li>
+<li><code>inc10</code> - Family income, in $10,000s</li>
+</ul>
+<ol style="list-style-type: decimal">
+<li>Split the data into a training and test set (70/30).</li>
+<li>Using the training set and all available predictors, estimate the following models with <code>vote96</code> as the response variable:
+<ol style="list-style-type: lower-alpha">
+<li>Logistic regression model</li>
+<li>Linear discriminant model</li>
+<li>Quadratic discriminant model</li>
+<li>Naive Bayes</li>
+<li><span class="math inline">\(K\)</span>-nearest neighbors with <span class="math inline">\(K = 1,2,\dots,10\)</span> (that is, 10 separate models varying <span class="math inline">\(K\)</span>) and Euclidean distance metrics</li>
+</ol></li>
+<li>Using the test set, calculate the following model performance metrics:
+<ol style="list-style-type: lower-alpha">
+<li>Error rate</li>
+<li>Proportional reduction in error</li>
+<li>ROC curve</li>
+<li>Area under the curve (AUC)</li>
+</ol></li>
+<li>Which model performs the best? Be sure to define what you mean by “best” and identify supporting evidence to support your conclusion(s).</li>
+</ol>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 🙍<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p><a href="http://onlinelibrary.wiley.com.proxy.uchicago.edu/doi/10.1111/ssqu.12173/abstract">Ojeda, C. (2015). Depression and political participation. <em>Social Science Quarterly</em>, 96(5), 1226-1243.</a><a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>The variable is an index which combines responses to four different questions: “In the past 30 days, how often did you feel: 1) so sad nothing could cheer you up, 2) hopeless, 3) that everything was an effort, and 4) worthless?” Valid responses are none of the time, a little of the time, some of the time, most of the time, and all of the time.<a href="#fnref3">↩</a></p></li>
+</ol>
+</div>
