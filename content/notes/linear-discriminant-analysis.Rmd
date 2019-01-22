@@ -1,0 +1,211 @@
+---
+title: Linear discriminant analysis
+date: 2019-01-23T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Classification
+    weight: 2
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(broom)
+library(knitr)
+library(patchwork)
+library(rsample)
+
+set.seed(1234)
+options(digits = 3)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+[Logistic regression](/notes/logistic-regression/) models $\Pr (Y = k | X = x)$ using the logistic function, for the case of two response classes. Another way of stating this is that we model the conditional distribution of the response $Y$ given the predictors $X$. This method can generalize to more than two response classes (e.g. ordinal/multinomial logistic regression), but more commonly researchers employ **discriminant analysis**. In this alternative approach, we model the distribution of the predictors $X$ separately in each of the response classes, and then use Bayes' theorem to flip these around into estimates for the probability of the response class given the value of $X$. Here we cover two variations, **linear discriminant analysis** (LDA) and **quadratic discriminant analysis** (QDA).
+
+# Why discriminant analysis?
+
+So why do we need another classification method beyond logistic regression? There are several reasons:
+
+* When the classes of the reponse variable $Y$ (i.e. *default = "Yes", default = "No"*) are well-separated, the parameter estimates for the logistic regression model are surprisingly unstable. LDA & QDA do not suffer from this problem.
+* If $n$ is small and the distribution of the predictors $X$ is approximately normal in each of the classes, the LDA & QDA models are again more stable than the logistic regression model.
+* LDA & QDA are often preferred over logistic regression when we have more than two non-ordinal response classes (i.e.: *stroke*, *drug overdose*, and *epileptic seizure*).
+
+However, its important to note that LDA & QDA have assumptions that are often more restrictive then logistic regression:
+
+* Both LDA and QDA assume the the predictor variables $X$ are drawn from a multivariate Gaussian (aka *normal*) distribution. 
+* LDA assumes equality of covariances among the predictor variables $X$ across each all levels of $Y$.  This assumption is relaxed with the QDA model.
+* LDA and QDA require the number of predictor variables $p$ to be less then the sample size $n$.  Furthermore, its important to keep in mind that performance will severely decline as $p$ approaches $n$. A simple rule of thumb is to use LDA & QDA on data sets where $$n \geq 5 \times p$$.  
+
+Also, when considering between LDA & QDA its important to know that LDA is a much less flexible classifier than QDA, and so has substantially lower variance. This can potentially lead to improved prediction performance. But there is a trade-off: if LDA's assumption that the predictor variable share a common variance across each $Y$ response class is badly off, then LDA can suffer from high bias. Roughly speaking, LDA tends to be a better bet than QDA if there are relatively few training observations and so reducing variance is crucial. In contrast, QDA is recommended if the training set is very large, so that the variance of the classifier is not a major concern, or if the assumption of a common covariance matrix is clearly untenable.
+
+# Running example
+
+These notes use the `Default` data provided by the `ISLR` package. This is a simulated data set containing information on ten thousand customers such as whether the customer defaulted, is a student, the average balance carried by the customer and the income of the customer.
+
+```{r default}
+(default <- as_tibble(ISLR::Default))
+
+# split into training/test set
+split <- initial_split(default, prop = .6)
+train <- training(split)
+test <- testing(split)
+```
+
+# Linear discriminant analysis
+
+LDA computes "discriminant scores" for each observation to classify what response variable class it is in (i.e. default or not default). These scores are obtained by finding linear combinations of the independent variables. For a single predictor variable $X = x$ the LDA classifier is estimated as
+
+$$\hat\delta_k(x) = x \times \frac{\hat\mu_k}{\hat\sigma^2} - \frac{\hat\mu_k^2}{2\hat\sigma^2} + \log(\hat\pi_k)$$
+
+where:
+
+* $\hat\delta_k(x)$ is the estimated discriminant score that the observation will fall in the *k*th class within the response variable (i.e. *default* or *not default*) based on the value of the predictor variable *x*
+* $\hat\mu_k$ is the average of all the training observations from the *k*th class
+* $\hat\sigma^2$ is the weighted average of the sample variances for each of the *K* classes
+* $\hat\pi_k$ is the prior probability that an observation belongs to the *k*th class (not to be confused with the mathematical constant $\pi \approx 3.14159$)
+
+This classifier assumes the predictor is drawn from a Gaussian or normal distribution with parameters $\mu, \sigma^2$ (i.e. mean and variance). It is **linear** because $\hat\delta_k(x)$ is a linear function of $x$. It assigns an observation to the $k$th class of $Y_k$ for which discriminant score $\hat\delta_k(x)$ is largest.  For example, lets assume there are two classes ($A$ and $B$) for the response variable $Y$.  Based on the predictor variable(s), LDA is going to compute the probability distribution of being classified as class $A$ or $B$.  The linear decision boundary between the probability distributions is represented by the dashed line.  Discriminant scores to the left of the dashed line will be classified as $A$ and scores to the right will be classified as $B$.
+
+```{r decision-bound, echo = FALSE}
+# theoretical bounds
+density_plot <- tibble(x = c(-5, 5)) %>%
+  ggplot(aes(x)) +
+  stat_function(aes(color = "neg"), fun = dnorm, args = list(mean = -1.5)) +
+  stat_function(aes(color = "pos"), fun = dnorm, args = list(mean = +1.5)) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  scale_color_brewer(type = "qual", guide = FALSE) +
+  labs(x = NULL, 
+       y = NULL)
+
+# simulate data
+sim_data <- tibble(neg = rnorm(n = 20, mean = -1.5),
+       pos = rnorm(n = 20, mean = +1.5)) %>%
+  gather(sample, value)
+
+# estimate LDA decision bound
+(sim_lda <- MASS::lda(sample ~ value, data = sim_data))
+
+sim_lda_bound <- sim_data %>%
+  group_by(sample) %>%
+  summarize(mean = mean(value)) %>%
+  .$mean %>%
+  sum / 2
+
+# plot empirical data
+sim_plot <- ggplot(sim_data, aes(value, fill = sample)) +
+  geom_histogram(position = "identity", alpha = .7, binwidth = .5) +
+  geom_vline(xintercept = 0, linetype = 2) +
+  geom_vline(xintercept = sim_lda_bound, linetype = 1) +
+  scale_fill_brewer(type = "qual", guide = FALSE) +
+  labs(x = NULL, 
+       y = NULL)
+
+density_plot +
+  sim_plot
+```
+
+When dealing with more than one predictor variable, the LDA classifier assumes that the observations in the $k$th class are drawn from a multivariate Gaussian distribution $N(\mu_k, \mathbf{\Sigma})$, where $\mu_k$ is a class-specific mean vector, and $\mathbf{\Sigma}$ is a covariance matrix that is common to all $K$ classes.  Incorporating this into the LDA classifier results in 
+
+$$\hat\delta_k(x) = x^T\mathbf{Σ}^{-1}\hat\mu_k  - \frac{1}{2}\hat\mu_k^T\mathbf{Σ}^{-1} - \hat\mu_k + log(\hat\pi_k)$$
+
+where an observation will be assigned to class $k$ where the discriminant score $\hat\delta_k(x)$ is largest.
+
+## Estimate and understand model
+
+In R, we fit a LDA model using the `lda` function, which is part of the `MASS` library.^[Note I do not explicitly load `MASS` via `library(MASS)` because doing so would cause a conflict with `dplyr::select()`.] Notice that the syntax for the `lda` is identical to that of `lm` and to that of `glm` except for the absence of the family option.
+
+```{r default-lda, dependson = "default"}
+(lda_m1 <- MASS::lda(default ~ balance + student, data = train))
+```
+
+The LDA output indicates that our prior probabilities are $\hat\pi_1 = `r lda_m1$prior[[1]]`$ and $\hat\pi_2 = `r lda_m1$prior[[2]]`$; in other words, `r formatC(lda_m1$prior[[1]] * 100, digits = 3)`% of the training observations are customers who did not default and `r formatC(lda_m1$prior[[2]] * 100, digits = 3)`% represent those that defaulted.  It also provides the group means; these are the average of each predictor within each class, and are used by LDA as estimates of $\mu_k$. These suggest that customers that tend to default have, on average, a credit card balance of \$`r lda_m1$means[2, 1]` and are more likely to be students then non-defaulters (`r lda_m1$means[1, 2] * 100`% of non-defaulters are students whereas `r lda_m1$means[2, 2] * 100`% of defaulters are).
+
+The **coefficients of linear discriminants** output provides the linear combination of `balance` and `student = Yes` that are used to form the LDA decision rule. In other words, these are the multipliers of the elements of $X = x$.  If
+
+$$`r coef(lda_m1)[[1]]` \times \text{balance} + `r coef(lda_m1)[[2]]` \times \text{student}$$
+
+is large, then the LDA classifier will predict that the customer will default, and if it is small, then the LDA classifier will predict the customer will not default.
+
+```{r default-lda-plot, dependson = "default-lda"}
+plot(lda_m1)
+```
+
+## Make Predictions
+
+We can use `predict()` for LDA to generate predicted values:
+
+```{r default-lda-predict, dependson = "default-lda"}
+(df <- tibble(
+  balance = rep(c(1000, 2000), 2), 
+       student = c("No", "No", "Yes", "Yes"))
+ )
+
+(df_pred <- predict(lda_m1, df))
+```
+
+We see that `predict()` returns a list with three elements. The first element, `class`, contains LDA’s predictions about the customer defaulting. Here we see that the second observation (non-student with balance of $2,000) is the only one that is predicted to default.  The second element, `posterior`, is a matrix that contains the posterior probability that the corresponding observations will or will not default. Here we see that the only observation to have a posterior probability of defaulting greater than 50% is observation 2, which is why the LDA model predicted this observation will default.  However, we also see that observation 4 has a 42% probability of defaulting.  Right now the model is predicting that this observation will not default because this probability is less than 50%; however, we will see shortly how we can make adjustments to our posterior probability thresholds.  Finally, `x` contains the linear discriminant values, described earlier.
+
+As previously mentioned the default setting is to use a 50% threshold for the posterior probabilities. We can recreate the predictions contained in the `class` element above:
+
+```{r default-lda-.5, dependson = "default-lda"}
+# number of non-defaulters
+sum(df_pred$posterior[, 1] >= .5)
+
+# number of defaulters
+sum(df_pred$posterior[, 2] > .5)
+```
+
+If we wanted to use a posterior probability threshold other than 50% in order to make predictions, then we could easily do so. For instance, suppose that a credit card company is extremely risk-adverse and wants to assume that a customer with 40% or greater probability is a high-risk customer.  We can easily assess the number of high-risk customers.  
+
+```{r default-lda-.4, dependson = "default-lda"}
+# number of high-risk customers with 40% probability of defaulting
+sum(df_pred$posterior[, 2] > .4)
+```
+
+# Quadratic discriminant analysis
+
+As previously mentioned, LDA assumes that the observations within each class are drawn from a multivariate Gaussian distribution and the covariance of the predictor variables are common across all $k$ levels of the response variable $Y$. **Quadratic discriminant analysis** (QDA) provides an alternative approach. Like LDA, the QDA classifier assumes that the observations from each class of $Y$ are drawn from a Gaussian distribution. However, unlike LDA, QDA assumes that each class has its own covariance matrix. In other words, the predictor variables are not assumed to have common variance across each of the $k$ levels in $Y$.  Mathematically, it assumes that an observation from the $k$th class is of the form $X ∼ N(\mu_k, \mathbf{\Sigma}_k)$, where $\mathbf{\Sigma}_k$ is a covariance matrix for the $k$th class. Under this assumption, the classifier assigns an observation to the class for which
+
+$$\hat\delta_k(x) = -\frac{1}{2}x^T\mathbf{Σ}^{-1}_kx+x^T\mathbf{Σ}^{-1}_k\hat\mu_k  - \frac{1}{2}\hat\mu_k^T\mathbf{Σ}^{-1}_k\hat\mu_k - \frac{1}{2}\log\big|\mathbf{Σ}_k\big|+\log(\hat\pi_k)$$
+
+is largest.  Why is this important? In trying to classify observations into response classes, LDA provides linear decision boundaries that are based on the assumption that the observations vary consistently across all classes.  However, QDA is able to capture differing covariances and provide non-linear classification decision boundaries.
+
+## Estimate and understand model
+
+Similar to `lda()`, we can use the `MASS` library to fit a QDA model.  Here we use the `qda()` function. The output is very similar to the `lda()` output.  It contains the prior probabilities and the group means. But it does not contain the coefficients of the linear discriminants, because the QDA classifier involves a quadratic, rather than a linear, function of the predictors.
+
+```{r default-qda, dependson = "default"}
+(qda.m1 <- qda(default ~ balance + student, data = train))
+```
+
+## Make predictions
+
+The `predict()` function works in exactly the same fashion as for LDA except it does not return the linear discriminant values.  In comparing this simple prediction example to that seen in the LDA section we see minor changes in the posterior probabilities.  Most notably, the posterior probability that observation 4 will default increased by nearly 8% points.
+
+```{r default-qda-predict, dependson = "default-qda"}
+predict(qda.m1, df)
+```
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* [Linear & Quadratic Discrimination](http://uc-r.github.io/discriminant_analysis)
+* @james2013introduction
