@@ -59,7 +59,7 @@ days, how often did you feel: 1) so sad nothing could cheer you up, 2) hopeless,
     a. Logistic regression model
     a. Linear discriminant model
     a. Quadratic discriminant model
-    a. Naive Bayes
+    a. Naive Bayes - you can use the default hyperparameter settings
     a. $K$-nearest neighbors with $K = 1,2,\dots,10$ (that is, 10 separate models varying $K$) and Euclidean distance metrics
 1. Using the test set, calculate the following model performance metrics:
     a. Error rate

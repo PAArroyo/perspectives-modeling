@@ -629,7 +629,7 @@ sim_bayes_err &lt;-<span class="st"> </span><span class="kw">mean</span>(sim_bay
 <h1><span class="header-section-number">4</span> <span class="math inline">\(K\)</span>-nearest neighbors classification</h1>
 <p>Unfortunately we do not know the conditional distribution of <span class="math inline">\(Y\)</span> given <span class="math inline">\(X\)</span> in real-world data, so we cannot compute the Bayes classifier. Instead we try to produce <strong>estimates</strong> of the conditional distribution of <span class="math inline">\(Y\)</span> given <span class="math inline">\(X\)</span>, and then classify a given observation to the class with the highest estimated probability. Logistic regression and other types of GLMs, tree-based methods, and SVMs all operate on this basic principle (or related ones - in the case of SVMs the decision is based on the test observation’s location relative to the separating hyperplane).</p>
 <p>However regression-based methods such as GLMs make assumptions about the functional form of <span class="math inline">\(f\)</span>. For a purely non-parametric approach, we could use <strong><span class="math inline">\(K\)</span>-nearest neighbors</strong> (KNN) classification. Similar to KNN regression, given a positive integer <span class="math inline">\(K\)</span> and a test observation <span class="math inline">\(x_0\)</span>, the KNN classifier identifies the <span class="math inline">\(K\)</span> nearest training observations to <span class="math inline">\(x_0\)</span>, again represented by <span class="math inline">\(N_0\)</span>. The conditional probability for class <span class="math inline">\(j\)</span> is the fraction of points in <span class="math inline">\(N_0\)</span> whose response values equal <span class="math inline">\(j\)</span>:</p>
-<p><span class="math inline">\(\Pr(Y = j| X = x_0) = \frac{1}{K} \sum_{i \in N_0} I(y_i = j)\)</span>$</p>
+<p><span class="math display">\[\Pr(Y = j| X = x_0) = \frac{1}{K} \sum_{i \in N_0} I(y_i = j)\]</span></p>
 <p>where <span class="math inline">\(I(y_i = j)\)</span> is an indicator function. Finally KNN applies Bayes rule and classifies the test observation <span class="math inline">\(x_0\)</span> to the class with the largest probability. Here is the KNN classifier applied to the example above with <span class="math inline">\(K=1\)</span>:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">knn1 &lt;-<span class="st"> </span>class<span class="op">::</span><span class="kw">knn</span>(<span class="kw">select</span>(sim_bayes, x1, x2), <span class="dt">test =</span> <span class="kw">select</span>(bayes_grid, x1, x2),
                    <span class="dt">cl =</span> sim_bayes<span class="op">$</span>y, <span class="dt">k =</span> <span class="dv">1</span>, <span class="dt">prob =</span> <span class="ot">TRUE</span>)
@@ -738,7 +738,6 @@ mse_knn &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class
        <span class="dt">y =</span> <span class="st">&quot;Test error rate&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">expand_limits</span>(<span class="dt">y =</span> <span class="dv">0</span>)</code></pre></div>
 <p><img src="/notes/nearest-neighbors_files/figure-html/knn-class-compare-1.png" width="672" /></p>
-<p>And of course we could adapt this to use LOOCV or <span class="math inline">\(k\)</span>-fold CV rather than the validation set approach.</p>
 <div id="applying-knn-to-titanic" class="section level2">
 <h2><span class="header-section-number">4.1</span> Applying KNN to Titanic</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic &lt;-<span class="st"> </span>titanic<span class="op">::</span>titanic_train <span class="op">%&gt;%</span>
@@ -748,9 +747,9 @@ mse_knn &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class
 <span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Sex) <span class="op">%&gt;%</span>
 <span class="st">  </span>na.omit
 
-titanic_split &lt;-<span class="st"> </span><span class="kw">resample_partition</span>(titanic, <span class="dt">p =</span> <span class="kw">c</span>(<span class="st">&quot;test&quot;</span> =<span class="st"> </span>.<span class="dv">3</span>, <span class="st">&quot;train&quot;</span> =<span class="st"> </span>.<span class="dv">7</span>))
-titanic_train &lt;-<span class="st"> </span><span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>train)
-titanic_test &lt;-<span class="st"> </span><span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>test)</code></pre></div>
+titanic_split &lt;-<span class="st"> </span><span class="kw">initial_split</span>(titanic, <span class="dt">prop =</span> <span class="fl">0.7</span>)
+titanic_train &lt;-<span class="st"> </span><span class="kw">training</span>(titanic_split)
+titanic_test &lt;-<span class="st"> </span><span class="kw">testing</span>(titanic_split)</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_logit &lt;-<span class="st"> </span><span class="kw">glm</span>(Survived <span class="op">~</span><span class="st"> </span>., <span class="dt">data =</span> titanic_train, <span class="dt">family =</span> binomial)
 titanic_logit_mse &lt;-<span class="st"> </span><span class="kw">mse.glm</span>(titanic_logit, titanic_test)</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate test MSE for KNN models</span>
@@ -793,13 +792,15 @@ mse_knn &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class
 ##  assertthat    0.2.0   2017-04-11 [2] CRAN (R 3.5.0)                      
 ##  backports     1.1.3   2018-12-14 [2] CRAN (R 3.5.0)                      
 ##  bindr         0.1.1   2018-03-13 [2] CRAN (R 3.5.0)                      
-##  bindrcpp      0.2.2   2018-03-29 [1] CRAN (R 3.5.0)                      
+##  bindrcpp    * 0.2.2   2018-03-29 [1] CRAN (R 3.5.0)                      
 ##  blogdown      0.9.4   2018-11-26 [1] Github (rstudio/blogdown@b2e1ed4)   
 ##  bookdown      0.9     2018-12-21 [1] CRAN (R 3.5.0)                      
 ##  broom       * 0.5.1   2018-12-05 [2] CRAN (R 3.5.0)                      
 ##  callr         3.1.1   2018-12-21 [2] CRAN (R 3.5.0)                      
 ##  cellranger    1.1.0   2016-07-27 [2] CRAN (R 3.5.0)                      
+##  class         7.3-15  2019-01-01 [2] CRAN (R 3.5.2)                      
 ##  cli           1.0.1   2018-09-25 [1] CRAN (R 3.5.0)                      
+##  codetools     0.2-16  2018-12-24 [2] CRAN (R 3.5.2)                      
 ##  colorspace    1.3-2   2016-12-14 [2] CRAN (R 3.5.0)                      
 ##  crayon        1.3.4   2017-09-16 [2] CRAN (R 3.5.0)                      
 ##  desc          1.2.0   2018-05-01 [2] CRAN (R 3.5.0)                      
@@ -823,13 +824,14 @@ mse_knn &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class
 ##  jsonlite      1.6     2018-12-07 [2] CRAN (R 3.5.0)                      
 ##  kknn        * 1.3.1   2016-03-26 [2] CRAN (R 3.5.0)                      
 ##  knitr       * 1.21    2018-12-10 [2] CRAN (R 3.5.1)                      
+##  labeling      0.3     2014-08-23 [2] CRAN (R 3.5.0)                      
 ##  lattice       0.20-38 2018-11-04 [2] CRAN (R 3.5.2)                      
 ##  lazyeval      0.2.1   2017-10-29 [2] CRAN (R 3.5.0)                      
 ##  lubridate     1.7.4   2018-04-11 [2] CRAN (R 3.5.0)                      
 ##  magrittr      1.5     2014-11-22 [2] CRAN (R 3.5.0)                      
 ##  Matrix        1.2-15  2018-11-01 [2] CRAN (R 3.5.2)                      
 ##  memoise       1.1.0   2017-04-21 [2] CRAN (R 3.5.0)                      
-##  modelr        0.1.2   2018-05-11 [2] CRAN (R 3.5.0)                      
+##  modelr      * 0.1.2   2018-05-11 [2] CRAN (R 3.5.0)                      
 ##  munsell       0.5.0   2018-06-12 [2] CRAN (R 3.5.0)                      
 ##  nlme          3.1-137 2018-04-07 [2] CRAN (R 3.5.2)                      
 ##  patchwork   * 0.0.1   2018-09-06 [1] Github (thomasp85/patchwork@7fb35b1)

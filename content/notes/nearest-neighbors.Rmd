@@ -651,7 +651,7 @@ Unfortunately we do not know the conditional distribution of $Y$ given $X$ in re
 
 However regression-based methods such as GLMs make assumptions about the functional form of $f$. For a purely non-parametric approach, we could use **$K$-nearest neighbors** (KNN) classification. Similar to KNN regression, given a positive integer $K$ and a test observation $x_0$, the KNN classifier identifies the $K$ nearest training observations to $x_0$, again represented by $N_0$. The conditional probability for class $j$ is the fraction of points in $N_0$ whose response values equal $j$:
 
-$\Pr(Y = j| X = x_0) = \frac{1}{K} \sum_{i \in N_0} I(y_i = j)$$
+$$\Pr(Y = j| X = x_0) = \frac{1}{K} \sum_{i \in N_0} I(y_i = j)$$
 
 where $I(y_i = j)$ is an indicator function. Finally KNN applies Bayes rule and classifies the test observation $x_0$ to the class with the largest probability. Here is the KNN classifier applied to the example above with $K=1$:
 
@@ -773,8 +773,6 @@ ggplot(mse_knn, aes(k, mse_test)) +
   expand_limits(y = 0)
 ```
 
-And of course we could adapt this to use LOOCV or $k$-fold CV rather than the validation set approach.
-
 ## Applying KNN to Titanic
 
 ```{r titanic-data}
@@ -785,17 +783,17 @@ titanic <- titanic::titanic_train %>%
   select(-Sex) %>%
   na.omit
 
-titanic_split <- resample_partition(titanic, p = c("test" = .3, "train" = .7))
-titanic_train <- as_tibble(titanic_split$train)
-titanic_test <- as_tibble(titanic_split$test)
+titanic_split <- initial_split(titanic, prop = 0.7)
+titanic_train <- training(titanic_split)
+titanic_test <- testing(titanic_split)
 ```
 
-```{r titanic-logit}
+```{r titanic-logit, dependson = "titanic-data"}
 titanic_logit <- glm(Survived ~ ., data = titanic_train, family = binomial)
 titanic_logit_mse <- mse.glm(titanic_logit, titanic_test)
 ```
 
-```{r titanic-knn-compare, dependson="bayes-class", warning = FALSE}
+```{r titanic-knn-compare, dependson = c("bayes-class", "titanic-data"), warning = FALSE}
 # estimate test MSE for KNN models
 mse_knn <- tibble(k = 1:100,
                   knn_train = map(k, ~ class::knn(select(titanic_train, -Survived),

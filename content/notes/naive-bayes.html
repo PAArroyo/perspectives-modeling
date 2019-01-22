@@ -55,15 +55,13 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <div id="TOC">
 <ul>
-<li><a href="#overview-of-naive-bayes"><span class="toc-section-number">1</span> Overview of Naive Bayes</a><ul>
-<li><a href="#bayes-theorem"><span class="toc-section-number">1.1</span> Bayes theorem</a></li>
-<li><a href="#simplified-classifier"><span class="toc-section-number">1.2</span> Simplified classifier</a></li>
-<li><a href="#laplace-smoother"><span class="toc-section-number">1.3</span> Laplace smoother</a></li>
-<li><a href="#benefitsdrawbacks"><span class="toc-section-number">1.4</span> Benefits/drawbacks</a></li>
-</ul></li>
-<li><a href="#implementation-with-attrition"><span class="toc-section-number">2</span> Implementation with <code>attrition</code></a></li>
-<li><a href="#session-info"><span class="toc-section-number">3</span> Session Info</a></li>
-<li><a href="#references"><span class="toc-section-number">4</span> References</a></li>
+<li><a href="#bayes-theorem"><span class="toc-section-number">1</span> Bayes theorem</a></li>
+<li><a href="#simplified-classifier"><span class="toc-section-number">2</span> Simplified classifier</a></li>
+<li><a href="#laplace-smoother"><span class="toc-section-number">3</span> Laplace smoother</a></li>
+<li><a href="#benefitsdrawbacks"><span class="toc-section-number">4</span> Benefits/drawbacks</a></li>
+<li><a href="#implementation-with-attrition"><span class="toc-section-number">5</span> Implementation with <code>attrition</code></a></li>
+<li><a href="#session-info"><span class="toc-section-number">6</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">7</span> References</a></li>
 </ul>
 </div>
 
@@ -74,8 +72,6 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <span class="kw">set.seed</span>(<span class="dv">1234</span>)
 <span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
-<div id="overview-of-naive-bayes" class="section level1">
-<h1><span class="header-section-number">1</span> Overview of Naive Bayes</h1>
 <p>The <strong>Naive Bayes</strong> classifier is a simple probabilistic classifier based on Bayes theorem with strong assumptions regarding independence. Historically it was favored due to its computational efficiency and relative levels of success with classification problems. While more modern classification methods can and do outperform Naive Bayes, it remains popular for even complex problems.</p>
 <p>To illustrate the naive Bayes classifier, we will use the <code>attrition</code> data set from the <code>rsample</code> package. The goal is to predict employee attrition.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># convert some numeric variables to factors</span>
@@ -124,8 +120,8 @@ attrition &lt;-<span class="st"> </span>attrition <span class="op">%&gt;%</span>
 split &lt;-<span class="st"> </span><span class="kw">initial_split</span>(attrition, <span class="dt">prop =</span> .<span class="dv">7</span>)
 train &lt;-<span class="st"> </span><span class="kw">training</span>(split)
 test &lt;-<span class="st"> </span><span class="kw">testing</span>(split)</code></pre></div>
-<div id="bayes-theorem" class="section level2">
-<h2><span class="header-section-number">1.1</span> Bayes theorem</h2>
+<div id="bayes-theorem" class="section level1">
+<h1><span class="header-section-number">1</span> Bayes theorem</h1>
 <p><strong>Bayes’ theorem</strong> is a fundamental component of both probability and incorporates the concept of <strong>conditional probability</strong>, the probability of event <span class="math inline">\(A\)</span> given that event <span class="math inline">\(B\)</span> has occurred:</p>
 <p><span class="math display">\[\Pr(A | B)\]</span></p>
 <p>In the context of the attrition data, we seek the probability of an employee belonging to attrition class <span class="math inline">\(C_k\)</span> (where <span class="math inline">\(C_\text{yes} = \text{attrition}\)</span> and <span class="math inline">\(C_\text{no} = \text{non-attrition}\)</span>) given its predictor values <span class="math inline">\(X_1, X_2, \ldots, X_p\)</span>. This can be written as <span class="math inline">\(\Pr (C_k | X_1, X_2, \ldots, X_p)\)</span>.</p>
@@ -141,8 +137,8 @@ test &lt;-<span class="st"> </span><span class="kw">testing</span>(split)</code>
 <p><span class="math display">\[\text{Posterior} = \frac{\text{Prior} \times \text{Likelihood}}{\text{Evidence}}\]</span></p>
 <p>While simplistic, this formula becomes complex and difficult to solve as the number of predictors increases. To compute the posterior probability for a response variable with <span class="math inline">\(m\)</span> classes and a dataset with <span class="math inline">\(p\)</span> predictors, this approach would require <span class="math inline">\(m^p\)</span> probabilities computed. So for this dataset, we have 2 classes and 31, requiring 2,147,483,648 probabilities computed.</p>
 </div>
-<div id="simplified-classifier" class="section level2">
-<h2><span class="header-section-number">1.2</span> Simplified classifier</h2>
+<div id="simplified-classifier" class="section level1">
+<h1><span class="header-section-number">2</span> Simplified classifier</h1>
 <p>To make the calculations simpler and therefore <strong>naive</strong>, naive Bayes assumes the predictor variables are <strong>conditionally independent</strong> of one another given the response value. This assumption is extremely strong, and in fact is violated by most datasets including our <code>attrition</code> data. Several of the variables are moderately to strongly correlated.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">train <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">filter</span>(Attrition <span class="op">==</span><span class="st"> &quot;Yes&quot;</span>) <span class="op">%&gt;%</span>
@@ -168,18 +164,17 @@ test &lt;-<span class="st"> </span><span class="kw">testing</span>(split)</code>
 <li>Use a different PDF. This could be another parametric PDF, or a non-parametric kernel density estimate<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> to more accurately represent the empirical PDF.</li>
 </ul>
 </div>
-<div id="laplace-smoother" class="section level2">
-<h2><span class="header-section-number">1.3</span> Laplace smoother</h2>
+<div id="laplace-smoother" class="section level1">
+<h1><span class="header-section-number">3</span> Laplace smoother</h1>
 <p>Another concern with naive Bayes classification is since it uses the product of feature probabilities conditioned on each response class, what happens when a new observation includes a feature value that never occurs for one or more levels of a response class? By default, <span class="math inline">\(\Pr (X_i | C_k) = 0\)</span> for this individual feature, this zero ripples through the multiplication of all features, and forces the posterior probability to be zero for that class.</p>
 <p>Instead, a solution to this problem uses a <strong>Laplace smoother</strong>. The smoother adds a small number to each of the counts in the frequencies for each feature, which ensures that each feature has a non-zero probability of occuring for each class. Typically, a value of one or two for the Laplace smoother is sufficient.</p>
 </div>
-<div id="benefitsdrawbacks" class="section level2">
-<h2><span class="header-section-number">1.4</span> Benefits/drawbacks</h2>
+<div id="benefitsdrawbacks" class="section level1">
+<h1><span class="header-section-number">4</span> Benefits/drawbacks</h1>
 <p>Naive Bayes is a good classifier because it is simple, computationally efficient (i.e. fast), performs well even with small amounts of training data, and scales well to large data sets. Its greatest weakness is that it relies on the assumption of equally important and independent features which results in biased posterior probabilities. Even though this assumption is often wrong, the algorithm still performs surprisingly well. Given the method for converting probabilities into predictions, we actually don’t care as much about the exact posterior probability as we do the rank ordering of propensities for each class <span class="math inline">\(C_k\)</span>. That is, which class is most likely relative to all of the possible classes?</p>
 </div>
-</div>
 <div id="implementation-with-attrition" class="section level1">
-<h1><span class="header-section-number">2</span> Implementation with <code>attrition</code></h1>
+<h1><span class="header-section-number">5</span> Implementation with <code>attrition</code></h1>
 <p>First we apply a naive Bayes model with 10-fold cross-validation.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(caret)</code></pre></div>
 <pre><code>## Loading required package: lattice</code></pre>
@@ -300,7 +295,7 @@ nb.m2<span class="op">$</span>results <span class="op">%&gt;%</span><span class=
 ## </code></pre>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
-<h1><span class="header-section-number">3</span> Session Info</h1>
+<h1><span class="header-section-number">6</span> Session Info</h1>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
@@ -394,7 +389,7 @@ nb.m2<span class="op">$</span>results <span class="op">%&gt;%</span><span class=
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
 </div>
 <div id="references" class="section level1 toc-ignore">
-<h1><span class="header-section-number">4</span> References</h1>
+<h1><span class="header-section-number">7</span> References</h1>
 <ul>
 <li><a href="http://uc-r.github.io/naive_bayes">Naive Bayes Classifier</a></li>
 </ul>

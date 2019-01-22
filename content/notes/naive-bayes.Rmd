@@ -32,8 +32,6 @@ theme_set(theme_minimal())
 
 \newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
 
-# Overview of Naive Bayes
-
 The **Naive Bayes** classifier is a simple probabilistic classifier based on Bayes theorem with strong assumptions regarding independence. Historically it was favored due to its computational efficiency and relative levels of success with classification problems. While more modern classification methods can and do outperform Naive Bayes, it remains popular for even complex problems.
 
 To illustrate the naive Bayes classifier, we will use the `attrition` data set from the `rsample` package. The goal is to predict employee attrition.
@@ -55,7 +53,7 @@ train <- training(split)
 test <- testing(split)
 ```
 
-## Bayes theorem
+# Bayes theorem
 
 **Bayes' theorem** is a fundamental component of both probability and incorporates the concept of **conditional probability**, the probability of event $A$ given that event $B$ has occurred:
 
@@ -78,7 +76,7 @@ $$\text{Posterior} = \frac{\text{Prior} \times \text{Likelihood}}{\text{Evidence
 
 While simplistic, this formula becomes complex and difficult to solve as the number of predictors increases. To compute the posterior probability for a response variable with $m$ classes and a dataset with $p$ predictors, this approach would require $m^p$ probabilities computed. So for this dataset, we have `r n_distinct(attrition$Attrition)` classes and `r ncol(attrition)`, requiring `r formatC(n_distinct(attrition$Attrition)^ncol(attrition), digits = 10, big.mark = ",")` probabilities computed.
 
-## Simplified classifier
+# Simplified classifier
 
 To make the calculations simpler and therefore **naive**, naive Bayes assumes the predictor variables are **conditionally independent** of one another given the response value. This assumption is extremely strong, and in fact is violated by most datasets including our `attrition` data. Several of the variables are moderately to strongly correlated.
 
@@ -113,13 +111,13 @@ Potential solutions include:
 * Transform the variable. Use something like a [Box-Cox](https://en.wikipedia.org/wiki/Power_transform) or log transformation to reshape the variable into something more approximately normal.
 * Use a different PDF. This could be another parametric PDF, or a non-parametric kernel density estimate^[We will cover these in a couple of weeks.] to more accurately represent the empirical PDF.
 
-## Laplace smoother
+# Laplace smoother
 
 Another concern with naive Bayes classification is since it uses the product of feature probabilities conditioned on each response class, what happens when a new observation includes a feature value that never occurs for one or more levels of a response class? By default, $\Pr (X_i | C_k) = 0$ for this individual feature, this zero ripples through the multiplication of all features, and forces the posterior probability to be zero for that class.
 
 Instead, a solution to this problem uses a **Laplace smoother**. The smoother adds a small number to each of the counts in the frequencies for each feature, which ensures that each feature has a non-zero probability of occuring for each class. Typically, a value of one or two for the Laplace smoother is sufficient.
 
-## Benefits/drawbacks
+# Benefits/drawbacks
 
 Naive Bayes is a good classifier because it is simple, computationally efficient (i.e. fast), performs well even with small amounts of training data, and scales well to large data sets. Its greatest weakness is that it relies on the assumption of equally important and independent features which results in biased posterior probabilities. Even though this assumption is often wrong, the algorithm still performs surprisingly well. Given the method for converting probabilities into predictions, we actually don't care as much about the exact posterior probability as we do the rank ordering of propensities for each class $C_k$. That is, which class is most likely relative to all of the possible classes?
 
