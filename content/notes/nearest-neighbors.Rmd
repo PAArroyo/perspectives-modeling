@@ -819,5 +819,6 @@ ggplot(mse_knn, aes(k, mse_test)) +
 ```
 
 # References {.toc-ignore}
+
 * @james2013introduction
 * @friedman2001elements
