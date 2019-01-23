@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>More Classification Methods</title>
+    <meta charset="utf-8">
+    <meta name="author" content="MACS 30100   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# More Classification Methods
+### <a href="https://model.uchicago.edu">MACS 30100</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Naive non-parametric regression
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/np-data-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Naive non-parametric regression
+
+`$$\mu = \E(\text{Income}|\text{Education}) = f(\text{Education})$$`
+--
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/np-wage-cond-1.png" width="864" /&gt;
+
+]
+
+---
+
+# Naive non-parametric regression
+
+`$$\mu = \E(Y|x) = f(x)$$`
+
+* Continuous `\(X\)` and `\(Y\)`
+* How to calculate conditional means?
+
+--
+* Divide into narrow intervals (bins)
+* Quality of bins driven by sample size
+
+---
+
+# Naive non-parametric regression
+
+* Canadian occupational prestige
+
+
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/prestige-5bins-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Naive non-parametric regression
+
+* Decrease bias
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/prestige-50bins-1.png" width="504" /&gt;
+
+]
+
+--
+* Overfitting and increased variance
+
+---
+
+# Naive non-parametric regression
+
+* Consistent estimator of the population regression curve as `\(n \rightarrow \infty\)`
+* Practical considerations
+    * Large `\(n\)`
+    * Increase in number of predictors `\(p\)`
+
+---
+
+# Naive non-parametric regression
+
+$$
+`\begin{align}
+X_1 &amp;\in \{1, 2, \dots ,10 \} \\
+X_2 &amp;\in \{1, 2, \dots ,10 \} \\
+X_3 &amp;\in \{1, 2, \dots ,10 \} \\
+\end{align}`
+$$
+
+--
+
+* `\(10^3 = 1000\)` possible combinations of the explanatory variables
+* `\(1000\)` conditional expectations of `\(Y\)` given `\(X\)`:
+
+`$$\mu = \E(Y|x_1, x_2, x_3) = f(x_1, x_2, x_3)$$`
+
+* Need substantial `\(n\)` for every combination of `\(X\)`
+
+---
+
+# Naive non-parametric regression
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/wage-sim-describe-1.png" width="864" /&gt;
+
+]
+
+---
+
+# `\(n = 1,000,000\)`
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/wage-sim-np-1.png" width="504" /&gt;
+
+]
+
+---
+
+# `\(n = 10,000,000\)`
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/wage-sim-np-ten-1.png" width="504" /&gt;
+
+]
+
+---
+
+# `\(K\)`-nearest neighbors regression
+
+* Moving average to generate a regression line
+* `\(K\)`
+* Prediction point `\(x_0\)`
+
+`$$\hat{f}(x_0) = \frac{1}{K} \sum_{x_i \in N_0} y_i$$`
+
+---
+
+# `\(K = 1\)`
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/prestige-knn-1-1.png" width="504" /&gt;
+
+]
+
+---
+
+# `\(K = 9\)`
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/prestige-knn-9-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Linear regression vs. `\(K\)`-nearest neighbors
+
+`$$f(X) = 2 + X + \epsilon_i$$`
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/np-p-line-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Increasing `\(K\)`
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/np-p-line2-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Linear regression vs. `\(K\)`-nearest neighbors
+
+`$$f(X) = 2 + X + X^2 + X^3 + \epsilon_i$$`
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/np-p-cubic-1.png" width="864" /&gt;
+
+]
+
+---
+
+# Increasing `\(K\)`
+
+`$$f(X) = 2 + X + X^2 + X^3 + \epsilon_i$$`
+
+* Increased noise parameters
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/knn-nonrobust-1.png" width="864" /&gt;
+
+]
+
+---
+
+# Weighted `\(K\)`-nearest neighbors
+
+* Minkowski distance
+
+    `$$\text{Distance}(x_i, y_i) = \left( \sum_{i = 1}^n |x_i - y_i| ^p \right)^\frac{1}{p}$$`
+
+    * `\(p = 1\)`
+    * `\(p = 2\)`
+    
+---
+
+# Weighted `\(K\)`-nearest neighbors
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/knn-weight-1.png" width="864" /&gt;
+
+]
+
+---
+
+# Weighted `\(K\)`-nearest neighbors
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/wknn-nonrobust-1.png" width="864" /&gt;
+
+]
+
+---
+
+# Estimating KNN on simulated wage data
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/wage-sim-knn-1.png" width="504" /&gt;
+
+]
+
+---
+
+# KNN on Biden
+
+.center[
+
+
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/biden-wknn-1.png" width="504" /&gt;
+
+]
+
+---
+
+# `\(K\)`-nearest neighbors classification
+
+* Same basic approach, but for classification
+* `\(K\)`
+* Prediction point `\(x_0\)`
+* Conditional probability for class `\(j\)`
+
+`$$\Pr(Y = j| X = x_0) = \frac{1}{K} \sum_{i \in N_0} I(y_i = j)$$`
+
+---
+
+# `\(K = 1\)`
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/knn-class1-1.png" width="504" /&gt;
+
+]
+
+---
+
+# `\(K = 5\)`
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/knn-class5-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Determining optimal `\(K\)`
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/knn-class-compare-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Applying KNN to Titanic
+
+.center[
+
+
+
+
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/titanic-knn-compare-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Naive Bayes classifier
+
+* Simple probabilistic classifier
+* Uses Bayes theorem
+* Strong assumptions regarding independence
+* Efficient and relatively successful
+
+---
+
+# `attrition`
+
+
+```
+## Observations: 1,470
+## Variables: 31
+## $ Age                      &lt;int&gt; 41, 49, 37, 33, 27, 32, 59, 30, 38, 36,…
+## $ Attrition                &lt;fct&gt; Yes, No, Yes, No, No, No, No, No, No, N…
+## $ BusinessTravel           &lt;fct&gt; Travel_Rarely, Travel_Frequently, Trave…
+## $ DailyRate                &lt;int&gt; 1102, 279, 1373, 1392, 591, 1005, 1324,…
+## $ Department               &lt;fct&gt; Sales, Research_Development, Research_D…
+## $ DistanceFromHome         &lt;int&gt; 1, 8, 2, 3, 2, 2, 3, 24, 23, 27, 16, 15…
+## $ Education                &lt;ord&gt; College, Below_College, College, Master…
+## $ EducationField           &lt;fct&gt; Life_Sciences, Life_Sciences, Other, Li…
+## $ EnvironmentSatisfaction  &lt;ord&gt; Medium, High, Very_High, Very_High, Low…
+## $ Gender                   &lt;fct&gt; Female, Male, Male, Female, Male, Male,…
+## $ HourlyRate               &lt;int&gt; 94, 61, 92, 56, 40, 79, 81, 67, 44, 94,…
+## $ JobInvolvement           &lt;ord&gt; High, Medium, Medium, High, High, High,…
+## $ JobLevel                 &lt;fct&gt; 2, 2, 1, 1, 1, 1, 1, 1, 3, 2, 1, 2, 1, …
+## $ JobRole                  &lt;fct&gt; Sales_Executive, Research_Scientist, La…
+## $ JobSatisfaction          &lt;ord&gt; Very_High, Medium, High, High, Medium, …
+## $ MaritalStatus            &lt;fct&gt; Single, Married, Single, Married, Marri…
+## $ MonthlyIncome            &lt;int&gt; 5993, 5130, 2090, 2909, 3468, 3068, 267…
+## $ MonthlyRate              &lt;int&gt; 19479, 24907, 2396, 23159, 16632, 11864…
+## $ NumCompaniesWorked       &lt;int&gt; 8, 1, 6, 1, 9, 0, 4, 1, 0, 6, 0, 0, 1, …
+## $ OverTime                 &lt;fct&gt; Yes, No, Yes, Yes, No, No, Yes, No, No,…
+## $ PercentSalaryHike        &lt;int&gt; 11, 23, 15, 11, 12, 13, 20, 22, 21, 13,…
+## $ PerformanceRating        &lt;ord&gt; Excellent, Outstanding, Excellent, Exce…
+## $ RelationshipSatisfaction &lt;ord&gt; Low, Very_High, Medium, High, Very_High…
+## $ StockOptionLevel         &lt;fct&gt; 0, 1, 0, 0, 1, 0, 3, 1, 0, 2, 1, 0, 1, …
+## $ TotalWorkingYears        &lt;int&gt; 8, 10, 7, 8, 6, 8, 12, 1, 10, 17, 6, 10…
+## $ TrainingTimesLastYear    &lt;fct&gt; 0, 3, 3, 3, 3, 2, 3, 2, 2, 3, 5, 3, 1, …
+## $ WorkLifeBalance          &lt;ord&gt; Bad, Better, Better, Better, Better, Go…
+## $ YearsAtCompany           &lt;int&gt; 6, 10, 0, 8, 2, 7, 1, 1, 9, 7, 5, 9, 5,…
+## $ YearsInCurrentRole       &lt;int&gt; 4, 7, 0, 7, 2, 7, 0, 0, 7, 7, 4, 5, 2, …
+## $ YearsSinceLastPromotion  &lt;int&gt; 0, 1, 0, 3, 2, 3, 0, 0, 1, 7, 0, 0, 4, …
+## $ YearsWithCurrManager     &lt;int&gt; 5, 7, 0, 0, 2, 6, 0, 0, 8, 7, 3, 8, 3, …
+```
+
+---
+
+# Bayes theorem
+
+`$$\Pr (C_k | X) = \frac{\Pr (C_k) \times \Pr (X | C_k)}{\Pr(X)}$$`
+
+* `\(\Pr (C_k)\)` is the **prior** probability of the outcome
+* `\(\Pr (X)\)` is the probability of the predictor variables, or the **evidence**
+* `\(\Pr (X | C_k)\)` is the **conditional probability** or the **likelihood**
+* `\(\Pr (C_k | X)\)` is the **posterior probability**
+
+--
+
+`$$\text{Posterior} = \frac{\text{Prior} \times \text{Likelihood}}{\text{Evidence}}$$`
+
+--
+
+* Intractable as `\(m^p\)` increases
+
+---
+
+# Simplified classifier
+
+* Assumes predictor variables are conditionally independent of one another given the response value
+* Extremely incorrect
+
+--
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/attrition-cor-1.png" width="504" /&gt;
+
+---
+
+# Simplified classifier
+
+`$$\Pr (C_k | X) = \prod_{i=1}^n \Pr(X_i | C_k)$$`
+
+* Only need `\(m \times p\)` probabilities
+* Determining probability distribution functions (PDFs)
+    * Categorical variables
+    * Continuous variables
+
+---
+
+# Assumption of normality
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/attrition-normal-1.png" width="864" /&gt;
+
+]
+
+---
+
+# Violation of assumptions
+
+## Assumption of normality
+
+* Transform the variable
+* Use a different PDF
+
+--
+
+## Laplace smoother
+
+* New observation with feature value that never occurs in the response class
+    * `\(\Pr (X_i | C_k) = 0\)`
+* Add a small number to each of the counts in the frequencies for each feature
+* Ensures non-zero probabiity for each class
+
+---
+
+# Benefits/drawbacks
+
+* Simple
+* Computationally efficient
+* Doesn't require large training dataset
+* Scales well to large datasets
+
+--
+* Relies on assumption of independence
+* Biased posterior probabilities
+    * Exact probabilities
+    * Relative probabilities
+
+---
+
+# Implementation with `attrition`
+
+
+```
+## Cross-Validated (10 fold) Confusion Matrix 
+## 
+## (entries are percentual average cell counts across resamples)
+##  
+##           Reference
+## Prediction   No  Yes
+##        No  75.4  7.6
+##        Yes  8.9  8.1
+##                             
+##  Accuracy (average) : 0.8348
+```
+
+---
+
+# Hyperparameter tuning
+
+* Hyperparameters
+* Parameters
+* Hyperparameters for naive Bayes
+    * Kernel density estimate for continuous variables versus a Gaussian (normal) density estimate
+    * Bandwidth size for KDE
+    * Use of Laplace smoother and exact value
+
+---
+
+# Hyperparameter tuning
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/attrition-tune-1.png" width="504" /&gt;
+
+```
+## Cross-Validated (10 fold) Confusion Matrix 
+## 
+## (entries are percentual average cell counts across resamples)
+##  
+##           Reference
+## Prediction   No  Yes
+##        No  82.8 11.1
+##        Yes  1.6  4.6
+##                             
+##  Accuracy (average) : 0.8737
+```
+
+---
+
+# Test set performance
+
+
+```
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction  No Yes
+##        No  361  59
+##        Yes   4  17
+##                                          
+##                Accuracy : 0.8571         
+##                  95% CI : (0.821, 0.8884)
+##     No Information Rate : 0.8277         
+##     P-Value [Acc &gt; NIR] : 0.05494        
+##                                          
+##                   Kappa : 0.2981         
+##  Mcnemar's Test P-Value : 1.022e-11      
+##                                          
+##             Sensitivity : 0.9890         
+##             Specificity : 0.2237         
+##          Pos Pred Value : 0.8595         
+##          Neg Pred Value : 0.8095         
+##              Prevalence : 0.8277         
+##          Detection Rate : 0.8186         
+##    Detection Prevalence : 0.9524         
+##       Balanced Accuracy : 0.6064         
+##                                          
+##        'Positive' Class : No             
+## 
+```
+
+---
+
+# Discriminant analysis
+
+* Logistic regression
+
+    `$$\Pr (Y = k | X = x)$$`
+* Discriminant analysis
+    * Model distribution of `\(X\)` separately for each response class
+    * Use Bayes' thorem to flip these into estimates for `\(\Pr (Y = k | X = x)\)`
+
+---
+
+# Why discriminant analysis?
+
+* When the classes of the reponse variable `\(Y\)` are well-separated
+* If `\(n\)` is small and the distribution of the predictors `\(X\)` is approximately normal
+* More than two non-ordinal response classes
+
+--
+
+## More restrictive assumptions
+
+* Predictor variables `\(X\)` are drawn from a multivariate Gaussian (aka *normal*) distribution 
+* LDA assumes equality of covariances among the predictor variables `\(X\)` across each all levels of `\(Y\)`
+* Require the number of predictor variables `\(p\)` to be less then the sample size `\(n\)`
+    * Performance decline as `\(p\)` approaches `\(n\)`
+* Flexibility of classifiers
+    * Bias
+    * Variance
+    
+---
+
+# Running example
+
+
+```
+## # A tibble: 10,000 x 4
+##    default student balance income
+##    &lt;fct&gt;   &lt;fct&gt;     &lt;dbl&gt;  &lt;dbl&gt;
+##  1 No      No         730. 44362.
+##  2 No      Yes        817. 12106.
+##  3 No      No        1074. 31767.
+##  4 No      No         529. 35704.
+##  5 No      No         786. 38463.
+##  6 No      Yes        920.  7492.
+##  7 No      No         826. 24905.
+##  8 No      Yes        809. 17600.
+##  9 No      No        1161. 37469.
+## 10 No      No           0  29275.
+## # … with 9,990 more rows
+```
+
+---
+
+# Linear discriminant analysis
+
+* Descriminant scores
+
+    `$$\hat\delta_k(x) = x \times \frac{\hat\mu_k}{\hat\sigma^2} - \frac{\hat\mu_k^2}{2\hat\sigma^2} + \log(\hat\pi_k)$$`
+
+    * `\(\hat\delta_k(x)\)`
+    * `\(\hat\mu_k\)`
+    * `\(\hat\sigma^2\)`
+    * `\(\hat\pi_k\)`
+
+* Assumes predictor is drawn from normal distribution with parameters `\(\mu, \sigma^2\)`
+* Linear function
+
+---
+
+# Linear discriminant analysis
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/decision-bound-1.png" width="864" /&gt;
+
+---
+
+# `\(p &gt; 1\)`
+
+* Multivariate normal distribution `\(N(\mu_k, \mathbf{\Sigma})\)`
+
+    `$$\hat\delta_k(x) = x^T\mathbf{Σ}^{-1}\hat\mu_k - \frac{1}{2}\hat\mu_k^T\mathbf{Σ}^{-1} - \hat\mu_k + \log(\hat\pi_k)$$`
+
+---
+
+# Estimate and understand model
+
+
+```
+## Call:
+## lda(default ~ balance + student, data = train)
+## 
+## Prior probabilities of groups:
+##    No   Yes 
+## 0.966 0.034 
+## 
+## Group means:
+##       balance studentYes
+## No   802.7396  0.2946860
+## Yes 1766.1501  0.4019608
+## 
+## Coefficients of linear discriminants:
+##                     LD1
+## balance     0.002230474
+## studentYes -0.232425847
+```
+
+---
+
+# Estimate and understand model
+
+.center[
+
+&lt;img src="lda-nearest-neighbor_files/figure-html/default-lda-plot-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Make Predictions
+
+
+```
+## # A tibble: 4 x 2
+##   balance student
+##     &lt;dbl&gt; &lt;chr&gt;  
+## 1    1000 No     
+## 2    2000 No     
+## 3    1000 Yes    
+## 4    2000 Yes
+```
+
+```
+## $class
+## [1] No  Yes No  No 
+## Levels: No Yes
+## 
+## $posterior
+##          No         Yes
+## 1 0.9892535 0.010746495
+## 2 0.4464571 0.553542867
+## 3 0.9934129 0.006587142
+## 4 0.5692177 0.430782305
+## 
+## $x
+##         LD1
+## 1 0.4362633
+## 2 2.6667370
+## 3 0.2038375
+## 4 2.4343112
+```
+
+---
+
+# Quadratic discriminant analysis
+
+* Removes assumption of common covariance across all `\(k\)` levels of the response variable `\(Y\)`
+* Each class gets its own covariance matrix
+* Assumes that an observation from the `\(k\)`th class is of the form `\(X ∼ N(\mu_k, \mathbf{\Sigma}_k)\)`
+
+    `$$\hat\delta_k(x) = -\frac{1}{2}x^T\mathbf{Σ}^{-1}_kx+x^T\mathbf{Σ}^{-1}_k\hat\mu_k - \frac{1}{2}\hat\mu_k^T\mathbf{Σ}^{-1}_k\hat\mu_k - \frac{1}{2}\log\big|\mathbf{Σ}_k\big|+\log(\hat\pi_k)$$`
+
+---
+
+# Estimate and understand model
+
+
+```
+## Call:
+## qda(default ~ balance + student, data = train)
+## 
+## Prior probabilities of groups:
+##    No   Yes 
+## 0.966 0.034 
+## 
+## Group means:
+##       balance studentYes
+## No   802.7396  0.2946860
+## Yes 1766.1501  0.4019608
+```
+
+---
+
+# Make predictions
+
+
+```
+## $class
+## [1] No  Yes No  Yes
+## Levels: No Yes
+## 
+## $posterior
+##          No         Yes
+## 1 0.9958993 0.004100672
+## 2 0.4379313 0.562068685
+## 3 0.9987007 0.001299298
+## 4 0.4888682 0.511131840
+```
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

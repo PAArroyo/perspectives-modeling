@@ -189,7 +189,7 @@ is largest. Why is this important? In trying to classify observations into respo
 Similar to `lda()`, we can use the `MASS` library to fit a QDA model. Here we use the `qda()` function. The output is very similar to the `lda()` output. It contains the prior probabilities and the group means. But it does not contain the coefficients of the linear discriminants, because the QDA classifier involves a quadratic, rather than a linear, function of the predictors.
 
 ```{r default-qda, dependson = "default"}
-(qda.m1 <- qda(default ~ balance + student, data = train))
+(qda.m1 <- MASS::qda(default ~ balance + student, data = train))
 ```
 
 ## Make predictions
