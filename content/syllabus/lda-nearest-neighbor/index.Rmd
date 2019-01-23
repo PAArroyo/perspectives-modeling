@@ -47,7 +47,10 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Overview
 
-* 
+* Define nearest neighbors regression/classification
+* Demonstrate how to implement and interpret nearest neighbors algorithms
+* Define Naive Bayes classifier and demonstrate its usefulness
+* Explain linear discriminant analysis and distinguish from quadratic discriminant analysis
 
 ## Before class
 
@@ -69,3 +72,4 @@ knitr::include_url("/slides/lda-nearest-neighbor.html", height = "505px")
 
 ## What you need to do
 
+* Start [homework 03](/homework/classification/)
