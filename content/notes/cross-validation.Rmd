@@ -25,6 +25,7 @@ library(tidyverse)
 library(tidymodels)
 library(magrittr)
 library(here)
+library(rcfss)
 
 set.seed(1234)
 theme_set(theme_minimal())
@@ -105,9 +106,7 @@ For the training set, this would look like:
 
 ```{r mse-train, dependson = "auto_lm"}
 (train_mse <- augment(auto_lm, newdata = auto_train) %>%
-  mutate(.resid = mpg - .fitted,
-         .resid2 = .resid ^ 2) %$%
-  mean(.resid2))
+  mse(truth = mpg, estimate = .fitted))
 ```
 
 > Note the special use of the [`$%$` pipe operator from the `magrittr` package](http://r4ds.had.co.nz/pipes.html#other-tools-from-magrittr). This allows us to directly access columns from the data frame entering the pipe. This is especially useful for integrating non-tidy functions into a tidy operation.
@@ -116,12 +115,10 @@ For the validation set:
 
 ```{r mse-test, dependson = "auto_lm"}
 (test_mse <- augment(auto_lm, newdata = auto_test) %>%
-  mutate(.resid = mpg - .fitted,
-         .resid2 = .resid ^ 2) %$%
-  mean(.resid2))
+  mse(truth = mpg, estimate = .fitted))
 ```
 
-For a strictly linear model, the MSE for the validation set is `r formatC(test_mse, digits = 4)`. How does this compare to a quadratic model? We can use the `poly()` function in conjunction with a `map()` iteration to estimate the MSE for a series of models with higher-order polynomial terms:
+For a strictly linear model, the MSE for the validation set is `r formatC(test_mse$.estimate[[1]], digits = 4)`. How does this compare to a quadratic model? We can use the `poly()` function in conjunction with a `map()` iteration to estimate the MSE for a series of models with higher-order polynomial terms:
 
 ```{r mse-poly, dependson = "auto_split"}
 # visualize each model
@@ -156,12 +153,11 @@ ggplot(Auto, aes(horsepower, mpg)) +
 # using the test set
 poly_results <- function(train, test, i) {
   # Fit the model to the training set
-  mod <- glm(mpg ~ poly(horsepower, i), data = train)
+  mod <- glm(mpg ~ poly(horsepower, i, raw = TRUE), data = train)
   
   # `augment` will save the predictions with the test data set
   res <- augment(mod, newdata = test) %>%
-    # calculate residuals for future use
-    mutate(.resid = mpg - .fitted)
+    mse(truth = mpg, estimate = .fitted)
   
   # Return the test data set with the additional columns
   res
@@ -170,11 +166,11 @@ poly_results <- function(train, test, i) {
 # function to return MSE for a specific higher-order polynomial term
 poly_mse <- function(i, train, test){
   poly_results(train, test, i) %$%
-    mean(.resid ^ 2)
+    mean(.estimate)
 }
 
 cv_mse <- tibble(terms = seq(from = 1, to = 5),
-                     mse_test = map_dbl(terms, poly_mse, auto_train, auto_test))
+                 mse_test = map_dbl(terms, poly_mse, auto_train, auto_test))
 
 ggplot(cv_mse, aes(terms, mse_test)) +
   geom_line() +
@@ -184,7 +180,7 @@ ggplot(cv_mse, aes(terms, mse_test)) +
        y = "Mean Squared Error")
 ```
 
-Based on the MSE for the validation set, a polynomial model with a quadratic term ($\text{horsepower}^2$) produces the lowest average error. Adding cubic or higher-order terms is just not necessary.
+Based on the MSE for the validation set, a polynomial model with a quadratic term ($\text{horsepower}^2$) produces a lower average error than the standard model. A higher order term such as a fifth-order polynomial leads to an even larger reduction, though increases the complexity of interpreting the model.
 
 ## Classification
 
@@ -227,14 +223,14 @@ summary(train_model)
 # calculate predictions using validation set
 x_test_accuracy <- augment(train_model, newdata = testing(titanic_split)) %>% 
   as_tibble() %>%
-  mutate(pred = logit2prob(.fitted),
-         pred = as.numeric(pred > .5))
+  mutate(.prob = logit2prob(.fitted),
+         .pred = factor(round(.prob)))
 
 # calculate test error rate
-mean(x_test_accuracy$Survived != x_test_accuracy$pred, na.rm = TRUE)
+accuracy(x_test_accuracy, truth = Survived, estimate = .pred)
 ```
 
-This interactive model generates an error rate of `r formatC(mean(x_test_accuracy$Survived != x_test_accuracy$pred, na.rm = TRUE) * 100, digits = 3)`%. We could compare this error rate to alternative classification models, either other logistic regression models (using different formulas) or a tree-based method.
+This interactive model generates an error rate of `r formatC((1 - mean(accuracy(x_test_accuracy, truth = Survived, estimate = .pred)$.estimate)) * 100, digits = 3)`%. We could compare this error rate to alternative classification models, either other logistic regression models (using different formulas) or a tree-based method.
 
 ## Drawbacks to validation sets
 
@@ -320,7 +316,7 @@ holdout_results <- function(splits) {
   # `augment` will save the predictions with the holdout data set
   res <- augment(mod, newdata = holdout) %>%
     # calculate the metric
-    metrics(mpg, .fitted)
+    mse(truth = mpg, estimate = .fitted)
   
   # Return the metrics
   res
@@ -339,8 +335,7 @@ To compute the MSE for each heldout observation (i.e. estimate the test MSE for 
 loocv_data_poly1 <- loocv_data %>%
   mutate(results = map(splits, holdout_results)) %>%
   unnest(results) %>%
-  spread(.metric, .estimate) %>%
-  mutate(mse = rmse^2)
+  spread(.metric, .estimate)
 loocv_data_poly1
 ```
 
@@ -359,13 +354,10 @@ holdout_results <- function(splits, i) {
   # Fit the model to the N-1
   mod <- glm(mpg ~ poly(horsepower, i), data = analysis(splits))
   
-  # Save the heldout observation
-  holdout <- assessment(splits)
-  
   # `augment` will save the predictions with the holdout data set
-  res <- augment(mod, newdata = holdout) %>%
+  res <- augment(mod, newdata = assessment(splits)) %>%
     # calculate the metric
-    metrics(mpg, .fitted)
+    mse(truth = mpg, estimate = .fitted)
   
   # Return the assessment data set with the additional columns
   res
@@ -376,8 +368,7 @@ poly_mse <- function(i, loocv_data){
   loocv_mod <- loocv_data %>%
     mutate(results = map(splits, holdout_results, i)) %>%
     unnest(results) %>%
-    spread(.metric, .estimate) %>%
-    mutate(mse = rmse^2)
+    spread(.metric, .estimate)
   
   mean(loocv_mod$mse)
 }
@@ -410,20 +401,24 @@ holdout_results <- function(splits) {
   # `augment` will save the predictions with the holdout data set
   res <- augment(mod, newdata = assessment(splits)) %>% 
     as_tibble() %>%
-    mutate(pred = logit2prob(.fitted),
-           pred = as.numeric(pred > .5))
+    mutate(.prob = logit2prob(.fitted),
+           .pred = round(.prob))
   
   # Return the assessment data set with the additional columns
   res
 }
 
 titanic_loocv <- loo_cv(titanic) %>%
-  mutate(results = map(splits, holdout_results),
-         error_rate = map_dbl(results, ~ mean(.$Survived != .$pred, na.rm = TRUE)))
-mean(titanic_loocv$error_rate, na.rm = TRUE)
+  mutate(results = map(splits, holdout_results)) %>%
+  unnest(results) %>%
+  mutate(.pred = factor(.pred)) %>%
+  group_by(id) %>%
+  accuracy(truth = Survived, estimate = .pred)
+
+1 - mean(titanic_loocv$.estimate, na.rm = TRUE)
 ```
 
-In a classification problem, the LOOCV tells us the average error rate based on our predictions. So here, it tells us that the interactive `Age * Sex` model has a `r formatC(mean(titanic_loocv$error_rate, na.rm = TRUE) * 100, digits = 3)`% error rate. This is similar to the validation set result ($`r formatC(mean(x_test_accuracy$Survived != x_test_accuracy$pred, na.rm = TRUE) * 100, digits = 3)`\%$)
+In a classification problem, the LOOCV tells us the average error rate based on our predictions. So here, it tells us that the interactive `Age * Sex` model has a `r formatC((1 - mean(titanic_loocv$.estimate, na.rm = TRUE)) * 100, digits = 3)`% error rate. This is similar to the validation set result (`r formatC((1 - mean(accuracy(x_test_accuracy, truth = Survived, estimate = .pred)$.estimate)) * 100, digits = 3)`%).
 
 # $K$-fold cross-validation
 
@@ -449,7 +444,7 @@ holdout_results <- function(splits, i) {
   # `augment` will save the predictions with the holdout data set
   res <- augment(mod, newdata = holdout) %>%
     # calculate the metric
-    metrics(mpg, .fitted)
+    mse(truth = mpg, estimate = .fitted)
   
   # Return the assessment data set with the additional columns
   res
@@ -460,8 +455,7 @@ poly_mse <- function(i, vfold_data){
   vfold_mod <- vfold_data %>%
     mutate(results = map(splits, holdout_results, i)) %>%
     unnest(results) %>%
-    spread(.metric, .estimate) %>%
-    mutate(mse = rmse^2)
+    spread(.metric, .estimate)
   
   mean(vfold_mod$mse)
 }
@@ -529,23 +523,24 @@ holdout_results <- function(splits) {
   mod <- glm(Survived ~ Age * Sex, data = analysis(splits),
              family = binomial)
   
-  # Save the heldout observations
-  holdout <- assessment(splits)
-  
   # `augment` will save the predictions with the holdout data set
   res <- augment(mod, newdata = assessment(splits)) %>% 
     as_tibble() %>%
-    mutate(pred = logit2prob(.fitted),
-           pred = as.numeric(pred > .5))
+    mutate(.prob = logit2prob(.fitted),
+           .pred = round(.prob))
 
   # Return the assessment data set with the additional columns
   res
 }
 
 titanic_cv10 <- vfold_cv(data = titanic, v = 10) %>%
-  mutate(results = map(splits, holdout_results),
-         error_rate = map_dbl(results, ~ mean(.$Survived != .$pred, na.rm = TRUE)))
-mean(titanic_cv10$error_rate, na.rm = TRUE)
+  mutate(results = map(splits, holdout_results)) %>%
+  unnest(results) %>%
+  mutate(.pred = factor(.pred)) %>%
+  group_by(id) %>%
+  accuracy(truth = Survived, estimate = .pred)
+
+1 - mean(titanic_cv10$.estimate, na.rm = TRUE)
 ```
 
 Not a large difference from the LOOCV approach, but it take much less time to compute.
