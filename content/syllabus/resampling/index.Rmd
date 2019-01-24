@@ -47,7 +47,10 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Overview
 
-* 
+* Review the difference between the training and test MSE and the need for a test set of data
+* Define resampling methods
+* Compare and contrast the validation set approach with leave-one-out and $k$-fold cross-validation
+* Define bootstrapping and explain when it can be used in research
 
 ## Before class
 
