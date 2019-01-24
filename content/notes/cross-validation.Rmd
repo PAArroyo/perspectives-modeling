@@ -547,6 +547,17 @@ Not a large difference from the LOOCV approach, but it take much less time to co
 
 # Appropriate value for $K$
 
+Ignoring the computational efficiency concerns, why not always estimate cross-validation with $K=N$? Or more generally, what is the optimal value for $K$? **It depends.** Well that is not very helpful.
+
+With more explanation, it depends on how we wish to handle the bias-variance tradeoff. LOOCV is a low-bias, high-variance method. That is, it provides unbiased estimates of the test error since each training set contains $N-1$ observations. This is almost as many observations as contained in the full data set. $K$-fold CV for $K=5$ or $10$ leads to an intermediate amount of bias, since each training set contains $\frac{(K-1)N}{K}$ observations. This is fewer than LOOCV, but more than a standard validation set approach with just a single split into training and validation sets. If all we care about is bias, we should prefer LOOCV.
+
+However, recall the contributors to a model's error:
+
+$$\text{Error} = \text{Irreducible Error} + \text{Bias}^2 + \text{Variance}$$
+
+We also should be concerned with the **variance** of the model. LOOCV has a higher variance than $K$-fold with $K < N$. When we perform LOOCV, we are averaging the outputs of $N$ fitted models which are trained on nearly entirely identical sets of observations. The results will be highly correlated with one another. In contrast, $K$-fold CV with $K < N$ averages the output of $K$ fitted models that are less correlated with one another, since the data sets are not as identical. Since the mean of many highly correlated quantities has higher variance than the mean of quantities with less correlation, the test error estimate from LOOCV has higher variance than the test error estimate from $K$-fold CV.
+
+Given these considerations, a typical approach uses $K=5$ or $K=10$. Empirical research (see @breiman1992submodel, @kohavi1995study) shows that cross-validation with these number of folds suffers neither excessively high bias nor excessively high variance.
 
 # Correct way to do cross-validation
 
