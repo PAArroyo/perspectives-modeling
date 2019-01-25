@@ -1,0 +1,632 @@
+---
+title: Bootstrap
+date: 2019-01-28T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Resampling methods
+    weight: 2
+---
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+<div id="TOC">
+<ul>
+<li><a href="#generating-samples"><span class="toc-section-number">1</span> Generating samples</a></li>
+<li><a href="#why-use-the-bootstrap"><span class="toc-section-number">2</span> Why use the bootstrap?</a><ul>
+<li><a href="#making-assumptions"><span class="toc-section-number">2.1</span> Making assumptions</a></li>
+<li><a href="#using-information-in-the-sample"><span class="toc-section-number">2.2</span> Using information in the sample</a></li>
+</ul></li>
+<li><a href="#estimating-the-accuracy-of-a-statistic-of-interest"><span class="toc-section-number">3</span> Estimating the accuracy of a statistic of interest</a></li>
+<li><a href="#estimating-the-accuracy-of-a-linear-regression-model"><span class="toc-section-number">4</span> Estimating the accuracy of a linear regression model</a></li>
+<li><a href="#session-info"><span class="toc-section-number">5</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">6</span> References</a></li>
+</ul>
+</div>
+
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse)
+<span class="kw">library</span>(tidymodels)
+<span class="kw">library</span>(magrittr)
+<span class="kw">library</span>(here)
+<span class="kw">library</span>(rcfss)
+
+<span class="kw">set.seed</span>(<span class="dv">1234</span>)
+<span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
+<p>The <strong>bootstrap</strong> is a different resampling-based method for quantifying uncertainty associated with a given estimator or statistical method. It is extremely flexible and can be applied to virtually any statistical method.</p>
+<div id="generating-samples" class="section level1">
+<h1><span class="header-section-number">1</span> Generating samples</h1>
+<p><strong>Sampling without replacement</strong> involves randomly sampling from a population whereby once an observation is drawn, it cannot be drawn again. Here I’ve drawn 10 random samples without replacement from the vector <span class="math inline">\(1, 2, 3, 4, 5, 6, 7, 8, 9, 10\)</span>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">rerun</span>(<span class="dv">10</span>, <span class="kw">sample.int</span>(<span class="dv">10</span>, <span class="dt">replace =</span> <span class="ot">FALSE</span>)) <span class="op">%&gt;%</span>
+<span class="st">  </span>unlist <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">matrix</span>(<span class="dt">ncol =</span> <span class="dv">10</span>, <span class="dt">byrow =</span> <span class="ot">TRUE</span>)</code></pre></div>
+<pre><code>##       [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+##  [1,]    2    6    5    8    9    4    1    7   10     3
+##  [2,]    7    5    3   10    2    9    6    1    8     4
+##  [3,]    4    3    2    1    8    5    9   10    6     7
+##  [4,]    5    3    9    4    2    7    1   10    6     8
+##  [5,]    6   10    3    5    2    8    7    9    1     4
+##  [6,]    1    3    6    4   10    9    2    5    8     7
+##  [7,]    9    1    3   10    2    4    6    5    7     8
+##  [8,]    2    9    1    6    8    3   10    7    5     4
+##  [9,]   10    5    2    4    8    9    6    1    3     7
+## [10,]    2    9   10    1    7    3    8    6    5     4</code></pre>
+<p>Drawing <span class="math inline">\(10\)</span> samples of size <span class="math inline">\(10\)</span> from an original population of <span class="math inline">\(10\)</span> observations would produce the exact same sample every time, just in a different order.</p>
+<p><strong>Sampling with replacement</strong> allows us to potentially draw the same observation multiple times, and ignore other observations entirely.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">rerun</span>(<span class="dv">10</span>, <span class="kw">sample.int</span>(<span class="dv">10</span>, <span class="dt">replace =</span> <span class="ot">TRUE</span>)) <span class="op">%&gt;%</span>
+<span class="st">  </span>unlist <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">matrix</span>(<span class="dt">ncol =</span> <span class="dv">10</span>, <span class="dt">byrow =</span> <span class="ot">TRUE</span>)</code></pre></div>
+<pre><code>##       [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+##  [1,]    1    6    3    3    2    4    2    2    5     1
+##  [2,]    8    2   10    2    3   10   10    3    2     8
+##  [3,]    8   10   10   10    5    3    3    6    5     4
+##  [4,]   10    7    2    5   10    5   10    6    7     9
+##  [5,]    6   10    4    5    4    7    8    6   10     6
+##  [6,]    5    3    1    9    3   10    7   10    4     6
+##  [7,]    5    6    5    3    1    7    5    1    9     4
+##  [8,]    8    6    8    5    4    8    5    6    2     4
+##  [9,]    5    4    7    1   10    1    9    7    4     8
+## [10,]    7   10    2    9    9    9    9    8   10     7</code></pre>
+<p>Here I’ve drawn 10 random samples with replacement from the vector <span class="math inline">\(1, 2, 3, 4, 5, 6, 7, 8, 9, 10\)</span>. Each row contains a different sample. Notice how some rows contain multiples of the same values and exclude others entirely.</p>
+</div>
+<div id="why-use-the-bootstrap" class="section level1">
+<h1><span class="header-section-number">2</span> Why use the bootstrap?</h1>
+<p>Statistical learning methods are frequently used to draw inferences about a population. Since you cannot directly measure the entire population<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>, you take a sample and ask a question of it instead. But how do you know your sample answer is close to the population answer? There are two approaches you can take:</p>
+<ol style="list-style-type: decimal">
+<li>Make <strong>assumptions</strong> about the shape of the population.</li>
+<li>Use the <strong>information in the sample</strong> to learn about it.</li>
+</ol>
+<div id="making-assumptions" class="section level2">
+<h2><span class="header-section-number">2.1</span> Making assumptions</h2>
+<div class="figure">
+<img src="images/xkcd_assume.png" alt="When you assume" />
+<p class="caption"><a href="https://www.xkcd.com/1339/">When you assume</a></p>
+</div>
+<p>Suppose you decide to make assumptions, e.g. that the sample is distributed normally or <a href="https://en.wikipedia.org/wiki/Bernoulli_distribution">Bernoulli</a> or some other probability distribution. You could learn about how much the answer to your question varies based on the specific sample drawn by repeatedly generating samples of the same size and asking them the same question. If you have a computaionally convenient assumption (such as the <a href="https://en.wikipedia.org/wiki/Central_limit_theorem">Central Limit Theorem</a>), you may even be able to bypass the resampling step and use a known formula to estimate your confidence in the original answer.</p>
+</div>
+<div id="using-information-in-the-sample" class="section level2">
+<h2><span class="header-section-number">2.2</span> Using information in the sample</h2>
+<div class="figure">
+<img src="images/sample_pop_meme.jpg" />
+
+</div>
+<p>Provided you are happy to make the assumptions, this seems like a good idea. If you are not willing to make the assumption, you could instead take the sample you have and sample from it. You can do this because the sample you have <strong>is also a population</strong>, just a very small and discrete one. It is identical to the histogram of your data. Sampling with replacement merely allows you to treat the sample like it’s a population and sample from it in a way that reflects its shape.</p>
+<p>This is a reasonable thing to do for a couple reasons. First, it’s the only information you have about the population. Second, randomly chosen samples should look quite similar to the population from which they came, so as long as you drew a random sample it is likely that your’s is also similar.</p>
+</div>
+</div>
+<div id="estimating-the-accuracy-of-a-statistic-of-interest" class="section level1">
+<h1><span class="header-section-number">3</span> Estimating the accuracy of a statistic of interest</h1>
+<p>Suppose you want to know how often Americans eat ice cream in a given month.</p>
+<div class="figure">
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Rockyroadicecream.jpg/800px-Rockyroadicecream.jpg" />
+
+</div>
+<p>We decide to estimate this by tracking a sample of 1000 Americans and counting how many times they eat ice cream over the course of a month.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># simulate the sample</span>
+<span class="kw">set.seed</span>(<span class="dv">1234</span>)
+mu &lt;-<span class="st"> </span><span class="dv">5</span>
+n_obs &lt;-<span class="st"> </span><span class="dv">1000</span>
+ice &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">sim =</span> <span class="kw">rpois</span>(n_obs, <span class="dt">lambda =</span> mu))</code></pre></div>
+<pre><code>## Warning: `data_frame()` is deprecated, use `tibble()`.
+## This warning is displayed once per session.</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(ice, <span class="kw">aes</span>(sim)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_histogram</span>(<span class="dt">binwidth =</span> <span class="dv">1</span>)</code></pre></div>
+<p><img src="/notes/bootstrap_files/figure-html/ice-sim-1.png" width="672" /></p>
+<p>The mean of this sample is 5.062, which we will treat as the population mean <span class="math inline">\(\mu\)</span>. Remember that in the real world, we do not know <span class="math inline">\(\mu\)</span> because we have not observed all members of the population. Instead, we use the sample to estimate <span class="math inline">\(\hat{\mu}\)</span> on the assumption that the sample mean approximates the true mean.</p>
+<p>The <a href="https://en.wikipedia.org/wiki/Poisson_distribution">Poisson distribution</a> is the most likely population distribution as it describes the count of event over time. The probability mass function of the Poisson distribution is</p>
+<p><span class="math display">\[P(Y_i = y_i | \mu) = \frac{\mu^{y_i} e^{-\mu}}{y_i!}\]</span></p>
+<p>where <span class="math inline">\(\mu\)</span> is the event rate (average number of events per interval), <span class="math inline">\(e\)</span> is Euler’s number, <span class="math inline">\(y_i\)</span> is an integer with range <span class="math inline">\([0, \infty]\)</span>, and <span class="math inline">\(y_i!\)</span> is the factorial of <span class="math inline">\(y_i\)</span>. The mean <span class="math inline">\(\mu\)</span> and variance <span class="math inline">\(\sigma\)</span> of a Poisson distribution are the same parameterm and hence are both defined by <span class="math inline">\(\mu\)</span>.</p>
+<p>Because we are estimating <span class="math inline">\(\mu\)</span> from a sample, we should also estimate the <strong>standard error</strong> of the sample mean. This is necessary because any random sample drawn from a population will not exactly reproduce the population. We need to account for sampling error by estimating how much our sample mean <span class="math inline">\(\hat{\mu}\)</span> might differ from the true mean <span class="math inline">\(\mu\)</span>.</p>
+<p>The distribution of the mean of a set of samples is approximately <a href="https://en.wikipedia.org/wiki/Normal_distribution">normally distributed</a>.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> Therefore the standard error of the sample mean from a Poisson distribution is</p>
+<p><span class="math display">\[\sqrt{\frac{\mu}{n}}\]</span></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mu_samp &lt;-<span class="st"> </span><span class="kw">mean</span>(ice<span class="op">$</span>sim)
+sem &lt;-<span class="st"> </span><span class="kw">sqrt</span>(mu_samp <span class="op">/</span><span class="st"> </span>n_obs)</code></pre></div>
+<p>The standard error of the sample mean is <span class="math inline">\(0.0711477\)</span>. This is a good estimate <strong>as long as the data generating process actually follows a Poisson distribution</strong>. The Poisson distribution requires <a href="https://en.wikipedia.org/wiki/Poisson_distribution#Assumptions:_When_is_the_Poisson_distribution_an_appropriate_model.3F">several assumptions</a>. If any of these assumptions are violated, then the formula for estimating the standard error of the sample mean <span class="math inline">\(\mu\)</span> will not be accurate.</p>
+<p>In that situation, we can use the bootstrap to estimate the standard error without making any distributional assumptions. In this approach, we draw <span class="math inline">\(B\)</span> samples with replacement from the original sample. To estimate the population mean <span class="math inline">\(\mu\)</span> we calculate the mean of the bootstrapped sample means <span class="math inline">\(\hat{\mu}_1, \hat{\mu}_2, \dots, \hat{\mu}_B\)</span>. To estimate the standard error of the sampling mean <span class="math inline">\(\hat{\mu}\)</span> we use the formula</p>
+<p><span class="math display">\[SE_{B}(\hat{\mu}) = \sqrt{\frac{1}{B-1} \sum_{r = 1}^{B} \left( \hat{\mu}_r - \frac{1}{B} \sum_{r&#39; = 1}^{B} \hat{\mu}_{r&#39;} \right)^2}\]</span></p>
+<p>What this boils down to is calculating the <strong>standard deviation</strong> of all the bootstrapped sample means. That gives us our standard error.</p>
+<p>Let’s bootstrap our standard error of the mean for our simulated ice cream data. We’ll use <span class="math inline">\(B = 1000\)</span> to produce 1000 bootstrapped estimates of the mean, then calculate the standard deviation of them:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ice_boot &lt;-<span class="st"> </span>ice <span class="op">%&gt;%</span>
+<span class="st">  </span>modelr<span class="op">::</span><span class="kw">bootstrap</span>(<span class="dv">1000</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">mean =</span> <span class="kw">map_dbl</span>(strap, <span class="op">~</span><span class="st"> </span><span class="kw">mean</span>(<span class="kw">as_tibble</span>(.)<span class="op">$</span>sim, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)))
+boot_sem &lt;-<span class="st"> </span><span class="kw">sd</span>(ice_boot<span class="op">$</span>mean)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(ice_boot, <span class="kw">aes</span>(mean)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_histogram</span>(<span class="dt">binwidth =</span> .<span class="dv">01</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> mu, <span class="dt">color =</span> <span class="st">&quot;Population mean&quot;</span>), <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> mu_samp, <span class="dt">color =</span> <span class="st">&quot;Sample mean&quot;</span>), <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> <span class="kw">mean</span>(ice_boot<span class="op">$</span>mean),
+                 <span class="dt">color =</span> <span class="st">&quot;Bootstrapped mean&quot;</span>), <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> <span class="kw">mean</span>(ice_boot<span class="op">$</span>mean) <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>boot_sem,
+                 <span class="dt">color =</span> <span class="st">&quot;Bootstrapped mean&quot;</span>), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> <span class="kw">mean</span>(ice_boot<span class="op">$</span>mean) <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>boot_sem,
+                 <span class="dt">color =</span> <span class="st">&quot;Bootstrapped mean&quot;</span>), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> mu_samp <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>sem, <span class="dt">color =</span> <span class="st">&quot;Sample mean&quot;</span>),
+             <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> mu_samp <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>sem, <span class="dt">color =</span> <span class="st">&quot;Sample mean&quot;</span>),
+             <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_manual</span>(<span class="dt">name =</span> <span class="ot">NULL</span>, <span class="dt">breaks =</span> <span class="kw">c</span>(<span class="st">&quot;Population mean&quot;</span>, <span class="st">&quot;Sample mean&quot;</span>,
+                                             <span class="st">&quot;Bootstrapped mean&quot;</span>),
+                     <span class="dt">values =</span> <span class="kw">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;green&quot;</span>, <span class="st">&quot;orange&quot;</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="st">&quot;Bootstrapped sample mean&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Count&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
+<p><img src="/notes/bootstrap_files/figure-html/ice-boot-plot-1.png" width="672" /></p>
+<p>The bootstrap estimate of the standard error of the sample mean is 0.0741523. Compared to the original estimate of 0.0711477, this is slightly closer to the defined population mean, but not by much. Why bother using the bootstrap? Because the bootstrap estimator will be more accurate <strong>when the distributional assumptions are not met</strong>.</p>
+<p>Let’s simulate the results once again, but draw the observations from a combination of the Poisson distribution and <a href="https://en.wikipedia.org/wiki/Uniform_distribution_(continuous)">uniform distribution</a>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># simulate the sample</span>
+<span class="kw">set.seed</span>(<span class="dv">113</span>)
+ice2 &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">sim =</span> <span class="kw">c</span>(<span class="kw">rpois</span>(n_obs <span class="op">/</span><span class="st"> </span><span class="dv">2</span>, <span class="dt">lambda =</span> mu),
+                           <span class="kw">round</span>(<span class="kw">runif</span>(n_obs <span class="op">/</span><span class="st"> </span><span class="dv">2</span>, <span class="dt">min =</span> <span class="dv">0</span>, <span class="dt">max =</span> <span class="dv">10</span>))))
+
+<span class="co"># plot the sample distribution</span>
+<span class="kw">ggplot</span>(ice2, <span class="kw">aes</span>(sim)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_histogram</span>(<span class="dt">binwidth =</span> <span class="dv">1</span>)</code></pre></div>
+<p><img src="/notes/bootstrap_files/figure-html/ice-sim2-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># calculate sample mean and standard error</span>
+mu2_samp &lt;-<span class="st"> </span><span class="kw">mean</span>(ice2<span class="op">$</span>sim)
+sem2 &lt;-<span class="st"> </span><span class="kw">sqrt</span>(mu2_samp <span class="op">/</span><span class="st"> </span>n_obs)
+
+<span class="co"># calculate the bootstrap</span>
+ice2_boot &lt;-<span class="st"> </span>ice2 <span class="op">%&gt;%</span>
+<span class="st">  </span>modelr<span class="op">::</span><span class="kw">bootstrap</span>(<span class="dv">1000</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">mean =</span> <span class="kw">map_dbl</span>(strap, <span class="op">~</span><span class="st"> </span><span class="kw">mean</span>(<span class="kw">as_tibble</span>(.)<span class="op">$</span>sim, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)))
+boot2_sem &lt;-<span class="st"> </span><span class="kw">sd</span>(ice2_boot<span class="op">$</span>mean)
+
+<span class="co"># plot the bootstrapped distribution</span>
+<span class="kw">ggplot</span>(ice2_boot, <span class="kw">aes</span>(mean)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_histogram</span>(<span class="dt">binwidth =</span> .<span class="dv">01</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> mu, <span class="dt">color =</span> <span class="st">&quot;Population mean&quot;</span>), <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> mu2_samp, <span class="dt">color =</span> <span class="st">&quot;Sample mean&quot;</span>), <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> <span class="kw">mean</span>(ice2_boot<span class="op">$</span>mean),
+                 <span class="dt">color =</span> <span class="st">&quot;Bootstrapped mean&quot;</span>), <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> <span class="kw">mean</span>(ice2_boot<span class="op">$</span>mean) <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>boot2_sem,
+                 <span class="dt">color =</span> <span class="st">&quot;Bootstrapped mean&quot;</span>), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> <span class="kw">mean</span>(ice2_boot<span class="op">$</span>mean) <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>boot2_sem,
+                 <span class="dt">color =</span> <span class="st">&quot;Bootstrapped mean&quot;</span>), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> mu2_samp <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>sem2, <span class="dt">color =</span> <span class="st">&quot;Sample mean&quot;</span>),
+             <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_vline</span>(<span class="kw">aes</span>(<span class="dt">xintercept =</span> mu2_samp <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>sem2, <span class="dt">color =</span> <span class="st">&quot;Sample mean&quot;</span>),
+             <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_manual</span>(<span class="dt">name =</span> <span class="ot">NULL</span>, <span class="dt">breaks =</span> <span class="kw">c</span>(<span class="st">&quot;Population mean&quot;</span>, <span class="st">&quot;Sample mean&quot;</span>,
+                                             <span class="st">&quot;Bootstrapped mean&quot;</span>),
+                     <span class="dt">values =</span> <span class="kw">c</span>(<span class="st">&quot;blue&quot;</span>, <span class="st">&quot;green&quot;</span>, <span class="st">&quot;orange&quot;</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="st">&quot;Bootstrapped sample mean&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Count&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
+<p><img src="/notes/bootstrap_files/figure-html/ice-sim2-2.png" width="672" /></p>
+<p>The population mean <span class="math inline">\(\mu\)</span> is still defined as 5, but now look what happens to the standard errors of the estimates. The estimated means are identical under the formula-based or bootstrapped approaches (5.147), however the standard error for the sample-based approach is <span class="math inline">\(0.0717426\)</span>, compared to 0.0835042. Because the bootstrap approach generates its estimate of the standard error directly from the data, the bootstrapped 95% confidence interval includes the population mean. However the 95% confidence interval under the formula-based method does not include the population mean. In this case we are better off using the bootstrapped standard error rather than using the formula for the Poisson distribution.</p>
+</div>
+<div id="estimating-the-accuracy-of-a-linear-regression-model" class="section level1">
+<h1><span class="header-section-number">4</span> Estimating the accuracy of a linear regression model</h1>
+<p>In a linear regression model, the standard errors are statistical estimates of the average amount that the estimated parameters <span class="math inline">\(\hat{\beta}\)</span> differ from the true population parameters <span class="math inline">\(\beta\)</span>. The formula for estimating standard errors for a linear regression model is:</p>
+<p><span class="math display">\[\widehat{s.e.}(\hat{\beta}_j) = \sqrt{\hat{\sigma}^{2} (X^{T}X)^{-1}_{jj}}\]</span></p>
+<p>More simply this is the square root of the diagonal of the <a href="https://en.wikipedia.org/wiki/Ordinary_least_squares#Finite_sample_properties">variance-covariance matrix</a>. For the formula to hold, we make certain assumptions, including that our estimate of <span class="math inline">\(\sigma^2\)</span> is accurate and that any variability in the model after we account for <span class="math inline">\(X\)</span> is the result of the errors <span class="math inline">\(\epsilon\)</span>. If these assumptions are wrong, then our estimates of the standard errors will also be wrong.</p>
+<p>Let’s revisit our horsepower and mpg linear model.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(ISLR)
+
+Auto &lt;-<span class="st"> </span><span class="kw">as_tibble</span>(Auto)
+
+<span class="co"># plot the data and model</span>
+<span class="kw">ggplot</span>(Auto, <span class="kw">aes</span>(horsepower, mpg)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>)</code></pre></div>
+<p><img src="/notes/bootstrap_files/figure-html/auto-boot-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># traditional parameter estimates and standard errors</span>
+auto_lm &lt;-<span class="st"> </span><span class="kw">lm</span>(mpg <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(horsepower, <span class="dv">1</span>), <span class="dt">data =</span> Auto)
+<span class="kw">tidy</span>(auto_lm)</code></pre></div>
+<pre><code>## # A tibble: 2 x 5
+##   term                estimate std.error statistic   p.value
+##   &lt;chr&gt;                  &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+## 1 (Intercept)             23.4     0.248      94.6 4.17e-271
+## 2 poly(horsepower, 1)   -120.      4.91      -24.5 7.03e- 81</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># bootstrapped estimates of the parameter estimates and standard errors</span>
+auto_boot &lt;-<span class="st"> </span>Auto <span class="op">%&gt;%</span>
+<span class="st">  </span>modelr<span class="op">::</span><span class="kw">bootstrap</span>(<span class="dv">1000</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">model =</span> <span class="kw">map</span>(strap, <span class="op">~</span><span class="st"> </span><span class="kw">lm</span>(mpg <span class="op">~</span><span class="st"> </span>horsepower, <span class="dt">data =</span> .)),
+         <span class="dt">coef =</span> <span class="kw">map</span>(model, tidy))
+
+auto_boot <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">unnest</span>(coef) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(term) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">summarize</span>(<span class="dt">est.boot =</span> <span class="kw">mean</span>(estimate),
+            <span class="dt">se.boot =</span> <span class="kw">sd</span>(estimate, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>))</code></pre></div>
+<pre><code>## # A tibble: 2 x 3
+##   term        est.boot se.boot
+##   &lt;chr&gt;          &lt;dbl&gt;   &lt;dbl&gt;
+## 1 (Intercept)   40.0   0.851  
+## 2 horsepower    -0.158 0.00732</code></pre>
+<p>The bootstrapped estimates of parameters are virtually identical, however the standard errors on the bootstrap estimates are slightly larger. This is because they do not rely on any distributional assumptions, whereas the traditional estimates do. Recall from the <a href="#regression">demonstration above</a> that the relationship between horsepower and mpg is non-linear, so the residuals from a linear model will be inflated, and the residuals are used to estimate <span class="math inline">\(\sigma^2\)</span>. The bootstrap method is not biased by these assumptions and gives us a more robust estimate.</p>
+<p>If we compare the traditional and bootstrap estimates for the polynomial regression model, we find more similarity in our results:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># traditional parameter estimates and standard errors</span>
+auto2_lm &lt;-<span class="st"> </span><span class="kw">lm</span>(mpg <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(horsepower, <span class="dv">2</span>), <span class="dt">data =</span> Auto)
+<span class="kw">tidy</span>(auto2_lm)</code></pre></div>
+<pre><code>## # A tibble: 3 x 5
+##   term                 estimate std.error statistic   p.value
+##   &lt;chr&gt;                   &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+## 1 (Intercept)              23.4     0.221     106.  2.75e-289
+## 2 poly(horsepower, 2)1   -120.      4.37      -27.5 4.17e- 93
+## 3 poly(horsepower, 2)2     44.1     4.37       10.1 2.20e- 21</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># bootstrapped estimates of the parameter estimates and standard errors</span>
+auto2_boot &lt;-<span class="st"> </span>Auto <span class="op">%&gt;%</span>
+<span class="st">  </span>modelr<span class="op">::</span><span class="kw">bootstrap</span>(<span class="dv">1000</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">model =</span> <span class="kw">map</span>(strap, <span class="op">~</span><span class="st"> </span><span class="kw">lm</span>(mpg <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(horsepower, <span class="dv">2</span>), <span class="dt">data =</span> .)),
+         <span class="dt">coef =</span> <span class="kw">map</span>(model, tidy))
+
+auto2_boot <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">unnest</span>(coef) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(term) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">summarize</span>(<span class="dt">est.boot =</span> <span class="kw">mean</span>(estimate),
+            <span class="dt">se.boot =</span> <span class="kw">sd</span>(estimate, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>))</code></pre></div>
+<pre><code>## # A tibble: 3 x 3
+##   term                 est.boot se.boot
+##   &lt;chr&gt;                   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 (Intercept)              23.5   0.395
+## 2 poly(horsepower, 2)1   -120.    4.71 
+## 3 poly(horsepower, 2)2     43.9   4.80</code></pre>
+</div>
+<div id="session-info" class="section level1 toc-ignore">
+<h1><span class="header-section-number">5</span> Session Info</h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
+<pre><code>## ─ Session info ──────────────────────────────────────────────────────────
+##  setting  value                       
+##  version  R version 3.5.2 (2018-12-20)
+##  os       macOS Mojave 10.14.2        
+##  system   x86_64, darwin15.6.0        
+##  ui       X11                         
+##  language (EN)                        
+##  collate  en_US.UTF-8                 
+##  ctype    en_US.UTF-8                 
+##  tz       America/Chicago             
+##  date     2019-01-25                  
+## 
+## ─ Packages ──────────────────────────────────────────────────────────────
+##  package       * version    date       lib
+##  assertthat      0.2.0      2017-04-11 [2]
+##  backports       1.1.3      2018-12-14 [2]
+##  base64enc       0.1-3      2015-07-28 [2]
+##  bayesplot       1.6.0      2018-08-02 [2]
+##  bindr           0.1.1      2018-03-13 [2]
+##  bindrcpp      * 0.2.2      2018-03-29 [1]
+##  blogdown        0.9.4      2018-11-26 [1]
+##  bookdown        0.9        2018-12-21 [1]
+##  broom         * 0.5.1      2018-12-05 [2]
+##  callr           3.1.1      2018-12-21 [2]
+##  cellranger      1.1.0      2016-07-27 [2]
+##  class           7.3-15     2019-01-01 [2]
+##  cli             1.0.1      2018-09-25 [1]
+##  codetools       0.2-16     2018-12-24 [2]
+##  colorspace      1.3-2      2016-12-14 [2]
+##  colourpicker    1.0        2017-09-27 [2]
+##  crayon          1.3.4      2017-09-16 [2]
+##  crosstalk       1.0.0      2016-12-21 [2]
+##  desc            1.2.0      2018-05-01 [2]
+##  devtools        2.0.1      2018-10-26 [1]
+##  dials         * 0.0.2      2018-12-09 [1]
+##  digest          0.6.18     2018-10-10 [1]
+##  dplyr         * 0.7.8      2018-11-10 [1]
+##  DT              0.5        2018-11-05 [2]
+##  dygraphs        1.1.1.6    2018-07-11 [2]
+##  evaluate        0.12       2018-10-09 [2]
+##  fansi           0.4.0      2018-10-05 [2]
+##  forcats       * 0.3.0      2018-02-19 [2]
+##  fs              1.2.6      2018-08-23 [1]
+##  generics        0.0.2      2018-11-29 [1]
+##  ggplot2       * 3.1.0      2018-10-25 [1]
+##  ggridges        0.5.1      2018-09-27 [2]
+##  glue            1.3.0      2018-07-17 [2]
+##  gower           0.1.2      2017-02-23 [2]
+##  gridExtra       2.3        2017-09-09 [2]
+##  gtable          0.2.0      2016-02-26 [2]
+##  gtools          3.8.1      2018-06-26 [2]
+##  haven           2.0.0      2018-11-22 [2]
+##  here          * 0.1        2017-05-28 [2]
+##  hms             0.4.2      2018-03-10 [2]
+##  htmltools       0.3.6      2017-04-28 [1]
+##  htmlwidgets     1.3        2018-09-30 [2]
+##  httpuv          1.4.5.1    2018-12-18 [2]
+##  httr            1.4.0      2018-12-11 [2]
+##  igraph          1.2.2      2018-07-27 [2]
+##  infer         * 0.4.0      2018-11-15 [1]
+##  inline          0.3.15     2018-05-18 [2]
+##  ipred           0.9-8      2018-11-05 [1]
+##  ISLR          * 1.2        2017-10-20 [2]
+##  janeaustenr     0.1.5      2017-06-10 [2]
+##  jsonlite        1.6        2018-12-07 [2]
+##  knitr           1.21       2018-12-10 [2]
+##  labeling        0.3        2014-08-23 [2]
+##  later           0.7.5      2018-09-18 [2]
+##  lattice         0.20-38    2018-11-04 [2]
+##  lava            1.6.4      2018-11-25 [2]
+##  lazyeval        0.2.1      2017-10-29 [2]
+##  lme4            1.1-19     2018-11-10 [2]
+##  loo             2.0.0      2018-04-11 [2]
+##  lubridate       1.7.4      2018-04-11 [2]
+##  magrittr      * 1.5        2014-11-22 [2]
+##  markdown        0.9        2018-12-07 [2]
+##  MASS            7.3-51.1   2018-11-01 [2]
+##  Matrix          1.2-15     2018-11-01 [2]
+##  matrixStats     0.54.0     2018-07-23 [2]
+##  memoise         1.1.0      2017-04-21 [2]
+##  mime            0.6        2018-10-05 [1]
+##  miniUI          0.1.1.1    2018-05-18 [2]
+##  minqa           1.2.4      2014-10-09 [2]
+##  modelr          0.1.2      2018-05-11 [2]
+##  munsell         0.5.0      2018-06-12 [2]
+##  nlme            3.1-137    2018-04-07 [2]
+##  nloptr          1.2.1      2018-10-03 [2]
+##  nnet            7.3-12     2016-02-02 [2]
+##  parsnip       * 0.0.1      2018-11-12 [1]
+##  pillar          1.3.1      2018-12-15 [2]
+##  pkgbuild        1.0.2      2018-10-16 [1]
+##  pkgconfig       2.0.2      2018-08-16 [2]
+##  pkgload         1.0.2      2018-10-29 [1]
+##  plyr            1.8.4      2016-06-08 [2]
+##  prettyunits     1.0.2      2015-07-13 [2]
+##  pROC            1.13.0     2018-09-24 [1]
+##  processx        3.2.1      2018-12-05 [2]
+##  prodlim         2018.04.18 2018-04-18 [2]
+##  promises        1.0.1      2018-04-13 [2]
+##  ps              1.3.0      2018-12-21 [2]
+##  purrr         * 0.2.5      2018-05-29 [2]
+##  R6              2.3.0      2018-10-04 [1]
+##  rcfss         * 0.1.5      2019-01-24 [1]
+##  Rcpp            1.0.0      2018-11-07 [1]
+##  readr         * 1.3.1      2018-12-21 [2]
+##  readxl          1.2.0      2018-12-19 [2]
+##  recipes       * 0.1.4      2018-11-19 [1]
+##  remotes         2.0.2      2018-10-30 [1]
+##  reshape2        1.4.3      2017-12-11 [2]
+##  rlang           0.3.0.1    2018-10-25 [1]
+##  rmarkdown       1.11       2018-12-08 [2]
+##  rpart           4.1-13     2018-02-23 [1]
+##  rprojroot       1.3-2      2018-01-03 [2]
+##  rsample       * 0.0.3      2018-11-20 [1]
+##  rsconnect       0.8.12     2018-12-05 [2]
+##  rstan           2.18.2     2018-11-07 [2]
+##  rstanarm        2.18.2     2018-11-10 [2]
+##  rstantools      1.5.1      2018-08-22 [2]
+##  rstudioapi      0.8        2018-10-02 [1]
+##  rvest           0.3.2      2016-06-17 [2]
+##  scales        * 1.0.0      2018-08-09 [1]
+##  sessioninfo     1.1.1      2018-11-05 [1]
+##  shiny           1.2.0      2018-11-02 [2]
+##  shinyjs         1.0        2018-01-08 [2]
+##  shinystan       2.5.0      2018-05-01 [2]
+##  shinythemes     1.1.2      2018-11-06 [2]
+##  SnowballC       0.5.1      2014-08-09 [2]
+##  StanHeaders     2.18.0-1   2018-12-13 [2]
+##  stringi         1.2.4      2018-07-20 [2]
+##  stringr       * 1.3.1      2018-05-10 [2]
+##  survival        2.43-3     2018-11-26 [2]
+##  testthat        2.0.1      2018-10-13 [2]
+##  threejs         0.3.1      2017-08-13 [2]
+##  tibble        * 2.0.0      2019-01-04 [2]
+##  tidymodels    * 0.0.2      2018-11-27 [1]
+##  tidyposterior   0.0.2      2018-11-15 [1]
+##  tidypredict     0.2.1      2018-12-20 [1]
+##  tidyr         * 0.8.2      2018-10-28 [2]
+##  tidyselect      0.2.5      2018-10-11 [1]
+##  tidytext        0.2.0      2018-10-17 [1]
+##  tidyverse     * 1.2.1      2017-11-14 [2]
+##  timeDate        3043.102   2018-02-21 [2]
+##  tokenizers      0.2.1      2018-03-29 [2]
+##  usethis         1.4.0      2018-08-14 [1]
+##  utf8            1.1.4      2018-05-24 [2]
+##  withr           2.1.2      2018-03-15 [2]
+##  xfun            0.4        2018-10-23 [1]
+##  xml2            1.2.0      2018-01-24 [2]
+##  xtable          1.8-3      2018-08-29 [2]
+##  xts             0.11-2     2018-11-05 [2]
+##  yaml            2.2.0      2018-07-25 [2]
+##  yardstick     * 0.0.2      2018-11-05 [1]
+##  zoo             1.8-4      2018-09-19 [2]
+##  source                           
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  Github (rstudio/blogdown@b2e1ed4)
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.2)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.2)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.1)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.1)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.2)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.2)                   
+##  CRAN (R 3.5.2)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.2)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.2)                   
+##  CRAN (R 3.5.1)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.1)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  local                            
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.2)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.2)                   
+##  CRAN (R 3.5.1)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+##  CRAN (R 3.5.0)                   
+## 
+## [1] /Users/soltoffbc/Library/R/3.5/library
+## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
+</div>
+<div id="references" class="section level1 toc-ignore">
+<h1><span class="header-section-number">6</span> References</h1>
+<ul>
+<li>Bootstrap standard error of the mean example derived from <a href="http://t-redactyl.io/blog/2015/09/a-gentle-introduction-to-bootstrapping.html">A gentle introduction to bootstrapping</a>.</li>
+<li>“Why use the bootstrap?” reproduced from <a href="http://stats.stackexchange.com/a/26093">Explaining to laypeople why bootstrapping works - Stack Overflow</a>, licensed under the <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC BY-SA 3.0 Creative Commons License</a>.</li>
+<li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
+<li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
+</ul>
+<div id="refs" class="references">
+<div id="ref-friedman2001elements">
+<p>Friedman, Jerome, Trevor Hastie, and Robert Tibshirani. 2001. <em>The Elements of Statistical Learning</em>. Vol. 1. 10. Springer series in statistics New York, NY, USA: <a href="https://web.stanford.edu/~hastie/ElemStatLearn/" class="uri">https://web.stanford.edu/~hastie/ElemStatLearn/</a>.</p>
+</div>
+<div id="ref-james2013introduction">
+<p>James, Gareth, Daniela Witten, Trevor Hastie, and Robert Tibshirani. 2013. <em>An Introduction to Statistical Learning</em>. Vol. 112. Springer. <a href="http://www-bcf.usc.edu/~gareth/ISL/" class="uri">http://www-bcf.usc.edu/~gareth/ISL/</a>.</p>
+</div>
+</div>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Exception - <a href="http://www.census.gov/2010census/">the Census</a>.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>As defined by the <a href="https://en.wikipedia.org/wiki/Central_limit_theorem">Central Limit Theorem</a>.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>
