@@ -44,8 +44,6 @@ There are two major types of resampling methods we will consider:
 
 In most modeling situations, we can immediately partition the dataset into a **training** set and a **test** set. The training set will be used for model construction, and the test set will be used to evaluate the performance of the final model. This is most important -- while you can reuse the training set many times to build different statistical models, you can only use the test set of data once. If you reuse it, you introduce **data leakage** into your modeling process and no longer have unbiased estimates of the test error. This is why collaborative platforms such as [Kaggle](https://www.kaggle.com/) hold back a portion of the dataset in their competitions. You can use the training set to build the strongest performing model, but you cannot tune your model based on the test error because you do not have access to it.
 
-To ensure each set is approximately similar to one another in every important aspect, we use random sampling without replacement to partition the data set. This method is appropriate for cross-sectional data where each observation is independent from one another. If you have a data set that intentionally violates this assumption (i.e. time series), alternative sampling procedures can be employed. For instance in the case of time series data, if you have 10 years of observations for a given unit you may reserve the first 8 years for the training set and the last 2 years for the test set.
-
 # Validation set
 
 Even accounting for the training/test set split, one issue with using the same data to both fit and evaluate our model is that we will bias our model towards fitting the data that we have. We may fit our function to create the results we expect or desire, rather than the "true" function. Instead, we can further split our training set into distinct **training** and **validation** sets. The training set can be used repeatedly to train different models. We then use the validation set to evaluate the model's performance, generating metrics such as the mean squared error (MSE) or the error rate. Unlike the test set, we are permitted to use the validation set multiple times. The important thing is that we do not use the validation set to train or fit the model, only evaluate its performance after it has been fit.
@@ -559,8 +557,15 @@ We also should be concerned with the **variance** of the model. LOOCV has a high
 
 Given these considerations, a typical approach uses $K=5$ or $K=10$. Empirical research (see @breiman1992submodel, @kohavi1995study) shows that cross-validation with these number of folds suffers neither excessively high bias nor excessively high variance.
 
-# Correct way to do cross-validation
+# Variations on cross-validation
 
+To ensure each set is approximately similar to one another in every important aspect, we use random sampling without replacement to partition the data set. Alternative approaches include:
+
+* Stratified cross-validation - splitting the data into folds based on criteria such as ensuring each fold has the same proportion of observations with a given categorical value (such as the response class value). While random sampling should lead to approximately equal class balances, stratified sampling will ensure an equal balance across folds.
+* Repeated cross-validation - this is where $K$-fold CV is repeated $N$ times, where for each $N$ the data sample is shuffled prior to each repetition. This ensures a different split of the sample.
+* Cross-validation with time series data - @bergmeir2012use evaluate multiple forms of cross-validation methods for time series models. For some types of models, standard cross-validation techniques can be employed without bias. In other situations, a standard approach is to partition the data temporally. For instance, if you have 10 years of observations for a given unit you may reserve the first 8 years for the training set and the last 2 years for the test set. Other forms of cross-validation use **rolling test sets** whereby one generates a series of test sets, each containing a single observation. The training set consists only of observations that occurred prior to the observation that forms the test set.
+
+    ![From [Cross-validation for time series](https://robjhyndman.com/hyndsight/tscv/)](https://robjhyndman.com/files/cv1-1.png)
 
 # Session Info {.toc-ignore}
 
