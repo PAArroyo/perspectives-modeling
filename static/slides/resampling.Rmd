@@ -1,0 +1,970 @@
+---
+title: "More Classification Methods"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2)
+
+library(tidyverse)
+library(tidymodels)
+library(magrittr)
+library(here)
+library(rcfss)
+library(patchwork)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 20))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+# Resampling methods
+
+* Population of interest
+* Sampling
+* Repeatedly draw from your original sample to obtain additional information about your model
+
+--
+
+## Major types of resampling methods
+
+* Cross-validation
+* Bootstrap
+
+---
+
+# Training/test set split
+
+* Training set
+* Test set
+* Where to obtain a test set
+* Data leakage
+    * Kaggle
+
+---
+
+# Validation set
+
+* Using the same data to both fit and evaluate the model
+* Bias towards the training set
+* Further split
+    * Training set
+    * Validation set
+
+---
+
+# Regression
+
+```{r auto}
+library(ISLR)
+
+Auto <- as_tibble(Auto)
+```
+
+.center[
+
+```{r auto_plot, dependson="auto"}
+ggplot(Auto, aes(horsepower, mpg)) +
+  geom_point()
+```
+
+]
+
+---
+
+# Regression
+
+.center[
+
+```{r auto_plot_lm, dependson="auto"}
+ggplot(Auto, aes(horsepower, mpg)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+]
+
+---
+
+# Regression
+
+* Mean squared error
+
+    $$MSE = \frac{1}{N} \sum_{i = 1}^{N}{(y_i - \hat{f}(x_i))^2}$$
+
+* Randomly partition into training and validation sets
+* Estimate linear regression model with training set
+* Calculate MSE with validation set
+
+---
+
+# Linear model
+
+```{r auto_split}
+set.seed(1234)
+
+auto_split <- initial_split(data = Auto, prop = 0.5)
+auto_train <- training(auto_split)
+auto_test <- testing(auto_split)
+```
+
+```{r auto_lm, dependson="auto_split"}
+auto_lm <- glm(mpg ~ horsepower, data = auto_train)
+tidy(auto_lm)
+```
+
+```{r mse-train, dependson = "auto_lm"}
+train_mse <- augment(auto_lm, newdata = auto_train) %>%
+  mse(truth = mpg, estimate = .fitted)
+```
+
+```{r mse-test, dependson = "auto_lm"}
+(test_mse <- augment(auto_lm, newdata = auto_test) %>%
+  mse(truth = mpg, estimate = .fitted))
+```
+
+---
+
+# Parabolic model
+
+.center[
+
+```{r mse-poly, dependson = "auto_split", fig.width = 12}
+# visualize each model
+models <- ggplot(Auto, aes(horsepower, mpg)) +
+  geom_point(alpha = .1) +
+  geom_smooth(aes(color = "1"),
+              method = "glm",
+              formula = y ~ poly(x, i = 1, raw = TRUE),
+              se = FALSE) +
+  geom_smooth(aes(color = "2"),
+              method = "glm",
+              formula = y ~ poly(x, i = 2, raw = TRUE),
+              se = FALSE) +
+  geom_smooth(aes(color = "3"),
+              method = "glm",
+              formula = y ~ poly(x, i = 3, raw = TRUE),
+              se = FALSE) +
+  geom_smooth(aes(color = "4"),
+              method = "glm",
+              formula = y ~ poly(x, i = 4, raw = TRUE),
+              se = FALSE) +
+  geom_smooth(aes(color = "5"),
+              method = "glm",
+              formula = y ~ poly(x, i = 5, raw = TRUE),
+              se = FALSE) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  labs(x = "Horsepower",
+       y = "MPG",
+       color = "Highest-order\npolynomial")
+
+# function to estimate model using training set and generate fit statistics
+# using the test set
+poly_results <- function(train, test, i) {
+  # Fit the model to the training set
+  mod <- glm(mpg ~ poly(horsepower, i, raw = TRUE), data = train)
+  
+  # `augment` will save the predictions with the test data set
+  res <- augment(mod, newdata = test) %>%
+    mse(truth = mpg, estimate = .fitted)
+  
+  # Return the test data set with the additional columns
+  res
+}
+
+# function to return MSE for a specific higher-order polynomial term
+poly_mse <- function(i, train, test){
+  poly_results(train, test, i) %$%
+    mean(.estimate)
+}
+
+cv_mse <- tibble(terms = seq(from = 1, to = 5),
+                 mse_test = map_dbl(terms, poly_mse, auto_train, auto_test))
+
+models_mse <- ggplot(cv_mse, aes(terms, mse_test)) +
+  geom_line() +
+  labs(title = "Comparing quadratic linear models",
+       subtitle = "Using validation set",
+       x = "Highest-order polynomial",
+       y = "Mean Squared Error")
+
+models +
+  models_mse
+```
+
+]
+
+---
+
+# Classification
+
+## With full data set
+
+```{r titanic_data, message = FALSE}
+library(titanic)
+titanic <- as_tibble(titanic_train) %>%
+  mutate(Survived = factor(Survived))
+```
+
+```{r age_woman_cross}
+survive_age_woman_x <- glm(Survived ~ Age * Sex, data = titanic,
+                           family = binomial)
+tidy(survive_age_woman_x)
+```
+
+
+---
+
+# Classification
+
+## Training set
+
+```{r logit}
+# function to convert log-odds to probabilities
+logit2prob <- function(x){
+  exp(x) / (1 + exp(x))
+}
+```
+
+```{r accuracy_age_gender_x_test_set, dependson="age_woman_cross", message = FALSE}
+# split the data into training and validation sets
+titanic_split <- initial_split(data = titanic, prop = 0.5)
+
+# fit model to training data
+train_model <- glm(Survived ~ Age * Sex, data = training(titanic_split),
+                   family = binomial)
+tidy(train_model)
+```
+
+## Validation set
+
+```{r accuracy_age_gender_x_test_set2, dependson="accuracy_age_gender_x_test_set", message = FALSE}
+# calculate predictions using validation set
+x_test_accuracy <- augment(train_model, newdata = testing(titanic_split)) %>% 
+  as_tibble() %>%
+  mutate(.prob = logit2prob(.fitted),
+         .pred = factor(round(.prob)))
+
+# calculate test accuracy rate
+accuracy(x_test_accuracy, truth = Survived, estimate = .pred)
+```
+
+---
+
+# Drawbacks to validation sets
+
+.center[
+
+```{r auto_variable_mse, dependson = "mse-poly"}
+mse_variable <- function(Auto){
+  auto_split <- initial_split(Auto, prop = 0.5)
+  auto_train <- training(auto_split)
+  auto_test <- testing(auto_split)
+  
+  cv_mse <- tibble(terms = seq(from = 1, to = 5),
+                       mse_test = map_dbl(terms, poly_mse, auto_train, auto_test))
+  
+  return(cv_mse)
+}
+
+rerun(10, mse_variable(Auto)) %>%
+  bind_rows(.id = "id") %>%
+  ggplot(aes(terms, mse_test, color = id)) +
+  geom_line() +
+  labs(title = "Variability of MSE estimates",
+       subtitle = "Using the validation set approach",
+       x = "Degree of Polynomial",
+       y = "Mean Squared Error") +
+  theme(legend.position = "none")
+```
+
+]
+
+---
+
+# Leave-one-out cross-validation
+
+* Split data into two parts
+    * $N - 1$ - training set
+    * $1$ - validation set
+* Use the training set to fit the model
+* Use the validation set to estimate the test error
+
+--
+* Repeat this process for every single observation in the data set
+
+    $$CV_{(N)} = \frac{1}{N} \sum_{i = 1}^{N}{MSE_i}$$
+
+* Approximately unbiased
+* High variance
+* Computationally intensive
+
+---
+
+# LOOCV in linear regression
+
+```{r loocv-data, dependson="Auto"}
+loocv_data <- loo_cv(Auto)
+```
+
+1. Obtain the analysis data set (i.e. the $N-1$ training set)
+1. Fit a linear regression model
+1. Predict the validation data
+1. Determine the MSE for each sample
+1. Average the MSEs to obtain estimate of test MSE
+
+```{r loocv-function, dependson = "Auto"}
+holdout_results <- function(splits) {
+  # Fit the model to the N-1
+  mod <- glm(mpg ~ horsepower, data = analysis(splits))
+  
+  # `augment` will save the predictions with the holdout data set
+  res <- augment(mod, newdata = assessment(splits)) %>%
+    # calculate the metric
+    mse(truth = mpg, estimate = .fitted)
+  
+  # Return the metrics
+  res
+}
+```
+
+---
+
+# LOOCV in linear regression
+
+```{r loocv, dependson = c("Auto", "loocv-function")}
+loocv_data_poly1 <- loocv_data %>%
+  mutate(results = map(splits, holdout_results)) %>%
+  unnest(results) %>%
+  spread(.metric, .estimate)
+loocv_data_poly1
+```
+
+```{r loocv-test-mse, dependson = c("Auto", "loocv-function")}
+loocv_data_poly1 %>%
+  summarize(mse = mean(mse))
+```
+
+---
+
+# LOOCV in linear regression
+
+.center[
+
+```{r loocv_poly, dependson="Auto"}
+# modified function to estimate model with varying highest order polynomial
+holdout_results <- function(splits, i) {
+  # Fit the model to the N-1
+  mod <- glm(mpg ~ poly(horsepower, i, raw = TRUE), data = analysis(splits))
+  
+  # `augment` will save the predictions with the holdout data set
+  res <- augment(mod, newdata = assessment(splits)) %>%
+    # calculate the metric
+    mse(truth = mpg, estimate = .fitted)
+  
+  # Return the assessment data set with the additional columns
+  res
+}
+
+# function to return MSE for a specific higher-order polynomial term
+poly_mse <- function(i, loocv_data){
+  loocv_mod <- loocv_data %>%
+    mutate(results = map(splits, holdout_results, i)) %>%
+    unnest(results) %>%
+    spread(.metric, .estimate)
+  
+  mean(loocv_mod$mse)
+}
+
+cv_mse <- tibble(terms = seq(from = 1, to = 5),
+                 mse_loocv = map_dbl(terms, poly_mse, loocv_data))
+
+ggplot(cv_mse, aes(terms, mse_loocv)) +
+  geom_line() +
+  labs(title = "Comparing quadratic linear models",
+       subtitle = "Using LOOCV",
+       x = "Highest-order polynomial",
+       y = "Mean Squared Error")
+```
+
+]
+
+---
+
+# LOOCV in classification
+
+* Titanic interactive model
+
+```{r titanic-loocv}
+# function to generate assessment statistics for titanic model
+holdout_results <- function(splits) {
+  # Fit the model to the N-1
+  mod <- glm(Survived ~ Age * Sex, data = analysis(splits),
+             family = binomial)
+  
+  # `augment` will save the predictions with the holdout data set
+  res <- augment(mod, newdata = assessment(splits)) %>% 
+    as_tibble() %>%
+    mutate(.prob = logit2prob(.fitted),
+           .pred = round(.prob))
+  
+  # Return the assessment data set with the additional columns
+  res
+}
+
+titanic_loocv <- loo_cv(titanic) %>%
+  mutate(results = map(splits, holdout_results)) %>%
+  unnest(results) %>%
+  mutate(.pred = factor(.pred)) %>%
+  group_by(id) %>%
+  accuracy(truth = Survived, estimate = .pred)
+
+1 - mean(titanic_loocv$.estimate, na.rm = TRUE)
+```
+
+---
+
+# $K$-fold cross-validation
+
+* Split data into two parts
+    * $K - 1$ - training set
+    * $K$ - validation set
+* Use the training set to fit the model
+* Use the validation set to estimate the test error
+
+--
+* Repeat this process for every $K$-fold in the data set
+
+    $$CV_{(K)} = \frac{1}{K} \sum_{i = 1}^{K}{MSE_i}$$
+
+--
+
+## Comparison to leave-one-out cross-validation
+
+* $K = N$
+* Slightly more biased
+* Lower variance
+* Less computationally intensive
+
+---
+
+# $K$-fold CV in linear regression
+
+```{r 10_fold_auto}
+# modified function to estimate model with varying highest order polynomial
+holdout_results <- function(splits, i) {
+  # Fit the model to the training set
+  mod <- glm(mpg ~ poly(horsepower, i, raw = TRUE), data = analysis(splits))
+  
+  # Save the heldout observations
+  holdout <- assessment(splits)
+  
+  # `augment` will save the predictions with the holdout data set
+  res <- augment(mod, newdata = holdout) %>%
+    # calculate the metric
+    mse(truth = mpg, estimate = .fitted)
+  
+  # Return the assessment data set with the additional columns
+  res
+}
+
+# function to return MSE for a specific higher-order polynomial term
+poly_mse <- function(i, vfold_data){
+  vfold_mod <- vfold_data %>%
+    mutate(results = map(splits, holdout_results, i)) %>%
+    unnest(results) %>%
+    spread(.metric, .estimate)
+  
+  mean(vfold_mod$mse)
+}
+
+# split Auto into 10 folds
+auto_cv10 <- vfold_cv(data = Auto, v = 10)
+
+cv_mse <- tibble(terms = seq(from = 1, to = 5),
+                     mse_vfold = map_dbl(terms, poly_mse, auto_cv10))
+```
+
+.center[
+
+```{r 10_fold_auto_loocv, dependson=c("10_fold_auto","loocv_poly")}
+auto_loocv <- loo_cv(Auto)
+
+tibble(terms = seq(from = 1, to = 5),
+       `10-fold` = map_dbl(terms, poly_mse, auto_cv10),
+       LOOCV = map_dbl(terms, poly_mse, auto_loocv)
+) %>%
+  gather(method, MSE, -terms) %>%
+  ggplot(aes(terms, MSE, color = method)) +
+  geom_line() +
+  scale_color_brewer(type = "qual") +
+  labs(title = "MSE estimates",
+       x = "Degree of Polynomial",
+       y = "Mean Squared Error",
+       color = "CV Method")
+```
+
+]
+
+---
+
+# Computational speed of LOOCV vs. $K$-fold CV
+
+## LOOCV
+
+```{r loocv_time}
+library(tictoc)
+
+tic()
+poly_mse(vfold_data = auto_loocv, i = 2)
+toc()
+```
+
+--
+
+## 10-fold CV
+
+```{r kfold_time}
+tic()
+poly_mse(vfold_data = auto_cv10, i = 2)
+toc()
+```
+
+---
+
+# $K$-fold CV in logistic regression
+
+```{r titanic_kfold}
+# function to generate assessment statistics for titanic model
+holdout_results <- function(splits) {
+  # Fit the model to the training set
+  mod <- glm(Survived ~ Age * Sex, data = analysis(splits),
+             family = binomial)
+  
+  # `augment` will save the predictions with the holdout data set
+  res <- augment(mod, newdata = assessment(splits)) %>% 
+    as_tibble() %>%
+    mutate(.prob = logit2prob(.fitted),
+           .pred = round(.prob))
+
+  # Return the assessment data set with the additional columns
+  res
+}
+
+titanic_cv10 <- vfold_cv(data = titanic, v = 10) %>%
+  mutate(results = map(splits, holdout_results)) %>%
+  unnest(results) %>%
+  mutate(.pred = factor(.pred)) %>%
+  group_by(id) %>%
+  accuracy(truth = Survived, estimate = .pred)
+
+1 - mean(titanic_cv10$.estimate, na.rm = TRUE)
+```
+
+---
+
+# Appropriate value for $K$
+
+* Optimal value for $K$
+    * It depends
+* Bias-variance tradeoff
+    * LOOCV is low-bias, high-variance
+    * Amount of bias driven by the size of the training set
+    
+---
+
+# Appropriate value for $K$
+
+.center[
+
+```{r hypo-class, fig.width = 8}
+tibble(x = c(0, 200),
+       y = c(0, 1)) %>%
+  ggplot(aes(x, y)) +
+  stat_function(fun = function(x) y = - (-0.03342708/0.04196558) * (1 - exp(-0.04196558 * x))) +
+  labs(title = "Hypothetical learning curve for a classifier",
+       x = "Size of training set",
+       y = "1 - Expected test error")
+```
+
+]
+
+---
+
+# Appropriate value for $K$
+
+* What about the variance?
+
+    $$\text{Error} = \text{Irreducible Error} + \text{Bias}^2 + \text{Variance}$$
+
+* LOOCV has higher variance than $K$-fold with $K < N$
+* Averaging lots of correlated values
+
+--
+
+## Just tell me what to do
+
+* $K=5$
+* $K=10$
+
+---
+
+# Variations on cross-validation
+
+* Stratified cross-validation
+* Repeated cross-validation
+* Cross-validation with time series data
+    * Standard cross-validation
+    * Temporal cross-validation
+    * Rolling cross-validation
+    
+--
+![From [Cross-validation for time series](https://robjhyndman.com/hyndsight/tscv/)](https://robjhyndman.com/files/cv1-1.png)
+
+---
+
+# The bootstrap
+
+![](https://www.azquotes.com/picture-quotes/quote-i-believe-in-pulling-yourself-up-by-your-own-bootstraps-i-believe-it-is-possible-i-saw-stephen-colbert-62-38-03.jpg)
+
+---
+
+# Generating samples
+
+$$`r 1:10`$$
+
+--
+
+.pull-left[
+
+##### Sampling without replacement
+
+```{r sim-sample-noreplace}
+rerun(10, sample.int(10, replace = FALSE)) %>%
+  bind_cols %>%
+  as.matrix()
+```
+
+]
+
+--
+
+.pull-right[
+
+##### Sampling with replacement
+
+```{r sim-sample-replace}
+rerun(10, sample.int(10, replace = TRUE)) %>%
+  bind_cols %>%
+  as.matrix()
+```
+
+]
+
+
+---
+
+# Why use the bootstrap?
+
+* Generating statistical inferences about a population
+* Sampling the population
+* How do you know your sample answer is close to the population answer?
+
+--
+
+1. Make **assumptions** about the shape of the population
+1. Use the **information in the sample** to learn about it
+
+---
+
+# Making assumptions
+
+.center[
+![[When you assume](https://www.xkcd.com/1339/)](https://imgs.xkcd.com/comics/when_you_assume.png)
+]
+
+--
+
+* Assume a probability distribution
+* Repeatedly generate samples from the probability distribution
+* Skip the sampling and use a known formula (e.g. central limit theorem)
+
+---
+
+# Using information in the sample
+
+.center[
+![](/img/sample_pop_meme.jpg)
+]
+
+---
+
+# Using information in the sample
+
+* What if your assumptions are wrong?
+* Take the sample you have and **treat it like a population**
+    * Repeatedly draw samples and calculate desired statistics
+    * Resampling
+* Reasonableness of this approach
+
+---
+
+# Estimating the accuracy of a statistic
+
+.center[
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Rockyroadicecream.jpg/640px-Rockyroadicecream.jpg)
+]
+
+---
+
+# Estimating the accuracy of a statistic
+
+.center[
+
+```{r ice-sim, fig.height = 6}
+# simulate the sample
+set.seed(1234)
+mu <- 5
+n_obs <- 1000
+ice <- tibble(sim = rpois(n_obs, lambda = mu))
+
+ggplot(ice, aes(sim)) +
+  geom_histogram(binwidth = 1) +
+  labs(x = "Ice cream consumption in a month",
+       y = "Frequency count")
+```
+
+]
+
+* Mean of this sample is `r mean(ice$sim)`
+* Use sample mean to estimate $\hat{\mu}$ - what is the standard error?
+
+---
+
+# Estimating the accuracy of a statistic
+
+* Poisson distribution
+
+    $$\Pr(X = x) = e^{-\lambda} \frac{\lambda^{k}}{k!}$$
+
+* Estimate standard error of the sample mean
+* Per CLT, distribution of the mean of a set of samples is approximately normal
+* Standard error of the sample mean from a Poisson distribution is
+
+    $$\sqrt{\frac{\hat{\lambda}}{n}}$$
+
+```{r ice-samp-mean}
+mu_samp <- mean(ice$sim)
+sem <- sqrt(mu_samp / n_obs)
+```
+
+
+* $\widehat{\se(\hat{\mu})} = `r sem`$
+* Good estimate as long as the data generating process actually follows a Poisson distribution
+
+---
+
+# Use the bootstrap instead
+
+* Draw $B$ samples with replacement from the original sample
+* Estimate the population mean $\mu$
+    * Calculate the mean of the bootstrapped sample means $\hat{\mu}_1, \hat{\mu}_2, \dots, \hat{\mu}_B$
+    * Estimate the standard error of the sampling mean $\hat{\mu}$ we use the formula
+
+        $$SE_{B}(\hat{\mu}) = \sqrt{\frac{1}{B-1} \sum_{r = 1}^{B} \left( \hat{\mu}_r - \frac{1}{B} \sum_{r' = 1}^{B} \hat{\mu}_{r'} \right)^2}$$
+
+    * Standard deviation of all the bootstrapped sample means
+    
+---
+
+# Actually a Poisson DGP
+
+* $B = 1000$
+
+```{r ice-boot}
+mean_ice <- function(splits) {
+  x <- analysis(splits)
+  mean(x$sim)
+}
+
+ice_boot <- ice %>%
+  bootstraps(1000) %>%
+  mutate(mean = map_dbl(splits, mean_ice))
+
+boot_sem <- sd(ice_boot$mean)
+```
+
+.center[
+
+```{r ice-boot-plot, fig.width = 8}
+ggplot(ice_boot, aes(mean)) +
+  geom_histogram(binwidth = .01, alpha = 0.25) +
+  geom_vline(aes(xintercept = mu, color = "Population mean"), size = 1) +
+  geom_vline(aes(xintercept = mu_samp, color = "Sample mean"), size = 1) +
+  geom_vline(aes(xintercept = mean(ice_boot$mean),
+                 color = "Bootstrapped mean"), size = 1) +
+  geom_vline(aes(xintercept = mean(ice_boot$mean) + 1.96 * boot_sem,
+                 color = "Bootstrapped mean"), linetype = 2) +
+  geom_vline(aes(xintercept = mean(ice_boot$mean) - 1.96 * boot_sem,
+                 color = "Bootstrapped mean"), linetype = 2) +
+  geom_vline(aes(xintercept = mu_samp + 1.96 * sem, color = "Sample mean"),
+             linetype = 2) +
+  geom_vline(aes(xintercept = mu_samp - 1.96 * sem, color = "Sample mean"),
+             linetype = 2) +
+  scale_color_brewer(type = "qual",
+                     name = NULL,
+                     breaks = c("Population mean", "Sample mean",
+                                "Bootstrapped mean")) +
+  labs(x = "Bootstrapped sample mean",
+       y = "Count") +
+  theme(legend.position = "bottom")
+```
+
+]
+
+---
+
+# Not a Poisson DGP
+
+.center[
+
+```{r ice-sim2, fig.width = 12}
+# simulate the sample
+set.seed(113)
+ice2 <- tibble(sim = c(rpois(n_obs / 2, lambda = mu),
+                       round(runif(n_obs / 2, min = 0, max = 10))))
+
+# plot the sample distribution
+ice2_hist <- ggplot(ice2, aes(sim)) +
+  geom_histogram(binwidth = 1) +
+  labs(x = "Ice cream consumption in a month",
+       y = "Frequency count")
+
+# calculate sample mean and standard error
+mu2_samp <- mean(ice2$sim)
+sem2 <- sqrt(mu2_samp / n_obs)
+
+# calculate the bootstrap
+ice2_boot <- ice2 %>%
+  bootstraps(1000) %>%
+  mutate(mean = map_dbl(splits, mean_ice))
+boot2_sem <- sd(ice2_boot$mean)
+
+# plot the bootstrapped distribution
+ice2_se <- ggplot(ice2_boot, aes(mean)) +
+  geom_histogram(binwidth = .01, alpha = 0.25) +
+  geom_vline(aes(xintercept = mu, color = "Population mean"), size = 1) +
+  geom_vline(aes(xintercept = mu2_samp, color = "Sample mean"), size = 1) +
+  geom_vline(aes(xintercept = mean(ice2_boot$mean),
+                 color = "Bootstrapped mean"), size = 1) +
+  geom_vline(aes(xintercept = mean(ice2_boot$mean) + 1.96 * boot2_sem,
+                 color = "Bootstrapped mean"), linetype = 2) +
+  geom_vline(aes(xintercept = mean(ice2_boot$mean) - 1.96 * boot2_sem,
+                 color = "Bootstrapped mean"), linetype = 2) +
+  geom_vline(aes(xintercept = mu2_samp + 1.96 * sem2, color = "Sample mean"),
+             linetype = 2) +
+  geom_vline(aes(xintercept = mu2_samp - 1.96 * sem2, color = "Sample mean"),
+             linetype = 2) +
+  scale_color_brewer(type = "qual",
+                     name = NULL,
+                     breaks = c("Population mean", "Sample mean",
+                                "Bootstrapped mean")) +
+  labs(x = "Bootstrapped sample mean",
+       y = "Count") +
+  theme(legend.position = "bottom")
+
+ice2_hist +
+  ice2_se
+```
+
+]
+
+---
+
+# Linear regression model
+
+$$\widehat{\se}(\hat{\beta}_j) = \sqrt{\hat{\sigma}^{2} (X^{T}X)^{-1}_{jj}}$$
+
+* Requires assumptions of the least squares framework
+    * Estimate of $\sigma^2$ is accurate
+    * Any variablility in the model after we account for $X$ is the result of the errors $\epsilon$
+* Assumption violations lead to biased estimates of the standard errors
+
+---
+
+# Linear regression model
+
+## "Standard" standard errors
+
+```{r auto-boot}
+library(ISLR)
+
+Auto <- as_tibble(Auto)
+
+# traditional parameter estimates and standard errors
+auto_lm <- lm(mpg ~ poly(horsepower, 1, raw = TRUE), data = Auto)
+tidy(auto_lm)
+```
+
+## Bootstrapped standard errors
+
+```{r auto-boot2, dependson = "auto-boot"}
+# bootstrapped estimates of the parameter estimates and standard errors
+lm_coefs <- function(splits, ...) {
+  ## use `analysis` or `as.data.frame` to get the analysis data
+  mod <- lm(..., data = analysis(splits))
+  tidy(mod)
+}
+
+auto_boot <- Auto %>%
+  bootstraps(1000) %>%
+  mutate(coef = map(splits, lm_coefs, as.formula(mpg ~ poly(horsepower, 1, raw = TRUE))))
+
+auto_boot %>%
+  unnest(coef) %>%
+  group_by(term) %>%
+  summarize(.estimate = mean(estimate),
+            .se = sd(estimate, na.rm = TRUE))
+```
+
+---
+
+# Estimating the accuracy of a linear regression model
+
+## "Standard" standard errors
+
+```{r auto-boot-sq}
+# traditional parameter estimates and standard errors
+auto2_lm <- lm(mpg ~ poly(horsepower, 2, raw = TRUE), data = Auto)
+tidy(auto2_lm)
+```
+
+## Bootstrapped standard errors
+
+```{r auto-boot-sq2, dependson = "auto-boot-sq"}
+# bootstrapped estimates of the parameter estimates and standard errors
+auto2_boot <- Auto %>%
+  bootstraps(1000) %>%
+  mutate(coef = map(splits, lm_coefs, as.formula(mpg ~ poly(horsepower, 2, raw = TRUE))))
+
+auto2_boot %>%
+  unnest(coef) %>%
+  group_by(term) %>%
+  summarize(est.boot = mean(estimate),
+            se.boot = sd(estimate, na.rm = TRUE))
+```

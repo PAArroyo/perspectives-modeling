@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>More Classification Methods</title>
+    <meta charset="utf-8">
+    <meta name="author" content="MACS 30100   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# More Classification Methods
+### <a href="https://model.uchicago.edu">MACS 30100</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Resampling methods
+
+* Population of interest
+* Sampling
+* Repeatedly draw from your original sample to obtain additional information about your model
+
+--
+
+## Major types of resampling methods
+
+* Cross-validation
+* Bootstrap
+
+---
+
+# Training/test set split
+
+* Training set
+* Test set
+* Where to obtain a test set
+* Data leakage
+    * Kaggle
+
+---
+
+# Validation set
+
+* Using the same data to both fit and evaluate the model
+* Bias towards the training set
+* Further split
+    * Training set
+    * Validation set
+
+---
+
+# Regression
+
+
+
+.center[
+
+&lt;img src="resampling_files/figure-html/auto_plot-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Regression
+
+.center[
+
+&lt;img src="resampling_files/figure-html/auto_plot_lm-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Regression
+
+* Mean squared error
+
+    `$$MSE = \frac{1}{N} \sum_{i = 1}^{N}{(y_i - \hat{f}(x_i))^2}$$`
+
+* Randomly partition into training and validation sets
+* Estimate linear regression model with training set
+* Calculate MSE with validation set
+
+---
+
+# Linear model
+
+
+
+
+```
+## # A tibble: 2 x 5
+##   term        estimate std.error statistic  p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+## 1 (Intercept)   40.1     1.05         38.0 9.08e-92
+## 2 horsepower    -0.158   0.00940     -16.8 1.41e-39
+```
+
+
+
+
+```
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 mse     standard        23.4
+```
+
+---
+
+# Parabolic model
+
+.center[
+
+&lt;img src="resampling_files/figure-html/mse-poly-1.png" width="864" /&gt;
+
+]
+
+---
+
+# Classification
+
+## With full data set
+
+
+
+
+```
+## # A tibble: 4 x 5
+##   term        estimate std.error statistic p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;
+## 1 (Intercept)   0.594     0.310       1.91 0.0557 
+## 2 Age           0.0197    0.0106      1.86 0.0624 
+## 3 Sexmale      -1.32      0.408      -3.23 0.00125
+## 4 Age:Sexmale  -0.0411    0.0136     -3.03 0.00241
+```
+
+
+---
+
+# Classification
+
+## Training set
+
+
+
+
+```
+## # A tibble: 4 x 5
+##   term        estimate std.error statistic  p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+## 1 (Intercept)   0.175     0.419      0.417 0.677   
+## 2 Age           0.0357    0.0152     2.34  0.0192  
+## 3 Sexmale      -0.596     0.566     -1.05  0.292   
+## 4 Age:Sexmale  -0.0683    0.0199    -3.43  0.000612
+```
+
+## Validation set
+
+
+```
+## # A tibble: 1 x 3
+##   .metric  .estimator .estimate
+##   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;
+## 1 accuracy binary         0.783
+```
+
+---
+
+# Drawbacks to validation sets
+
+.center[
+
+&lt;img src="resampling_files/figure-html/auto_variable_mse-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Leave-one-out cross-validation
+
+* Split data into two parts
+    * `\(N - 1\)` - training set
+    * `\(1\)` - validation set
+* Use the training set to fit the model
+* Use the validation set to estimate the test error
+
+--
+* Repeat this process for every single observation in the data set
+
+    `$$CV_{(N)} = \frac{1}{N} \sum_{i = 1}^{N}{MSE_i}$$`
+
+* Approximately unbiased
+* High variance
+* Computationally intensive
+
+---
+
+# LOOCV in linear regression
+
+
+
+1. Obtain the analysis data set (i.e. the `\(N-1\)` training set)
+1. Fit a linear regression model
+1. Predict the validation data
+1. Determine the MSE for each sample
+1. Average the MSEs to obtain estimate of test MSE
+
+
+
+---
+
+# LOOCV in linear regression
+
+
+```
+## # A tibble: 392 x 4
+##    splits          id         .estimator      mse
+##    &lt;list&gt;          &lt;chr&gt;      &lt;chr&gt;         &lt;dbl&gt;
+##  1 &lt;split [391/1]&gt; Resample1  standard    0.00355
+##  2 &lt;split [391/1]&gt; Resample2  standard    1.25   
+##  3 &lt;split [391/1]&gt; Resample3  standard   19.6    
+##  4 &lt;split [391/1]&gt; Resample4  standard    2.42   
+##  5 &lt;split [391/1]&gt; Resample5  standard   16.7    
+##  6 &lt;split [391/1]&gt; Resample6  standard   97.0    
+##  7 &lt;split [391/1]&gt; Resample7  standard   57.7    
+##  8 &lt;split [391/1]&gt; Resample8  standard    1.77   
+##  9 &lt;split [391/1]&gt; Resample9  standard   15.3    
+## 10 &lt;split [391/1]&gt; Resample10 standard   24.2    
+## # … with 382 more rows
+```
+
+
+```
+## # A tibble: 1 x 1
+##     mse
+##   &lt;dbl&gt;
+## 1  24.2
+```
+
+---
+
+# LOOCV in linear regression
+
+.center[
+
+&lt;img src="resampling_files/figure-html/loocv_poly-1.png" width="504" /&gt;
+
+]
+
+---
+
+# LOOCV in classification
+
+* Titanic interactive model
+
+
+```
+## [1] 0.219888
+```
+
+---
+
+# `\(K\)`-fold cross-validation
+
+* Split data into two parts
+    * `\(K - 1\)` - training set
+    * `\(K\)` - validation set
+* Use the training set to fit the model
+* Use the validation set to estimate the test error
+
+--
+* Repeat this process for every `\(K\)`-fold in the data set
+
+    `$$CV_{(K)} = \frac{1}{K} \sum_{i = 1}^{K}{MSE_i}$$`
+
+--
+
+## Comparison to leave-one-out cross-validation
+
+* `\(K = N\)`
+* Slightly more biased
+* Lower variance
+* Less computationally intensive
+
+---
+
+# `\(K\)`-fold CV in linear regression
+
+
+
+.center[
+
+&lt;img src="resampling_files/figure-html/10_fold_auto_loocv-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Computational speed of LOOCV vs. `\(K\)`-fold CV
+
+## LOOCV
+
+
+```
+## [1] 19.24821
+```
+
+```
+## 5.94 sec elapsed
+```
+
+--
+
+## 10-fold CV
+
+
+```
+## [1] 19.26807
+```
+
+```
+## 0.163 sec elapsed
+```
+
+---
+
+# `\(K\)`-fold CV in logistic regression
+
+
+```
+## [1] 0.2200643
+```
+
+---
+
+# Appropriate value for `\(K\)`
+
+* Optimal value for `\(K\)`
+    * It depends
+* Bias-variance tradeoff
+    * LOOCV is low-bias, high-variance
+    * Amount of bias driven by the size of the training set
+    
+---
+
+# Appropriate value for `\(K\)`
+
+.center[
+
+&lt;img src="resampling_files/figure-html/hypo-class-1.png" width="576" /&gt;
+
+]
+
+---
+
+# Appropriate value for `\(K\)`
+
+* What about the variance?
+
+    `$$\text{Error} = \text{Irreducible Error} + \text{Bias}^2 + \text{Variance}$$`
+
+* LOOCV has higher variance than `\(K\)`-fold with `\(K &lt; N\)`
+* Averaging lots of correlated values
+
+--
+
+## Just tell me what to do
+
+* `\(K=5\)`
+* `\(K=10\)`
+
+---
+
+# Variations on cross-validation
+
+* Stratified cross-validation
+* Repeated cross-validation
+* Cross-validation with time series data
+    * Standard cross-validation
+    * Temporal cross-validation
+    * Rolling cross-validation
+    
+--
+![From [Cross-validation for time series](https://robjhyndman.com/hyndsight/tscv/)](https://robjhyndman.com/files/cv1-1.png)
+
+---
+
+# The bootstrap
+
+![](https://www.azquotes.com/picture-quotes/quote-i-believe-in-pulling-yourself-up-by-your-own-bootstraps-i-believe-it-is-possible-i-saw-stephen-colbert-62-38-03.jpg)
+
+---
+
+# Generating samples
+
+`$$1, 2, 3, 4, 5, 6, 7, 8, 9, 10$$`
+
+--
+
+.pull-left[
+
+##### Sampling without replacement
+
+
+```
+##       V1 V2 V3 V4 V5 V6 V7 V8 V9 V10
+##  [1,]  7  2  3  9  7  5  3 10 10   9
+##  [2,]  9  1  4  1  8  7  8  8  8   1
+##  [3,]  8  3 10  5  2  9  5  7  3  10
+##  [4,]  6 10  6  7  1 10  9  6  7   3
+##  [5,]  4  8  9 10  6  1  1  2  1   7
+##  [6,]  3  5  5  3  9  2  2  9  4   6
+##  [7,] 10  9  1  2  5  6  6  3  2   2
+##  [8,]  2  7  8  6  3  8 10  4  5   5
+##  [9,]  5  6  7  4  4  3  4  1  6   4
+## [10,]  1  4  2  8 10  4  7  5  9   8
+```
+
+]
+
+--
+
+.pull-right[
+
+##### Sampling with replacement
+
+
+```
+##       V1 V2 V3 V4 V5 V6 V7 V8 V9 V10
+##  [1,]  1  5  2  5  3  7  7  7  4   6
+##  [2,]  5  6  4  7  9 10  5  3 10   1
+##  [3,]  3  9  7  8  2 10  8  1  3  10
+##  [4,]  4  7  8 10  5  6  1  6 10   2
+##  [5,]  5  5  3  8  5  7 10  1  4   2
+##  [6,]  4  1  1 10  7  6  6  2  3   3
+##  [7,]  8  6  1  4  6  8  7 10  7  10
+##  [8,]  8  5  1  1  8  1  7  6 10   5
+##  [9,]  4  9  9  3  7  1  4  5  5   9
+## [10,]  6  6  2  3  9  8  1  6  8   3
+```
+
+]
+
+
+---
+
+# Why use the bootstrap?
+
+* Generating statistical inferences about a population
+* Sampling the population
+* How do you know your sample answer is close to the population answer?
+
+--
+
+1. Make **assumptions** about the shape of the population
+1. Use the **information in the sample** to learn about it
+
+---
+
+# Making assumptions
+
+.center[
+![[When you assume](https://www.xkcd.com/1339/)](https://imgs.xkcd.com/comics/when_you_assume.png)
+]
+
+--
+
+* Assume a probability distribution
+* Repeatedly generate samples from the probability distribution
+* Skip the sampling and use a known formula (e.g. central limit theorem)
+
+---
+
+# Using information in the sample
+
+.center[
+![](/img/sample_pop_meme.jpg)
+]
+
+---
+
+# Using information in the sample
+
+* What if your assumptions are wrong?
+* Take the sample you have and **treat it like a population**
+    * Repeatedly draw samples and calculate desired statistics
+    * Resampling
+* Reasonableness of this approach
+
+---
+
+# Estimating the accuracy of a statistic
+
+.center[
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Rockyroadicecream.jpg/640px-Rockyroadicecream.jpg)
+]
+
+---
+
+# Estimating the accuracy of a statistic
+
+.center[
+
+&lt;img src="resampling_files/figure-html/ice-sim-1.png" width="504" /&gt;
+
+]
+
+* Mean of this sample is 5.062
+* Use sample mean to estimate `\(\hat{\mu}\)` - what is the standard error?
+
+---
+
+# Estimating the accuracy of a statistic
+
+* Poisson distribution
+
+    `$$\Pr(X = x) = e^{-\lambda} \frac{\lambda^{k}}{k!}$$`
+
+* Estimate standard error of the sample mean
+* Per CLT, distribution of the mean of a set of samples is approximately normal
+* Standard error of the sample mean from a Poisson distribution is
+
+    `$$\sqrt{\frac{\hat{\lambda}}{n}}$$`
+
+
+
+
+* `\(\widehat{\se(\hat{\mu})} = 0.0711477\)`
+* Good estimate as long as the data generating process actually follows a Poisson distribution
+
+---
+
+# Use the bootstrap instead
+
+* Draw `\(B\)` samples with replacement from the original sample
+* Estimate the population mean `\(\mu\)`
+    * Calculate the mean of the bootstrapped sample means `\(\hat{\mu}_1, \hat{\mu}_2, \dots, \hat{\mu}_B\)`
+    * Estimate the standard error of the sampling mean `\(\hat{\mu}\)` we use the formula
+
+        `$$SE_{B}(\hat{\mu}) = \sqrt{\frac{1}{B-1} \sum_{r = 1}^{B} \left( \hat{\mu}_r - \frac{1}{B} \sum_{r' = 1}^{B} \hat{\mu}_{r'} \right)^2}$$`
+
+    * Standard deviation of all the bootstrapped sample means
+    
+---
+
+# Actually a Poisson DGP
+
+* `\(B = 1000\)`
+
+
+
+.center[
+
+&lt;img src="resampling_files/figure-html/ice-boot-plot-1.png" width="576" /&gt;
+
+]
+
+---
+
+# Not a Poisson DGP
+
+.center[
+
+&lt;img src="resampling_files/figure-html/ice-sim2-1.png" width="864" /&gt;
+
+]
+
+---
+
+# Linear regression model
+
+`$$\widehat{\se}(\hat{\beta}_j) = \sqrt{\hat{\sigma}^{2} (X^{T}X)^{-1}_{jj}}$$`
+
+* Requires assumptions of the least squares framework
+    * Estimate of `\(\sigma^2\)` is accurate
+    * Any variablility in the model after we account for `\(X\)` is the result of the errors `\(\epsilon\)`
+* Assumption violations lead to biased estimates of the standard errors
+
+---
+
+# Linear regression model
+
+## "Standard" standard errors
+
+
+```
+## # A tibble: 2 x 5
+##   term                            estimate std.error statistic   p.value
+##   &lt;chr&gt;                              &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+## 1 (Intercept)                       39.9     0.717        55.7 1.22e-187
+## 2 poly(horsepower, 1, raw = TRUE)   -0.158   0.00645     -24.5 7.03e- 81
+```
+
+## Bootstrapped standard errors
+
+
+```
+## # A tibble: 2 x 3
+##   term                            .estimate     .se
+##   &lt;chr&gt;                               &lt;dbl&gt;   &lt;dbl&gt;
+## 1 (Intercept)                        40.0   0.851  
+## 2 poly(horsepower, 1, raw = TRUE)    -0.158 0.00732
+```
+
+---
+
+# Estimating the accuracy of a linear regression model
+
+## "Standard" standard errors
+
+
+```
+## # A tibble: 3 x 5
+##   term                              estimate std.error statistic   p.value
+##   &lt;chr&gt;                                &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+## 1 (Intercept)                       56.9      1.80          31.6 1.74e-109
+## 2 poly(horsepower, 2, raw = TRUE)1  -0.466    0.0311       -15.0 2.29e- 40
+## 3 poly(horsepower, 2, raw = TRUE)2   0.00123  0.000122      10.1 2.20e- 21
+```
+
+## Bootstrapped standard errors
+
+
+```
+## # A tibble: 3 x 3
+##   term                              est.boot  se.boot
+##   &lt;chr&gt;                                &lt;dbl&gt;    &lt;dbl&gt;
+## 1 (Intercept)                       56.9     2.15    
+## 2 poly(horsepower, 2, raw = TRUE)1  -0.466   0.0343  
+## 3 poly(horsepower, 2, raw = TRUE)2   0.00123 0.000124
+```
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

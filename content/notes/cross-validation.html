@@ -388,7 +388,7 @@ titanic <span class="op">%&gt;%</span>
 ## AIC: 748.4
 ## 
 ## Number of Fisher Scoring iterations: 4</code></pre>
-<p>We can use the same validation set approach to evaluate the model’s accuracy. For classification models, instead of using MSE we examine the <strong>error rate</strong>. That is, of all the predictions generated for the test set, what percentage of predictions are incorrect? The goal is to minimize this value as much as possible (ideally, until we make no errors and our error rate is <span class="math inline">\(0\)</span>).</p>
+<p>We can use the same validation set approach to evaluate the model’s accuracy. For classification models, instead of using MSE we examine the <strong>error rate</strong>. That is, of all the predictions generated for the validation set, what percentage of predictions are incorrect? The goal is to minimize this value as much as possible (ideally, until we make no errors and our error rate is <span class="math inline">\(0\)</span>).</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># function to convert log-odds to probabilities</span>
 logit2prob &lt;-<span class="st"> </span><span class="cf">function</span>(x){
   <span class="kw">exp</span>(x) <span class="op">/</span><span class="st"> </span>(<span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="kw">exp</span>(x))
@@ -443,7 +443,7 @@ x_test_accuracy &lt;-<span class="st"> </span><span class="kw">augment</span>(tr
 <h2><span class="header-section-number">2.3</span> Drawbacks to validation sets</h2>
 <p>There are two main problems with validation sets:</p>
 <ol style="list-style-type: decimal">
-<li><p>Validation estimates of the test error rates can be highly variable depending on which observations are sampled into the training and test sets. See what happens if we repeat the sampling, estimation, and validation procedure for the <code>Auto</code> data set:</p>
+<li><p>Validation estimates of the test error rates can be highly variable depending on which observations are sampled into the training and validation sets. See what happens if we repeat the sampling, estimation, and validation procedure for the <code>Auto</code> data set:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mse_variable &lt;-<span class="st"> </span><span class="cf">function</span>(Auto){
   auto_split &lt;-<span class="st"> </span><span class="kw">initial_split</span>(Auto, <span class="dt">prop =</span> <span class="fl">0.5</span>)
   auto_train &lt;-<span class="st"> </span><span class="kw">training</span>(auto_split)
@@ -465,16 +465,16 @@ x_test_accuracy &lt;-<span class="st"> </span><span class="kw">augment</span>(tr
        <span class="dt">y =</span> <span class="st">&quot;Mean Squared Error&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/cross-validation_files/figure-html/auto_variable_mse-1.png" width="672" /></p>
-<p>Depending on the specific training/test split, our MSE varies by up to 5.</p></li>
+<p>Depending on the specific training/validation split, our MSE varies by up to 5.</p></li>
 <li><p>If you don’t have a large data set, you’ll have to dramatically shrink the size of your training set. Most statistical learning methods perform better with more observations - if you don’t have enough data in the training set, you might overestimate the error rate in the test set.</p></li>
 </ol>
 </div>
 </div>
 <div id="leave-one-out-cross-validation" class="section level1">
 <h1><span class="header-section-number">3</span> Leave-one-out cross-validation</h1>
-<p>An alternative method is <strong>leave-one-out cross validation</strong> (LOOCV). Like with the validation set approach, you split the data into two parts. However the difference is that you only remove one observation for the test set, and keep all remaining observations in the training set. The statistical learning method is fit on the <span class="math inline">\(N-1\)</span> training set. You then use the held-out observation to calculate the <span class="math inline">\(MSE = (Y_1 - \hat{Y}_1)^2\)</span> which should be an unbiased estimator of the test error. Because this MSE is highly dependent on which observation is held out, <strong>we repeat this process for every single observation in the data set</strong>. Mathematically, this looks like:</p>
+<p>An alternative method is <strong>leave-one-out cross validation</strong> (LOOCV). Like with the validation set approach, you split the data into two parts. However the difference is that you only remove one observation for the validation set, and keep all remaining observations in the training set. The statistical learning method is fit on the <span class="math inline">\(N-1\)</span> training set. You then use the held-out observation to calculate the <span class="math inline">\(MSE = (Y_1 - \hat{Y}_1)^2\)</span> which should be an unbiased estimator of the test error. Because this MSE is highly dependent on which observation is held out, <strong>we repeat this process for every single observation in the data set</strong>. Mathematically, this looks like:</p>
 <p><span class="math display">\[CV_{(N)} = \frac{1}{N} \sum_{i = 1}^{N}{MSE_i}\]</span></p>
-<p>This method produces estimates of the error rate that are approximately unbiased and are non-varying for a given dataset, unlike the validation set approach where the MSE estimate is highly dependent on the sampling process for training/test sets. However it can have high variance because the <span class="math inline">\(N\)</span> “training sets” are so similar to one another. LOOCV is also highly flexible and works with any kind of predictive modeling.</p>
+<p>This method produces estimates of the error rate that are approximately unbiased and are non-varying for a given dataset, unlike the validation set approach where the MSE estimate is highly dependent on the sampling process for training/validation sets. However it can have high variance because the <span class="math inline">\(N\)</span> “training sets” are so similar to one another. LOOCV is also highly flexible and works with any kind of predictive modeling.</p>
 <p>Of course the downside is that this method is computationally difficult. You have to estimate <span class="math inline">\(N\)</span> different models - if you have a large <span class="math inline">\(N\)</span> or each individual model takes a long time to compute, you may be stuck waiting a long time for the computer to finish its calculations.</p>
 <div id="loocv-in-linear-regression" class="section level2">
 <h2><span class="header-section-number">3.1</span> LOOCV in linear regression</h2>
@@ -526,7 +526,7 @@ first_resample</code></pre></div>
 <ol style="list-style-type: decimal">
 <li>Obtain the analysis data set (i.e. the <span class="math inline">\(N-1\)</span> training set)</li>
 <li>Fit a linear regression model</li>
-<li>Predict the test data (also known as the <strong>assessment</strong> data, the <span class="math inline">\(1\)</span> test set) using the <code>broom</code> package</li>
+<li>Predict the validation data (also known as the <strong>assessment</strong> data, the <span class="math inline">\(1\)</span> validation set) using the <code>broom</code> package</li>
 <li>Determine the MSE for each sample</li>
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">holdout_results &lt;-<span class="st"> </span><span class="cf">function</span>(splits) {
@@ -547,7 +547,7 @@ first_resample</code></pre></div>
 ##   .metric .estimator .estimate
 ##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
 ## 1 mse     standard     0.00355</code></pre>
-<p>To compute the MSE for each heldout observation (i.e. estimate the test MSE for each of the <span class="math inline">\(N\)</span> observations), we use the <code>map()</code> function from the <code>purrr</code> package to estimate the model for each training test, then calculate the MSE for each observation in each test set:</p>
+<p>To compute the MSE for each heldout observation (i.e. estimate the test MSE for each of the <span class="math inline">\(N\)</span> observations), we use the <code>map()</code> function from the <code>purrr</code> package to estimate the model for each training set, then calculate the MSE for each observation in each validation set:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">loocv_data_poly1 &lt;-<span class="st"> </span>loocv_data <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">results =</span> <span class="kw">map</span>(splits, holdout_results)) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">unnest</span>(results) <span class="op">%&gt;%</span>
@@ -775,13 +775,6 @@ titanic_cv10 &lt;-<span class="st"> </span><span class="kw">vfold_cv</span>(<spa
 <p>Ignoring the computational efficiency concerns, why not always estimate cross-validation with <span class="math inline">\(K=N\)</span>? Or more generally, what is the optimal value for <span class="math inline">\(K\)</span>? <strong>It depends.</strong> Well that is not very helpful.</p>
 <p>With more explanation, it depends on how we wish to handle the bias-variance tradeoff. LOOCV is a low-bias, high-variance method. That is, it provides unbiased estimates of the test error since each training set contains <span class="math inline">\(N-1\)</span> observations. This is almost as many observations as contained in the full data set. <span class="math inline">\(K\)</span>-fold CV for <span class="math inline">\(K=5\)</span> or <span class="math inline">\(10\)</span> leads to an intermediate amount of bias, since each training set contains <span class="math inline">\(\frac{(K-1)N}{K}\)</span> observations. This is fewer than LOOCV, but more than a standard validation set approach with just a single split into training and validation sets.</p>
 <p>The amount of bias is also driven by the size of the training set. The larger the training set, the less bias we should expect in our results because the model was fit to more data points. Consider a hypothetical learning curve for a classifier:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">200</span>),
-       <span class="dt">y =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> <span class="cf">function</span>(x) <span class="dt">y =</span> <span class="op">-</span><span class="st"> </span>(<span class="op">-</span><span class="fl">0.03342708</span><span class="op">/</span><span class="fl">0.04196558</span>) <span class="op">*</span><span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span><span class="kw">exp</span>(<span class="op">-</span><span class="fl">0.04196558</span> <span class="op">*</span><span class="st"> </span>x))) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Hypothetical learning curve for a classifier&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Size of training set&quot;</span>,
-       <span class="dt">y =</span> <span class="st">&quot;1 - Expected test error&quot;</span>)</code></pre></div>
 <p><img src="/notes/cross-validation_files/figure-html/hypo-class-1.png" width="672" /></p>
 <p>As the training set size increases, <span class="math inline">\(1 - \text{Expected test error}\)</span> increases as well with diminishing returns. With 200 observations, <span class="math inline">\(5\)</span>-fold cross-validation would use training sets of 160 observations, which is fairly similar to the full set. However with a dataset of 50, <span class="math inline">\(5\)</span>-fold cross-validation would use training sets of 40 observations which has more error. Therefore the larger the data set, the fewer folds you can implement.</p>
 <p>If all we care about is bias, we should prefer LOOCV. However, recall the contributors to a model’s error:</p>
@@ -795,7 +788,7 @@ titanic_cv10 &lt;-<span class="st"> </span><span class="kw">vfold_cv</span>(<spa
 <ul>
 <li>Stratified cross-validation - splitting the data into folds based on criteria such as ensuring each fold has the same proportion of observations with a given categorical value (such as the response class value). While random sampling should lead to approximately equal class balances, stratified sampling will ensure an equal balance across folds.</li>
 <li>Repeated cross-validation - this is where <span class="math inline">\(K\)</span>-fold CV is repeated <span class="math inline">\(N\)</span> times, where for each <span class="math inline">\(N\)</span> the data sample is shuffled prior to each repetition. This ensures a different split of the sample.</li>
-<li><p>Cross-validation with time series data - <span class="citation">Bergmeir and Benítez (<a href="#ref-bergmeir2012use">2012</a>)</span> evaluate multiple forms of cross-validation methods for time series models. For some types of models, standard cross-validation techniques can be employed without bias. In other situations, a standard approach is to partition the data temporally. For instance, if you have 10 years of observations for a given unit you may reserve the first 8 years for the training set and the last 2 years for the test set. Other forms of cross-validation use <strong>rolling test sets</strong> whereby one generates a series of test sets, each containing a single observation. The training set consists only of observations that occurred prior to the observation that forms the test set.</p>
+<li><p>Cross-validation with time series data - <span class="citation">Bergmeir and Benítez (<a href="#ref-bergmeir2012use">2012</a>)</span> evaluate multiple forms of cross-validation methods for time series models. For some types of models, standard cross-validation techniques can be employed without bias. In other situations, a standard approach is to partition the data temporally. For instance, if you have 10 years of observations for a given unit you may reserve the first 8 years for the training set and the last 2 years for the validation set. Other forms of cross-validation use <strong>rolling validation sets</strong> whereby one generates a series of validation sets, each containing a single observation. The training set consists only of observations that occurred prior to the observation that forms the validation set.</p>
 <div class="figure">
 <img src="https://robjhyndman.com/files/cv1-1.png" alt="From Cross-validation for time series" />
 <p class="caption">From <a href="https://robjhyndman.com/hyndsight/tscv/">Cross-validation for time series</a></p>
