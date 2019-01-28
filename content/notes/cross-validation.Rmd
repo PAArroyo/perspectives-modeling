@@ -97,8 +97,7 @@ summary(auto_lm)
 To estimate the MSE for a single partition (i.e. for a training or validation set):
 
 1. Use `broom::augment()` to generate predicted values for the data set
-1. Calculate the residuals and square each value
-1. Calculate the mean of all the squared residuals in the data set
+1. Calculate the MSE from the fitted values using `rcfss::mse()`.^[Note that most other metric functions can be found in the [`yardstick`](https://tidymodels.github.io/yardstick/) package. However `yardstick` only implements root mean squared error (RMSE), so I wrote a function in `rcfss` to calculate MSE. Otherwise you could just calculate RMSE and square the resulting value.]
 
 For the training set, this would look like:
 
@@ -106,8 +105,6 @@ For the training set, this would look like:
 (train_mse <- augment(auto_lm, newdata = auto_train) %>%
   mse(truth = mpg, estimate = .fitted))
 ```
-
-> Note the special use of the [`$%$` pipe operator from the `magrittr` package](http://r4ds.had.co.nz/pipes.html#other-tools-from-magrittr). This allows us to directly access columns from the data frame entering the pipe. This is especially useful for integrating non-tidy functions into a tidy operation.
 
 For the validation set:
 
@@ -124,23 +121,23 @@ ggplot(Auto, aes(horsepower, mpg)) +
   geom_point(alpha = .1) +
   geom_smooth(aes(color = "1"),
               method = "glm",
-              formula = y ~ poly(x, i = 1),
+              formula = y ~ poly(x, i = 1, raw = TRUE),
               se = FALSE) +
   geom_smooth(aes(color = "2"),
               method = "glm",
-              formula = y ~ poly(x, i = 2),
+              formula = y ~ poly(x, i = 2, raw = TRUE),
               se = FALSE) +
   geom_smooth(aes(color = "3"),
               method = "glm",
-              formula = y ~ poly(x, i = 3),
+              formula = y ~ poly(x, i = 3, raw = TRUE),
               se = FALSE) +
   geom_smooth(aes(color = "4"),
               method = "glm",
-              formula = y ~ poly(x, i = 4),
+              formula = y ~ poly(x, i = 4, raw = TRUE),
               se = FALSE) +
   geom_smooth(aes(color = "5"),
               method = "glm",
-              formula = y ~ poly(x, i = 5),
+              formula = y ~ poly(x, i = 5, raw = TRUE),
               se = FALSE) +
   scale_color_brewer(type = "qual", palette = "Dark2") +
   labs(x = "Horsepower",
@@ -224,7 +221,7 @@ x_test_accuracy <- augment(train_model, newdata = testing(titanic_split)) %>%
   mutate(.prob = logit2prob(.fitted),
          .pred = factor(round(.prob)))
 
-# calculate test error rate
+# calculate test accuracy rate
 accuracy(x_test_accuracy, truth = Survived, estimate = .pred)
 ```
 
@@ -236,7 +233,7 @@ There are two main problems with validation sets:
 
 1. Validation estimates of the test error rates can be highly variable depending on which observations are sampled into the training and test sets. See what happens if we repeat the sampling, estimation, and validation procedure for the `Auto` data set:
 
-    ```{r auto_variable_mse}
+    ```{r auto_variable_mse, dependson = "mse-poly"}
     mse_variable <- function(Auto){
       auto_split <- initial_split(Auto, prop = 0.5)
       auto_train <- training(auto_split)
@@ -265,11 +262,11 @@ There are two main problems with validation sets:
 
 # Leave-one-out cross-validation
 
-An alternative method is **leave-one-out cross validation** (LOOCV). Like with the validation set approach, you split the data into two parts. However the difference is that you only remove one observation for the test set, and keep all remaining observations in the training set. The statistical learning method is fit on the $N-1$ training set. You then use the held-out observation to calculate the $MSE = (y_1 - \hat{y}_1)^2$ which should be an unbiased estimator of the test error. Because this MSE is highly dependent on which observation is held out, **we repeat this process for every single observation in the data set**. Mathematically, this looks like:
+An alternative method is **leave-one-out cross validation** (LOOCV). Like with the validation set approach, you split the data into two parts. However the difference is that you only remove one observation for the test set, and keep all remaining observations in the training set. The statistical learning method is fit on the $N-1$ training set. You then use the held-out observation to calculate the $MSE = (Y_1 - \hat{Y}_1)^2$ which should be an unbiased estimator of the test error. Because this MSE is highly dependent on which observation is held out, **we repeat this process for every single observation in the data set**. Mathematically, this looks like:
 
 $$CV_{(N)} = \frac{1}{N} \sum_{i = 1}^{N}{MSE_i}$$
 
-This method produces estimates of the error rate that are approximately unbiased and are non-varying for a given dataset, unlike the validation set approach where the MSE estimate is highly dependent on the sampling process for training/test sets. However it can have have variance because the $N$ "training sets" are so similar to one another. LOOCV is also highly flexible and works with any kind of predictive modeling.
+This method produces estimates of the error rate that are approximately unbiased and are non-varying for a given dataset, unlike the validation set approach where the MSE estimate is highly dependent on the sampling process for training/test sets. However it can have high variance because the $N$ "training sets" are so similar to one another. LOOCV is also highly flexible and works with any kind of predictive modeling.
 
 Of course the downside is that this method is computationally difficult. You have to estimate $N$ different models - if you have a large $N$ or each individual model takes a long time to compute, you may be stuck waiting a long time for the computer to finish its calculations.
 
@@ -308,11 +305,8 @@ holdout_results <- function(splits) {
   # Fit the model to the N-1
   mod <- glm(mpg ~ horsepower, data = analysis(splits))
   
-  # Save the heldout observation
-  holdout <- assessment(splits)
-  
   # `augment` will save the predictions with the holdout data set
-  res <- augment(mod, newdata = holdout) %>%
+  res <- augment(mod, newdata = assessment(splits)) %>%
     # calculate the metric
     mse(truth = mpg, estimate = .fitted)
   
@@ -350,7 +344,7 @@ We can also use this method to compare the optimal number of polynomial terms as
 # modified function to estimate model with varying highest order polynomial
 holdout_results <- function(splits, i) {
   # Fit the model to the N-1
-  mod <- glm(mpg ~ poly(horsepower, i), data = analysis(splits))
+  mod <- glm(mpg ~ poly(horsepower, i, raw = TRUE), data = analysis(splits))
   
   # `augment` will save the predictions with the holdout data set
   res <- augment(mod, newdata = assessment(splits)) %>%
@@ -434,7 +428,7 @@ Let's go back to the `Auto` data set. Instead of LOOCV, let's use 10-fold CV to 
 # modified function to estimate model with varying highest order polynomial
 holdout_results <- function(splits, i) {
   # Fit the model to the training set
-  mod <- glm(mpg ~ poly(horsepower, i), data = analysis(splits))
+  mod <- glm(mpg ~ poly(horsepower, i, raw = TRUE), data = analysis(splits))
   
   # Save the heldout observations
   holdout <- assessment(splits)
@@ -478,6 +472,7 @@ tibble(terms = seq(from = 1, to = 5),
   gather(method, MSE, -terms) %>%
   ggplot(aes(terms, MSE, color = method)) +
   geom_line() +
+  scale_color_brewer(type = "qual") +
   labs(title = "MSE estimates",
        x = "Degree of Polynomial",
        y = "Mean Squared Error",
@@ -491,21 +486,19 @@ Pretty much the same results.
 ### LOOCV
 
 ```{r loocv_time}
-library(profvis)
+library(tictoc)
 
-profvis({
-  tibble(terms = seq(from = 1, to = 5),
-             mse_vfold = map_dbl(terms, poly_mse, auto_loocv))
-})
+tic()
+poly_mse(vfold_data = auto_loocv, i = 2)
+toc()
 ```
 
 ### 10-fold CV
 
 ```{r kfold_time}
-profvis({
-  tibble(terms = seq(from = 1, to = 5),
-             mse_vfold = map_dbl(terms, poly_mse, auto_cv10))
-})
+tic()
+poly_mse(vfold_data = auto_cv10, i = 2)
+toc()
 ```
 
 On my machine, 10-fold CV was about 40 times faster than LOOCV. Again, estimating $K=10$ models is going to be much easier than estimating $K=`r nrow(Auto)`$ models.
@@ -547,9 +540,23 @@ Not a large difference from the LOOCV approach, but it take much less time to co
 
 Ignoring the computational efficiency concerns, why not always estimate cross-validation with $K=N$? Or more generally, what is the optimal value for $K$? **It depends.** Well that is not very helpful.
 
-With more explanation, it depends on how we wish to handle the bias-variance tradeoff. LOOCV is a low-bias, high-variance method. That is, it provides unbiased estimates of the test error since each training set contains $N-1$ observations. This is almost as many observations as contained in the full data set. $K$-fold CV for $K=5$ or $10$ leads to an intermediate amount of bias, since each training set contains $\frac{(K-1)N}{K}$ observations. This is fewer than LOOCV, but more than a standard validation set approach with just a single split into training and validation sets. If all we care about is bias, we should prefer LOOCV.
+With more explanation, it depends on how we wish to handle the bias-variance tradeoff. LOOCV is a low-bias, high-variance method. That is, it provides unbiased estimates of the test error since each training set contains $N-1$ observations. This is almost as many observations as contained in the full data set. $K$-fold CV for $K=5$ or $10$ leads to an intermediate amount of bias, since each training set contains $\frac{(K-1)N}{K}$ observations. This is fewer than LOOCV, but more than a standard validation set approach with just a single split into training and validation sets.
 
-However, recall the contributors to a model's error:
+The amount of bias is also driven by the size of the training set. The larger the training set, the less bias we should expect in our results because the model was fit to more data points. Consider a hypothetical learning curve for a classifier:
+
+```{r hypo-class}
+tibble(x = c(0, 200),
+       y = c(0, 1)) %>%
+  ggplot(aes(x, y)) +
+  stat_function(fun = function(x) y = - (-0.03342708/0.04196558) * (1 - exp(-0.04196558 * x))) +
+  labs(title = "Hypothetical learning curve for a classifier",
+       x = "Size of training set",
+       y = "1 - Expected test error")
+```
+
+As the training set size increases, $1 - \text{Expected test error}$ increases as well with diminishing returns. With 200 observations, $5$-fold cross-validation would use training sets of 160 observations, which is fairly similar to the full set. However with a dataset of 50, $5$-fold cross-validation would use training sets of 40 observations which has more error. Therefore the larger the data set, the fewer folds you can implement.
+
+If all we care about is bias, we should prefer LOOCV. However, recall the contributors to a model's error:
 
 $$\text{Error} = \text{Irreducible Error} + \text{Bias}^2 + \text{Variance}$$
 
