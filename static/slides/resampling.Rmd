@@ -1,5 +1,5 @@
 ---
-title: "More Classification Methods"
+title: "Resampling methods"
 author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
 output:
   xaringan::moon_reader:
