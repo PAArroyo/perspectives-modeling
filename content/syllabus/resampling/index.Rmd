@@ -62,7 +62,8 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::include_url("/slides/resampling.html", height = "505px")
 ```
 
-* 
+* [Cross-validation](/notes/cross-validation/)
+* [Bootstrap](/notes/bootstrap)
 
 ### Additional readings
 
