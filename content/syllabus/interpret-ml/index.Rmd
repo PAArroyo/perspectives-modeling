@@ -47,7 +47,11 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Overview
 
-* 
+* Interpret regression results using marginal effects and `margins`
+* Distinguish between global and local interpretations of machine learning models
+* Define model agnostic metrics for global interpretations
+* Define model agnostic metrics for local interpretations
+* Implement metrics using `iml`/`scaler`, `DALEX`, and `lime`
 
 ## Before class
 
