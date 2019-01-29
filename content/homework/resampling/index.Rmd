@@ -1,0 +1,118 @@
+---
+title: "Homework 04: Resampling Methods"
+date: 2019-01-28T13:30:00-06:00  # Schedule page publish date
+
+draft: false
+type: post
+
+output:
+  blogdown::html_page:
+    number_sections: false
+
+summary: "Practice implementing resampling methods for regression and classification."
+---
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}}
+
+Due by 11:59pm February 4th.
+
+# Fork the `hw04` repository
+
+Go [here](https://github.com/css-model/hw04) to fork the repo for homework 04.
+
+# Submission format
+
+For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). Your repository should be split into 3 major documents:
+
+1. Responses to conceptual exercises
+1. Responses to Biden exercises
+1. Responses to voter turnout exercises
+
+Each document should be **reproducible**. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (`.ipynb`) or R Markdown (`.Rmd`) rendered as `pdf_document`.^[`html_document` cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in `.md` documents `r emo::ji("sad")`]
+
+# Conceptual exercises (4 points)
+
+**Repeated cross-validation** is a technique where $K$-fold cross-validation is repeated $N$ times, where for each $N$ the data sample is shuffled prior to each repetition. This ensures a different split of the sample. The end result is $K \times N$ estimated models, with the overall estimated test error calculated as the average of each fold's validation set error. How is this method distinguished from $K \times N$-fold cross-validation? That is, why not simply partition the dataset into $K \times N$-folds initially, then perform normal $K$-fold cross-validation?
+
+a. `nes2008.csv` contains a selection of variables from the [2008 American National Election Studies survey](http://www.electionstudies.org/) that allow you to test competing factors that may influence attitudes towards Joe Biden. Import the data file.
+a. Repeat the following process 100 times.
+    a. Fit a least squares regression model using the Biden data set (with `biden` as the response variable and all the other variables as predictors) using $100$-fold cross-validation
+    a. Estimate the test MSE
+a. Calculate the mean and standard deviation of the 100 estimated test MSEs from $100$-fold cross-validation. Graphically present the distribution of these values.
+a. Repeat the following process 100 times.
+    a. Fit a least squares regression model of the form $Y = X$ using $10$-fold cross-validation, repeated $10$ times
+    a. Estimate the test MSE
+a. Calculate the mean and standard deviation of the 100 estimated test MSEs from $10$-fold cross-validation, repeated $10$ times. Graphically present the distribution of these values.
+a. Distinguish the two procedures from one another and explain any differences.
+
+# Application exercises (6 points)
+
+## Biden redux
+
+![](https://s3.amazonaws.com/media.thecrimson.com/photos/2014/10/02/103651_1299339.jpg)
+
+[Joe Biden](https://en.wikipedia.org/wiki/Joe_Biden) was the 47th Vice President of the United States. He was the subject of [many memes](http://distractify.com/trending/2016/11/16/best-of-joe-and-obama-memes), [attracted the attention of Leslie Knope](https://www.youtube.com/watch?v=NvbMB_GGR6s), and [experienced a brief surge in attention due to photos from his youth](http://www.huffingtonpost.com/entry/joe-young-hot_us_58262f53e4b0c4b63b0c9e11).
+
+This sounds like a repeat, because it is. You previously estimated a series of linear regression models based on the Biden dataset. Now we will revisit that approach and implement resampling methods to validate our original findings.
+
+`nes2008.csv` contains a selection of variables from the [2008 American National Election Studies survey](http://www.electionstudies.org/) that allow you to test competing factors that may influence attitudes towards Joe Biden. The variables are coded as follows:
+
+* `biden` - feeling thermometer ranging from 0-100^[Feeling thermometers are a common metric in survey research used to gauge attitudes or feelings of warmth towards individuals and institutions. They range from 0-100, with 0 indicating extreme coldness and 100 indicating extreme warmth.]
+* `female` - 1 if respondent is female, 0 if respondent is male
+* `age` - age of respondent in years
+* `dem` - 1 if respondent is a Democrat, 0 otherwise
+* `rep` - 1 if respondent is a Republican, 0 otherwise
+* `educ` - number of years of formal education completed by respondent
+* `17` - 17+ years (aka first year of graduate school and up)
+
+For this exercise we consider the following functional form:
+
+$$Y = \beta_0 + \beta_{1}X_1 + \beta_{2}X_2 + \beta_{3}X_3 + \beta_{4}X_4 + \beta_{5}X_5 + \epsilon$$
+
+where $Y$ is the Joe Biden feeling thermometer, $X_1$ is age, $X_2$ is gender, $X_3$ is education, $X_4$ is Democrat, and $X_5$ is Republican.^[Independents must be left out to serve as the baseline category, otherwise we would encounter perfect multicollinearity.]
+
+1. Estimate the MSE of the model using the traditional approach. That is, fit the linear regression model using the entire dataset and calculate the mean squared error for the entire dataset.
+1. Estimate the test MSE of the model using the validation set approach.
+    * Split the sample set into a training set (70%) and a validation set (30%). **Be sure to set your seed prior to this part of your code to guarantee reproducibility of results.**
+    * Fit the linear regression model using only the training observations.
+    * Calculate the MSE using only the test set observations.
+    * How does this value compare to the training MSE from step 1?
+1. Repeat the validation set approach 1000 times, using 1000 different splits of the observations into a training set and a validation set. Comment on the results obtained.
+1. Estimate the test MSE of the model using the leave-one-out cross-validation (LOOCV) approach. Comment on the results obtained.
+1. Estimate the test MSE of the model using the $10$-fold cross-validation approach. Comment on the results obtained.
+1. Compare the estimated parameters and standard errors from the original model in step 1 (the model estimated using all of the available data) to parameters and standard errors estimated using the bootstrap ($B = 1000$).
+
+## Modeling voter turnout
+
+An important question in American politics is why do some people participate in the political process, while others do not? Participation has a direct impact on outcomes -- if you fail to participate in politics, the government and political officials are less likely to respond to your concerns. Typical explanations focus on a resource model of participation -- individuals with greater resources, such as time, money, and civic skills, are more likely to participate in politics. One area of importance is understanding voter turnout, or why people participate in elections. Using the resource model of participation as a guide, we can develop several expectations. First, women, who more frequently are the primary caregiver for children and earn a lower income, are less likely to participate in elections than men. Second, older Americans, who typically have more time and higher incomes available to participate in politics, should be more likely to participate in elections than younger Americans. Finally, individuals with more years of education, who are generally more interested in politics and understand the value and benefits of participating in politics, are more likely to participate in elections than individuals with fewer years of education.
+
+While these explanations have been repeatedly tested by political scientists, an emerging theory assesses an individual's mental health and its effect on political participation.^[[Ojeda, C. (2015). Depression and political participation. *Social Science Quarterly*, 96(5), 1226-1243.](http://onlinelibrary.wiley.com.proxy.uchicago.edu/doi/10.1111/ssqu.12173/abstract)] Depression increases individuals' feelings of hopelessness and political efficacy, so depressed individuals will have less desire to participate in politics. More importantly to our resource model of participation, individuals with depression suffer physical ailments such as a lack of energy, headaches, and muscle soreness which drain an individual's energy and requires time and money to receive treatment. For these reasons, we should expect that individuals with depression are less likely to participate in election than those without symptoms of depression.
+
+The 1998 General Social Survey included several questions about the respondent's mental health:
+
+* `vote96` - 1 if the respondent voted in the 1996 presidential election, 0 otherwise
+* `mhealth_sum` - index variable which assesses the respondent's mental health, ranging from 0 (an individual with no depressed mood) to 9 (an individual with the most severe depressed mood)^[The variable is an index which combines responses to four different questions: "In the past 30
+days, how often did you feel: 1) so sad nothing could cheer you up, 2) hopeless, 3) that everything was an effort, and 4) worthless?" Valid responses are none of the time, a little of the time, some of the time, most of the time, and all of the time.]
+* `age` - age of the respondent
+* `educ` - Number of years of formal education completed by the respondent
+* `black` - 1 if the respondent is black, 0 otherwise
+* `female` - 1 if the respondent is female, 0 if male
+* `married` - 1 if the respondent is currently married, 0 otherwise
+* `inc10` - Family income, in \$10,000s
+
+There are two data files for you to use:
+
+1. `mh_train.csv` contains a training set of observations
+1. `mh_test.csv` contains a test set of observations.
+
+You will estimate a series of statistical learning models with `vote96` as the response variable, using all available variables as predictors.
+
+1. Use $10$-fold cross-validation to partition the training set into training and validation sets.
+1. Fit the following statistical models using $10$-fold cross-validation:
+    a. Logistic regression
+    a. Linear discriminant analysis
+    a. Quadratic discriminant analysis
+    a. Naive Bayes - you can use the default hyperparameter settings
+    a. $K$-nearest neighbors with $K = 1,2,\dots,10$ (that is, 10 separate models varying $K$) and Euclidean distance metrics
+1. Evaluate each model's performance using the validation set. Select the best model based on the validation set performance and whatever metrics you feel are important (e.g. error rate, proportional reduction in error, ROC curve, area under the curve).
+1. Once you select the best model, calculate your final estimate of the test error rate using the test set. To do this, take your best model and re-fit it using the entire training set (i.e. no cross-validation). Then calculate your performance metrics using the original test set.
