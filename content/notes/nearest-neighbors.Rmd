@@ -22,10 +22,11 @@ knitr::opts_chunk$set(cache = TRUE)
 
 ```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
 library(tidyverse)
-library(broom)
+library(tidymodels)
 library(rsample)
 library(knitr)
 library(patchwork)
+library(magrittr)
 library(FNN)
 library(kknn)
 library(titanic)
@@ -323,7 +324,8 @@ The black line represents the true model, the blue line represents the linear re
 sim_test <- tibble(x = runif(100, -1,1),
                    y = 2 + x + rnorm(100, 0, .2))
 mse_lm <- lm(y ~ x, data = sim) %>%
-  mse(sim_test)
+  augment(newdata = sim_test) %>%
+  mse(truth = y, estimate = .fitted)
 
 mse_knn <- tibble(k = 1:10,
                   knn = map(k, ~ knn.reg(select(sim, x), y = sim$y,
@@ -333,7 +335,7 @@ mse_knn <- tibble(k = 1:10,
 ggplot(mse_knn, aes(k, mse)) +
   geom_line() +
   geom_point() +
-  geom_hline(yintercept = mse_lm, linetype = 2) +
+  geom_hline(yintercept = mse_lm$.estimate[[1]], linetype = 2) +
   labs(x = "K",
        y = "Test mean squared error") +
   expand_limits(y = 0)
@@ -370,7 +372,8 @@ sim_test <- tibble(x = runif(100, -1,1),
                    y = x_cube(x) + rnorm(100, 0, .2))
 
 mse_lm <- lm(y ~ x, data = sim) %>%
-  mse(sim_test)
+  augment(newdata = sim_test) %>%
+  mse(truth = y, estimate = .fitted)
 
 mse_knn <- tibble(k = 1:10,
                   knn = map(k, ~ knn.reg(select(sim, x), y = sim$y,
@@ -380,7 +383,7 @@ mse_knn <- tibble(k = 1:10,
 ggplot(mse_knn, aes(k, mse)) +
   geom_line() +
   geom_point() +
-  geom_hline(yintercept = mse_lm, linetype = 2) +
+  geom_hline(yintercept = mse_lm$.estimate[[1]], linetype = 2) +
   labs(x = "K",
        y = "Test mean squared error") +
   expand_limits(y = 0)
@@ -413,7 +416,9 @@ sim_pred_knn <- expand.grid(p = 1:6,
   as_tibble %>%
   mutate(lm = map(p, ~ lm(formula(str_c("y ~ ", str_c("x", seq.int(.), collapse = " + "))),
                           data = sim_nr)),
-         mse_lm = map_dbl(lm, ~ mse(., sim_nr_test)),
+         mse_lm = map_dbl(lm, ~ augment(.x, newdata = sim_nr_test) %>%
+                            mse(truth = y, estimate = .fitted) %$%
+                            mean(.estimate)),
          knn = map2(p, k, ~ knn.reg(select_(sim_nr, .dots = str_c("x", seq.int(.x))),
                                     y = sim_nr$y,
                                     test = select_(sim_nr_test, .dots = str_c("x", seq.int(.x))),
@@ -463,7 +468,8 @@ sim_test <- tibble(x = runif(100, -1,1),
                    y = x_cube(x) + rnorm(100, 0, .2))
 
 mse_lm <- lm(y ~ x, data = sim) %>%
-  mse(sim_test)
+  augment(newdata = sim_test) %>%
+  mse(truth = y, estimate = .fitted)
 
 mse_knn <- tibble(k = 1:10,
                   knn = map(k, ~ kknn(y ~ x, train = sim, test = sim_test, k = .)),
@@ -472,7 +478,7 @@ mse_knn <- tibble(k = 1:10,
 ggplot(mse_knn, aes(k, mse)) +
   geom_line() +
   geom_point() +
-  geom_hline(yintercept = mse_lm, linetype = 2) +
+  geom_hline(yintercept = mse_lm$.estimate[[1]], linetype = 2) +
   labs(x = "K",
        y = "Test mean squared error") +
   expand_limits(y = 0)
@@ -520,7 +526,8 @@ wage_test <- testing(wage_split)
 
 # estimate test MSE for LM and KNN models
 mse_lm <- lm(wage ~ educ + age + prestige, data = wage_train) %>%
-  mse(wage_test)
+  augment(newdata = wage_test) %>%
+  mse(truth = wage, estimate = .fitted)
 
 mse_knn <- tibble(k = c(1:10, seq(20, 100, by = 10)),
                   knn = map(k, ~ knn.reg(select(wage_train, -wage), y = wage_train$wage,
@@ -530,7 +537,7 @@ mse_knn <- tibble(k = c(1:10, seq(20, 100, by = 10)),
 ggplot(mse_knn, aes(k, mse)) +
   geom_line() +
   geom_point() +
-  geom_hline(yintercept = mse_lm, linetype = 2) +
+  geom_hline(yintercept = mse_lm$.estimate[[1]], linetype = 2) +
   labs(title = "KNN on simulated wage data",
        x = "K",
        y = "Test mean squared error") +
@@ -550,7 +557,8 @@ biden_test <- testing(biden_split)
 
 # estimate test MSE for LM and KNN models
 mse_lm <- lm(biden ~ ., data = biden_train) %>%
-  mse(biden_test)
+  augment(newdata = biden_test) %>%
+  mse(truth = biden, estimate = .fitted)
 
 mse_knn <- tibble(k = c(1:10, seq(20, 100, by = 10)),
                   knn = map(k, ~ knn.reg(select(biden_train, -biden), y = biden_train$biden,
@@ -560,7 +568,7 @@ mse_knn <- tibble(k = c(1:10, seq(20, 100, by = 10)),
 ggplot(mse_knn, aes(k, mse)) +
   geom_line() +
   geom_point() +
-  geom_hline(yintercept = mse_lm, linetype = 2) +
+  geom_hline(yintercept = mse_lm$.estimate[[1]], linetype = 2) +
   labs(title = "KNN for Biden",
        x = "K",
        y = "Test mean squared error") +
@@ -570,17 +578,20 @@ ggplot(mse_knn, aes(k, mse)) +
 ```{r biden-wknn, warning = FALSE}
 # estimate test MSE for LM and WKNN models
 mse_lm <- lm(biden ~ ., data = biden_train) %>%
-  mse(biden_test)
+  augment(newdata = biden_test) %>%
+  mse(truth = biden, estimate = .fitted)
 
-mse_knn <- tibble(k = c(1:10, seq(20, 100, by = 10)),
-                  knn = map(k, ~ kknn(biden ~ .,
-                                      train = biden_train, test = biden_test, k = .)),
-                  mse = map_dbl(knn, ~ mean((sim_test$y - .$fitted.values)^2)))
+mse_knn <- tibble(
+  k = c(1:10, seq(20, 100, by = 10)),
+  knn = map(k, ~ kknn(biden ~ .,
+                      train = biden_train, test = biden_test, k = .)),
+  mse = map_dbl(knn, ~ mean((biden_test$biden - .$fitted.values)^2))
+)
 
 ggplot(mse_knn, aes(k, mse)) +
   geom_line() +
   geom_point() +
-  geom_hline(yintercept = mse_lm, linetype = 2) +
+  geom_hline(yintercept = mse_lm$.estimate[[1]], linetype = 2) +
   labs(title = "Weighted KNN for Biden",
        x = "K",
        y = "Test mean squared error") +
@@ -772,7 +783,8 @@ ggplot(mse_knn, aes(k, mse_test)) +
 titanic <- titanic::titanic_train %>%
   as_tibble %>%
   select(-Name, -Ticket, -Cabin, -PassengerId, -Embarked) %>%
-  mutate(Female = ifelse(Sex == "female", 1, 0)) %>%
+  mutate(Female = ifelse(Sex == "female", 1, 0),
+         Survived = factor(Survived)) %>%
   select(-Sex) %>%
   na.omit
 
@@ -783,11 +795,15 @@ titanic_test <- testing(titanic_split)
 
 ```{r titanic-logit, dependson = "titanic-data"}
 titanic_logit <- glm(Survived ~ ., data = titanic_train, family = binomial)
-titanic_logit_mse <- mse.glm(titanic_logit, titanic_test)
+titanic_logit_error <- augment(titanic_logit, newdata = titanic_test) %>% 
+  as_tibble() %>%
+  mutate(.prob = logit2prob(.fitted),
+         .pred = factor(round(.prob))) %>%
+  accuracy(truth = Survived, estimate = .pred)
 ```
 
 ```{r titanic-knn-compare, dependson = c("bayes-class", "titanic-data"), warning = FALSE}
-# estimate test MSE for KNN models
+# estimate test error for KNN models
 mse_knn <- tibble(k = 1:100,
                   knn_train = map(k, ~ class::knn(select(titanic_train, -Survived),
                                                   test = select(titanic_train, -Survived),
@@ -795,12 +811,12 @@ mse_knn <- tibble(k = 1:100,
                   knn_test = map(k, ~ class::knn(select(titanic_train, -Survived),
                                                  test = select(titanic_test, -Survived),
                                                  cl = titanic_train$Survived, k = .)),
-                  mse_train = map_dbl(knn_train, ~ mean(titanic_test$Survived != .)),
-                  mse_test = map_dbl(knn_test, ~ mean(titanic_test$Survived != .)))
+                  err_train = map_dbl(knn_train, ~ mean(titanic_test$Survived != .)),
+                  err_test = map_dbl(knn_test, ~ mean(titanic_test$Survived != .)))
 
-ggplot(mse_knn, aes(k, mse_test)) +
+ggplot(mse_knn, aes(k, err_test)) +
   geom_line() +
-  geom_hline(yintercept = titanic_logit_mse, linetype = 2) +
+  geom_hline(yintercept = 1 - titanic_logit_error$.estimate[[1]], linetype = 2) +
   labs(x = "K",
        y = "Test error rate") +
   expand_limits(y = 0)
