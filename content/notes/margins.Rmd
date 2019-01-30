@@ -1,0 +1,114 @@
+---
+title: Marginal effects
+date: 2019-02-04T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Interpreting statistical models
+    weight: 1
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(tidymodels)
+library(margins)
+library(here)
+library(rcfss)
+
+set.seed(1234)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+
+# Statistical background
+
+Least squares regression and generalized linear models are dominant methods of statistical learning in the social sciences. Interpreting the results of least squares models is, generally speaking, straight-forward. The coefficients in a least squares model typically are interpreted as the expected change in the outcome of interest associated with a unit change in the independent variable(s).
+
+For simple applications in models of the form
+
+$$Y = \beta_0 + \beta_1 X_1 + \ldots \beta_p X_p + \epsilon$$
+
+this interpretation is readily calculated. Linear least squares models are generalized to alternative forms, such as non-linear relationships (e.g. polynomial terms) and [interaction terms](/notes/interaction-terms/), as well as generalized linear models like [logistic regression](/notes/logistic-regression/). Parameter estimates in these alternative forms cannot be readily interpreted without additional calculations and analysis.
+
+Substantive interpretations of regression estimates are one approach to simplifying these alternative model results to convey meaningful interpretations of the regression models. The **marginal effect** is one such form of interpretation. Marginal effects are the expected change in $Y$ associated with a unit change in $X$. Mathematically, this is calculated using a partial derivative:
+
+$$\frac{\partial Y}{\partial X}$$
+
+For a simple least squares model with a single independent variable $X_1$:
+
+$$
+\begin{align}
+Y &= \beta_0 + \beta_1 X_1 \\
+\frac{\partial Y}{\partial X_1} &= \beta_1
+\end{align}
+$$
+
+For a least squares model with two independent variables $X_1, X_2$:
+
+$$
+\begin{align}
+Y &= \beta_0 + \beta_1 X_1 + \beta_2 X_2 \\
+\frac{\partial Y}{\partial X_1} &= \beta_1 \\
+\frac{\partial Y}{\partial X_2} &= \beta_2 \\
+\end{align}
+$$
+
+In these first two examples, the marginal effect of $X_1, X_2$ is constant across observations in the dataset - the partial derivatives are constant values. These marginal effects are **unconditional**.
+
+Consider instead an interactive model with two independent variables $X_1, X_2$:
+
+$$
+\begin{aligned}
+Y &= \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 \\
+\frac{\partial Y}{\partial X_1} &= \beta_1 + \beta_3 X_2 \\
+\frac{\partial Y}{\partial X_2} &= \beta_2 + \beta_3 X_1
+\end{aligned}
+$$
+
+Or a least squares model with two independent variables $X_1, X_2$ and a polynomial term for $X_1$:
+
+$$
+\begin{aligned}
+Y &= \beta_0 + \beta_1 X_1 + \beta_2 X_1^2 + \beta_3 X_2 \\
+\frac{\partial Y}{\partial X_1} &= \beta_1 + 2\beta_2 X_1 \\
+\frac{\partial Y}{\partial X_2} &= \beta_3
+\end{aligned}
+$$
+
+These partial derivatives are no longer constants, therefore the marginal effects are **conditional** on the values of either $X_1$ and/or $X_2$. When marginal effects are conditional, we cannot directly interpret the estimated parameter of interest. Interpreting the results in terms of the marginal effects on the scale of the response variable (i.e. for logistic regression, discuss the model in terms of predicted probability rather than log-odds) will provide superior insight and clarity compared to direct interpretation of the regression parameters.
+
+# Types of marginal effects
+
+
+# Calculating marginal effects using `margins`
+
+
+## Least squares model
+
+
+## Generalized linear model
+
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* @james2013introduction
+* @friedman2001elements
