@@ -1,0 +1,446 @@
+---
+title: Marginal effects
+date: 2019-02-04T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Interpreting statistical models
+    weight: 1
+---
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+<div id="TOC">
+<ul>
+<li><a href="#statistical-background"><span class="toc-section-number">1</span> Statistical background</a></li>
+<li><a href="#types-of-marginal-effects"><span class="toc-section-number">2</span> Types of marginal effects</a></li>
+<li><a href="#calculating-marginal-effects-using-margins"><span class="toc-section-number">3</span> Calculating marginal effects using <code>margins</code></a><ul>
+<li><a href="#marginal-effects-plots"><span class="toc-section-number">3.1</span> Marginal effects plots</a></li>
+</ul></li>
+<li><a href="#session-info"><span class="toc-section-number">4</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">5</span> References</a></li>
+</ul>
+</div>
+
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse)
+<span class="kw">library</span>(tidymodels)
+<span class="kw">library</span>(margins)
+<span class="kw">library</span>(here)
+<span class="kw">library</span>(rcfss)
+
+<span class="kw">set.seed</span>(<span class="dv">1234</span>)
+<span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
+<div id="statistical-background" class="section level1">
+<h1><span class="header-section-number">1</span> Statistical background</h1>
+<p>Least squares regression and generalized linear models are dominant methods of statistical learning in the social sciences. Interpreting the results of least squares models is, generally speaking, straight-forward. The coefficients in a least squares model typically are interpreted as the expected change in the outcome of interest associated with a unit change in the independent variable(s).</p>
+<p>For simple applications in models of the form</p>
+<p><span class="math display">\[Y = \beta_0 + \beta_1 X_1 + \ldots \beta_p X_p + \epsilon\]</span></p>
+<p>this interpretation is readily calculated. Linear least squares models are generalized to alternative forms, such as non-linear relationships (e.g. polynomial terms) and <a href="/notes/interaction-terms/">interaction terms</a>, as well as generalized linear models like <a href="/notes/logistic-regression/">logistic regression</a>. Parameter estimates in these alternative forms cannot be readily interpreted without additional calculations and analysis.</p>
+<p>Substantive interpretations of regression estimates are one approach to simplifying these alternative model results to convey meaningful interpretations of the regression models. The <strong>marginal effect</strong> is one such form of interpretation. Marginal effects are the expected change in <span class="math inline">\(Y\)</span> associated with a unit change in <span class="math inline">\(X\)</span>. Mathematically, this is calculated using a partial derivative:</p>
+<p><span class="math display">\[\frac{\partial Y}{\partial X}\]</span></p>
+<p>For a simple least squares model with a single independent variable <span class="math inline">\(X_1\)</span>:</p>
+<p><span class="math display">\[
+\begin{align}
+Y &amp;= \beta_0 + \beta_1 X_1 \\
+\frac{\partial Y}{\partial X_1} &amp;= \beta_1
+\end{align}
+\]</span></p>
+<p>For a least squares model with two independent variables <span class="math inline">\(X_1, X_2\)</span>:</p>
+<p><span class="math display">\[
+\begin{align}
+Y &amp;= \beta_0 + \beta_1 X_1 + \beta_2 X_2 \\
+\frac{\partial Y}{\partial X_1} &amp;= \beta_1 \\
+\frac{\partial Y}{\partial X_2} &amp;= \beta_2 \\
+\end{align}
+\]</span></p>
+<p>In these first two examples, the marginal effect of <span class="math inline">\(X_1, X_2\)</span> is constant across observations in the dataset - the partial derivatives are constant values. These marginal effects are <strong>unconditional</strong>.</p>
+<p>Consider instead an interactive model with two independent variables <span class="math inline">\(X_1, X_2\)</span>:</p>
+<p><span class="math display">\[
+\begin{aligned}
+Y &amp;= \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 \\
+\frac{\partial Y}{\partial X_1} &amp;= \beta_1 + \beta_3 X_2 \\
+\frac{\partial Y}{\partial X_2} &amp;= \beta_2 + \beta_3 X_1
+\end{aligned}
+\]</span></p>
+<p>Or a least squares model with two independent variables <span class="math inline">\(X_1, X_2\)</span> and a polynomial term for <span class="math inline">\(X_1\)</span>:</p>
+<p><span class="math display">\[
+\begin{aligned}
+Y &amp;= \beta_0 + \beta_1 X_1 + \beta_2 X_1^2 + \beta_3 X_2 \\
+\frac{\partial Y}{\partial X_1} &amp;= \beta_1 + 2\beta_2 X_1 \\
+\frac{\partial Y}{\partial X_2} &amp;= \beta_3
+\end{aligned}
+\]</span></p>
+<p>These partial derivatives are no longer constants, therefore the marginal effects are <strong>conditional</strong> on the values of either <span class="math inline">\(X_1\)</span> and/or <span class="math inline">\(X_2\)</span>. When marginal effects are conditional, we cannot directly interpret the estimated parameter of interest. Interpreting the results in terms of the marginal effects on the scale of the response variable (i.e. for logistic regression, discuss the model in terms of predicted probability rather than log-odds) will provide superior insight and clarity compared to direct interpretation of the regression parameters.</p>
+</div>
+<div id="types-of-marginal-effects" class="section level1">
+<h1><span class="header-section-number">2</span> Types of marginal effects</h1>
+<p>Marginal effects are calculated from the partial derivatives of the fitted regression model. There are three potential quantities of interest we can calculate using this method:</p>
+<ol style="list-style-type: decimal">
+<li>Marginal effects at representative values (MERs) - the marginal effect of each variable at a particular combination of <span class="math inline">\(X\)</span> values that is theoretically interesting</li>
+<li>Marginal effects at means (MEMs) - the marginal effects of each variable at the means of the covariates</li>
+<li>Average marginal effects (AMEs) - the marginal effects at every observed value of <span class="math inline">\(X\)</span>, averaged across the resulting effect estimates</li>
+</ol>
+<p>AMEs produce a single quantity summary that reflects the full distribution of <span class="math inline">\(X\)</span> as observed in the sample. Together with MERs, AMEs have the potential to convey a considerable amount of information about the influence of each covariate on the outcome. Because AMEs average across the variability in the fitted outcomes, they can also capture variability better than MEMs. While MERs provide a means to understand and communicate model estimates at theoretically important combinations of covariate values, AMEs provide a natural summary measure that respects both the distribution of the original data and does not rely on summarizing a substantively unobserved or unobservable <span class="math inline">\(X\)</span> value (as in MEMs).</p>
+</div>
+<div id="calculating-marginal-effects-using-margins" class="section level1">
+<h1><span class="header-section-number">3</span> Calculating marginal effects using <code>margins</code></h1>
+<p>The <a href="https://cran.r-project.org/web/packages/margins/"><code>margins</code></a> package for R is an open-source port of the <code>margins</code> command in Stata.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<p>Here we use the <code>mtcars</code> dataset to estimate a linear regression model, explaining a vehicle’s fuel efficiency (<code>mpg</code>) as a function of a vehicle’s weight (<code>wt</code>) and the interaction between number of clyinders (<code>cyl</code>) and horsepower (<code>hp</code>).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(x &lt;-<span class="st"> </span><span class="kw">lm</span>(mpg <span class="op">~</span><span class="st"> </span>cyl <span class="op">*</span><span class="st"> </span>hp <span class="op">+</span><span class="st"> </span>wt, <span class="dt">data =</span> mtcars))</code></pre></div>
+<pre><code>## 
+## Call:
+## lm(formula = mpg ~ cyl * hp + wt, data = mtcars)
+## 
+## Coefficients:
+## (Intercept)          cyl           hp           wt       cyl:hp  
+##    52.01752     -2.74213     -0.16359     -3.11981      0.01895</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(m &lt;-<span class="st"> </span><span class="kw">margins</span>(x))</code></pre></div>
+<pre><code>## Average marginal effects</code></pre>
+<pre><code>## lm(formula = mpg ~ cyl * hp + wt, data = mtcars)</code></pre>
+<pre><code>##      cyl       hp    wt
+##  0.03814 -0.04632 -3.12</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(m)</code></pre></div>
+<pre><code>##  factor     AME     SE       z      p   lower   upper
+##     cyl  0.0381 0.5999  0.0636 0.9493 -1.1376  1.2139
+##      hp -0.0463 0.0145 -3.1909 0.0014 -0.0748 -0.0179
+##      wt -3.1198 0.6613 -4.7176 0.0000 -4.4160 -1.8236</code></pre>
+<p>By default, <code>margins()</code> returns the AME for each variable. Notice that for <code>wt</code>, the AME is identical to the estimated parameter since it is an unconditional marginal effect. For <code>cyl</code> and <code>hp</code>, the AME is the average marginal effect across all the observations in the dataset.</p>
+<p>In an ordinary least squares regression, there is really only one way of examining marginal effects (that is, on the scale of the outcome variable). In a generalized linear model (e.g., logit), however, it is possible to examine true “marginal effects” (i.e., the marginal contribution of each variable on the scale of the linear predictor) or “partial effects” (i.e., the contribution of each variable on the outcome scale, conditional on the other variables involved in the link function transformation of the linear predictor). The latter are the default in <code>margins()</code>, which implicitly sets the argument <code>margins(x, type = &quot;response&quot;)</code> and passes that through to <code>prediction()</code> methods. To obtain the former, simply set <code>margins(x, type = &quot;link&quot;)</code>. There’s some debate about which of these is preferred and even what to call the two different quantities of interest. Regardless of all of that, here’s how you obtain either:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">glm</span>(am <span class="op">~</span><span class="st"> </span>cyl <span class="op">+</span><span class="st"> </span>hp <span class="op">*</span><span class="st"> </span>wt, <span class="dt">data =</span> mtcars, <span class="dt">family =</span> binomial)</code></pre></div>
+<pre><code>## Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(x, <span class="dt">type =</span> <span class="st">&quot;response&quot;</span>) <span class="co"># the default</span></code></pre></div>
+<pre><code>## Average marginal effects</code></pre>
+<pre><code>## glm(formula = am ~ cyl + hp * wt, family = binomial, data = mtcars)</code></pre>
+<pre><code>##      cyl       hp      wt
+##  0.02156 0.002667 -0.5158</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(x, <span class="dt">type =</span> <span class="st">&quot;link&quot;</span>)</code></pre></div>
+<pre><code>## Average marginal effects
+## glm(formula = am ~ cyl + hp * wt, family = binomial, data = mtcars)</code></pre>
+<pre><code>##     cyl      hp     wt
+##  0.5156 0.05151 -12.24</code></pre>
+<p>To calculate MERs and MEMs, we use the <code>at</code> argument. As an example, if we wanted to know if the marginal effect of horsepower (<code>hp</code>) on fuel economy differed across different types of automobile transmissions, we could simply use <code>at</code> to obtain separate marginal effect estimates for our data as if every car observation were a manual versus if every car observation were an automatic. The output of <code>margins()</code> is a simplified summary of the estimated marginal effects across the requested variable levels/combinations specified in <code>at</code>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">lm</span>(mpg <span class="op">~</span><span class="st"> </span>cyl <span class="op">+</span><span class="st"> </span>wt <span class="op">+</span><span class="st"> </span>hp <span class="op">*</span><span class="st"> </span>am, <span class="dt">data =</span> mtcars)
+<span class="kw">margins</span>(x, <span class="dt">at =</span> <span class="kw">list</span>(<span class="dt">am =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">1</span>))</code></pre></div>
+<pre><code>## Average marginal effects at specified values</code></pre>
+<pre><code>## lm(formula = mpg ~ cyl + wt + hp * am, data = mtcars)</code></pre>
+<pre><code>##  at(am)     cyl     wt        hp    am
+##       0 -0.9339 -2.812 -0.008945 1.034
+##       1 -0.9339 -2.812 -0.026392 1.034</code></pre>
+<p>Because of the <code>hp * am</code> interaction in the regression, the marginal effect of horsepower differs between the two sets of results. We can also specify more than one variable to <code>at</code>, creating a potentially long list of marginal effects results. For example, we can produce marginal effects at both levels of <code>am</code> and the values from the five-number summary (minimum, Q1, median, Q3, and maximum) of observed values of <code>hp</code>. This produces 2 * 5 = 10 sets of marginal effects estimates:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(x, <span class="dt">at =</span> <span class="kw">list</span>(<span class="dt">am =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">1</span>, <span class="dt">hp =</span> <span class="kw">fivenum</span>(mtcars<span class="op">$</span>hp)))</code></pre></div>
+<pre><code>## Average marginal effects at specified values</code></pre>
+<pre><code>## lm(formula = mpg ~ cyl + wt + hp * am, data = mtcars)</code></pre>
+<pre><code>##  at(am) at(hp)     cyl     wt        hp      am
+##       0     52 -0.9339 -2.812 -0.008945  2.6864
+##       1     52 -0.9339 -2.812 -0.026392  2.6864
+##       0     96 -0.9339 -2.812 -0.008945  1.9188
+##       1     96 -0.9339 -2.812 -0.026392  1.9188
+##       0    123 -0.9339 -2.812 -0.008945  1.4477
+##       1    123 -0.9339 -2.812 -0.026392  1.4477
+##       0    180 -0.9339 -2.812 -0.008945  0.4533
+##       1    180 -0.9339 -2.812 -0.026392  0.4533
+##       0    335 -0.9339 -2.812 -0.008945 -2.2509
+##       1    335 -0.9339 -2.812 -0.026392 -2.2509</code></pre>
+<p>Because this is a linear model, the marginal effects of <code>cyl</code> and <code>wt</code> do not vary across levels of <code>am</code> or <code>hp</code>. The minimum and Q1 value of <code>hp</code> are also the same, so the marginal effects of <code>am</code> are the same in the first two results. As you can see, however, the marginal effect of <code>hp</code> differs when <code>am == 0</code> versus <code>am == 1</code> (first and second rows) and the marginal effect of <code>am</code> differs across levels of <code>hp</code> (e.g., between the first and third rows). As should be clear, the <code>at</code> argument is incredibly useful for getting a better grasp of the marginal effects of different covariates.</p>
+<p>This becomes especially apparent when a model includes power-terms (or any other alternative functional form of a covariate). Consider, for example, the simple model of fuel economy as a function of weight, with weight included as both a first- and second-order term:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">lm</span>(mpg <span class="op">~</span><span class="st"> </span>wt <span class="op">+</span><span class="st"> </span><span class="kw">I</span>(wt<span class="op">^</span><span class="dv">2</span>), <span class="dt">data =</span> mtcars)
+<span class="kw">summary</span>(x)</code></pre></div>
+<pre><code>## 
+## Call:
+## lm(formula = mpg ~ wt + I(wt^2), data = mtcars)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -3.483 -1.998 -0.773  1.462  6.238 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  49.9308     4.2113  11.856 1.21e-12 ***
+## wt          -13.3803     2.5140  -5.322 1.04e-05 ***
+## I(wt^2)       1.1711     0.3594   3.258  0.00286 ** 
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 2.651 on 29 degrees of freedom
+## Multiple R-squared:  0.8191, Adjusted R-squared:  0.8066 
+## F-statistic: 65.64 on 2 and 29 DF,  p-value: 1.715e-11</code></pre>
+<p>Looking only at the regression results table, it is actually quite difficult to understand the effect of <code>wt</code> on fuel economy because it requires performing mental multiplication and addition on all possible values of <code>wt</code>. Using the <code>at</code> option to margins, you could quickly obtain a sense of the average marginal effect of <code>wt</code> at a range of plausible values:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(x, <span class="dt">at =</span> <span class="kw">list</span>(<span class="dt">wt =</span> <span class="kw">fivenum</span>(mtcars<span class="op">$</span>wt)))</code></pre></div>
+<pre><code>## Average marginal effects at specified values</code></pre>
+<pre><code>## lm(formula = mpg ~ wt + I(wt^2), data = mtcars)</code></pre>
+<pre><code>##  at(wt)      wt
+##   1.513 -9.8366
+##   2.542 -7.4254
+##   3.325 -5.5926
+##   3.650 -4.8314
+##   5.424 -0.6764</code></pre>
+<p>The marginal effects in the first column of results reveal that the average marginal effect of <code>wt</code> is large and negative except when <code>wt</code> is very large, in which case it has an effect not distinguishable from zero. We can easily plot these results using the <code>cplot()</code> function to see the effect visually in terms of either predicted fuel economy or the marginal effect of <code>wt</code>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">cplot</span>(x, <span class="st">&quot;wt&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> lower), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Predicted fuel economy&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Weight (1000 lbs)&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Predicted value&quot;</span>)</code></pre></div>
+<pre><code>##       xvals    yvals    upper    lower
+## 1  1.513000 32.36718 35.03500 29.69936
+## 2  1.675958 30.79531 33.07715 28.51348
+## 3  1.838917 29.28565 31.23015 27.34115
+## 4  2.001875 27.83818 29.49769 26.17868
+## 5  2.164833 26.45291 27.88384 25.02199
+## 6  2.327792 25.12984 26.39172 23.86796
+## 7  2.490750 23.86897 25.02106 22.71687
+## 8  2.653708 22.67029 23.76564 21.57494
+## 9  2.816667 21.53381 22.61340 20.45422
+## 10 2.979625 20.45953 21.54975 19.36930
+## 11 3.142583 19.44744 20.56171 18.33318
+## 12 3.305542 18.49755 19.64011 17.35500
+## 13 3.468500 17.60986 18.78010 16.43963
+## 14 3.631458 16.78437 17.98078 15.58796
+## 15 3.794417 16.02108 17.24475 14.79740
+## 16 3.957375 15.31998 16.57774 14.06221
+## 17 4.120333 14.68108 15.98801 13.37414
+## 18 4.283292 14.10437 15.48533 12.72342
+## 19 4.446250 13.58987 15.07937 12.10037
+## 20 4.609208 13.13756 14.77796 11.49716</code></pre>
+<p><img src="/notes/margins_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">cplot</span>(x, <span class="st">&quot;wt&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;effect&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> lower), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;AME of weight&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Weight (1000 lbs)&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;AME of weight&quot;</span>)</code></pre></div>
+<p><img src="/notes/margins_files/figure-html/unnamed-chunk-6-2.png" width="672" /></p>
+<div id="marginal-effects-plots" class="section level2">
+<h2><span class="header-section-number">3.1</span> Marginal effects plots</h2>
+</div>
+</div>
+<div id="session-info" class="section level1 toc-ignore">
+<h1><span class="header-section-number">4</span> Session Info</h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
+<pre><code>## ─ Session info ──────────────────────────────────────────────────────────
+##  setting  value                       
+##  version  R version 3.5.2 (2018-12-20)
+##  os       macOS Mojave 10.14.2        
+##  system   x86_64, darwin15.6.0        
+##  ui       X11                         
+##  language (EN)                        
+##  collate  en_US.UTF-8                 
+##  ctype    en_US.UTF-8                 
+##  tz       America/Chicago             
+##  date     2019-01-31                  
+## 
+## ─ Packages ──────────────────────────────────────────────────────────────
+##  package       * version    date       lib source        
+##  assertthat      0.2.0      2017-04-11 [2] CRAN (R 3.5.0)
+##  backports       1.1.3      2018-12-14 [2] CRAN (R 3.5.0)
+##  base64enc       0.1-3      2015-07-28 [2] CRAN (R 3.5.0)
+##  bayesplot       1.6.0      2018-08-02 [2] CRAN (R 3.5.0)
+##  bindr           0.1.1      2018-03-13 [2] CRAN (R 3.5.0)
+##  bindrcpp        0.2.2      2018-03-29 [1] CRAN (R 3.5.0)
+##  blogdown        0.10       2019-01-09 [1] CRAN (R 3.5.2)
+##  bookdown        0.9        2018-12-21 [1] CRAN (R 3.5.0)
+##  broom         * 0.5.1      2018-12-05 [2] CRAN (R 3.5.0)
+##  callr           3.1.1      2018-12-21 [2] CRAN (R 3.5.0)
+##  cellranger      1.1.0      2016-07-27 [2] CRAN (R 3.5.0)
+##  class           7.3-15     2019-01-01 [2] CRAN (R 3.5.2)
+##  cli             1.0.1      2018-09-25 [1] CRAN (R 3.5.0)
+##  codetools       0.2-16     2018-12-24 [2] CRAN (R 3.5.2)
+##  colorspace      1.4-0      2019-01-13 [2] CRAN (R 3.5.2)
+##  colourpicker    1.0        2017-09-27 [2] CRAN (R 3.5.0)
+##  crayon          1.3.4      2017-09-16 [2] CRAN (R 3.5.0)
+##  crosstalk       1.0.0      2016-12-21 [2] CRAN (R 3.5.0)
+##  data.table      1.12.0     2019-01-13 [2] CRAN (R 3.5.2)
+##  desc            1.2.0      2018-05-01 [2] CRAN (R 3.5.0)
+##  devtools        2.0.1      2018-10-26 [1] CRAN (R 3.5.1)
+##  dials         * 0.0.2      2018-12-09 [1] CRAN (R 3.5.0)
+##  digest          0.6.18     2018-10-10 [1] CRAN (R 3.5.0)
+##  dplyr         * 0.7.8      2018-11-10 [1] CRAN (R 3.5.0)
+##  DT              0.5        2018-11-05 [2] CRAN (R 3.5.0)
+##  dygraphs        1.1.1.6    2018-07-11 [2] CRAN (R 3.5.0)
+##  evaluate        0.12       2018-10-09 [2] CRAN (R 3.5.0)
+##  forcats       * 0.3.0      2018-02-19 [2] CRAN (R 3.5.0)
+##  fs              1.2.6      2018-08-23 [1] CRAN (R 3.5.0)
+##  generics        0.0.2      2018-11-29 [1] CRAN (R 3.5.0)
+##  ggplot2       * 3.1.0      2018-10-25 [1] CRAN (R 3.5.0)
+##  ggridges        0.5.1      2018-09-27 [2] CRAN (R 3.5.0)
+##  glue            1.3.0      2018-07-17 [2] CRAN (R 3.5.0)
+##  gower           0.1.2      2017-02-23 [2] CRAN (R 3.5.0)
+##  gridExtra       2.3        2017-09-09 [2] CRAN (R 3.5.0)
+##  gtable          0.2.0      2016-02-26 [2] CRAN (R 3.5.0)
+##  gtools          3.8.1      2018-06-26 [2] CRAN (R 3.5.0)
+##  haven           2.0.0      2018-11-22 [2] CRAN (R 3.5.0)
+##  here          * 0.1        2017-05-28 [2] CRAN (R 3.5.0)
+##  hms             0.4.2      2018-03-10 [2] CRAN (R 3.5.0)
+##  htmltools       0.3.6      2017-04-28 [1] CRAN (R 3.5.0)
+##  htmlwidgets     1.3        2018-09-30 [2] CRAN (R 3.5.0)
+##  httpuv          1.4.5.1    2018-12-18 [2] CRAN (R 3.5.0)
+##  httr            1.4.0      2018-12-11 [2] CRAN (R 3.5.0)
+##  igraph          1.2.2      2018-07-27 [2] CRAN (R 3.5.0)
+##  infer         * 0.4.0      2018-11-15 [1] CRAN (R 3.5.0)
+##  inline          0.3.15     2018-05-18 [2] CRAN (R 3.5.0)
+##  ipred           0.9-8      2018-11-05 [1] CRAN (R 3.5.0)
+##  janeaustenr     0.1.5      2017-06-10 [2] CRAN (R 3.5.0)
+##  jsonlite        1.6        2018-12-07 [2] CRAN (R 3.5.0)
+##  knitr           1.21       2018-12-10 [2] CRAN (R 3.5.1)
+##  labeling        0.3        2014-08-23 [2] CRAN (R 3.5.0)
+##  later           0.7.5      2018-09-18 [2] CRAN (R 3.5.0)
+##  lattice         0.20-38    2018-11-04 [2] CRAN (R 3.5.2)
+##  lava            1.6.4      2018-11-25 [2] CRAN (R 3.5.0)
+##  lazyeval        0.2.1      2017-10-29 [2] CRAN (R 3.5.0)
+##  lme4            1.1-19     2018-11-10 [2] CRAN (R 3.5.0)
+##  loo             2.0.0      2018-04-11 [2] CRAN (R 3.5.0)
+##  lubridate       1.7.4      2018-04-11 [2] CRAN (R 3.5.0)
+##  magrittr        1.5        2014-11-22 [2] CRAN (R 3.5.0)
+##  margins       * 0.3.23     2018-05-22 [2] CRAN (R 3.5.0)
+##  markdown        0.9        2018-12-07 [2] CRAN (R 3.5.0)
+##  MASS            7.3-51.1   2018-11-01 [2] CRAN (R 3.5.2)
+##  Matrix          1.2-15     2018-11-01 [2] CRAN (R 3.5.2)
+##  matrixStats     0.54.0     2018-07-23 [2] CRAN (R 3.5.0)
+##  memoise         1.1.0      2017-04-21 [2] CRAN (R 3.5.0)
+##  mime            0.6        2018-10-05 [1] CRAN (R 3.5.0)
+##  miniUI          0.1.1.1    2018-05-18 [2] CRAN (R 3.5.0)
+##  minqa           1.2.4      2014-10-09 [2] CRAN (R 3.5.0)
+##  modelr          0.1.2      2018-05-11 [2] CRAN (R 3.5.0)
+##  munsell         0.5.0      2018-06-12 [2] CRAN (R 3.5.0)
+##  nlme            3.1-137    2018-04-07 [2] CRAN (R 3.5.2)
+##  nloptr          1.2.1      2018-10-03 [2] CRAN (R 3.5.0)
+##  nnet            7.3-12     2016-02-02 [2] CRAN (R 3.5.2)
+##  parsnip       * 0.0.1      2018-11-12 [1] CRAN (R 3.5.1)
+##  pillar          1.3.1      2018-12-15 [2] CRAN (R 3.5.0)
+##  pkgbuild        1.0.2      2018-10-16 [1] CRAN (R 3.5.0)
+##  pkgconfig       2.0.2      2018-08-16 [2] CRAN (R 3.5.1)
+##  pkgload         1.0.2      2018-10-29 [1] CRAN (R 3.5.0)
+##  plyr            1.8.4      2016-06-08 [2] CRAN (R 3.5.0)
+##  prediction      0.3.6.1    2018-12-04 [2] CRAN (R 3.5.0)
+##  prettyunits     1.0.2      2015-07-13 [2] CRAN (R 3.5.0)
+##  pROC            1.13.0     2018-09-24 [1] CRAN (R 3.5.0)
+##  processx        3.2.1      2018-12-05 [2] CRAN (R 3.5.0)
+##  prodlim         2018.04.18 2018-04-18 [2] CRAN (R 3.5.0)
+##  promises        1.0.1      2018-04-13 [2] CRAN (R 3.5.0)
+##  ps              1.3.0      2018-12-21 [2] CRAN (R 3.5.0)
+##  purrr         * 0.3.0      2019-01-27 [2] CRAN (R 3.5.2)
+##  R6              2.3.0      2018-10-04 [1] CRAN (R 3.5.0)
+##  rcfss         * 0.1.5      2019-01-24 [1] local         
+##  Rcpp            1.0.0      2018-11-07 [1] CRAN (R 3.5.0)
+##  readr         * 1.3.1      2018-12-21 [2] CRAN (R 3.5.0)
+##  readxl          1.2.0      2018-12-19 [2] CRAN (R 3.5.0)
+##  recipes       * 0.1.4      2018-11-19 [1] CRAN (R 3.5.0)
+##  remotes         2.0.2      2018-10-30 [1] CRAN (R 3.5.0)
+##  reshape2        1.4.3      2017-12-11 [2] CRAN (R 3.5.0)
+##  rlang           0.3.1      2019-01-08 [1] CRAN (R 3.5.2)
+##  rmarkdown       1.11       2018-12-08 [2] CRAN (R 3.5.0)
+##  rpart           4.1-13     2018-02-23 [1] CRAN (R 3.5.0)
+##  rprojroot       1.3-2      2018-01-03 [2] CRAN (R 3.5.0)
+##  rsample       * 0.0.4      2019-01-07 [1] CRAN (R 3.5.2)
+##  rsconnect       0.8.13     2019-01-10 [2] CRAN (R 3.5.2)
+##  rstan           2.18.2     2018-11-07 [2] CRAN (R 3.5.0)
+##  rstanarm        2.18.2     2018-11-10 [2] CRAN (R 3.5.0)
+##  rstantools      1.5.1      2018-08-22 [2] CRAN (R 3.5.0)
+##  rstudioapi      0.9.0      2019-01-09 [1] CRAN (R 3.5.2)
+##  rvest           0.3.2      2016-06-17 [2] CRAN (R 3.5.0)
+##  scales        * 1.0.0      2018-08-09 [1] CRAN (R 3.5.0)
+##  sessioninfo     1.1.1      2018-11-05 [1] CRAN (R 3.5.0)
+##  shiny           1.2.0      2018-11-02 [2] CRAN (R 3.5.0)
+##  shinyjs         1.0        2018-01-08 [2] CRAN (R 3.5.0)
+##  shinystan       2.5.0      2018-05-01 [2] CRAN (R 3.5.0)
+##  shinythemes     1.1.2      2018-11-06 [2] CRAN (R 3.5.0)
+##  SnowballC       0.6.0      2019-01-15 [2] CRAN (R 3.5.2)
+##  StanHeaders     2.18.0-1   2018-12-13 [2] CRAN (R 3.5.0)
+##  stringi         1.2.4      2018-07-20 [2] CRAN (R 3.5.0)
+##  stringr       * 1.3.1      2018-05-10 [2] CRAN (R 3.5.0)
+##  survival        2.43-3     2018-11-26 [2] CRAN (R 3.5.2)
+##  testthat        2.0.1      2018-10-13 [2] CRAN (R 3.5.0)
+##  threejs         0.3.1      2017-08-13 [2] CRAN (R 3.5.0)
+##  tibble        * 2.0.1      2019-01-12 [2] CRAN (R 3.5.2)
+##  tidymodels    * 0.0.2      2018-11-27 [1] CRAN (R 3.5.1)
+##  tidyposterior   0.0.2      2018-11-15 [1] CRAN (R 3.5.0)
+##  tidypredict     0.3.0      2019-01-10 [1] CRAN (R 3.5.2)
+##  tidyr         * 0.8.2      2018-10-28 [2] CRAN (R 3.5.0)
+##  tidyselect      0.2.5      2018-10-11 [1] CRAN (R 3.5.0)
+##  tidytext        0.2.0      2018-10-17 [1] CRAN (R 3.5.0)
+##  tidyverse     * 1.2.1      2017-11-14 [2] CRAN (R 3.5.0)
+##  timeDate        3043.102   2018-02-21 [2] CRAN (R 3.5.0)
+##  tokenizers      0.2.1      2018-03-29 [2] CRAN (R 3.5.0)
+##  usethis         1.4.0      2018-08-14 [1] CRAN (R 3.5.0)
+##  withr           2.1.2      2018-03-15 [2] CRAN (R 3.5.0)
+##  xfun            0.4        2018-10-23 [1] CRAN (R 3.5.0)
+##  xml2            1.2.0      2018-01-24 [2] CRAN (R 3.5.0)
+##  xtable          1.8-3      2018-08-29 [2] CRAN (R 3.5.0)
+##  xts             0.11-2     2018-11-05 [2] CRAN (R 3.5.0)
+##  yaml            2.2.0      2018-07-25 [2] CRAN (R 3.5.0)
+##  yardstick     * 0.0.2      2018-11-05 [1] CRAN (R 3.5.0)
+##  zoo             1.8-4      2018-09-19 [2] CRAN (R 3.5.0)
+## 
+## [1] /Users/soltoffbc/Library/R/3.5/library
+## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
+</div>
+<div id="references" class="section level1 toc-ignore">
+<h1><span class="header-section-number">5</span> References</h1>
+<ul>
+<li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
+<li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
+</ul>
+<div id="refs" class="references">
+<div id="ref-friedman2001elements">
+<p>Friedman, Jerome, Trevor Hastie, and Robert Tibshirani. 2001. <em>The Elements of Statistical Learning</em>. Vol. 1. 10. Springer series in statistics New York, NY, USA: <a href="https://web.stanford.edu/~hastie/ElemStatLearn/" class="uri">https://web.stanford.edu/~hastie/ElemStatLearn/</a>.</p>
+</div>
+<div id="ref-james2013introduction">
+<p>James, Gareth, Daniela Witten, Trevor Hastie, and Robert Tibshirani. 2013. <em>An Introduction to Statistical Learning</em>. Vol. 112. Springer. <a href="http://www-bcf.usc.edu/~gareth/ISL/" class="uri">http://www-bcf.usc.edu/~gareth/ISL/</a>.</p>
+</div>
+</div>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>The <code>statsmodel</code> package in Python <a href="https://www.statsmodels.org/dev/search.html?q=get_margeff&amp;check_keywords=yes&amp;area=default">includes support for calculating marginal effects</a>.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>

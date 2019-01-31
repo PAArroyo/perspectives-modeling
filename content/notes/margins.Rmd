@@ -93,14 +93,92 @@ These partial derivatives are no longer constants, therefore the marginal effect
 
 # Types of marginal effects
 
+Marginal effects are calculated from the partial derivatives of the fitted regression model. There are three potential quantities of interest we can calculate using this method:
+
+1. Marginal effects at representative values (MERs) - the marginal effect of each variable at a particular combination of $X$ values that is theoretically interesting
+1. Marginal effects at means (MEMs) - the marginal effects of each variable at the means of the covariates
+1. Average marginal effects (AMEs) - the marginal effects at every observed value of $X$, averaged across the resulting effect estimates
+
+AMEs produce a single quantity summary that reflects the full distribution of $X$ as observed in the sample. Together with MERs, AMEs have the potential to convey a considerable amount of information about the influence of each covariate on the outcome. Because AMEs average across the variability in the fitted outcomes, they can also capture variability better than MEMs. While MERs provide a means to understand and communicate model estimates at theoretically important combinations of covariate values, AMEs provide a natural summary measure that respects both the distribution of the original data and does not rely on summarizing a substantively unobserved or unobservable $X$ value (as in MEMs).
 
 # Calculating marginal effects using `margins`
 
+The [`margins`](https://cran.r-project.org/web/packages/margins/) package for R is an open-source port of the `margins` command in Stata.^[The `statsmodel` package in Python [includes support for calculating marginal effects](https://www.statsmodels.org/dev/search.html?q=get_margeff&check_keywords=yes&area=default).]
 
-## Least squares model
+Here we use the `mtcars` dataset to estimate a linear regression model, explaining a vehicle's fuel efficiency (`mpg`) as a function of a vehicle's weight (`wt`) and the interaction between number of clyinders (`cyl`) and horsepower (`hp`).
+
+```{r margins}
+(x <- lm(mpg ~ cyl * hp + wt, data = mtcars))
+(m <- margins(x))
+summary(m)
+```
+
+By default, `margins()` returns the AME for each variable. Notice that for `wt`, the AME is identical to the estimated parameter since it is an unconditional marginal effect. For `cyl` and `hp`, the AME is the average marginal effect across all the observations in the dataset.
+
+In an ordinary least squares regression, there is really only one way of examining marginal effects (that is, on the scale of the outcome variable). In a generalized linear model (e.g., logit), however, it is possible to examine true "marginal effects" (i.e., the marginal contribution of each variable on the scale of the linear predictor) or "partial effects" (i.e., the contribution of each variable on the outcome scale, conditional on the other variables involved in the link function transformation of the linear predictor). The latter are the default in `margins()`, which implicitly sets the argument `margins(x, type = "response")` and passes that through to `prediction()` methods. To obtain the former, simply set `margins(x, type = "link")`. There's some debate about which of these is preferred and even what to call the two different quantities of interest. Regardless of all of that, here's how you obtain either:
+
+```{r}
+x <- glm(am ~ cyl + hp * wt, data = mtcars, family = binomial)
+margins(x, type = "response") # the default
+margins(x, type = "link")
+```
+
+To calculate MERs and MEMs, we use the `at` argument. As an example, if we wanted to know if the marginal effect of horsepower (`hp`) on fuel economy differed across different types of automobile transmissions, we could simply use `at` to obtain separate marginal effect estimates for our data as if every car observation were a manual versus if every car observation were an automatic. The output of `margins()` is a simplified summary of the estimated marginal effects across the requested variable levels/combinations specified in `at`:
+
+```{r}
+x <- lm(mpg ~ cyl + wt + hp * am, data = mtcars)
+margins(x, at = list(am = 0:1))
+```
+
+Because of the `hp * am` interaction in the regression, the marginal effect of horsepower differs between the two sets of results. We can also specify more than one variable to `at`, creating a potentially long list of marginal effects results. For example, we can produce marginal effects at both levels of `am` and the values from the five-number summary (minimum, Q1, median, Q3, and maximum) of observed values of `hp`. This produces 2 * 5 = 10 sets of marginal effects estimates:
+
+```{r}
+margins(x, at = list(am = 0:1, hp = fivenum(mtcars$hp)))
+```
+
+Because this is a linear model, the marginal effects of `cyl` and `wt` do not vary across levels of `am` or `hp`. The minimum and Q1 value of `hp` are also the same, so the marginal effects of `am` are the same in the first two results. As you can see, however, the marginal effect of `hp` differs when `am == 0` versus `am == 1` (first and second rows) and the marginal effect of `am` differs across levels of `hp` (e.g., between the first and third rows). As should be clear, the `at` argument is incredibly useful for getting a better grasp of the marginal effects of different covariates.
+
+This becomes especially apparent when a model includes power-terms (or any other alternative functional form of a covariate). Consider, for example, the simple model of fuel economy as a function of weight, with weight included as both a first- and second-order term:
+
+```{r}
+x <- lm(mpg ~ wt + I(wt^2), data = mtcars)
+summary(x)
+```
+
+Looking only at the regression results table, it is actually quite difficult to understand the effect of `wt` on fuel economy because it requires performing mental multiplication and addition on all possible values of `wt`. Using the `at` option to margins, you could quickly obtain a sense of the average marginal effect of `wt` at a range of plausible values:
+
+```{r}
+margins(x, at = list(wt = fivenum(mtcars$wt)))
+```
+
+The marginal effects in the first column of results reveal that the average marginal effect of `wt` is large and negative except when `wt` is very large, in which case it has an effect not distinguishable from zero. We can easily plot these results using the `cplot()` function to see the effect visually in terms of either predicted fuel economy or the marginal effect of `wt`:
+
+```{r}
+cplot(x, "wt", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  labs(title = "Predicted fuel economy",
+       x = "Weight (1000 lbs)",
+       y = "Predicted value")
+
+cplot(x, "wt", what = "effect", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  labs(title = "AME of weight",
+       x = "Weight (1000 lbs)",
+       y = "AME of weight")
+```
+
+## Marginal effects plots
 
 
-## Generalized linear model
+
 
 
 # Session Info {.toc-ignore}
