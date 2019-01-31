@@ -55,7 +55,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Before class
 
-* 
+* ["Model-Agnostic Methods" in *Interpretable Machine Learning*](https://christophm.github.io/interpretable-ml-book/agnostic.html)
 
 ## Slides and class materials
 
