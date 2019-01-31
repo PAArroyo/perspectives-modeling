@@ -40,7 +40,7 @@ a. Repeat the following process 100 times.
     a. Estimate the test MSE
 a. Calculate the mean and standard deviation of the 100 estimated test MSEs from $100$-fold cross-validation. Graphically present the distribution of these values.
 a. Repeat the following process 100 times.
-    a. Fit a least squares regression model of the form $Y = X$ using $10$-fold cross-validation, repeated $10$ times
+    a. Fit a least squares regression model using the Biden data set (with `biden` as the response variable and all the other variables as predictors) using $10$-fold cross-validation, repeated $10$ times
     a. Estimate the test MSE
 a. Calculate the mean and standard deviation of the 100 estimated test MSEs from $10$-fold cross-validation, repeated $10$ times. Graphically present the distribution of these values.
 a. Distinguish the two procedures from one another and explain any differences.
