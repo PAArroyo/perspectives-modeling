@@ -26,6 +26,7 @@ library(tidymodels)
 library(margins)
 library(here)
 library(rcfss)
+library(patchwork)
 
 set.seed(1234)
 theme_set(theme_minimal())
@@ -101,85 +102,180 @@ Marginal effects are calculated from the partial derivatives of the fitted regre
 
 AMEs produce a single quantity summary that reflects the full distribution of $X$ as observed in the sample. Together with MERs, AMEs have the potential to convey a considerable amount of information about the influence of each covariate on the outcome. Because AMEs average across the variability in the fitted outcomes, they can also capture variability better than MEMs. While MERs provide a means to understand and communicate model estimates at theoretically important combinations of covariate values, AMEs provide a natural summary measure that respects both the distribution of the original data and does not rely on summarizing a substantively unobserved or unobservable $X$ value (as in MEMs).
 
-# Calculating marginal effects using `margins`
+# Logistic regression marginal effects
+
+```{r titanic-data, message = FALSE}
+library(titanic)
+titanic <- titanic_train %>%
+  as_tibble() %>%
+  # remove missing values
+  na.omit()
+```
+
+```{r age-woman, dependson = "titanic-data"}
+age_woman <- glm(Survived ~ Age + Sex, data = titanic,
+                 family = binomial)
+summary(age_woman)
+```
 
 The [`margins`](https://cran.r-project.org/web/packages/margins/) package for R is an open-source port of the `margins` command in Stata.^[The `statsmodel` package in Python [includes support for calculating marginal effects](https://www.statsmodels.org/dev/search.html?q=get_margeff&check_keywords=yes&area=default).]
 
-Here we use the `mtcars` dataset to estimate a linear regression model, explaining a vehicle's fuel efficiency (`mpg`) as a function of a vehicle's weight (`wt`) and the interaction between number of clyinders (`cyl`) and horsepower (`hp`).
+## Average marginal effects
 
-```{r margins}
-(x <- lm(mpg ~ cyl * hp + wt, data = mtcars))
-(m <- margins(x))
-summary(m)
+To obtain average marginal effects (AMEs), we call `margins()` on the model object:
+
+```{r age-woman-ame, dependson = "age-woman"}
+margins(age_woman, type = "link")
 ```
 
-By default, `margins()` returns the AME for each variable. Notice that for `wt`, the AME is identical to the estimated parameter since it is an unconditional marginal effect. For `cyl` and `hp`, the AME is the average marginal effect across all the observations in the dataset.
+These are the AMEs expressed in terms of the log-odds, as in the GLM that is how the outcome variable is expressed. In an ordinary least squares regression, there is really only one way of examining marginal effects (that is, on the scale of the outcome variable). In a generalized linear model (e.g., logit), however, it is possible to examine true "marginal effects" (i.e., the marginal contribution of each variable on the scale of the linear predictor) or "partial effects" (i.e., the contribution of each variable on the outcome scale, conditional on the other variables involved in the link function transformation of the linear predictor). The latter are the default in `margins()`, which implicitly sets the argument `margins(x, type = "response")` and passes that through to `prediction()` methods. To obtain the former, simply set `margins(x, type = "link")`. There's some debate about which of these is preferred and even what to call the two different quantities of interest. Regardless of all of that, here's how you obtain either:
 
-In an ordinary least squares regression, there is really only one way of examining marginal effects (that is, on the scale of the outcome variable). In a generalized linear model (e.g., logit), however, it is possible to examine true "marginal effects" (i.e., the marginal contribution of each variable on the scale of the linear predictor) or "partial effects" (i.e., the contribution of each variable on the outcome scale, conditional on the other variables involved in the link function transformation of the linear predictor). The latter are the default in `margins()`, which implicitly sets the argument `margins(x, type = "response")` and passes that through to `prediction()` methods. To obtain the former, simply set `margins(x, type = "link")`. There's some debate about which of these is preferred and even what to call the two different quantities of interest. Regardless of all of that, here's how you obtain either:
-
-```{r}
-x <- glm(am ~ cyl + hp * wt, data = mtcars, family = binomial)
-margins(x, type = "response") # the default
-margins(x, type = "link")
+```{r response-link, dependson = "age-woman"}
+margins(age_woman, type = "link")
+margins(age_woman, type = "response")
 ```
 
-To calculate MERs and MEMs, we use the `at` argument. As an example, if we wanted to know if the marginal effect of horsepower (`hp`) on fuel economy differed across different types of automobile transmissions, we could simply use `at` to obtain separate marginal effect estimates for our data as if every car observation were a manual versus if every car observation were an automatic. The output of `margins()` is a simplified summary of the estimated marginal effects across the requested variable levels/combinations specified in `at`:
+## Marginal effects at representative cases (MERs)
 
-```{r}
-x <- lm(mpg ~ cyl + wt + hp * am, data = mtcars)
-margins(x, at = list(am = 0:1))
+To calculate MERs and MEMs, we use the `at` argument. This differs from marginal effects on subsets of the original data in that it operates on a modified set of the full dataset wherein particular variables have been replaced by specified values. This is helpful because it allows for calculation of marginal effects for **counterfactual** datasets (e.g., what if all women were instead men? what if all democracies were instead autocracies? what if all foreign cars were instead domestic?).
+
+For example, what if we want to know the partial marginal effect of age for men vs. women? We use the `at()` argument to supply the hypothetical values:
+
+```{r age-woman-mer, dependson = "age-woman"}
+margins(age_woman, at = list(Sex = c("male", "female")))
 ```
 
-Because of the `hp * am` interaction in the regression, the marginal effect of horsepower differs between the two sets of results. We can also specify more than one variable to `at`, creating a potentially long list of marginal effects results. For example, we can produce marginal effects at both levels of `am` and the values from the five-number summary (minimum, Q1, median, Q3, and maximum) of observed values of `hp`. This produces 2 * 5 = 10 sets of marginal effects estimates:
+Because this is a logistic regression model and the values are being calculated on the scale of the response variable (this is the default approach), even though this is not an interaction model we can still see the partial marginal effect of age differs for men vs. women.
 
-```{r}
-margins(x, at = list(am = 0:1, hp = fivenum(mtcars$hp)))
+Note the difference between these values and the AMEs calculated separately for men and women:
+
+```{r age-woman-subset-ame, dependson = "age-woman"}
+margins(age_woman) %>%
+  split(.$Sex)
 ```
 
-Because this is a linear model, the marginal effects of `cyl` and `wt` do not vary across levels of `am` or `hp`. The minimum and Q1 value of `hp` are also the same, so the marginal effects of `am` are the same in the first two results. As you can see, however, the marginal effect of `hp` differs when `am == 0` versus `am == 1` (first and second rows) and the marginal effect of `am` differs across levels of `hp` (e.g., between the first and third rows). As should be clear, the `at` argument is incredibly useful for getting a better grasp of the marginal effects of different covariates.
-
-This becomes especially apparent when a model includes power-terms (or any other alternative functional form of a covariate). Consider, for example, the simple model of fuel economy as a function of weight, with weight included as both a first- and second-order term:
-
-```{r}
-x <- lm(mpg ~ wt + I(wt^2), data = mtcars)
-summary(x)
-```
-
-Looking only at the regression results table, it is actually quite difficult to understand the effect of `wt` on fuel economy because it requires performing mental multiplication and addition on all possible values of `wt`. Using the `at` option to margins, you could quickly obtain a sense of the average marginal effect of `wt` at a range of plausible values:
-
-```{r}
-margins(x, at = list(wt = fivenum(mtcars$wt)))
-```
-
-The marginal effects in the first column of results reveal that the average marginal effect of `wt` is large and negative except when `wt` is very large, in which case it has an effect not distinguishable from zero. We can easily plot these results using the `cplot()` function to see the effect visually in terms of either predicted fuel economy or the marginal effect of `wt`:
-
-```{r}
-cplot(x, "wt", draw = FALSE) %>%
-  ggplot(aes(x = xvals)) + 
-  geom_line(aes(y = yvals)) +
-  geom_line(aes(y = upper), linetype = 2) +
-  geom_line(aes(y = lower), linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 1) +
-  labs(title = "Predicted fuel economy",
-       x = "Weight (1000 lbs)",
-       y = "Predicted value")
-
-cplot(x, "wt", what = "effect", draw = FALSE) %>%
-  ggplot(aes(x = xvals)) + 
-  geom_line(aes(y = yvals)) +
-  geom_line(aes(y = upper), linetype = 2) +
-  geom_line(aes(y = lower), linetype = 2) +
-  geom_hline(yintercept = 0, linetype = 1) +
-  labs(title = "AME of weight",
-       x = "Weight (1000 lbs)",
-       y = "AME of weight")
-```
+This is because the AMEs calculated in the first example replace the values for the specified variables for all observations, whereas in the latter example we still calculate the AMEs based on the full joint probability distribution of the observed sample.
 
 ## Marginal effects plots
 
+Marginal effects lend themselves very well to graphical presentations. We can easily generate marginal effects plots using the `cplot()` function, either using the base `graphics` package or `ggplot()`. Consider the effect of age on probability of survival. We can calculate the average predicted value, or alternatively the average marginal effect of age:
 
+```{r age-margin-effect, dependson = "age-woman"}
+pred_age <- cplot(age_woman, "Age", what = "prediction", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  labs(title = "Predicted probability of survival, given age",
+       x = "Age",
+       y = "Predicted probability of survival")
 
+ame_age <- cplot(age_woman, "Age", what = "effect", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  labs(title = "Average marginal effect of age",
+       x = "Age",
+       y = "Marginal effect of age")
 
+pred_age +
+  ame_age
+```
+
+Not surprisingly, the AME for age always contains $0$ in the 95% confidence interval (recall its p-value). Unlike our [prior example](/notes/logistic-regression/#probability-of-surviving-the-titanic), this method allows easy calculation of the confidence interval to present not just direct effects, but also their statistical significance.
+
+## Interaction models
+
+```{r age-fare, dependson = "titanic-data"}
+age_fare_x <- glm(Survived ~ Age * Fare, data = titanic,
+                  family = binomial)
+summary(age_fare_x)
+```
+
+Consider an interaction model interacting age and fare. Now let's present the predicted probability of survival given age:
+
+```{r age-fare-pred, dependson = "age-fare"}
+cplot(age_fare_x, "Age")
+```
+
+As age increases, the probability of survival decreases. And here it appears to be a statistically significant effect:
+
+```{r age-fare-me, dependson = "age-fare"}
+cplot(age_fare_x, "Age", what = "effect")
+```
+
+The AME confirms it. But so far we have simply averaged these predicted probabilities/AMEs over all fare values. What if we consider the effect of fare on probability of survival?
+
+```{r age-fare-fare, dependson = "age-fare"}
+cplot(age_fare_x, "Fare")
+cplot(age_fare_x, "Fare", what = "effect")
+```
+
+It is statistically significant and positive until fare is greater than about 300 pounds, at which point the 95% confidence interval contains 0.
+
+To simulataneously interpret the joint effects of age and sex, we can draw a three-dimensional perspective plot:
+
+```{r age-fare-joint, dependson = "age-fare"}
+persp(age_fare_x, theta = c(45, 135, 225, 315), what = "prediction")
+persp(age_fare_x, theta = c(45, 135, 225, 315), what = "effect")
+```
+
+```{r age-fare-joint-plotly, dependson = "age-fare"}
+library(plotly)
+
+# predicted prob
+surface <- margins:::calculate_surface(x = age_fare_x,
+                                       xvar = "Age",
+                                       yvar = "Fare",
+                                       dx = "Age",
+                                       nx = 25L,
+                                       ny = 25L,
+                                       type = "response",
+                                       vcov = stats::vcov(age_fare_x),
+                                       what = "prediction")
+
+outcome <- surface[["outcome"]]
+xvals <- surface[["xvals"]]
+yvals <- surface[["yvals"]]
+
+plot_ly(x = ~xvals, y = ~yvals, z = ~outcome) %>%
+  add_surface() %>%
+  layout(
+    title = "Predicted probability of survival",
+    scene = list(
+      xaxis = list(title = "Age"),
+      yaxis = list(title = "Fare"),
+      zaxis = list(title = "Predicted probability of survival")
+    ))
+
+# marginal effect
+surface <- margins:::calculate_surface(x = age_fare_x,
+                                       xvar = "Age",
+                                       yvar = "Fare",
+                                       dx = "Age",
+                                       nx = 25L,
+                                       ny = 25L,
+                                       type = "response",
+                                       vcov = stats::vcov(age_fare_x),
+                                       what = "effect")
+
+outcome <- surface[["outcome"]]
+xvals <- surface[["xvals"]]
+yvals <- surface[["yvals"]]
+
+plot_ly(x = ~xvals, y = ~yvals, z = ~outcome) %>%
+  add_surface() %>%
+  layout(
+    title = "Marginal effect on survival",
+    scene = list(
+      xaxis = list(title = "Age"),
+      yaxis = list(title = "Fare"),
+      zaxis = list(title = "AME")
+    ))
+```
 
 # Session Info {.toc-ignore}
 
@@ -190,3 +286,4 @@ cplot(x, "wt", what = "effect", draw = FALSE) %>%
 
 * @james2013introduction
 * @friedman2001elements
+* [Interpreting Regression Results using Average Marginal Effects with R's `margins`](https://cran.r-project.org/web/packages/margins/vignettes/TechnicalDetails.pdf)

@@ -15,6 +15,14 @@ menu:
     weight: 1
 ---
 
+<script src="/rmarkdown-libs/htmlwidgets/htmlwidgets.js"></script>
+<script src="/rmarkdown-libs/plotly-binding/plotly.js"></script>
+<script src="/rmarkdown-libs/typedarray/typedarray.min.js"></script>
+<script src="/rmarkdown-libs/jquery/jquery.min.js"></script>
+<link href="/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/crosstalk/js/crosstalk.min.js"></script>
+<link href="/rmarkdown-libs/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+<script src="/rmarkdown-libs/plotly-main/plotly-latest.min.js"></script>
 <style type="text/css">
 div.sourceCode { overflow-x: auto; }
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
@@ -57,8 +65,11 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <ul>
 <li><a href="#statistical-background"><span class="toc-section-number">1</span> Statistical background</a></li>
 <li><a href="#types-of-marginal-effects"><span class="toc-section-number">2</span> Types of marginal effects</a></li>
-<li><a href="#calculating-marginal-effects-using-margins"><span class="toc-section-number">3</span> Calculating marginal effects using <code>margins</code></a><ul>
-<li><a href="#marginal-effects-plots"><span class="toc-section-number">3.1</span> Marginal effects plots</a></li>
+<li><a href="#logistic-regression-marginal-effects"><span class="toc-section-number">3</span> Logistic regression marginal effects</a><ul>
+<li><a href="#average-marginal-effects"><span class="toc-section-number">3.1</span> Average marginal effects</a></li>
+<li><a href="#marginal-effects-at-representative-cases-mers"><span class="toc-section-number">3.2</span> Marginal effects at representative cases (MERs)</a></li>
+<li><a href="#marginal-effects-plots"><span class="toc-section-number">3.3</span> Marginal effects plots</a></li>
+<li><a href="#interaction-models"><span class="toc-section-number">3.4</span> Interaction models</a></li>
 </ul></li>
 <li><a href="#session-info"><span class="toc-section-number">4</span> Session Info</a></li>
 <li><a href="#references"><span class="toc-section-number">5</span> References</a></li>
@@ -70,6 +81,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <span class="kw">library</span>(margins)
 <span class="kw">library</span>(here)
 <span class="kw">library</span>(rcfss)
+<span class="kw">library</span>(patchwork)
 
 <span class="kw">set.seed</span>(<span class="dv">1234</span>)
 <span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
@@ -125,142 +137,287 @@ Y &amp;= \beta_0 + \beta_1 X_1 + \beta_2 X_1^2 + \beta_3 X_2 \\
 </ol>
 <p>AMEs produce a single quantity summary that reflects the full distribution of <span class="math inline">\(X\)</span> as observed in the sample. Together with MERs, AMEs have the potential to convey a considerable amount of information about the influence of each covariate on the outcome. Because AMEs average across the variability in the fitted outcomes, they can also capture variability better than MEMs. While MERs provide a means to understand and communicate model estimates at theoretically important combinations of covariate values, AMEs provide a natural summary measure that respects both the distribution of the original data and does not rely on summarizing a substantively unobserved or unobservable <span class="math inline">\(X\)</span> value (as in MEMs).</p>
 </div>
-<div id="calculating-marginal-effects-using-margins" class="section level1">
-<h1><span class="header-section-number">3</span> Calculating marginal effects using <code>margins</code></h1>
-<p>The <a href="https://cran.r-project.org/web/packages/margins/"><code>margins</code></a> package for R is an open-source port of the <code>margins</code> command in Stata.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
-<p>Here we use the <code>mtcars</code> dataset to estimate a linear regression model, explaining a vehicle’s fuel efficiency (<code>mpg</code>) as a function of a vehicle’s weight (<code>wt</code>) and the interaction between number of clyinders (<code>cyl</code>) and horsepower (<code>hp</code>).</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(x &lt;-<span class="st"> </span><span class="kw">lm</span>(mpg <span class="op">~</span><span class="st"> </span>cyl <span class="op">*</span><span class="st"> </span>hp <span class="op">+</span><span class="st"> </span>wt, <span class="dt">data =</span> mtcars))</code></pre></div>
+<div id="logistic-regression-marginal-effects" class="section level1">
+<h1><span class="header-section-number">3</span> Logistic regression marginal effects</h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(titanic)
+titanic &lt;-<span class="st"> </span>titanic_train <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">as_tibble</span>() <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="co"># remove missing values</span>
+<span class="st">  </span><span class="kw">na.omit</span>()</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">age_woman &lt;-<span class="st"> </span><span class="kw">glm</span>(Survived <span class="op">~</span><span class="st"> </span>Age <span class="op">+</span><span class="st"> </span>Sex, <span class="dt">data =</span> titanic,
+                 <span class="dt">family =</span> binomial)
+<span class="kw">summary</span>(age_woman)</code></pre></div>
 <pre><code>## 
 ## Call:
-## lm(formula = mpg ~ cyl * hp + wt, data = mtcars)
+## glm(formula = Survived ~ Age + Sex, family = binomial, data = titanic)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.7405  -0.6885  -0.6558   0.7533   1.8989  
 ## 
 ## Coefficients:
-## (Intercept)          cyl           hp           wt       cyl:hp  
-##    52.01752     -2.74213     -0.16359     -3.11981      0.01895</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(m &lt;-<span class="st"> </span><span class="kw">margins</span>(x))</code></pre></div>
-<pre><code>## Average marginal effects</code></pre>
-<pre><code>## lm(formula = mpg ~ cyl * hp + wt, data = mtcars)</code></pre>
-<pre><code>##      cyl       hp    wt
-##  0.03814 -0.04632 -3.12</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">summary</span>(m)</code></pre></div>
-<pre><code>##  factor     AME     SE       z      p   lower   upper
-##     cyl  0.0381 0.5999  0.0636 0.9493 -1.1376  1.2139
-##      hp -0.0463 0.0145 -3.1909 0.0014 -0.0748 -0.0179
-##      wt -3.1198 0.6613 -4.7176 0.0000 -4.4160 -1.8236</code></pre>
-<p>By default, <code>margins()</code> returns the AME for each variable. Notice that for <code>wt</code>, the AME is identical to the estimated parameter since it is an unconditional marginal effect. For <code>cyl</code> and <code>hp</code>, the AME is the average marginal effect across all the observations in the dataset.</p>
-<p>In an ordinary least squares regression, there is really only one way of examining marginal effects (that is, on the scale of the outcome variable). In a generalized linear model (e.g., logit), however, it is possible to examine true “marginal effects” (i.e., the marginal contribution of each variable on the scale of the linear predictor) or “partial effects” (i.e., the contribution of each variable on the outcome scale, conditional on the other variables involved in the link function transformation of the linear predictor). The latter are the default in <code>margins()</code>, which implicitly sets the argument <code>margins(x, type = &quot;response&quot;)</code> and passes that through to <code>prediction()</code> methods. To obtain the former, simply set <code>margins(x, type = &quot;link&quot;)</code>. There’s some debate about which of these is preferred and even what to call the two different quantities of interest. Regardless of all of that, here’s how you obtain either:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">glm</span>(am <span class="op">~</span><span class="st"> </span>cyl <span class="op">+</span><span class="st"> </span>hp <span class="op">*</span><span class="st"> </span>wt, <span class="dt">data =</span> mtcars, <span class="dt">family =</span> binomial)</code></pre></div>
-<pre><code>## Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(x, <span class="dt">type =</span> <span class="st">&quot;response&quot;</span>) <span class="co"># the default</span></code></pre></div>
-<pre><code>## Average marginal effects</code></pre>
-<pre><code>## glm(formula = am ~ cyl + hp * wt, family = binomial, data = mtcars)</code></pre>
-<pre><code>##      cyl       hp      wt
-##  0.02156 0.002667 -0.5158</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(x, <span class="dt">type =</span> <span class="st">&quot;link&quot;</span>)</code></pre></div>
-<pre><code>## Average marginal effects
-## glm(formula = am ~ cyl + hp * wt, family = binomial, data = mtcars)</code></pre>
-<pre><code>##     cyl      hp     wt
-##  0.5156 0.05151 -12.24</code></pre>
-<p>To calculate MERs and MEMs, we use the <code>at</code> argument. As an example, if we wanted to know if the marginal effect of horsepower (<code>hp</code>) on fuel economy differed across different types of automobile transmissions, we could simply use <code>at</code> to obtain separate marginal effect estimates for our data as if every car observation were a manual versus if every car observation were an automatic. The output of <code>margins()</code> is a simplified summary of the estimated marginal effects across the requested variable levels/combinations specified in <code>at</code>:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">lm</span>(mpg <span class="op">~</span><span class="st"> </span>cyl <span class="op">+</span><span class="st"> </span>wt <span class="op">+</span><span class="st"> </span>hp <span class="op">*</span><span class="st"> </span>am, <span class="dt">data =</span> mtcars)
-<span class="kw">margins</span>(x, <span class="dt">at =</span> <span class="kw">list</span>(<span class="dt">am =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">1</span>))</code></pre></div>
-<pre><code>## Average marginal effects at specified values</code></pre>
-<pre><code>## lm(formula = mpg ~ cyl + wt + hp * am, data = mtcars)</code></pre>
-<pre><code>##  at(am)     cyl     wt        hp    am
-##       0 -0.9339 -2.812 -0.008945 1.034
-##       1 -0.9339 -2.812 -0.026392 1.034</code></pre>
-<p>Because of the <code>hp * am</code> interaction in the regression, the marginal effect of horsepower differs between the two sets of results. We can also specify more than one variable to <code>at</code>, creating a potentially long list of marginal effects results. For example, we can produce marginal effects at both levels of <code>am</code> and the values from the five-number summary (minimum, Q1, median, Q3, and maximum) of observed values of <code>hp</code>. This produces 2 * 5 = 10 sets of marginal effects estimates:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(x, <span class="dt">at =</span> <span class="kw">list</span>(<span class="dt">am =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">1</span>, <span class="dt">hp =</span> <span class="kw">fivenum</span>(mtcars<span class="op">$</span>hp)))</code></pre></div>
-<pre><code>## Average marginal effects at specified values</code></pre>
-<pre><code>## lm(formula = mpg ~ cyl + wt + hp * am, data = mtcars)</code></pre>
-<pre><code>##  at(am) at(hp)     cyl     wt        hp      am
-##       0     52 -0.9339 -2.812 -0.008945  2.6864
-##       1     52 -0.9339 -2.812 -0.026392  2.6864
-##       0     96 -0.9339 -2.812 -0.008945  1.9188
-##       1     96 -0.9339 -2.812 -0.026392  1.9188
-##       0    123 -0.9339 -2.812 -0.008945  1.4477
-##       1    123 -0.9339 -2.812 -0.026392  1.4477
-##       0    180 -0.9339 -2.812 -0.008945  0.4533
-##       1    180 -0.9339 -2.812 -0.026392  0.4533
-##       0    335 -0.9339 -2.812 -0.008945 -2.2509
-##       1    335 -0.9339 -2.812 -0.026392 -2.2509</code></pre>
-<p>Because this is a linear model, the marginal effects of <code>cyl</code> and <code>wt</code> do not vary across levels of <code>am</code> or <code>hp</code>. The minimum and Q1 value of <code>hp</code> are also the same, so the marginal effects of <code>am</code> are the same in the first two results. As you can see, however, the marginal effect of <code>hp</code> differs when <code>am == 0</code> versus <code>am == 1</code> (first and second rows) and the marginal effect of <code>am</code> differs across levels of <code>hp</code> (e.g., between the first and third rows). As should be clear, the <code>at</code> argument is incredibly useful for getting a better grasp of the marginal effects of different covariates.</p>
-<p>This becomes especially apparent when a model includes power-terms (or any other alternative functional form of a covariate). Consider, for example, the simple model of fuel economy as a function of weight, with weight included as both a first- and second-order term:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">lm</span>(mpg <span class="op">~</span><span class="st"> </span>wt <span class="op">+</span><span class="st"> </span><span class="kw">I</span>(wt<span class="op">^</span><span class="dv">2</span>), <span class="dt">data =</span> mtcars)
-<span class="kw">summary</span>(x)</code></pre></div>
-<pre><code>## 
-## Call:
-## lm(formula = mpg ~ wt + I(wt^2), data = mtcars)
-## 
-## Residuals:
-##    Min     1Q Median     3Q    Max 
-## -3.483 -1.998 -0.773  1.462  6.238 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  49.9308     4.2113  11.856 1.21e-12 ***
-## wt          -13.3803     2.5140  -5.322 1.04e-05 ***
-## I(wt^2)       1.1711     0.3594   3.258  0.00286 ** 
+##              Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)  1.277273   0.230169   5.549 2.87e-08 ***
+## Age         -0.005426   0.006310  -0.860     0.39    
+## Sexmale     -2.465920   0.185384 -13.302  &lt; 2e-16 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 2.651 on 29 degrees of freedom
-## Multiple R-squared:  0.8191, Adjusted R-squared:  0.8066 
-## F-statistic: 65.64 on 2 and 29 DF,  p-value: 1.715e-11</code></pre>
-<p>Looking only at the regression results table, it is actually quite difficult to understand the effect of <code>wt</code> on fuel economy because it requires performing mental multiplication and addition on all possible values of <code>wt</code>. Using the <code>at</code> option to margins, you could quickly obtain a sense of the average marginal effect of <code>wt</code> at a range of plausible values:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(x, <span class="dt">at =</span> <span class="kw">list</span>(<span class="dt">wt =</span> <span class="kw">fivenum</span>(mtcars<span class="op">$</span>wt)))</code></pre></div>
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 964.52  on 713  degrees of freedom
+## Residual deviance: 749.96  on 711  degrees of freedom
+## AIC: 755.96
+## 
+## Number of Fisher Scoring iterations: 4</code></pre>
+<p>The <a href="https://cran.r-project.org/web/packages/margins/"><code>margins</code></a> package for R is an open-source port of the <code>margins</code> command in Stata.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<div id="average-marginal-effects" class="section level2">
+<h2><span class="header-section-number">3.1</span> Average marginal effects</h2>
+<p>To obtain average marginal effects (AMEs), we call <code>margins()</code> on the model object:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(age_woman, <span class="dt">type =</span> <span class="st">&quot;link&quot;</span>)</code></pre></div>
+<pre><code>## Average marginal effects</code></pre>
+<pre><code>## glm(formula = Survived ~ Age + Sex, family = binomial, data = titanic)</code></pre>
+<pre><code>##        Age Sexmale
+##  -0.005426  -2.466</code></pre>
+<p>These are the AMEs expressed in terms of the log-odds, as in the GLM that is how the outcome variable is expressed. In an ordinary least squares regression, there is really only one way of examining marginal effects (that is, on the scale of the outcome variable). In a generalized linear model (e.g., logit), however, it is possible to examine true “marginal effects” (i.e., the marginal contribution of each variable on the scale of the linear predictor) or “partial effects” (i.e., the contribution of each variable on the outcome scale, conditional on the other variables involved in the link function transformation of the linear predictor). The latter are the default in <code>margins()</code>, which implicitly sets the argument <code>margins(x, type = &quot;response&quot;)</code> and passes that through to <code>prediction()</code> methods. To obtain the former, simply set <code>margins(x, type = &quot;link&quot;)</code>. There’s some debate about which of these is preferred and even what to call the two different quantities of interest. Regardless of all of that, here’s how you obtain either:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(age_woman, <span class="dt">type =</span> <span class="st">&quot;link&quot;</span>)</code></pre></div>
+<pre><code>## Average marginal effects</code></pre>
+<pre><code>## glm(formula = Survived ~ Age + Sex, family = binomial, data = titanic)</code></pre>
+<pre><code>##        Age Sexmale
+##  -0.005426  -2.466</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(age_woman, <span class="dt">type =</span> <span class="st">&quot;response&quot;</span>)</code></pre></div>
+<pre><code>## Average marginal effects
+## glm(formula = Survived ~ Age + Sex, family = binomial, data = titanic)</code></pre>
+<pre><code>##         Age Sexmale
+##  -0.0009278 -0.5468</code></pre>
+</div>
+<div id="marginal-effects-at-representative-cases-mers" class="section level2">
+<h2><span class="header-section-number">3.2</span> Marginal effects at representative cases (MERs)</h2>
+<p>To calculate MERs and MEMs, we use the <code>at</code> argument. This differs from marginal effects on subsets of the original data in that it operates on a modified set of the full dataset wherein particular variables have been replaced by specified values. This is helpful because it allows for calculation of marginal effects for <strong>counterfactual</strong> datasets (e.g., what if all women were instead men? what if all democracies were instead autocracies? what if all foreign cars were instead domestic?).</p>
+<p>For example, what if we want to know the partial marginal effect of age for men vs. women? We use the <code>at()</code> argument to supply the hypothetical values:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(age_woman, <span class="dt">at =</span> <span class="kw">list</span>(<span class="dt">Sex =</span> <span class="kw">c</span>(<span class="st">&quot;male&quot;</span>, <span class="st">&quot;female&quot;</span>)))</code></pre></div>
 <pre><code>## Average marginal effects at specified values</code></pre>
-<pre><code>## lm(formula = mpg ~ wt + I(wt^2), data = mtcars)</code></pre>
-<pre><code>##  at(wt)      wt
-##   1.513 -9.8366
-##   2.542 -7.4254
-##   3.325 -5.5926
-##   3.650 -4.8314
-##   5.424 -0.6764</code></pre>
-<p>The marginal effects in the first column of results reveal that the average marginal effect of <code>wt</code> is large and negative except when <code>wt</code> is very large, in which case it has an effect not distinguishable from zero. We can easily plot these results using the <code>cplot()</code> function to see the effect visually in terms of either predicted fuel economy or the marginal effect of <code>wt</code>:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">cplot</span>(x, <span class="st">&quot;wt&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> lower), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">1</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Predicted fuel economy&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Weight (1000 lbs)&quot;</span>,
-       <span class="dt">y =</span> <span class="st">&quot;Predicted value&quot;</span>)</code></pre></div>
-<pre><code>##       xvals    yvals    upper    lower
-## 1  1.513000 32.36718 35.03500 29.69936
-## 2  1.675958 30.79531 33.07715 28.51348
-## 3  1.838917 29.28565 31.23015 27.34115
-## 4  2.001875 27.83818 29.49769 26.17868
-## 5  2.164833 26.45291 27.88384 25.02199
-## 6  2.327792 25.12984 26.39172 23.86796
-## 7  2.490750 23.86897 25.02106 22.71687
-## 8  2.653708 22.67029 23.76564 21.57494
-## 9  2.816667 21.53381 22.61340 20.45422
-## 10 2.979625 20.45953 21.54975 19.36930
-## 11 3.142583 19.44744 20.56171 18.33318
-## 12 3.305542 18.49755 19.64011 17.35500
-## 13 3.468500 17.60986 18.78010 16.43963
-## 14 3.631458 16.78437 17.98078 15.58796
-## 15 3.794417 16.02108 17.24475 14.79740
-## 16 3.957375 15.31998 16.57774 14.06221
-## 17 4.120333 14.68108 15.98801 13.37414
-## 18 4.283292 14.10437 15.48533 12.72342
-## 19 4.446250 13.58987 15.07937 12.10037
-## 20 4.609208 13.13756 14.77796 11.49716</code></pre>
-<p><img src="/notes/margins_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">cplot</span>(x, <span class="st">&quot;wt&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;effect&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> lower), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">1</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;AME of weight&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Weight (1000 lbs)&quot;</span>,
-       <span class="dt">y =</span> <span class="st">&quot;AME of weight&quot;</span>)</code></pre></div>
-<p><img src="/notes/margins_files/figure-html/unnamed-chunk-6-2.png" width="672" /></p>
+<pre><code>## glm(formula = Survived ~ Age + Sex, family = binomial, data = titanic)</code></pre>
+<pre><code>##  at(Sex)        Age Sexfemale
+##     male -0.0008872    0.5468
+##   female -0.0010080    0.5468</code></pre>
+<p>Because this is a logistic regression model and the values are being calculated on the scale of the response variable (this is the default approach), even though this is not an interaction model we can still see the partial marginal effect of age differs for men vs. women.</p>
+<p>Note the difference between these values and the AMEs calculated separately for men and women:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">margins</span>(age_woman) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">split</span>(.<span class="op">$</span>Sex)</code></pre></div>
+<pre><code>## $female</code></pre>
+<pre><code>## Average marginal effects</code></pre>
+<pre><code>## glm(formula = Survived ~ Age + Sex, family = binomial, data = titanic)</code></pre>
+<pre><code>##        Age Sexmale
+##  -0.001003  -0.547
+## 
+## $male</code></pre>
+<pre><code>## Average marginal effects
+## glm(formula = Survived ~ Age + Sex, family = binomial, data = titanic)</code></pre>
+<pre><code>##         Age Sexmale
+##  -0.0008843 -0.5466</code></pre>
+<p>This is because the AMEs calculated in the first example replace the values for the specified variables for all observations, whereas in the latter example we still calculate the AMEs based on the full joint probability distribution of the observed sample.</p>
+</div>
 <div id="marginal-effects-plots" class="section level2">
-<h2><span class="header-section-number">3.1</span> Marginal effects plots</h2>
+<h2><span class="header-section-number">3.3</span> Marginal effects plots</h2>
+<p>Marginal effects lend themselves very well to graphical presentations. We can easily generate marginal effects plots using the <code>cplot()</code> function, either using the base <code>graphics</code> package or <code>ggplot()</code>. Consider the effect of age on probability of survival. We can calculate the average predicted value, or alternatively the average marginal effect of age:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">pred_age &lt;-<span class="st"> </span><span class="kw">cplot</span>(age_woman, <span class="st">&quot;Age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> lower), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Predicted probability of survival, given age&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Predicted probability of survival&quot;</span>)</code></pre></div>
+<pre><code>##        xvals     yvals     upper     lower
+## 1   0.420000 0.2330934 0.3102362 0.1559506
+## 2   3.735833 0.2298927 0.3002355 0.1595499
+## 3   7.051667 0.2267230 0.2906282 0.1628178
+## 4  10.367500 0.2235842 0.2814796 0.1656889
+## 5  13.683333 0.2204766 0.2728762 0.1680769
+## 6  16.999167 0.2174000 0.2649304 0.1698696
+## 7  20.315000 0.2143546 0.2577819 0.1709272
+## 8  23.630833 0.2113403 0.2515897 0.1710909
+## 9  26.946667 0.2083571 0.2465067 0.1702076
+## 10 30.262500 0.2054051 0.2426367 0.1681735
+## 11 33.578333 0.2024842 0.2399899 0.1649786
+## 12 36.894167 0.1995944 0.2384688 0.1607201
+## 13 40.210000 0.1967357 0.2378980 0.1555735
+## 14 43.525833 0.1939080 0.2380744 0.1497417
+## 15 46.841667 0.1911113 0.2388085 0.1434142
+## 16 50.157500 0.1883455 0.2399432 0.1367479
+## 17 53.473333 0.1856106 0.2413568 0.1298643
+## 18 56.789167 0.1829064 0.2429584 0.1228543
+## 19 60.105000 0.1802329 0.2446806 0.1157852
+## 20 63.420833 0.1775899 0.2464736 0.1087062</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ame_age &lt;-<span class="st"> </span><span class="kw">cplot</span>(age_woman, <span class="st">&quot;Age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;effect&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> lower), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Average marginal effect of age&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Marginal effect of age&quot;</span>)
+
+pred_age <span class="op">+</span>
+<span class="st">  </span>ame_age</code></pre></div>
+<p><img src="/notes/margins_files/figure-html/age-margin-effect-1.png" width="672" /></p>
+<p>Not surprisingly, the AME for age always contains <span class="math inline">\(0\)</span> in the 95% confidence interval (recall its p-value). Unlike our <a href="/notes/logistic-regression/#probability-of-surviving-the-titanic">prior example</a>, this method allows easy calculation of the confidence interval to present not just direct effects, but also their statistical significance.</p>
+</div>
+<div id="interaction-models" class="section level2">
+<h2><span class="header-section-number">3.4</span> Interaction models</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">age_fare_x &lt;-<span class="st"> </span><span class="kw">glm</span>(Survived <span class="op">~</span><span class="st"> </span>Age <span class="op">*</span><span class="st"> </span>Fare, <span class="dt">data =</span> titanic,
+                  <span class="dt">family =</span> binomial)
+<span class="kw">summary</span>(age_fare_x)</code></pre></div>
+<pre><code>## 
+## Call:
+## glm(formula = Survived ~ Age * Fare, family = binomial, data = titanic)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -3.2517  -0.9381  -0.7988   1.2004   1.9000  
+## 
+## Coefficients:
+##               Estimate Std. Error z value Pr(&gt;|z|)   
+## (Intercept) -0.1116164  0.2587950  -0.431  0.66626   
+## Age         -0.0281442  0.0085913  -3.276  0.00105 **
+## Fare         0.0075141  0.0060702   1.238  0.21576   
+## Age:Fare     0.0003100  0.0001849   1.677  0.09351 . 
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 964.52  on 713  degrees of freedom
+## Residual deviance: 888.52  on 710  degrees of freedom
+## AIC: 896.52
+## 
+## Number of Fisher Scoring iterations: 5</code></pre>
+<p>Consider an interaction model interacting age and fare. Now let’s present the predicted probability of survival given age:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">cplot</span>(age_fare_x, <span class="st">&quot;Age&quot;</span>)</code></pre></div>
+<pre><code>##        xvals     yvals     upper     lower
+## 1   0.420000 0.5353855 0.6242008 0.4465702
+## 2   3.735833 0.5210185 0.6020030 0.4400340
+## 3   7.051667 0.5066166 0.5798624 0.4333709
+## 4  10.367500 0.4922038 0.5579377 0.4264699
+## 5  13.683333 0.4778039 0.5364284 0.4191794
+## 6  16.999167 0.4634408 0.5155907 0.4112909
+## 7  20.315000 0.4491381 0.4957524 0.4025238
+## 8  23.630833 0.4349191 0.4773088 0.3925293
+## 9  26.946667 0.4208063 0.4606620 0.3809505
+## 10 30.262500 0.4068217 0.4460828 0.3675606
+## 11 33.578333 0.3929866 0.4335656 0.3524076
+## 12 36.894167 0.3793211 0.4228242 0.3358180
+## 13 40.210000 0.3658444 0.4134394 0.3182495
+## 14 43.525833 0.3525745 0.4050101 0.3001390
+## 15 46.841667 0.3395283 0.3972209 0.2818357
+## 16 50.157500 0.3267212 0.3898452 0.2635971
+## 17 53.473333 0.3141673 0.3827259 0.2456088
+## 18 56.789167 0.3018796 0.3757552 0.2280040
+## 19 60.105000 0.2898693 0.3688589 0.2108798
+## 20 63.420833 0.2781465 0.3619860 0.1943070</code></pre>
+<p><img src="/notes/margins_files/figure-html/age-fare-pred-1.png" width="672" /></p>
+<p>As age increases, the probability of survival decreases. And here it appears to be a statistically significant effect:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">cplot</span>(age_fare_x, <span class="st">&quot;Age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;effect&quot;</span>)</code></pre></div>
+<p><img src="/notes/margins_files/figure-html/age-fare-me-1.png" width="672" /></p>
+<p>The AME confirms it. But so far we have simply averaged these predicted probabilities/AMEs over all fare values. What if we consider the effect of fare on probability of survival?</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">cplot</span>(age_fare_x, <span class="st">&quot;Fare&quot;</span>)</code></pre></div>
+<pre><code>##        xvals     yvals     upper     lower
+## 1    0.00000 0.2793931 0.3230632 0.2357230
+## 2   21.34705 0.3565165 0.3943090 0.3187240
+## 3   42.69410 0.4418746 0.4846787 0.3990706
+## 4   64.04115 0.5308112 0.5897501 0.4718723
+## 5   85.38820 0.6178327 0.6942636 0.5414019
+## 6  106.73525 0.6979000 0.7864649 0.6093351
+## 7  128.08230 0.7675050 0.8604014 0.6746086
+## 8  149.42935 0.8250920 0.9150420 0.7351419
+## 9  170.77640 0.8708160 0.9526250 0.7890070
+## 10 192.12345 0.9059495 0.9768339 0.8350650
+## 11 213.47050 0.9322710 0.9914445 0.8730975
+## 12 234.81755 0.9516195 0.9996270 0.9036119
+## 13 256.16460 0.9656443 1.0037490 0.9275395
+## 14 277.51165 0.9757072 1.0054452 0.9459693
+## 15 298.85870 0.9828750 1.0057799 0.9599701
+## 16 320.20575 0.9879540 1.0054141 0.9704939
+## 17 341.55280 0.9915396 1.0047396 0.9783395
+## 18 362.89985 0.9940643 1.0039771 0.9841515
+## 19 384.24690 0.9958388 1.0032420 0.9884355
+## 20 405.59395 0.9970843 1.0025880 0.9915807</code></pre>
+<p><img src="/notes/margins_files/figure-html/age-fare-fare-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">cplot</span>(age_fare_x, <span class="st">&quot;Fare&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;effect&quot;</span>)</code></pre></div>
+<p><img src="/notes/margins_files/figure-html/age-fare-fare-2.png" width="672" /></p>
+<p>It is statistically significant and positive until fare is greater than about 300 pounds, at which point the 95% confidence interval contains 0.</p>
+<p>To simulataneously interpret the joint effects of age and sex, we can draw a three-dimensional perspective plot:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">persp</span>(age_fare_x, <span class="dt">theta =</span> <span class="kw">c</span>(<span class="dv">45</span>, <span class="dv">135</span>, <span class="dv">225</span>, <span class="dv">315</span>), <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>)</code></pre></div>
+<p><img src="/notes/margins_files/figure-html/age-fare-joint-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">persp</span>(age_fare_x, <span class="dt">theta =</span> <span class="kw">c</span>(<span class="dv">45</span>, <span class="dv">135</span>, <span class="dv">225</span>, <span class="dv">315</span>), <span class="dt">what =</span> <span class="st">&quot;effect&quot;</span>)</code></pre></div>
+<p><img src="/notes/margins_files/figure-html/age-fare-joint-2.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(plotly)</code></pre></div>
+<pre><code>## 
+## Attaching package: &#39;plotly&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:ggplot2&#39;:
+## 
+##     last_plot</code></pre>
+<pre><code>## The following object is masked from &#39;package:stats&#39;:
+## 
+##     filter</code></pre>
+<pre><code>## The following object is masked from &#39;package:graphics&#39;:
+## 
+##     layout</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># predicted prob</span>
+surface &lt;-<span class="st"> </span>margins<span class="op">:::</span><span class="kw">calculate_surface</span>(<span class="dt">x =</span> age_fare_x,
+                                       <span class="dt">xvar =</span> <span class="st">&quot;Age&quot;</span>,
+                                       <span class="dt">yvar =</span> <span class="st">&quot;Fare&quot;</span>,
+                                       <span class="dt">dx =</span> <span class="st">&quot;Age&quot;</span>,
+                                       <span class="dt">nx =</span> 25L,
+                                       <span class="dt">ny =</span> 25L,
+                                       <span class="dt">type =</span> <span class="st">&quot;response&quot;</span>,
+                                       <span class="dt">vcov =</span> stats<span class="op">::</span><span class="kw">vcov</span>(age_fare_x),
+                                       <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>)
+
+outcome &lt;-<span class="st"> </span>surface[[<span class="st">&quot;outcome&quot;</span>]]
+xvals &lt;-<span class="st"> </span>surface[[<span class="st">&quot;xvals&quot;</span>]]
+yvals &lt;-<span class="st"> </span>surface[[<span class="st">&quot;yvals&quot;</span>]]
+
+<span class="kw">plot_ly</span>(<span class="dt">x =</span> <span class="op">~</span>xvals, <span class="dt">y =</span> <span class="op">~</span>yvals, <span class="dt">z =</span> <span class="op">~</span>outcome) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">add_surface</span>() <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">layout</span>(
+    <span class="dt">title =</span> <span class="st">&quot;Predicted probability of survival&quot;</span>,
+    <span class="dt">scene =</span> <span class="kw">list</span>(
+      <span class="dt">xaxis =</span> <span class="kw">list</span>(<span class="dt">title =</span> <span class="st">&quot;Age&quot;</span>),
+      <span class="dt">yaxis =</span> <span class="kw">list</span>(<span class="dt">title =</span> <span class="st">&quot;Fare&quot;</span>),
+      <span class="dt">zaxis =</span> <span class="kw">list</span>(<span class="dt">title =</span> <span class="st">&quot;Predicted probability of survival&quot;</span>)
+    ))</code></pre></div>
+<div id="htmlwidget-1" style="width:672px;height:480px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"visdat":{"9864524cb6cb":["function () ","plotlyVisDat"]},"cur_data":"9864524cb6cb","attrs":{"9864524cb6cb":{"x":{},"y":{},"z":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"surface","inherit":true}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"title":"Predicted probability of survival","scene":{"xaxis":{"title":"Age"},"yaxis":{"title":"Fare"},"zaxis":{"title":"Predicted probability of survival"}},"hovermode":"closest","showlegend":false,"legend":{"yanchor":"top","y":0.5}},"source":"A","config":{"modeBarButtonsToAdd":[{"name":"Collaborate","icon":{"width":1000,"ascent":500,"descent":-50,"path":"M487 375c7-10 9-23 5-36l-79-259c-3-12-11-23-22-31-11-8-22-12-35-12l-263 0c-15 0-29 5-43 15-13 10-23 23-28 37-5 13-5 25-1 37 0 0 0 3 1 7 1 5 1 8 1 11 0 2 0 4-1 6 0 3-1 5-1 6 1 2 2 4 3 6 1 2 2 4 4 6 2 3 4 5 5 7 5 7 9 16 13 26 4 10 7 19 9 26 0 2 0 5 0 9-1 4-1 6 0 8 0 2 2 5 4 8 3 3 5 5 5 7 4 6 8 15 12 26 4 11 7 19 7 26 1 1 0 4 0 9-1 4-1 7 0 8 1 2 3 5 6 8 4 4 6 6 6 7 4 5 8 13 13 24 4 11 7 20 7 28 1 1 0 4 0 7-1 3-1 6-1 7 0 2 1 4 3 6 1 1 3 4 5 6 2 3 3 5 5 6 1 2 3 5 4 9 2 3 3 7 5 10 1 3 2 6 4 10 2 4 4 7 6 9 2 3 4 5 7 7 3 2 7 3 11 3 3 0 8 0 13-1l0-1c7 2 12 2 14 2l218 0c14 0 25-5 32-16 8-10 10-23 6-37l-79-259c-7-22-13-37-20-43-7-7-19-10-37-10l-248 0c-5 0-9-2-11-5-2-3-2-7 0-12 4-13 18-20 41-20l264 0c5 0 10 2 16 5 5 3 8 6 10 11l85 282c2 5 2 10 2 17 7-3 13-7 17-13z m-304 0c-1-3-1-5 0-7 1-1 3-2 6-2l174 0c2 0 4 1 7 2 2 2 4 4 5 7l6 18c0 3 0 5-1 7-1 1-3 2-6 2l-173 0c-3 0-5-1-8-2-2-2-4-4-4-7z m-24-73c-1-3-1-5 0-7 2-2 3-2 6-2l174 0c2 0 5 0 7 2 3 2 4 4 5 7l6 18c1 2 0 5-1 6-1 2-3 3-5 3l-174 0c-3 0-5-1-7-3-3-1-4-4-5-6z"},"click":"function(gd) { \n        // is this being viewed in RStudio?\n        if (location.search == '?viewer_pane=1') {\n          alert('To learn about plotly for collaboration, visit:\\n https://cpsievert.github.io/plotly_book/plot-ly-for-collaboration.html');\n        } else {\n          window.open('https://cpsievert.github.io/plotly_book/plot-ly-for-collaboration.html', '_blank');\n        }\n      }"}],"cloud":false},"data":[{"colorbar":{"title":"outcome","ticklen":2,"len":0.5,"lenmode":"fraction","y":1,"yanchor":"top"},"colorscale":[["0","rgba(68,1,84,1)"],["0.208086941012205","rgba(64,70,135,1)"],["0.347527293299459","rgba(48,107,142,1)"],["0.444287735246136","rgba(38,130,142,1)"],["0.565757262758075","rgba(34,160,136,1)"],["0.654796219573462","rgba(51,180,123,1)"],["0.722455830452785","rgba(86,194,106,1)"],["0.801637075558797","rgba(126,209,81,1)"],["0.850040389125327","rgba(157,216,63,1)"],["0.895781657727389","rgba(185,223,44,1)"],["0.923572658503474","rgba(204,225,42,1)"],["0.948263617793309","rgba(220,227,40,1)"],["0.96261591625101","rgba(229,228,40,1)"],["0.974599522712495","rgba(237,229,39,1)"],["0.982330106266701","rgba(242,230,38,1)"],["0.988558293939112","rgba(246,230,38,1)"],["0.993136408559523","rgba(249,231,37,1)"],["0.995802760091792","rgba(250,231,37,1)"],["0.997547967831102","rgba(251,231,37,1)"],["0.998790143185688","rgba(252,231,37,1)"],["0.999400680721291","rgba(253,231,37,1)"],["0.999758868757262","rgba(253,231,37,1)"],["0.9999126198646","rgba(253,231,37,1)"],["0.999979865000705","rgba(253,231,37,1)"],["1","rgba(253,231,37,1)"]],"showscale":true,"x":[0.42,3.73583333333333,7.05166666666667,10.3675,13.6833333333333,16.9991666666667,20.315,23.6308333333333,26.9466666666667,30.2625,33.5783333333333,36.8941666666667,40.21,43.5258333333333,46.8416666666667,50.1575,53.4733333333333,56.7891666666667,60.105,63.4208333333333,66.7366666666667,70.0525,73.3683333333333,76.6841666666667,80],"y":[0,21.34705,42.6941,64.04115,85.3882,106.73525,128.0823,149.42935,170.7764,192.12345,213.4705,234.81755,256.1646,277.51165,298.8587,320.20575,341.5528,362.89985,384.2469,405.59395,426.941,448.28805,469.6351,490.98215,512.3292],"z":[[0.469179872486983,0.509935357893726,0.550559195975575,0.590519650043615,0.629319287733342,0.666518682863146,0.701754152233812,0.734748271589505,0.765313024473644,0.793346400716528,0.81882391502422,0.841786805091566,0.862328632167098,0.880581741948839,0.896704662795085,0.910871118616848,0.92326098149141,0.934053217221472,0.943420692874971,0.951526609352214,0.958522277050219,0.964545950083727,0.969722457819058,0.974163408933836,0.977967783958385],[0.44602156545052,0.492093163832154,0.538299452324765,0.583856958124277,0.62802549368043,0.670154498719996,0.709717494044541,0.746331364970458,0.779760174552777,0.809905738976163,0.836788751115027,0.860524695483469,0.881298372522977,0.899339913573617,0.914904083148799,0.928253690607907,0.939647199055357,0.949330151390419,0.957529795302202,0.964452218719602,0.970281342383023,0.975179206249255,0.979287096071234,0.982727164177334,0.985604293086125],[0.423095234348242,0.474271088839172,0.525993209514688,0.577163482462041,0.626729862316801,0.673770076579865,0.717553788857997,0.757575533702217,0.793557871568272,0.825430140111128,0.853291413636191,0.877366673944455,0.897963558982104,0.915434524829192,0.930146768186502,0.942460336120676,0.952713644770833,0.961215050192865,0.968238979327918,0.974025253291489,0.97878047690645,0.982680636174351,0.985874289722491,0.988485940574261,0.990619327300476],[0.400495401435289,0.456514324643467,0.513655308084742,0.57044155458889,0.625432409666567,0.67736510266933,0.72526043072948,0.768475906358259,0.806705440603247,0.839937274883183,0.868387898999244,0.892429169069892,0.912521269848423,0.929158464043859,0.942829740659244,0.953993316386112,0.963062395322373,0.97039920050741,0.976314558527375,0.981070863462209,0.984886833568216,0.987942987156381,0.990387163603045,0.992339702736152,0.993898089702511],[0.37831112832049,0.438867401962647,0.501300742460725,0.563693547478172,0.624133151854944,0.68093927226913,0.732835086622849,0.779029114974592,0.819206451683317,0.853452873288919,0.8821454964673,0.905840156264612,0.925175076257091,0.940799210172697,0.953325470201577,0.963304684510172,0.971214723224114,0.977459572189902,0.982374213584941,0.986232375805978,0.989255250133516,0.991620049686443,0.993467819948926,0.994910250053416,0.996035435124552],[0.356624697662332,0.421373748005292,0.488944588308095,0.556921872322673,0.622832105107573,0.684492289763441,0.740275693384183,0.789233223186422,0.831068284073812,0.866009280198881,0.894639476146707,0.917733305746903,0.936126628344249,0.950628776614551,0.961972036418894,0.970789213316911,0.977609619859202,0.982865641724696,0.986904368350848,0.990000814599106,0.992370769748748,0.994182311286317,0.995565628932335,0.996621142136598,0.997426061132942],[0.335510523483156,0.404075267369036,0.476601929045129,0.550128975195032,0.621529285749832,0.688023868681472,0.74758045376352,0.799087646458853,0.842301678432291,0.877644073497974,0.905950157856704,0.928243252175936,0.945569587875221,0.958897567534819,0.969068777210583,0.97678395767652,0.982609274190067,0.986992380349536,0.990281707486329,0.992745353527188,0.994587863685081,0.99596432176459,0.996991766772208,0.997758222901083,0.998329723791997],[0.315034315250449,0.38701195473058,0.464287782275787,0.543317333599926,0.620224710206133,0.69153373173148,0.754747831552284,0.808593066119807,0.852920288226942,0.888398778194266,0.916160402378451,0.937501942937941,0.953685580242011,0.965831261797958,0.974875720919544,0.981571792426861,0.986507939427309,0.990135186853451,0.992794396546986,0.994740583689408,0.996163149692112,0.997202022576592,0.997960184247651,0.998513214848285,0.998916471736188],[0.295252507475038,0.370221546598185,0.45201702690353,0.536489452928084,0.618918394999217,0.695021610827282,0.761776545906753,0.817751338836006,0.86294024013939,0.898317699238496,0.925353532931781,0.945635961347642,0.960641787172799,0.971629896033844,0.979615416979015,0.985387005719816,0.98954190133688,0.992524402642671,0.994660926141942,0.996189176344248,0.997281177729585,0.998060872395505,0.998617278875954,0.999014189724138,0.999297247276121],[0.276211953627721,0.353739218050953,0.439804331675237,0.529647862822649,0.617610356749424,0.698487247107377,0.76866556492987,0.826565403078299,0.872379711416101,0.907446886312755,0.933611669952445,0.952764688963994,0.966589806510371,0.97646844393895,0.983476124715563,0.98842166800901,0.991899218051515,0.994338269375354,0.996045878187842,0.99723989249217,0.99807405104132,0.998656450183932,0.999062899547348,0.999346470715963,0.999544271008347],[0.257949871556882,0.337597328891658,0.427664085879189,0.522795113468921,0.616300612173962,0.701930390946766,0.775414098584799,0.835039184006765,0.881258530404597,0.915833235889161,0.941014445636221,0.958999160720174,0.971665443334033,0.980498335986309,0.986615629665144,0.990831989170879,0.993728549339234,0.995713923015581,0.997072631954612,0.998001487516636,0.998636019856599,0.999069274594237,0.999364997777817,0.999566800368695,0.999704489414519],[0.240494017962267,0.321825222064915,0.41561033288333,0.515933771818902,0.614989178086163,0.705350801961611,0.782021591014019,0.843177498074623,0.889597804877984,0.92352372952171,0.947638055024593,0.964441470753108,0.975989149803307,0.98384950433855,0.989165206173263,0.992744224699843,0.99514679940855,0.996756418848649,0.997833351909308,0.998553240896256,0.999034171587273,0.99935533483288,0.999569748880122,0.999712869832688,0.999808391419226],[0.223863062252223,0.306449075613442,0.403656707150825,0.509066417762438,0.613676071394725,0.708748249006836,0.78848771233744,0.850985958508545,0.897419581263078,0.930564802568091,0.953554596165239,0.969184599896624,0.979666887561994,0.986632658399412,0.991233431563142,0.994259922620971,0.996245532695054,0.997545974975502,0.998396705390727,0.998952824918577,0.99931618068125,0.999553513200705,0.999708498976345,0.999809695888731,0.999875765849184],[0.208067125435286,0.291491807930247,0.391816375310564,0.502195640257018,0.612361309102944,0.712122510166808,0.794812350002047,0.858470882676298,0.904746536575122,0.937001834198783,0.958831651646505,0.97331255334408,0.982791239366496,0.988941592799766,0.99290968873325,0.99546044608161,0.997096245677998,0.998143694405863,0.99881375460907,0.999242130589701,0.999515886759793,0.999690787838287,0.999802512906325,0.999873874374464,0.999919451631747],[0.193108447494338,0.276973034673144,0.380101981792183,0.495324033428552,0.611044908307937,0.715473372739247,0.800995599754023,0.865639202205174,0.911601703741539,0.942878747439336,0.963532066296942,0.976900715879961,0.985442642322654,0.990855402556884,0.994267282146774,0.99641078933621,0.997754632720628,0.998596034026695,0.999122416282032,0.9994515529434,0.999657289659104,0.999785865732014,0.99986620983757,0.999916411006823,0.99994777651791],[0.178982146704266,0.26290907448735,0.368525599460217,0.488454192655567,0.609726886199853,0.718800633212492,0.807037756302283,0.872498376570002,0.918008230071541,0.948237706887829,0.967713880003657,0.980016350330773,0.987690652575405,0.992440532939365,0.995366148072337,0.997162747868117,0.998263999306237,0.998938265976355,0.999350816226203,0.999603128519603,0.999757400717572,0.999851712999994,0.999909364002377,0.999944602696684,0.99996614127668],[0.165677036200199,0.249312999666386,0.357098685601898,0.481588710649393,0.608407260061069,0.722104097236283,0.812939303739767,0.879056310730722,0.923989167891202,0.953118901433743,0.97143037962236,0.982719181358014,0.989595180708676,0.993752628222363,0.996255173154724,0.997757521679352,0.998657970365268,0.999197142243246,0.99951980136911,0.999712824841445,0.999828272791529,0.999897314011205,0.999938599598387,0.999963286649152,0.999978048079236],[0.153176466337382,0.236194727090999,0.345832043539843,0.4747301735429,0.607086047265386,0.725383579586218,0.818700905786017,0.885321277268919,0.929567295801221,0.957560399575161,0.974730239236589,0.985062020886317,0.991207659393051,0.994838167883243,0.996974153326152,0.998227834507787,0.998962625848708,0.99939293661457,0.999644814634683,0.999792207114038,0.999878443072364,0.999928892860409,0.999958405337151,0.999975669183233,0.999985767779757],[0.141459165548425,0.223561144227252,0.334735790056324,0.467881157000319,0.605763265277198,0.728638904122045,0.824323395911256,0.891301843352011,0.934764968609148,0.96159806561216,0.97765772317294,0.987091403207336,0.992572121150096,0.995735894172172,0.997555433122598,0.998599647516358,0.999198176716287,0.999541004192976,0.999737290929321,0.999849649475391,0.999913957315347,0.999950760797528,0.999971822579684,0.999983875452432,0.999990772764473],[0.130500057072217,0.211416264632908,0.323819328731816,0.461044222360558,0.604438931650668,0.731869903739951,0.829807767398762,0.897006802744306,0.939603993718826,0.965265525939231,0.980252930944119,0.988848207246795,0.993726175686653,0.996478044038608,0.998025267436791,0.998893537960899,0.999380275518845,0.999652969454261,0.99980569471523,0.999891214171656,0.999939096299146,0.999965903807018,0.999980911888092,0.999989313950406,0.999994017677906],[0.120271033732867,0.199761407300442,0.313091329218796,0.45422191282624,0.603113064028878,0.735076420319025,0.835155163398603,0.902445112986351,0.944105531606099,0.968594175751795,0.98255206753709,0.990368250879216,0.994701884178209,0.997091403117402,0.998404946180694,0.99912580393388,0.999521038431727,0.999737629609705,0.999856290188283,0.999921289131009,0.999956890774078,0.999976389849893,0.999987069258158,0.999992918161209,0.999996121467075],[0.110741677593021,0.188595394232302,0.302559712393951,0.447416749710442,0.601785680142982,0.738258304662068,0.84036686702197,0.907625837778361,0.94829001795063,0.971613217632423,0.984587726135756,0.991682847824979,0.995526533068224,0.997598201355881,0.99871171891676,0.999309346877935,0.999629840595461,0.999801640517398,0.999893712423368,0.999943050032577,0.999969486325609,0.99998365103721,0.999991240424758,0.999995306742753,0.999997485423506],[0.101879915578803,0.177914760871175,0.292231641259354,0.440631228752795,0.600456797811335,0.741415416430931,0.845444291521438,0.912558094529725,0.952177105009696,0.974349724625984,0.986389173467224,0.992819321874877,0.9962233131432,0.998016869948664,0.998959552300435,0.999454374874933,0.999713934048578,0.999850036928045,0.99992139062247,0.999958795026437,0.999978401818212,0.999988679106817,0.999994066074776,0.999996889699626,0.999998369720707],[0.0936526059341698,0.167713974363647,0.282113517396953,0.433867816516241,0.599126434938623,0.744547624076561,0.850388970598486,0.917251006974434,0.955785619893358,0.976828721504931,0.987982630522368,0.993801476243325,0.9968119114209,0.998362678268692,0.999159748789573,0.999568962051637,0.999778927230759,0.999886626759365,0.999941861599559,0.999970187121574,0.999984712419902,0.999992160822315,0.999995980234716,0.999997938752823,0.999998943038817],[0.0860260535372964,0.157985655087981,0.272210982721876,0.427128946875285,0.597794609514977,0.747654804763936,0.855202548875652,0.921713662700992,0.959133537516246,0.979073278937363,0.989391543478628,0.994650018002637,0.997309024190715,0.998648267931748,0.999321450878048,0.9996594928807,0.999829156713028,0.999914289719749,0.999957001878252,0.999978429668954,0.999989179196813,0.999994571749775,0.999997276928449,0.999998633978102,0.999999314739062]],"type":"surface","frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"base_url":"https://plot.ly"},"evals":["config.modeBarButtonsToAdd.0.click"],"jsHooks":[]}</script>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># marginal effect</span>
+surface &lt;-<span class="st"> </span>margins<span class="op">:::</span><span class="kw">calculate_surface</span>(<span class="dt">x =</span> age_fare_x,
+                                       <span class="dt">xvar =</span> <span class="st">&quot;Age&quot;</span>,
+                                       <span class="dt">yvar =</span> <span class="st">&quot;Fare&quot;</span>,
+                                       <span class="dt">dx =</span> <span class="st">&quot;Age&quot;</span>,
+                                       <span class="dt">nx =</span> 25L,
+                                       <span class="dt">ny =</span> 25L,
+                                       <span class="dt">type =</span> <span class="st">&quot;response&quot;</span>,
+                                       <span class="dt">vcov =</span> stats<span class="op">::</span><span class="kw">vcov</span>(age_fare_x),
+                                       <span class="dt">what =</span> <span class="st">&quot;effect&quot;</span>)
+
+outcome &lt;-<span class="st"> </span>surface[[<span class="st">&quot;outcome&quot;</span>]]
+xvals &lt;-<span class="st"> </span>surface[[<span class="st">&quot;xvals&quot;</span>]]
+yvals &lt;-<span class="st"> </span>surface[[<span class="st">&quot;yvals&quot;</span>]]
+
+<span class="kw">plot_ly</span>(<span class="dt">x =</span> <span class="op">~</span>xvals, <span class="dt">y =</span> <span class="op">~</span>yvals, <span class="dt">z =</span> <span class="op">~</span>outcome) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">add_surface</span>() <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">layout</span>(
+    <span class="dt">title =</span> <span class="st">&quot;Marginal effect on survival&quot;</span>,
+    <span class="dt">scene =</span> <span class="kw">list</span>(
+      <span class="dt">xaxis =</span> <span class="kw">list</span>(<span class="dt">title =</span> <span class="st">&quot;Age&quot;</span>),
+      <span class="dt">yaxis =</span> <span class="kw">list</span>(<span class="dt">title =</span> <span class="st">&quot;Fare&quot;</span>),
+      <span class="dt">zaxis =</span> <span class="kw">list</span>(<span class="dt">title =</span> <span class="st">&quot;AME&quot;</span>)
+    ))</code></pre></div>
+<div id="htmlwidget-2" style="width:672px;height:480px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-2">{"x":{"visdat":{"98647a6dac6e":["function () ","plotlyVisDat"]},"cur_data":"98647a6dac6e","attrs":{"98647a6dac6e":{"x":{},"y":{},"z":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"surface","inherit":true}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"title":"Marginal effect on survival","scene":{"xaxis":{"title":"Age"},"yaxis":{"title":"Fare"},"zaxis":{"title":"AME"}},"hovermode":"closest","showlegend":false,"legend":{"yanchor":"top","y":0.5}},"source":"A","config":{"modeBarButtonsToAdd":[{"name":"Collaborate","icon":{"width":1000,"ascent":500,"descent":-50,"path":"M487 375c7-10 9-23 5-36l-79-259c-3-12-11-23-22-31-11-8-22-12-35-12l-263 0c-15 0-29 5-43 15-13 10-23 23-28 37-5 13-5 25-1 37 0 0 0 3 1 7 1 5 1 8 1 11 0 2 0 4-1 6 0 3-1 5-1 6 1 2 2 4 3 6 1 2 2 4 4 6 2 3 4 5 5 7 5 7 9 16 13 26 4 10 7 19 9 26 0 2 0 5 0 9-1 4-1 6 0 8 0 2 2 5 4 8 3 3 5 5 5 7 4 6 8 15 12 26 4 11 7 19 7 26 1 1 0 4 0 9-1 4-1 7 0 8 1 2 3 5 6 8 4 4 6 6 6 7 4 5 8 13 13 24 4 11 7 20 7 28 1 1 0 4 0 7-1 3-1 6-1 7 0 2 1 4 3 6 1 1 3 4 5 6 2 3 3 5 5 6 1 2 3 5 4 9 2 3 3 7 5 10 1 3 2 6 4 10 2 4 4 7 6 9 2 3 4 5 7 7 3 2 7 3 11 3 3 0 8 0 13-1l0-1c7 2 12 2 14 2l218 0c14 0 25-5 32-16 8-10 10-23 6-37l-79-259c-7-22-13-37-20-43-7-7-19-10-37-10l-248 0c-5 0-9-2-11-5-2-3-2-7 0-12 4-13 18-20 41-20l264 0c5 0 10 2 16 5 5 3 8 6 10 11l85 282c2 5 2 10 2 17 7-3 13-7 17-13z m-304 0c-1-3-1-5 0-7 1-1 3-2 6-2l174 0c2 0 4 1 7 2 2 2 4 4 5 7l6 18c0 3 0 5-1 7-1 1-3 2-6 2l-173 0c-3 0-5-1-8-2-2-2-4-4-4-7z m-24-73c-1-3-1-5 0-7 2-2 3-2 6-2l174 0c2 0 5 0 7 2 3 2 4 4 5 7l6 18c1 2 0 5-1 6-1 2-3 3-5 3l-174 0c-3 0-5-1-7-3-3-1-4-4-5-6z"},"click":"function(gd) { \n        // is this being viewed in RStudio?\n        if (location.search == '?viewer_pane=1') {\n          alert('To learn about plotly for collaboration, visit:\\n https://cpsievert.github.io/plotly_book/plot-ly-for-collaboration.html');\n        } else {\n          window.open('https://cpsievert.github.io/plotly_book/plot-ly-for-collaboration.html', '_blank');\n        }\n      }"}],"cloud":false},"data":[{"colorbar":{"title":"outcome","ticklen":2,"len":0.5,"lenmode":"fraction","y":1,"yanchor":"top"},"colorscale":[["0","rgba(68,1,84,1)"],["0.18585914525608","rgba(66,64,131,1)"],["0.266979909107969","rgba(58,86,139,1)"],["0.377030367356628","rgba(46,114,142,1)"],["0.504631935802562","rgba(36,145,139,1)"],["0.535204221411934","rgba(34,153,138,1)"],["0.535401963603673","rgba(34,153,138,1)"],["0.535983504889339","rgba(34,153,138,1)"],["0.537109802701225","rgba(33,153,138,1)"],["0.539686629853747","rgba(33,154,138,1)"],["0.543575912592209","rgba(33,155,138,1)"],["0.550475911605026","rgba(32,157,137,1)"],["0.559721567735694","rgba(32,159,136,1)"],["0.574171404102056","rgba(36,162,134,1)"],["0.593082196398891","rgba(41,166,132,1)"],["0.609297727392402","rgba(44,170,130,1)"],["0.617878394382432","rgba(46,172,128,1)"],["0.640556244789652","rgba(49,177,125,1)"],["0.661607750630947","rgba(52,182,122,1)"],["0.683199233185421","rgba(65,186,117,1)"],["0.710462256644379","rgba(80,192,109,1)"],["0.746348679143544","rgba(96,199,99,1)"],["0.792792243664152","rgba(120,207,84,1)"],["0.862498661525598","rgba(165,218,58,1)"],["1","rgba(253,231,37,1)"]],"showscale":true,"x":[0.42,3.73583333333333,7.05166666666667,10.3675,13.6833333333333,16.9991666666667,20.315,23.6308333333333,26.9466666666667,30.2625,33.5783333333333,36.8941666666667,40.21,43.5258333333333,46.8416666666667,50.1575,53.4733333333333,56.7891666666667,60.105,63.4208333333333,66.7366666666667,70.0525,73.3683333333333,76.6841666666667,80],"y":[0,21.34705,42.6941,64.04115,85.3882,106.73525,128.0823,149.42935,170.7764,192.12345,213.4705,234.81755,256.1646,277.51165,298.8587,320.20575,341.5528,362.89985,384.2469,405.59395,426.941,448.28805,469.6351,490.98215,512.3292],"z":[[-0.00700931459297115,-0.00695404527601681,-0.00686959379486899,-0.00675738790125305,-0.0066192838842391,-0.00645750273543861,-0.00627455673923095,-0.00607317049721889,-0.00585620040815497,-0.00562655634727879,-0.00538712877590802,-0.00514072383683364,-0.00489000823209054,-0.00463746491136522,-0.00438535988459476,-0.00413571985707965,-0.0038903198978678,-0.00365068000323627,-0.00341806920306239,-0.00319351576493878,-0.00297782205827911,-0.00277158272471302,-0.00257520493810813,-0.00238892970626222,-0.0022128533482513],[-0.00537937638280977,-0.00538015547929276,-0.00536725152521584,-0.00534079548079265,-0.00530105437164991,-0.00524842559187834,-0.00518342853200155,-0.00510669383200867,-0.0050189506352052,-0.00492101227542812,-0.00481376086475936,-0.00469813126080273,-0.00457509488347278,-0.00444564382204526,-0.00431077562861433,-0.00417147913638841,-0.00402872157587407,-0.00388343719238376,-0.00373651749860883,-0.00358880322959246,-0.00344107800678192,-0.00329406366530957,-0.00314841715498357,-0.00300472889156005,-0.00286352241049648],[-0.00368884643751998,-0.00370508677850067,-0.00371688185964188,-0.0037241744578225,-0.00372692905676514,-0.00372513221392301,-0.00371879269968548,-0.00370794140643279,-0.00369263102930524,-0.00367293552416585,-0.00364894935229641,-0.00362078652499617,-0.00358857946456819,-0.00355247770098403,-0.00351264642582083,-0.00346926492703736,-0.00342252492926349,-0.00337262886502442,-0.00331978810237888,-0.00326422115411872,-0.00320615189254241,-0.00314580779264853,-0.00308341822471255,-0.00301921281509807,-0.00295341989192896],[-0.00200448369567751,-0.00201411473302748,-0.00202304918271406,-0.00203127407332531,-0.00203877738660338,-0.00204554809406307,-0.00205157619125953,-0.00205685272882069,-0.002061369840583,-0.00206512076831919,-0.00206809988320049,-0.00207030270362398,-0.00207172590958914,-0.0020723673532643,-0.00207222606590087,-0.0020713022609205,-0.00206959733322989,-0.0020671138547736,-0.00206385556626496,-0.00205982736525037,-0.00205503529048762,-0.00204948650277908,-0.00204318926232278,-0.00203615290272975,-0.00202838780184682],[-0.000389908041660816,-0.000390464549991854,-0.000391016241081406,-0.000391563084231047,-0.00039210504913139,-0.000392642105556754,-0.000393174223563961,-0.000393701373376921,-0.000394223525452141,-0.000394740650467747,-0.000395252719313654,-0.000395759703119861,-0.000396261573248918,-0.000396758301276214,-0.000397249859023232,-0.000397736218570694,-0.000398217352214132,-0.000398693232497629,-0.000399163832240749,-0.000399629124486456,-0.000400089082542675,-0.000400543679997904,-0.000400992890663646,-0.000401436688649276,-0.00040187504831826],[0.00109952088823531,0.00109346566648156,0.0010873144561438,0.00108106997961054,0.00107473497525448,0.00106831219520252,0.00106180440293991,0.00105521437110135,0.00104854487916117,0.00104179871128846,0.00103497865411859,0.00102808749460706,0.00102112801796735,0.00101410300554838,0.00100701523285184,0.000999867467524106,0.000992662467444938,0.000985402978844756,0.000978091734454353,0.000970731451723736,0.000963324831099122,0.000955874554347902,0.000948383282926357,0.000940853656407332,0.000933288290983404],[0.00242048595021802,0.00238259125306082,0.002343869265508,0.00230440264811036,0.00226427329859757,0.00222356205529011,0.00218234841982902,0.00214071030112673,0.00209872378053915,0.00205646289943711,0.00201399946863754,0.00197140290028059,0.00192874006173238,0.00188607515110707,0.00184346959393705,0.00180098196020852,0.00175866790108906,0.00171658010424539,0.00167476826687685,0.00163327908527184,0.00159215625984197,0.00155144051438936,0.00151116962846638,0.00147137848157218,0.00143209910805678],[0.00354376774825006,0.00344244429373485,0.00333941846565728,0.00323515359342642,0.00313009270100825,0.00302465586019531,0.00291923806674475,0.00281420762258688,0.00270990500020365,0.00260664215652966,0.00250470225923284,0.00240433978371911,0.0023057809373276,0.0022092243661119,0.00211484209993712,0.00202278069312765,0.00193316251983121,0.00184608718616604,0.00176163302449166,0.0016798586383084,0.00160080447037377,0.00152449436984444,0.00145093713799921,0.00138012803553588,0.00131205023747912],[0.00445453846009132,0.00425923423744271,0.00406304425138189,0.0038673122305129,0.00367325359984874,0.00348194993815299,0.00329434711800052,0.00311125663747998,0.00293335961894784,0.00276121294587686,0.00259525702803858,0.00243582472231332,0.00228315098589835,0.00213738289429826,0.00199858971596435,0.00186677279318043,0.00174187503413985,0.00162378987116409,0.00151236958455836,0.00140743292925006,0.00130877203329867,0.00121615856252289,0.00112934916575878,0.00104809022985475,0.000972121984443343],[0.00515116034810793,0.00483729664975939,0.00452739957510973,0.00422412052427325,0.00392967010102311,0.00364583077257419,0.00337398132935628,0.00311512976851432,0.00286995153469509,0.00263883047829765,0.0024219003755889,0.00221908534114574,0.00203013791957871,0.00185467404525941,0.00169220439656648,0.00154216194121755,0.00140392567542746,0.00127684070860713,0.00116023494523673,0.00105343267638594,0.000955765422786568,0.000866580378232736,0.000785246792110574,0.000711160609454674,0.000643747659446463],[0.00564294054563411,0.00519493366986014,0.00476175441772508,0.00434734063627574,0.00395458113363381,0.00358542023794208,0.00324098083878809,0.00292169441847106,0.00262742927837382,0.00235761077360276,0.00211132966144608,0.00188743653771722,0.00168462175546844,0.00150148122556531,0.00133656914961996,0.00118843910479258,0.00105567505870497,0.000936913903845693,0.000830861015667272,0.000736300197558496,0.000652099207739319,0.000577211888087205,0.000510677746226692,0.000451619687464701,0.000399240456019772],[0.00594734871811308,0.00535968475027688,0.00480472162672033,0.00428693471673505,0.00380886770867279,0.00337146868989342,0.00297442580937553,0.00261647920275846,0.00229569552959029,0.00200969906923879,0.00175585874704699,0.00153143395146374,0.00133368394749244,0.00115994650661592,0.00100769143004717,0.00087455424099182,0.000758354680647981,0.000657103914880991,0.000569003637143675,0.000492439593032622,0.000425971478260748,0.000368320681791317,0.000318356956399128,0.000275084790289346,0.000237630014251385],[0.00608715208641525,0.00536385909383675,0.00469798617192005,0.00409301358710824,0.00354950611344251,0.00306585889803232,0.00263896021383957,0.00226474427415047,0.00193862841323787,0.00165584215421912,0.00141166262431146,0.00120157329893925,0.00102136280366333,0.000867178739167711,0.000735549087736545,0.000623381251569214,0.000527946461596771,0.000446855317486264,0.000378028609771561,0.000319666315416964,0.00027021670240315,0.000228346774108856,0.000192914777599049,0.000162945145790605,0.000137606003317502],[0.00608780638078812,0.00524084831835451,0.00448167959539312,0.00381064227240821,0.00322436999554859,0.00271709781840302,0.0022817085622465,0.00191051580008405,0.00159581386574434,0.00133023785261597,0.00110697797026062,0.000919888055256139,0.000763521010870443,0.000633116579539624,0.000524560213174802,0.000434326325431772,0.000359414944786596,0.000297287612629658,0.000245806094142582,0.000203175891457932,0.0001678954919649,0.00013871160382824,0.000114580214314329,9.46330696764745e-05,7.81490579623381e-05],[0.00597530571726499,0.00502243439257045,0.00419148552445727,0.00347723003595402,0.00287045760111728,0.00235991036755271,0.00193366699634741,0.0015800573925594,0.00128821231654331,0.00104834864692106,0.000851875153654682,0.000691384288429154,0.000560577418448622,0.000454156034165584,0.000367700113925792,0.000297546657945323,0.000240675786411109,0.00019460809290083,0.000157314608186615,0.000127139332936068,0.000102733523242488,8.30005378781285e-05,6.70499261601841e-05,5.41594490244875e-05,4.37438173064781e-05],[0.0057745720014069,0.00473707939645778,0.00385722361125315,0.00312184025393009,0.00251430938535763,0.00201703120472634,0.00161298798032587,0.00128661792050397,0.00102421346831029,0.000814015547091693,0.000646129528461726,0.000512348719004758,0.000405940283746374,0.00032142649128543,0.000254379355398646,0.000201237299279852,0.000159146752080116,0.000125828344001386,9.94656943087745e-05,7.86140700587226e-05,6.2126029481818e-05,4.90912986277745e-05,3.87884069473797e-05,3.06459364664599e-05,2.42115691995299e-05],[0.00550837269071442,0.0044090482189155,0.00350252159387217,0.00276570434637729,0.00217354315900526,0.00170180399447591,0.00132856001366521,0.00103481206556579,0.000804580582998963,0.000624708079089226,0.00048452748621077,0.000375489713861923,0.000290801991959776,0.000225102141117654,0.000174178213374531,0.000134734249272018,0.00010419853113764,8.05688930828581e-05,6.22892422566523e-05,4.81517633323305e-05,3.72199165856836e-05,2.87680754043758e-05,2.22343656934656e-05,1.71839136335678e-05,1.32802603704534e-05],[0.00519669882607844,0.00405816028096062,0.00314518439315845,0.00242335026145702,0.00185875984165267,0.0014207717877163,0.0010831134853277,0.000824035077630758,0.000625964126699563,0.000474947621144248,0.000360045110893061,0.000272757180191993,0.000206525795590473,0.000156316546499599,0.000118279327174676,8.94781152023772e-05,6.7678737959016e-05,5.11838317112239e-05,3.87054243121835e-05,2.92670860508756e-05,2.21290822800623e-05,1.67312881385101e-05,1.26497454508859e-05,9.56365579819884e-06,7.23033356792251e-06],[0.0048565087446233,0.00369996660334153,0.00279793852315149,0.00210393543136772,0.00157538468726042,0.00117587915224259,0.000875608360177823,0.000650864912321371,0.000483172469648952,0.000358336124951956,0.000265561640271016,0.000196701479868006,0.000145639010640756,0.000107800386414161,7.97753178520659e-05,5.90264861438094e-05,4.3669039838415e-05,3.23044332474401e-05,2.38958414830517e-05,1.76750891156405e-05,1.30733058816216e-05,9.6693613196474e-06,7.15157489589204e-06,5.28931380460417e-06,3.91194145712505e-06],[0.00450173865626818,0.00334617891719147,0.00246932061981548,0.00181253804148652,0.00132523901180928,0.000966175751442768,0.000702926774385051,0.000510626517905025,0.000370524271523304,0.000268646783836512,0.00019466777843698,0.000141001419353138,0.000102098727958947,7.39130607383956e-05,5.34998482190641e-05,3.87198452474728e-05,2.80206542769919e-05,2.02766678092534e-05,1.46722202357272e-05,1.06164982956533e-05,7.68168989524101e-06,5.55808298203495e-06,4.02149985301114e-06,2.90969393440983e-06,2.10525072472503e-06],[0.00414349071503854,0.00300521897694283,0.00216456271457635,0.00155128308508923,0.0011077810713044,0.000789048975423724,0.000560997810465802,0.000398340646260992,0.000282584118209295,0.000200335014460289,0.000141959550399776,0.000100561022322994,7.12186381449543e-05,5.04296626702863e-05,3.57048958972486e-05,2.5277469198768e-05,1.78942706171556e-05,1.26670774526537e-05,8.96656538354638e-06,6.34697520179466e-06,4.49263467856792e-06,3.18002763635698e-06,2.25090666954749e-06,1.59324227247994e-06,1.12772849752645e-06],[0.00379032528612207,0.00268279697588151,0.0018863924379408,0.00132025957000779,0.000921031466106549,0.000641068216309672,0.000445500359187845,0.000309253849578542,0.0002145118022333,0.000148715992894341,0.000103063522213642,7.14071943472244e-05,4.94655139212668e-05,3.42617967324048e-05,2.37290892455367e-05,1.64333689783723e-05,1.13803221048315e-05,7.88080028691895e-06,5.45729782380008e-06,3.77901964111694e-06,2.61683656140961e-06,1.81205448059688e-06,1.25476952814031e-06,8.68871067343348e-07,6.0165257378869e-07],[0.00344860184270774,0.00238246214250852,0.00163571194218224,0.00111823105318012,0.000762231607225384,0.000518533642978101,0.000352271980313847,0.000239099790358592,0.000162184269983272,0.000109964892670604,7.45374405782493e-05,5.05138224628905e-05,3.42285588472034e-05,2.31914613753017e-05,1.57123547581751e-05,1.06447775565193e-05,7.21140380846566e-06,4.88534062789821e-06,3.30951487965041e-06,2.24197140286235e-06,1.51877435099025e-06,1.02885629201683e-06,6.96971491214358e-07,4.72144050661495e-07,3.19840527591651e-07],[0.00312282936805545,0.00210609442256281,0.00141214794734607,0.000943164037070844,0.000628292105182663,0.000417812357817345,0.000277523024567144,0.000184197327387931,0.000122192994765816,8.10331027044509e-05,5.37255978999369e-05,3.56152083388541e-05,2.36073329653958e-05,1.56469608410717e-05,1.03703703310123e-05,6.87299575482236e-06,4.55501308529593e-06,3.01875391724341e-06,2.00060876717934e-06,1.3258494827862e-06,8.78667754426627e-07,5.82309798517473e-07,3.85907139819776e-07,2.55747304027138e-07,1.69488022272726e-07],[0.00281600085910736,0.00185432407574692,0.00121448131870096,0.000792606702215938,0.000516083998343828,0.000335528200211374,0.000217927682263122,0.000141455402979863,9.17798557671376e-05,5.95331493315731e-05,3.86095621588182e-05,2.50369805805286e-05,1.62344391877451e-05,1.05262105040093e-05,6.82485562772998e-06,4.42492829368028e-06,2.86888671250879e-06,1.86001705599214e-06,1.20591888950513e-06,7.81839746095792e-07,5.06893124379943e-07,3.28635457798428e-07,2.13064953670005e-07,1.38136790254091e-07,8.95584412088022e-08]],"type":"surface","frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"base_url":"https://plot.ly"},"evals":["config.modeBarButtonsToAdd.0.click"],"jsHooks":[]}</script>
 </div>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
@@ -276,149 +433,289 @@ Y &amp;= \beta_0 + \beta_1 X_1 + \beta_2 X_1^2 + \beta_3 X_2 \\
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-01-31                  
+##  date     2019-02-04                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
-##  package       * version    date       lib source        
-##  assertthat      0.2.0      2017-04-11 [2] CRAN (R 3.5.0)
-##  backports       1.1.3      2018-12-14 [2] CRAN (R 3.5.0)
-##  base64enc       0.1-3      2015-07-28 [2] CRAN (R 3.5.0)
-##  bayesplot       1.6.0      2018-08-02 [2] CRAN (R 3.5.0)
-##  bindr           0.1.1      2018-03-13 [2] CRAN (R 3.5.0)
-##  bindrcpp        0.2.2      2018-03-29 [1] CRAN (R 3.5.0)
-##  blogdown        0.10       2019-01-09 [1] CRAN (R 3.5.2)
-##  bookdown        0.9        2018-12-21 [1] CRAN (R 3.5.0)
-##  broom         * 0.5.1      2018-12-05 [2] CRAN (R 3.5.0)
-##  callr           3.1.1      2018-12-21 [2] CRAN (R 3.5.0)
-##  cellranger      1.1.0      2016-07-27 [2] CRAN (R 3.5.0)
-##  class           7.3-15     2019-01-01 [2] CRAN (R 3.5.2)
-##  cli             1.0.1      2018-09-25 [1] CRAN (R 3.5.0)
-##  codetools       0.2-16     2018-12-24 [2] CRAN (R 3.5.2)
-##  colorspace      1.4-0      2019-01-13 [2] CRAN (R 3.5.2)
-##  colourpicker    1.0        2017-09-27 [2] CRAN (R 3.5.0)
-##  crayon          1.3.4      2017-09-16 [2] CRAN (R 3.5.0)
-##  crosstalk       1.0.0      2016-12-21 [2] CRAN (R 3.5.0)
-##  data.table      1.12.0     2019-01-13 [2] CRAN (R 3.5.2)
-##  desc            1.2.0      2018-05-01 [2] CRAN (R 3.5.0)
-##  devtools        2.0.1      2018-10-26 [1] CRAN (R 3.5.1)
-##  dials         * 0.0.2      2018-12-09 [1] CRAN (R 3.5.0)
-##  digest          0.6.18     2018-10-10 [1] CRAN (R 3.5.0)
-##  dplyr         * 0.7.8      2018-11-10 [1] CRAN (R 3.5.0)
-##  DT              0.5        2018-11-05 [2] CRAN (R 3.5.0)
-##  dygraphs        1.1.1.6    2018-07-11 [2] CRAN (R 3.5.0)
-##  evaluate        0.12       2018-10-09 [2] CRAN (R 3.5.0)
-##  forcats       * 0.3.0      2018-02-19 [2] CRAN (R 3.5.0)
-##  fs              1.2.6      2018-08-23 [1] CRAN (R 3.5.0)
-##  generics        0.0.2      2018-11-29 [1] CRAN (R 3.5.0)
-##  ggplot2       * 3.1.0      2018-10-25 [1] CRAN (R 3.5.0)
-##  ggridges        0.5.1      2018-09-27 [2] CRAN (R 3.5.0)
-##  glue            1.3.0      2018-07-17 [2] CRAN (R 3.5.0)
-##  gower           0.1.2      2017-02-23 [2] CRAN (R 3.5.0)
-##  gridExtra       2.3        2017-09-09 [2] CRAN (R 3.5.0)
-##  gtable          0.2.0      2016-02-26 [2] CRAN (R 3.5.0)
-##  gtools          3.8.1      2018-06-26 [2] CRAN (R 3.5.0)
-##  haven           2.0.0      2018-11-22 [2] CRAN (R 3.5.0)
-##  here          * 0.1        2017-05-28 [2] CRAN (R 3.5.0)
-##  hms             0.4.2      2018-03-10 [2] CRAN (R 3.5.0)
-##  htmltools       0.3.6      2017-04-28 [1] CRAN (R 3.5.0)
-##  htmlwidgets     1.3        2018-09-30 [2] CRAN (R 3.5.0)
-##  httpuv          1.4.5.1    2018-12-18 [2] CRAN (R 3.5.0)
-##  httr            1.4.0      2018-12-11 [2] CRAN (R 3.5.0)
-##  igraph          1.2.2      2018-07-27 [2] CRAN (R 3.5.0)
-##  infer         * 0.4.0      2018-11-15 [1] CRAN (R 3.5.0)
-##  inline          0.3.15     2018-05-18 [2] CRAN (R 3.5.0)
-##  ipred           0.9-8      2018-11-05 [1] CRAN (R 3.5.0)
-##  janeaustenr     0.1.5      2017-06-10 [2] CRAN (R 3.5.0)
-##  jsonlite        1.6        2018-12-07 [2] CRAN (R 3.5.0)
-##  knitr           1.21       2018-12-10 [2] CRAN (R 3.5.1)
-##  labeling        0.3        2014-08-23 [2] CRAN (R 3.5.0)
-##  later           0.7.5      2018-09-18 [2] CRAN (R 3.5.0)
-##  lattice         0.20-38    2018-11-04 [2] CRAN (R 3.5.2)
-##  lava            1.6.4      2018-11-25 [2] CRAN (R 3.5.0)
-##  lazyeval        0.2.1      2017-10-29 [2] CRAN (R 3.5.0)
-##  lme4            1.1-19     2018-11-10 [2] CRAN (R 3.5.0)
-##  loo             2.0.0      2018-04-11 [2] CRAN (R 3.5.0)
-##  lubridate       1.7.4      2018-04-11 [2] CRAN (R 3.5.0)
-##  magrittr        1.5        2014-11-22 [2] CRAN (R 3.5.0)
-##  margins       * 0.3.23     2018-05-22 [2] CRAN (R 3.5.0)
-##  markdown        0.9        2018-12-07 [2] CRAN (R 3.5.0)
-##  MASS            7.3-51.1   2018-11-01 [2] CRAN (R 3.5.2)
-##  Matrix          1.2-15     2018-11-01 [2] CRAN (R 3.5.2)
-##  matrixStats     0.54.0     2018-07-23 [2] CRAN (R 3.5.0)
-##  memoise         1.1.0      2017-04-21 [2] CRAN (R 3.5.0)
-##  mime            0.6        2018-10-05 [1] CRAN (R 3.5.0)
-##  miniUI          0.1.1.1    2018-05-18 [2] CRAN (R 3.5.0)
-##  minqa           1.2.4      2014-10-09 [2] CRAN (R 3.5.0)
-##  modelr          0.1.2      2018-05-11 [2] CRAN (R 3.5.0)
-##  munsell         0.5.0      2018-06-12 [2] CRAN (R 3.5.0)
-##  nlme            3.1-137    2018-04-07 [2] CRAN (R 3.5.2)
-##  nloptr          1.2.1      2018-10-03 [2] CRAN (R 3.5.0)
-##  nnet            7.3-12     2016-02-02 [2] CRAN (R 3.5.2)
-##  parsnip       * 0.0.1      2018-11-12 [1] CRAN (R 3.5.1)
-##  pillar          1.3.1      2018-12-15 [2] CRAN (R 3.5.0)
-##  pkgbuild        1.0.2      2018-10-16 [1] CRAN (R 3.5.0)
-##  pkgconfig       2.0.2      2018-08-16 [2] CRAN (R 3.5.1)
-##  pkgload         1.0.2      2018-10-29 [1] CRAN (R 3.5.0)
-##  plyr            1.8.4      2016-06-08 [2] CRAN (R 3.5.0)
-##  prediction      0.3.6.1    2018-12-04 [2] CRAN (R 3.5.0)
-##  prettyunits     1.0.2      2015-07-13 [2] CRAN (R 3.5.0)
-##  pROC            1.13.0     2018-09-24 [1] CRAN (R 3.5.0)
-##  processx        3.2.1      2018-12-05 [2] CRAN (R 3.5.0)
-##  prodlim         2018.04.18 2018-04-18 [2] CRAN (R 3.5.0)
-##  promises        1.0.1      2018-04-13 [2] CRAN (R 3.5.0)
-##  ps              1.3.0      2018-12-21 [2] CRAN (R 3.5.0)
-##  purrr         * 0.3.0      2019-01-27 [2] CRAN (R 3.5.2)
-##  R6              2.3.0      2018-10-04 [1] CRAN (R 3.5.0)
-##  rcfss         * 0.1.5      2019-01-24 [1] local         
-##  Rcpp            1.0.0      2018-11-07 [1] CRAN (R 3.5.0)
-##  readr         * 1.3.1      2018-12-21 [2] CRAN (R 3.5.0)
-##  readxl          1.2.0      2018-12-19 [2] CRAN (R 3.5.0)
-##  recipes       * 0.1.4      2018-11-19 [1] CRAN (R 3.5.0)
-##  remotes         2.0.2      2018-10-30 [1] CRAN (R 3.5.0)
-##  reshape2        1.4.3      2017-12-11 [2] CRAN (R 3.5.0)
-##  rlang           0.3.1      2019-01-08 [1] CRAN (R 3.5.2)
-##  rmarkdown       1.11       2018-12-08 [2] CRAN (R 3.5.0)
-##  rpart           4.1-13     2018-02-23 [1] CRAN (R 3.5.0)
-##  rprojroot       1.3-2      2018-01-03 [2] CRAN (R 3.5.0)
-##  rsample       * 0.0.4      2019-01-07 [1] CRAN (R 3.5.2)
-##  rsconnect       0.8.13     2019-01-10 [2] CRAN (R 3.5.2)
-##  rstan           2.18.2     2018-11-07 [2] CRAN (R 3.5.0)
-##  rstanarm        2.18.2     2018-11-10 [2] CRAN (R 3.5.0)
-##  rstantools      1.5.1      2018-08-22 [2] CRAN (R 3.5.0)
-##  rstudioapi      0.9.0      2019-01-09 [1] CRAN (R 3.5.2)
-##  rvest           0.3.2      2016-06-17 [2] CRAN (R 3.5.0)
-##  scales        * 1.0.0      2018-08-09 [1] CRAN (R 3.5.0)
-##  sessioninfo     1.1.1      2018-11-05 [1] CRAN (R 3.5.0)
-##  shiny           1.2.0      2018-11-02 [2] CRAN (R 3.5.0)
-##  shinyjs         1.0        2018-01-08 [2] CRAN (R 3.5.0)
-##  shinystan       2.5.0      2018-05-01 [2] CRAN (R 3.5.0)
-##  shinythemes     1.1.2      2018-11-06 [2] CRAN (R 3.5.0)
-##  SnowballC       0.6.0      2019-01-15 [2] CRAN (R 3.5.2)
-##  StanHeaders     2.18.0-1   2018-12-13 [2] CRAN (R 3.5.0)
-##  stringi         1.2.4      2018-07-20 [2] CRAN (R 3.5.0)
-##  stringr       * 1.3.1      2018-05-10 [2] CRAN (R 3.5.0)
-##  survival        2.43-3     2018-11-26 [2] CRAN (R 3.5.2)
-##  testthat        2.0.1      2018-10-13 [2] CRAN (R 3.5.0)
-##  threejs         0.3.1      2017-08-13 [2] CRAN (R 3.5.0)
-##  tibble        * 2.0.1      2019-01-12 [2] CRAN (R 3.5.2)
-##  tidymodels    * 0.0.2      2018-11-27 [1] CRAN (R 3.5.1)
-##  tidyposterior   0.0.2      2018-11-15 [1] CRAN (R 3.5.0)
-##  tidypredict     0.3.0      2019-01-10 [1] CRAN (R 3.5.2)
-##  tidyr         * 0.8.2      2018-10-28 [2] CRAN (R 3.5.0)
-##  tidyselect      0.2.5      2018-10-11 [1] CRAN (R 3.5.0)
-##  tidytext        0.2.0      2018-10-17 [1] CRAN (R 3.5.0)
-##  tidyverse     * 1.2.1      2017-11-14 [2] CRAN (R 3.5.0)
-##  timeDate        3043.102   2018-02-21 [2] CRAN (R 3.5.0)
-##  tokenizers      0.2.1      2018-03-29 [2] CRAN (R 3.5.0)
-##  usethis         1.4.0      2018-08-14 [1] CRAN (R 3.5.0)
-##  withr           2.1.2      2018-03-15 [2] CRAN (R 3.5.0)
-##  xfun            0.4        2018-10-23 [1] CRAN (R 3.5.0)
-##  xml2            1.2.0      2018-01-24 [2] CRAN (R 3.5.0)
-##  xtable          1.8-3      2018-08-29 [2] CRAN (R 3.5.0)
-##  xts             0.11-2     2018-11-05 [2] CRAN (R 3.5.0)
-##  yaml            2.2.0      2018-07-25 [2] CRAN (R 3.5.0)
-##  yardstick     * 0.0.2      2018-11-05 [1] CRAN (R 3.5.0)
-##  zoo             1.8-4      2018-09-19 [2] CRAN (R 3.5.0)
+##  package       * version    date       lib
+##  assertthat      0.2.0      2017-04-11 [2]
+##  backports       1.1.3      2018-12-14 [2]
+##  base64enc       0.1-3      2015-07-28 [2]
+##  bayesplot       1.6.0      2018-08-02 [2]
+##  bindr           0.1.1      2018-03-13 [2]
+##  bindrcpp        0.2.2      2018-03-29 [1]
+##  blogdown        0.10       2019-01-09 [1]
+##  bookdown        0.9        2018-12-21 [1]
+##  broom         * 0.5.1      2018-12-05 [2]
+##  callr           3.1.1      2018-12-21 [2]
+##  cellranger      1.1.0      2016-07-27 [2]
+##  class           7.3-15     2019-01-01 [2]
+##  cli             1.0.1      2018-09-25 [1]
+##  codetools       0.2-16     2018-12-24 [2]
+##  colorspace      1.4-0      2019-01-13 [2]
+##  colourpicker    1.0        2017-09-27 [2]
+##  crayon          1.3.4      2017-09-16 [2]
+##  crosstalk       1.0.0      2016-12-21 [2]
+##  data.table      1.12.0     2019-01-13 [2]
+##  desc            1.2.0      2018-05-01 [2]
+##  devtools        2.0.1      2018-10-26 [1]
+##  dials         * 0.0.2      2018-12-09 [1]
+##  digest          0.6.18     2018-10-10 [1]
+##  dplyr         * 0.7.8      2018-11-10 [1]
+##  DT              0.5        2018-11-05 [2]
+##  dygraphs        1.1.1.6    2018-07-11 [2]
+##  evaluate        0.12       2018-10-09 [2]
+##  forcats       * 0.3.0      2018-02-19 [2]
+##  fs              1.2.6      2018-08-23 [1]
+##  generics        0.0.2      2018-11-29 [1]
+##  ggplot2       * 3.1.0      2018-10-25 [1]
+##  ggridges        0.5.1      2018-09-27 [2]
+##  glue            1.3.0      2018-07-17 [2]
+##  gower           0.1.2      2017-02-23 [2]
+##  gridExtra       2.3        2017-09-09 [2]
+##  gtable          0.2.0      2016-02-26 [2]
+##  gtools          3.8.1      2018-06-26 [2]
+##  haven           2.0.0      2018-11-22 [2]
+##  here          * 0.1        2017-05-28 [2]
+##  hms             0.4.2      2018-03-10 [2]
+##  htmltools       0.3.6      2017-04-28 [1]
+##  htmlwidgets     1.3        2018-09-30 [2]
+##  httpuv          1.4.5.1    2018-12-18 [2]
+##  httr            1.4.0      2018-12-11 [2]
+##  igraph          1.2.2      2018-07-27 [2]
+##  infer         * 0.4.0      2018-11-15 [1]
+##  inline          0.3.15     2018-05-18 [2]
+##  ipred           0.9-8      2018-11-05 [1]
+##  janeaustenr     0.1.5      2017-06-10 [2]
+##  jsonlite        1.6        2018-12-07 [2]
+##  knitr           1.21       2018-12-10 [2]
+##  later           0.7.5      2018-09-18 [2]
+##  lattice         0.20-38    2018-11-04 [2]
+##  lava            1.6.4      2018-11-25 [2]
+##  lazyeval        0.2.1      2017-10-29 [2]
+##  lme4            1.1-19     2018-11-10 [2]
+##  loo             2.0.0      2018-04-11 [2]
+##  lubridate       1.7.4      2018-04-11 [2]
+##  magrittr        1.5        2014-11-22 [2]
+##  margins       * 0.3.23     2018-05-22 [2]
+##  markdown        0.9        2018-12-07 [2]
+##  MASS            7.3-51.1   2018-11-01 [2]
+##  Matrix          1.2-15     2018-11-01 [2]
+##  matrixStats     0.54.0     2018-07-23 [2]
+##  memoise         1.1.0      2017-04-21 [2]
+##  mime            0.6        2018-10-05 [1]
+##  miniUI          0.1.1.1    2018-05-18 [2]
+##  minqa           1.2.4      2014-10-09 [2]
+##  modelr          0.1.2      2018-05-11 [2]
+##  munsell         0.5.0      2018-06-12 [2]
+##  nlme            3.1-137    2018-04-07 [2]
+##  nloptr          1.2.1      2018-10-03 [2]
+##  nnet            7.3-12     2016-02-02 [2]
+##  parsnip       * 0.0.1      2018-11-12 [1]
+##  patchwork     * 0.0.1      2018-09-06 [1]
+##  pillar          1.3.1      2018-12-15 [2]
+##  pkgbuild        1.0.2      2018-10-16 [1]
+##  pkgconfig       2.0.2      2018-08-16 [2]
+##  pkgload         1.0.2      2018-10-29 [1]
+##  plyr            1.8.4      2016-06-08 [2]
+##  prediction      0.3.6.1    2018-12-04 [2]
+##  prettyunits     1.0.2      2015-07-13 [2]
+##  pROC            1.13.0     2018-09-24 [1]
+##  processx        3.2.1      2018-12-05 [2]
+##  prodlim         2018.04.18 2018-04-18 [2]
+##  promises        1.0.1      2018-04-13 [2]
+##  ps              1.3.0      2018-12-21 [2]
+##  purrr         * 0.3.0      2019-01-27 [2]
+##  R6              2.3.0      2018-10-04 [1]
+##  rcfss         * 0.1.5      2019-01-24 [1]
+##  Rcpp            1.0.0      2018-11-07 [1]
+##  readr         * 1.3.1      2018-12-21 [2]
+##  readxl          1.2.0      2018-12-19 [2]
+##  recipes       * 0.1.4      2018-11-19 [1]
+##  remotes         2.0.2      2018-10-30 [1]
+##  reshape2        1.4.3      2017-12-11 [2]
+##  rlang           0.3.1      2019-01-08 [1]
+##  rmarkdown       1.11       2018-12-08 [2]
+##  rpart           4.1-13     2018-02-23 [1]
+##  rprojroot       1.3-2      2018-01-03 [2]
+##  rsample       * 0.0.4      2019-01-07 [1]
+##  rsconnect       0.8.13     2019-01-10 [2]
+##  rstan           2.18.2     2018-11-07 [2]
+##  rstanarm        2.18.2     2018-11-10 [2]
+##  rstantools      1.5.1      2018-08-22 [2]
+##  rstudioapi      0.9.0      2019-01-09 [1]
+##  rvest           0.3.2      2016-06-17 [2]
+##  scales        * 1.0.0      2018-08-09 [1]
+##  sessioninfo     1.1.1      2018-11-05 [1]
+##  shiny           1.2.0      2018-11-02 [2]
+##  shinyjs         1.0        2018-01-08 [2]
+##  shinystan       2.5.0      2018-05-01 [2]
+##  shinythemes     1.1.2      2018-11-06 [2]
+##  SnowballC       0.6.0      2019-01-15 [2]
+##  StanHeaders     2.18.0-1   2018-12-13 [2]
+##  stringi         1.2.4      2018-07-20 [2]
+##  stringr       * 1.3.1      2018-05-10 [2]
+##  survival        2.43-3     2018-11-26 [2]
+##  testthat        2.0.1      2018-10-13 [2]
+##  threejs         0.3.1      2017-08-13 [2]
+##  tibble        * 2.0.1      2019-01-12 [2]
+##  tidymodels    * 0.0.2      2018-11-27 [1]
+##  tidyposterior   0.0.2      2018-11-15 [1]
+##  tidypredict     0.3.0      2019-01-10 [1]
+##  tidyr         * 0.8.2      2018-10-28 [2]
+##  tidyselect      0.2.5      2018-10-11 [1]
+##  tidytext        0.2.0      2018-10-17 [1]
+##  tidyverse     * 1.2.1      2017-11-14 [2]
+##  timeDate        3043.102   2018-02-21 [2]
+##  tokenizers      0.2.1      2018-03-29 [2]
+##  usethis         1.4.0      2018-08-14 [1]
+##  withr           2.1.2      2018-03-15 [2]
+##  xfun            0.4        2018-10-23 [1]
+##  xml2            1.2.0      2018-01-24 [2]
+##  xtable          1.8-3      2018-08-29 [2]
+##  xts             0.11-2     2018-11-05 [2]
+##  yaml            2.2.0      2018-07-25 [2]
+##  yardstick     * 0.0.2      2018-11-05 [1]
+##  zoo             1.8-4      2018-09-19 [2]
+##  source                              
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.1)                      
+##  Github (thomasp85/patchwork@7fb35b1)
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  local                               
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ## 
 ## [1] /Users/soltoffbc/Library/R/3.5/library
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
@@ -428,6 +725,7 @@ Y &amp;= \beta_0 + \beta_1 X_1 + \beta_2 X_1^2 + \beta_3 X_2 \\
 <ul>
 <li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
 <li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
+<li><a href="https://cran.r-project.org/web/packages/margins/vignettes/TechnicalDetails.pdf">Interpreting Regression Results using Average Marginal Effects with R’s <code>margins</code></a></li>
 </ul>
 <div id="refs" class="references">
 <div id="ref-friedman2001elements">
