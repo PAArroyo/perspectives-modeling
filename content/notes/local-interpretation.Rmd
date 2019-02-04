@@ -1,0 +1,50 @@
+---
+title: Local interpretation
+date: 2019-02-04T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Interpreting statistical models
+    weight: 3
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(tidymodels)
+library(margins)
+library(here)
+library(rcfss)
+
+set.seed(1234)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+
+# Local interpretation
+
+* [Local Surrogate (LIME)](https://christophm.github.io/interpretable-ml-book/lime.html)
+* [Implementation of Lime in Python](https://github.com/marcotcr/lime)
+* [Implementation of LIME in R](http://uc-r.github.io/lime)
+* @lime
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+

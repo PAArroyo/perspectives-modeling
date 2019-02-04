@@ -1,0 +1,83 @@
+---
+title: Global interpretation
+date: 2019-02-04T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Interpreting statistical models
+    weight: 2
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(tidymodels)
+library(margins)
+library(here)
+library(rcfss)
+
+set.seed(1234)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+# Model-agnostic methods
+
+**Model-agnostic methods** are methods for interpreting and explaining the results of a machine learning/statistical learning algorithm that can be utilized for any algorithm. Unlike model-specific methods, they are highly flexible and allow for easy comparisons across widely varying modeling strategies (e.g. explain the importance and impact of a variable in a logistic regression, nearest neighbors, naive Bayes, random forest, and deep learning models). These methods can be further developed to generate intuitive and graphically-based interpretations -- again, they do not depend on a specific algorithm and can be used on a range of algorithms, including those not yet created.
+
+An alternative to this approach is to only use interpretable methods such as regression-based models (e.g. OLS, logistic regression, GLMs, decision trees). While these modeling strategies have their strengths, in terms of predictive power they tend to perform worse than other more complex modeling strategies. You could also use model-specific interpretation methods, but again you would be locked into interpreting a model a single algorithm at a time, with no way to compare across modeling strategies.
+
+## Desirable traits
+
+* Model flexibility - the interpretation method can work with any machine learning model, such as random forests and deep neural networks.
+* Explanation flexibility - you are not limited to a certain form of explanation. In some cases it might be useful to have a linear formula, in other cases a graphic with feature importances.
+* Representation flexibility - the explanation system should be able to use a different feature representation as the model being explained. For a text classifier that uses abstract word embedding vectors, it might be preferable to use the presence of individual words for the explanation.
+
+## Global vs. local methods
+
+* **Global interpretations** help us understand the inputs and their entire modeled relationship with the prediction target, but global interpretations can be highly approximate in some cases
+* **Local interpretations** help us understand model predictions for a single row of data or a group of similar rows
+
+Here we consider a range of global methods.
+
+# Partial dependence plot (PDP)
+
+* For theory behind method, see [Partial Dependence Plot (PDP)](https://christophm.github.io/interpretable-ml-book/pdp.html)
+* For implementation using `iml`, see [here](http://uc-r.github.io/iml-pkg#pdp)
+
+# Individual conditional expectation (ICE)
+
+* For theory behind method, see [Individual Conditional Expectation (ICE)](https://christophm.github.io/interpretable-ml-book/ice.html)
+* For implementation using `iml`, see [here](http://uc-r.github.io/iml-pkg#pdp)
+
+# Feature interaction
+
+* For theory behind method, see [Feature Interaction](https://christophm.github.io/interpretable-ml-book/interaction.html)
+* For implementation using `iml`, see [here](http://uc-r.github.io/iml-pkg#interactions)
+
+# Feature importance
+
+* For theory behind method, see [Feature Importance](https://christophm.github.io/interpretable-ml-book/feature-importance.html)
+* For implementation using `iml`, see [here](http://uc-r.github.io/iml-pkg#vip)
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* @james2013introduction
+* @friedman2001elements
