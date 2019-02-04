@@ -218,7 +218,7 @@ cplot(age_fare_x, "Age", what = "effect")
 
 .pull-left[
 
-```{r age-fare-fare, dependson = "age-fare"}
+```{r age-fare-fare, dependson = "age-fare", results = "hide"}
 cplot(age_fare_x, "Fare", what = "prediction")
 ```
 
@@ -256,7 +256,7 @@ persp(age_fare_x, theta = c(45, 135, 225, 315), what = "effect")
 
 # Three-dimensional models
 
-
+.center[
 
 ```{r age-fare-joint-plotly, dependson = "age-fare"}
 library(plotly)
@@ -287,9 +287,13 @@ plot_ly(x = ~xvals, y = ~yvals, z = ~outcome) %>%
     ))
 ```
 
+]
+
 ---
 
 # Three-dimensional models
+
+.center[
 
 ```{r age-fare-joint-plotly2, dependson = "age-fare"}
 # marginal effect
@@ -318,6 +322,8 @@ plot_ly(x = ~xvals, y = ~yvals, z = ~outcome) %>%
     ))
 ```
 
+]
+
 ---
 
 # Interpreting models
@@ -335,12 +341,14 @@ plot_ly(x = ~xvals, y = ~yvals, z = ~outcome) %>%
 
 --
 
-* Global interpretations
-* Local interpretations
+## Type of interpretation
+
+* Global
+* Local
 
 ---
 
-# Partial dependence plots
+# `attrition`
 
 ```{r prep-iml, include = FALSE, cache = FALSE}
 # load required packages
@@ -460,6 +468,22 @@ predictor.gbm <- Predictor$new(
   )
 ```
 
+```{r attrition, dependson = "prep-data"}
+glimpse(df)
+```
+
+---
+
+# `attrition`
+
+## Model types
+
+* Logistic regression (`glm`)
+* Naive Bayes (`nb`)
+* Gradient boosting machine (`gbm`)
+
+---
+
 # Partial dependence plot
 
 $$\hat{f}_{x_S}(x_S)=\E_{x_C}\left[\hat{f}(x_S,x_C)\right]=\int\hat{f}(x_S,x_C)d\Pr(x_C)$$
@@ -501,7 +525,7 @@ For a selected predictor (x)
 
 ```{r pdp, dependson = "create-predictor-obj", fig.width = 12}
 glm.ot <- Partial$new(predictor.glm, "OverTime") %>% plot() + ggtitle("GLM")
-nb.ot <- Partial$new(predictor.nb, "OverTime") %>% plot() + ggtitle("RF") 
+nb.ot <- Partial$new(predictor.nb, "OverTime") %>% plot() + ggtitle("NB") 
 gbm.ot <- Partial$new(predictor.gbm, "OverTime") %>% plot() + ggtitle("GBM")
 
 glm.ot +
@@ -534,6 +558,18 @@ p1 + p2 + p3
 
 ---
 
+# Two-way interactions
+
+```{r pdp-two-way, dependson = "create-predictor-obj", fig.width = 12}
+p1 <- Partial$new(predictor.glm, c("MonthlyIncome", "OverTime")) %>% plot() + ggtitle("GLM") + ylim(c(0, .4)) + theme(legend.position = "bottom")
+p2 <- Partial$new(predictor.nb, c("MonthlyIncome", "OverTime")) %>% plot() + ggtitle("NB") + ylim(c(0, .4)) + theme(legend.position = "bottom")
+p3 <- Partial$new(predictor.gbm, c("MonthlyIncome", "OverTime")) %>% plot() + ggtitle("GBM") + ylim(c(0, .4)) + theme(legend.position = "bottom")
+
+p1 + p2 + p3
+```
+
+---
+
 # PDP/ICE
 
 ## Strengths
@@ -548,18 +584,6 @@ p1 + p2 + p3
 * Maximum number of features
 * No feature distribution (resolved with ICE)
 * Assumption of independence
-
----
-
-# Two-way interactions
-
-```{r pdp-two-way, dependson = "create-predictor-obj", fig.width = 12}
-p1 <- Partial$new(predictor.glm, c("MonthlyIncome", "OverTime")) %>% plot() + ggtitle("GLM") + ylim(c(0, .4)) + theme(legend.position = "bottom")
-p2 <- Partial$new(predictor.nb, c("MonthlyIncome", "OverTime")) %>% plot() + ggtitle("NB") + ylim(c(0, .4)) + theme(legend.position = "bottom")
-p3 <- Partial$new(predictor.gbm, c("MonthlyIncome", "OverTime")) %>% plot() + ggtitle("GBM") + ylim(c(0, .4)) + theme(legend.position = "bottom")
-
-p1 + p2 + p3
-```
 
 ---
 
@@ -655,7 +679,7 @@ interact.glm + interact.nb + interact.gbm
 # Feature importance
 
 * Calculate the increase in the model's prediction error after **permuting** the feature
-    * Randomly shuffle the features' values across observations
+    * Randomly shuffle the feature's values across observations
 * Important feature
 * Unimportant feature
 
