@@ -1,0 +1,322 @@
+---
+title: "Interpreting Machine Learning Algorithms"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2)
+
+library(tidyverse)
+library(tidymodels)
+library(margins)
+library(here)
+library(rcfss)
+library(patchwork)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 20))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+# Statistical background
+
+* Interpreting regression coefficients
+
+    $$Y = \beta_0 + \beta_1 X_1 + \ldots \beta_p X_p + \epsilon$$
+
+* Generalizations of regression models
+* Substantive interpretations
+
+---
+
+# Marginal effects
+
+$$\frac{\partial Y}{\partial X}$$
+
+--
+
+$$
+\begin{align}
+Y &= \beta_0 + \beta_1 X_1 \\
+\frac{\partial Y}{\partial X_1} &= \beta_1
+\end{align}
+$$
+
+--
+
+$$
+\begin{align}
+Y &= \beta_0 + \beta_1 X_1 + \beta_2 X_2 \\
+\frac{\partial Y}{\partial X_1} &= \beta_1 \\
+\frac{\partial Y}{\partial X_2} &= \beta_2 \\
+\end{align}
+$$
+
+---
+
+# Marginal effects
+
+$$
+\begin{aligned}
+Y &= \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 X_2 \\
+\frac{\partial Y}{\partial X_1} &= \beta_1 + \beta_3 X_2 \\
+\frac{\partial Y}{\partial X_2} &= \beta_2 + \beta_3 X_1
+\end{aligned}
+$$
+
+--
+
+$$
+\begin{aligned}
+Y &= \beta_0 + \beta_1 X_1 + \beta_2 X_1^2 + \beta_3 X_2 \\
+\frac{\partial Y}{\partial X_1} &= \beta_1 + 2\beta_2 X_1 \\
+\frac{\partial Y}{\partial X_2} &= \beta_3
+\end{aligned}
+$$
+
+---
+
+# Types of marginal effects
+
+1. Marginal effects at representative values (MERs)
+1. Marginal effects at means (MEMs)
+1. Average marginal effects (AMEs)
+
+---
+
+# Logistic regression marginal effects
+
+```{r titanic-data, message = FALSE}
+library(titanic)
+titanic <- titanic_train %>%
+  as_tibble() %>%
+  # remove missing values
+  na.omit()
+```
+
+```{r age-woman, dependson = "titanic-data"}
+age_woman <- glm(Survived ~ Age + Sex, data = titanic,
+                 family = binomial)
+summary(age_woman)
+```
+
+---
+
+# Average marginal effects
+
+## Link function
+
+```{r age-woman-ame, dependson = "age-woman"}
+margins(age_woman, type = "link")
+```
+
+--
+
+## Response variable
+
+```{r response-link, dependson = "age-woman"}
+margins(age_woman, type = "response")
+```
+
+---
+
+# Marginal effects at representative cases (MERs)
+
+```{r age-woman-mer, dependson = "age-woman"}
+margins(age_woman, at = list(Sex = c("male", "female")))
+```
+
+--
+
+* AMEs calculated separately for men and women
+
+```{r age-woman-subset-ame, dependson = "age-woman"}
+margins(age_woman) %>%
+  split(.$Sex)
+```
+
+---
+
+# Marginal effects plots
+
+```{r age-margin-effect, dependson = "age-woman", include = FALSE, fig.width = 12}
+pred_age <- cplot(age_woman, "Age", what = "prediction", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  labs(title = "Predicted probability of survival",
+       subtitle = "Given age",
+       x = "Age",
+       y = "Predicted probability of survival")
+
+ame_age <- cplot(age_woman, "Age", what = "effect", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  labs(title = "Average marginal effect of age",
+       x = "Age",
+       y = "Marginal effect of age")
+```
+
+```{r age-margin-effect2, dependson = "age-woman", fig.width = 12}
+pred_age +
+  ame_age
+```
+
+---
+
+# Interaction models
+
+```{r age-fare, dependson = "titanic-data"}
+age_fare_x <- glm(Survived ~ Age * Fare, data = titanic,
+                  family = binomial)
+summary(age_fare_x)
+```
+
+---
+
+# Interaction models
+
+.pull-left[
+
+```{r age-fare-pred, dependson = "age-fare", results = "hide"}
+cplot(age_fare_x, "Age", what = "prediction")
+```
+
+]
+
+.pull-right[
+
+```{r age-fare-me, dependson = "age-fare", results = "hide"}
+cplot(age_fare_x, "Age", what = "effect")
+```
+
+]
+
+---
+
+# Interaction models
+
+.pull-left[
+
+```{r age-fare-fare, dependson = "age-fare"}
+cplot(age_fare_x, "Fare", what = "prediction")
+```
+
+]
+
+.pull-right[
+
+
+```{r age-fare-fare2, dependson = "age-fare"}
+cplot(age_fare_x, "Fare", what = "effect")
+```
+
+]
+
+---
+
+# Three-dimensional models
+
+.pull-left[
+
+```{r age-fare-joint, dependson = "age-fare"}
+persp(age_fare_x, theta = c(45, 135, 225, 315), what = "prediction")
+```
+]
+
+.pull-right[
+
+```{r age-fare-joint2, dependson = "age-fare"}
+persp(age_fare_x, theta = c(45, 135, 225, 315), what = "effect")
+```
+
+]
+
+---
+
+# Three-dimensional models
+
+
+
+```{r age-fare-joint-plotly, dependson = "age-fare"}
+library(plotly)
+
+# predicted prob
+surface <- margins:::calculate_surface(x = age_fare_x,
+                                       xvar = "Age",
+                                       yvar = "Fare",
+                                       dx = "Age",
+                                       nx = 25L,
+                                       ny = 25L,
+                                       type = "response",
+                                       vcov = stats::vcov(age_fare_x),
+                                       what = "prediction")
+
+outcome <- surface[["outcome"]]
+xvals <- surface[["xvals"]]
+yvals <- surface[["yvals"]]
+
+plot_ly(x = ~xvals, y = ~yvals, z = ~outcome) %>%
+  add_surface() %>%
+  layout(
+    title = "Predicted probability of survival",
+    scene = list(
+      xaxis = list(title = "Age"),
+      yaxis = list(title = "Fare"),
+      zaxis = list(title = "Predicted probability of survival")
+    ))
+```
+
+---
+
+# Three-dimensional models
+
+```{r age-fare-joint-plotly2, dependson = "age-fare"}
+# marginal effect
+surface <- margins:::calculate_surface(x = age_fare_x,
+                                       xvar = "Age",
+                                       yvar = "Fare",
+                                       dx = "Age",
+                                       nx = 25L,
+                                       ny = 25L,
+                                       type = "response",
+                                       vcov = stats::vcov(age_fare_x),
+                                       what = "effect")
+
+outcome <- surface[["outcome"]]
+xvals <- surface[["xvals"]]
+yvals <- surface[["yvals"]]
+
+plot_ly(x = ~xvals, y = ~yvals, z = ~outcome) %>%
+  add_surface() %>%
+  layout(
+    title = "Marginal effect on survival",
+    scene = list(
+      xaxis = list(title = "Age"),
+      yaxis = list(title = "Fare"),
+      zaxis = list(title = "AME")
+    ))
+```
+
+
+
