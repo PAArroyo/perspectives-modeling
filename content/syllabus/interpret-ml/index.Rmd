@@ -51,7 +51,7 @@ knitr::opts_chunk$set(echo = FALSE)
 * Distinguish between global and local interpretations of machine learning models
 * Define model agnostic metrics for global interpretations
 * Define model agnostic metrics for local interpretations
-* Implement metrics using `iml`/`scaler`, `DALEX`, and `lime`
+* Implement metrics using `iml` and `lime`
 
 ## Before class
 
@@ -63,7 +63,9 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::include_url("/slides/interpret-ml.html", height = "505px")
 ```
 
-* 
+* [Marginal effects](/notes/margins/)
+* [Global interpretation](/notes/global-interpretation/)
+* [Local interpretation](/notes/local-interpretation/)
 
 ### Additional readings
 
