@@ -1,0 +1,88 @@
+---
+title: "Homework 05: Interpreting Machine Learning Models"
+date: 2019-02-05T13:30:00-06:00  # Schedule page publish date
+
+draft: false
+type: post
+
+output:
+  blogdown::html_page:
+    number_sections: false
+
+summary: "Practice implementing global and local interpretation methods."
+---
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}}
+
+Due by 11:59pm February 11th.
+
+# Fork the `hw05` repository
+
+Go [here](https://github.com/css-model/hw05) to fork the repo for homework 05.
+
+# Submission format
+
+For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). The document should be **reproducible**. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (`.ipynb`) or R Markdown (`.Rmd`) rendered as `pdf_document`.^[`html_document` cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in `.md` documents `r emo::ji("sad")`]
+
+# Predicting attitudes towards racist college professors
+
+The [General Social Survey](http://gss.norc.org/) is a biannual survey of the American public.^[Conducted by NORC at the University of Chicago.]
+
+> [The GSS gathers data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes. Hundreds of trends have been tracked since 1972. In addition, since the GSS adopted questions from earlier surveys, trends can be followed for up to 70 years. The GSS contains a standard core of demographic, behavioral, and attitudinal questions, plus topics of special interest. Among the topics covered are civil liberties, crime and violence, intergroup tolerance, morality, national spending priorities, psychological well-being, social mobility, and stress and traumatic events.](http://gss.norc.org/About-The-GSS)
+
+In this problem set, you are going to predict attitudes towards racist college professors. Specifically, each respondent was asked "Should a person who believes that Blacks are genetically inferior be allowed to teach in a college or university?" Given the kerfuffle over Richard J. Herrnstein and Charles Murray's [*The Bell Curve*](https://en.wikipedia.org/wiki/The_Bell_Curve) and the ostracization of Nobel Prize laureate [James Watson](https://en.wikipedia.org/wiki/James_Watson) over his controversial views on race and intelligence, this analysis will provide further insight into the public debate over this issue.
+
+`gss_*.csv` contain a selection of variables from the 2012 GSS. The outcome of interest `colrac` is a binary variable coded as either `ALLOWED` or `NOT ALLOWED`. Documentation for the other predictors (if the variable is not clearly coded) can be viewed [here](https://gssdataexplorer.norc.org/variables/vfilter). Some data pre-processing has been done in advance for you to ease your model fitting:
+
+1. Missing values have been imputed.
+1. Categorical variables with low-frequency classes had those classes collapsed into an "other" category.
+1. Nominal variables with more than two classes have been converted to dummy variables.
+1. Remaining categorical variables have been converted to integer values, stripping their original labels.
+
+Your mission is to construct a series of statistical/machine learning models to accurately predict an individual's attitude towards permitting individuals who view blacks to be racially inferior to teach in a college classroom. The goals of the exercise are two-fold:
+
+1. Build a highly accurate model
+1. Interpret and explain the results of the best model in a human meaningful way (i.e. global and local explanations)
+
+## Train a series of models (3 points)
+
+Using the observations in `gss_train.csv`:
+
+1. Use $10$-fold cross-validation to partition the training set into training and validation sets.
+1. Fit the following statistical models using $10$-fold cross-validation:
+    a. Logistic regression
+    a. Linear discriminant analysis
+    a. Quadratic discriminant analysis
+    a. Naive Bayes
+    a. $K$-nearest neighbors
+* Use all available predictors for each model.
+* I am not specifying hyperparameter settings for any of the modeling strategies. I leave it to you to determine the optimal settings. However, you need to briefly justify how you selected your hyperparameter settings. Don't just arbitrarily select values, do some tuning.
+
+## Evaluate their performance (2 points)
+
+1. Evaluate each model's performance using the validation set. Select the best model based on the validation set performance and whatever metrics you feel are important (e.g. error rate, proportional reduction in error, ROC curve, area under the curve).
+1. Once you select the best model, calculate your final estimate of the test error rate using the test set (`gss_test.csv`). To do this, take your best model and re-fit it using the entire training set (i.e. no cross-validation). Then calculate your performance metrics using the original test set.
+
+## Interpret and explain the model (5 points)
+
+### Global interpretation
+
+Using your best model, explain how the model works globally using the following techniques:
+
+1. Partial dependence plots (PDPs) and individual conditional expectation (ICE) plots
+1. Feature interactions
+1. Feature importance
+1. Global surrogate
+
+* For those using Python, I recommend using the [`Skater`](https://github.com/datascienceinc/Skater) package
+    * Currently supports PDPs and permutation-based feature importance
+    * I don't see support for permutation-based feature interactions. If you cannot find an existing package which implements this method, you can omit it from your analysis.
+    * Global surrogate model can be generated manually with ease
+* For those using R, I recommend using the [`iml`](https://cran.r-project.org/web/packages/iml/index.html) package
+
+### Local interpretation
+
+Using your best model, explain how the model works locally for the five held-out observations in `gss_local.csv` using the `lime` procedure. First, generate the local surrogate model using the default hyperparameters for `lime` and interpret the surrogate model for each observation. Second, generate the local surrogate model by tuning the hyperparameters for `lime` and interpret the surrogate model for each observation. How does your interpretation change, if at all?
+
+* [Implementation of Lime in Python](https://github.com/marcotcr/lime)
+* [Implementation of LIME in R](http://uc-r.github.io/lime)
