@@ -26,7 +26,7 @@ library(rcfss)
 library(patchwork)
 
 set.seed(1234)
-theme_set(theme_minimal(base_size = 20))
+theme_set(theme_minimal(base_size = 16))
 ```
 
 $$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
@@ -734,15 +734,101 @@ p1 + p2 + p3
 
 ---
 
+# Global surrogate
+
+* Interpretable model trained to approximate the predictions of a black box model
+* Generate conclusions about the black box model by interpreting the simpler model
+
+$$g(\hat{f(x)}) = \beta_0 + \beta_1 x_1 + \ldots + \beta_p x_p$$
+
+---
+
+# Global surrogate
+
+1. Apply original model and get predictions
+1. Choose an interpretable "white box" model (linear model, decision tree)
+1. Train the interpretable model on the original dataset and its predictions
+1. Measure how well the surrogate model replicates the prediction of the black box model
+1. Interpret / visualize the surrogate model
+
+--
+* How well does the surrogate model replicate the black box model?
+
+---
+
+# Global surrogate
+
+.pull-left[
+
+```{r global-surrogate, dependson = "create-predictor-obj"}
+# fit surrogate decision tree model
+tree.glm <- TreeSurrogate$new(predictor.glm, maxdepth = 3)
+tree.nb <- TreeSurrogate$new(predictor.nb, maxdepth = 3)
+tree.gbm <- TreeSurrogate$new(predictor.gbm, maxdepth = 3)
+
+# how well does this model fit the original results
+tribble(
+  ~model, ~r.squared,
+  "GLM", tree.glm$r.squared,
+  "NB", tree.nb$r.squared,
+  "GBM", tree.gbm$r.squared
+) %>%
+  knitr::kable(format = "html")
+```
+
+]
+
+.pull-right[
+
+```{r global-surrogate-nb, dependson = "create-predictor-obj"}
+plot(tree.nb$tree, main = "NB")
+```
+
+]
+
+---
+
+# Global surrogate
+
+## Strengths
+
+* Flexible (uses any interpretable model)
+* Intuitive
+* Easy measure of how well the surrogate model approximates the black box model
+
+## Weaknesses
+
+* Draw conclusions about the model, not the data
+* What makes a good surrogate model?
+* Surrogate model systematically over/underpredicts subsets of the data set
+* Accept the flaws of the interpretable model
+
+---
+
 # LIME
 
 ## Local Interpretable Model-agnostic Explanations
 
+* Global $\rightarrow$ local
+* Interpretable models used to explain individual predictions of a black box model
 * Assumes every complex model is linear on a local scale
 * Fit a simple model around a single observation to mimic how the global model behaves at that locality
 * Simple model explains the predictions of the complex model **locally**
     * Local fidelity
     * Does not require global fidelity
+
+---
+
+# LIME
+
+$$\text{explanation}(x) = \arg \min_{g \in G} L(f, g, \pi_x) + \Omega(g)$$
+
+* Explanation model for $x$
+* Minimize loss $L$
+    * Difference between explanation and original prediction $g(x)$
+* $G$ - family of possible explanations
+* $\pi_x$
+* Keep $\Omega(g)$ low to be interpretable by humans
 
 ---
 
@@ -827,10 +913,77 @@ p1 + p2 + p3
 
 # Tuning LIME
 
-* Alternative simple models
+* Interpretable model
 * Distance metric
 * Size of local region
 * Feature selection
+
+---
+
+# Tuning LIME
+
+.pull-left[
+
+* Gower's distance
+
+    $$d(\mathbf{p}, \mathbf{q}) = \frac{1}{k} \sum_{i=1}^k d_{p_i q_i}^{(f)}$$
+    
+    * Range for each variable $[0,1]$
+
+* $\text{Kernel width} = 0.75$
+* $\text{Number of features} = 5$
+* Feature selection - ridge regression
+
+]
+
+.pull-right[
+
+* Manhattan distance
+
+    $$d(\mathbf{p}, \mathbf{q}) = \sum_{i = 1}^k | p_i - q_i|$$
+
+* $\text{Kernel width} = 3$
+* $\text{Number of features} = 10$
+* Feature selection - lasso regression
+
+]
+
+---
+
+# Tuning LIME
+
+```{r explain-tuning, dependson = "lime-models", fig.height = 8, fig.width = 12}
+explanation_nb_tuned <- explain(local_obs,
+                                explainer_h2o_nb,
+                                dist_fun = "manhattan",
+                                kernel_width = 3,
+                                n_features = 10, 
+                                feature_select = "lasso_path",
+                                labels = "Yes"
+)
+
+{
+  plot_features(explanation_nb, ncol = 2) +
+    ggtitle("NB: Untuned") +
+    theme_minimal(base_size = 8) +
+    theme(legend.position = "bottom")
+} +
+{
+  plot_features(explanation_nb_tuned, ncol = 2) +
+    ggtitle("NB: Tuned") +
+    theme_minimal(base_size = 8) +
+    theme(legend.position = "bottom")
+}
+```
+
+---
+
+# LIME for images
+
+```{r lime-images-package-example}
+explanation <- .load_image_example()
+plot_image_explanation(explanation)
+```
 
 ---
 
@@ -847,11 +1000,3 @@ p1 + p2 + p3
 * What is the correct neighborhood?
 * Complexity of explanation model is defined a priori
 * Explanations for similar data points can vary greatly
-
-
-
-
-
-
-
-

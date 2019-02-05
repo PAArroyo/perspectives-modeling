@@ -563,15 +563,106 @@ For any given loss function do
 
 ---
 
+# Global surrogate
+
+* Interpretable model trained to approximate the predictions of a black box model
+* Generate conclusions about the black box model by interpreting the simpler model
+
+`$$g(\hat{f(x)}) = \beta_0 + \beta_1 x_1 + \ldots + \beta_p x_p$$`
+
+---
+
+# Global surrogate
+
+1. Apply original model and get predictions
+1. Choose an interpretable "white box" model (linear model, decision tree)
+1. Train the interpretable model on the original dataset and its predictions
+1. Measure how well the surrogate model replicates the prediction of the black box model
+1. Interpret / visualize the surrogate model
+
+--
+* How well does the surrogate model replicate the black box model?
+
+---
+
+# Global surrogate
+
+.pull-left[
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; model &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; r.squared &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; GLM &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.5547788 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; NB &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.7097939 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; GBM &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.4384319 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+]
+
+.pull-right[
+
+&lt;img src="interpret-ml_files/figure-html/global-surrogate-nb-1.png" width="504" /&gt;
+
+]
+
+---
+
+# Global surrogate
+
+## Strengths
+
+* Flexible (uses any interpretable model)
+* Intuitive
+* Easy measure of how well the surrogate model approximates the black box model
+
+## Weaknesses
+
+* Draw conclusions about the model, not the data
+* What makes a good surrogate model?
+* Surrogate model systematically over/underpredicts subsets of the data set
+* Accept the flaws of the interpretable model
+
+---
+
 # LIME
 
 ## Local Interpretable Model-agnostic Explanations
 
+* Global `\(\rightarrow\)` local
+* Interpretable models used to explain individual predictions of a black box model
 * Assumes every complex model is linear on a local scale
 * Fit a simple model around a single observation to mimic how the global model behaves at that locality
 * Simple model explains the predictions of the complex model **locally**
     * Local fidelity
     * Does not require global fidelity
+
+---
+
+# LIME
+
+`$$\text{explanation}(x) = \arg \min_{g \in G} L(f, g, \pi_x) + \Omega(g)$$`
+
+* Explanation model for `\(x\)`
+* Minimize loss `\(L\)`
+    * Difference between explanation and original prediction `\(g(x)\)`
+* `\(G\)` - family of possible explanations
+* `\(\pi_x\)`
+* Keep `\(\Omega(g)\)` low to be interpretable by humans
 
 ---
 
@@ -615,10 +706,52 @@ For any given loss function do
 
 # Tuning LIME
 
-* Alternative simple models
+* Interpretable model
 * Distance metric
 * Size of local region
 * Feature selection
+
+---
+
+# Tuning LIME
+
+.pull-left[
+
+* Gower's distance
+
+    `$$d(\mathbf{p}, \mathbf{q}) = \frac{1}{k} \sum_{i=1}^k d_{p_i q_i}^{(f)}$$`
+    
+    * Range for each variable `\([0,1]\)`
+
+* `\(\text{Kernel width} = 0.75\)`
+* `\(\text{Number of features} = 5\)`
+* Feature selection - ridge regression
+
+]
+
+.pull-right[
+
+* Manhattan distance
+
+    `$$d(\mathbf{p}, \mathbf{q}) = \sum_{i = 1}^k | p_i - q_i|$$`
+
+* `\(\text{Kernel width} = 3\)`
+* `\(\text{Number of features} = 10\)`
+* Feature selection - lasso regression
+
+]
+
+---
+
+# Tuning LIME
+
+&lt;img src="interpret-ml_files/figure-html/explain-tuning-1.png" width="864" /&gt;
+
+---
+
+# LIME for images
+
+&lt;img src="interpret-ml_files/figure-html/lime-images-package-example-1.png" width="504" /&gt;
 
 ---
 

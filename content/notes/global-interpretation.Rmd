@@ -72,6 +72,12 @@ Here we consider a range of global methods.
 * For theory behind method, see [Feature Importance](https://christophm.github.io/interpretable-ml-book/feature-importance.html)
 * For implementation using `iml`, see [here](http://uc-r.github.io/iml-pkg#vip)
 
+# Global surrogate
+
+* For theory behind method, see [Global Surrogate](https://christophm.github.io/interpretable-ml-book/global.html)
+* For implementation using `iml`, see [here](http://uc-r.github.io/iml-pkg#surrogate)
+
+
 # Session Info {.toc-ignore}
 
 ```{r child = here::here("R", "_session-info.Rmd")}
