@@ -12,6 +12,43 @@ output:
 summary: "Practice implementing global and local interpretation methods."
 ---
 
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
 
 <div id="TOC">
 <ul>
@@ -110,13 +147,26 @@ summary: "Practice implementing global and local interpretation methods."
 <li><a href="https://github.com/marcotcr/lime">Implementation of Lime in Python</a></li>
 <li><a href="http://uc-r.github.io/lime">Implementation of LIME in R</a></li>
 </ul>
+<div id="support-for-e1701naivebayes" class="section level5">
+<h5>Support for <code>e1701::naiveBayes()</code></h5>
+<p>If you use R and the <code>naiveBayes</code> function from <code>e1701</code>, include the following code to allow <code>lime</code> to accept an <code>naiveBayes</code> object for the <code>explainer()</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># generate model support in lime</span>
+model_type.naiveBayes &lt;-<span class="st"> </span><span class="cf">function</span>(x, ...){
+  <span class="kw">return</span>(<span class="st">&quot;classification&quot;</span>)
+}
+
+predict_model.naiveBayes &lt;-<span class="st"> </span><span class="cf">function</span>(x, newdata, ...){
+  pred &lt;-<span class="st"> </span><span class="kw">predict</span>(x, newdata, <span class="dt">type =</span> <span class="st">&quot;raw&quot;</span>)
+  <span class="kw">return</span>(<span class="kw">as.data.frame</span>(pred))
+}</code></pre></div>
+</div>
 </div>
 </div>
 </div>
 <div class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 💔<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 😞<a href="#fnref1">↩</a></p></li>
 <li id="fn2"><p>Conducted by NORC at the University of Chicago.<a href="#fnref2">↩</a></p></li>
 </ol>
 </div>

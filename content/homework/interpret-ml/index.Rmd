@@ -86,3 +86,19 @@ Using your best model, explain how the model works locally for the five held-out
 
 * [Implementation of Lime in Python](https://github.com/marcotcr/lime)
 * [Implementation of LIME in R](http://uc-r.github.io/lime)
+
+##### Support for `e1701::naiveBayes()`
+
+If you use R and the `naiveBayes` function from `e1701`, include the following code to allow `lime` to accept an `naiveBayes` object for the `explainer()` function:
+
+```r
+# generate model support in lime
+model_type.naiveBayes <- function(x, ...){
+  return("classification")
+}
+
+predict_model.naiveBayes <- function(x, newdata, ...){
+  pred <- predict(x, newdata, type = "raw")
+  return(as.data.frame(pred))
+}
+```
