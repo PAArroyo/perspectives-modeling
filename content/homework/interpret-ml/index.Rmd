@@ -65,14 +65,17 @@ Using the observations in `gss_train.csv`:
 
 ## Interpret and explain the model (5 points)
 
-### Global interpretation
+### Global explanations
 
-Using your best model, explain how the model works globally using the following techniques:
+Using the naive Bayes model, explain how the model works globally using the following techniques:
 
-1. Partial dependence plots (PDPs) and individual conditional expectation (ICE) plots
-1. Feature interactions
 1. Feature importance
+1. Feature interactions
+1. Partial dependence plots (PDPs) and individual conditional expectation (ICE) plots
+    * Generate plots for the five most important variables as determined by the feature importance scores
 1. Global surrogate
+
+If you have not already, re-estimate the model using all of the training set observations in `gss_train.csv` and use that model and the training data to generate the global explanations.
 
 * For those using Python, I recommend using the [`Skater`](https://github.com/datascienceinc/Skater) package
     * Currently supports PDPs and permutation-based feature importance
@@ -82,7 +85,7 @@ Using your best model, explain how the model works globally using the following 
 
 ### Local interpretation
 
-Using your best model, explain how the model works locally for the five held-out observations in `gss_local.csv` using the `lime` procedure. First, generate the local surrogate model using the default hyperparameters for `lime` and interpret the surrogate model for each observation. Second, generate the local surrogate model by tuning the hyperparameters for `lime` and interpret the surrogate model for each observation. How does your interpretation change, if at all?
+Using your naive Bayes model, explain how the model works locally for the five held-out observations in `gss_local.csv` using the `lime` procedure. First, generate the local surrogate model using the default hyperparameters for `lime` and interpret the surrogate model for each observation. Second, generate the local surrogate model by tuning the hyperparameters for `lime` and interpret the surrogate model for each observation. How does your interpretation change, if at all?
 
 * [Implementation of Lime in Python](https://github.com/marcotcr/lime)
 * [Implementation of LIME in R](http://uc-r.github.io/lime)

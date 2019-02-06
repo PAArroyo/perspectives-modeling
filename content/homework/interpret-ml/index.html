@@ -58,7 +58,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#train-a-series-of-models-3-points">Train a series of models (3 points)</a></li>
 <li><a href="#evaluate-their-performance-2-points">Evaluate their performance (2 points)</a></li>
 <li><a href="#interpret-and-explain-the-model-5-points">Interpret and explain the model (5 points)</a><ul>
-<li><a href="#global-interpretation">Global interpretation</a></li>
+<li><a href="#global-explanations">Global explanations</a></li>
 <li><a href="#local-interpretation">Local interpretation</a></li>
 </ul></li>
 </ul></li>
@@ -121,15 +121,19 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </div>
 <div id="interpret-and-explain-the-model-5-points" class="section level2">
 <h2>Interpret and explain the model (5 points)</h2>
-<div id="global-interpretation" class="section level3">
-<h3>Global interpretation</h3>
-<p>Using your best model, explain how the model works globally using the following techniques:</p>
+<div id="global-explanations" class="section level3">
+<h3>Global explanations</h3>
+<p>Using the naive Bayes model, explain how the model works globally using the following techniques:</p>
 <ol style="list-style-type: decimal">
-<li>Partial dependence plots (PDPs) and individual conditional expectation (ICE) plots</li>
-<li>Feature interactions</li>
 <li>Feature importance</li>
+<li>Feature interactions</li>
+<li>Partial dependence plots (PDPs) and individual conditional expectation (ICE) plots
+<ul>
+<li>Generate plots for the five most important variables as determined by the feature importance scores</li>
+</ul></li>
 <li>Global surrogate</li>
 </ol>
+<p>If you have not already, re-estimate the model using all of the training set observations in <code>gss_train.csv</code> and use that model and the training data to generate the global explanations.</p>
 <ul>
 <li>For those using Python, I recommend using the <a href="https://github.com/datascienceinc/Skater"><code>Skater</code></a> package
 <ul>
@@ -142,7 +146,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </div>
 <div id="local-interpretation" class="section level3">
 <h3>Local interpretation</h3>
-<p>Using your best model, explain how the model works locally for the five held-out observations in <code>gss_local.csv</code> using the <code>lime</code> procedure. First, generate the local surrogate model using the default hyperparameters for <code>lime</code> and interpret the surrogate model for each observation. Second, generate the local surrogate model by tuning the hyperparameters for <code>lime</code> and interpret the surrogate model for each observation. How does your interpretation change, if at all?</p>
+<p>Using your naive Bayes model, explain how the model works locally for the five held-out observations in <code>gss_local.csv</code> using the <code>lime</code> procedure. First, generate the local surrogate model using the default hyperparameters for <code>lime</code> and interpret the surrogate model for each observation. Second, generate the local surrogate model by tuning the hyperparameters for <code>lime</code> and interpret the surrogate model for each observation. How does your interpretation change, if at all?</p>
 <ul>
 <li><a href="https://github.com/marcotcr/lime">Implementation of Lime in Python</a></li>
 <li><a href="http://uc-r.github.io/lime">Implementation of LIME in R</a></li>
@@ -166,7 +170,7 @@ predict_model.naiveBayes &lt;-<span class="st"> </span><span class="cf">function
 <div class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 😞<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 😢<a href="#fnref1">↩</a></p></li>
 <li id="fn2"><p>Conducted by NORC at the University of Chicago.<a href="#fnref2">↩</a></p></li>
 </ol>
 </div>
