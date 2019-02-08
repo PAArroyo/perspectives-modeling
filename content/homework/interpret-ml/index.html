@@ -151,9 +151,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="https://github.com/marcotcr/lime">Implementation of Lime in Python</a></li>
 <li><a href="http://uc-r.github.io/lime">Implementation of LIME in R</a></li>
 </ul>
-<div id="support-for-e1701naivebayes" class="section level5">
-<h5>Support for <code>e1701::naiveBayes()</code></h5>
-<p>If you use R and the <code>naiveBayes</code> function from <code>e1701</code>, include the following code to allow <code>lime</code> to accept an <code>naiveBayes</code> object for the <code>explainer()</code> function:</p>
+<div id="support-for-e1071naivebayes" class="section level5">
+<h5>Support for <code>e1071::naiveBayes()</code></h5>
+<p>If you use R and the <code>naiveBayes</code> function from <code>e1071</code>, include the following code to allow <code>lime</code> to accept an <code>naiveBayes</code> object for the <code>explainer()</code> function:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># generate model support in lime</span>
 model_type.naiveBayes &lt;-<span class="st"> </span><span class="cf">function</span>(x, ...){
   <span class="kw">return</span>(<span class="st">&quot;classification&quot;</span>)
@@ -170,7 +170,7 @@ predict_model.naiveBayes &lt;-<span class="st"> </span><span class="cf">function
 <div class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 😢<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 😿<a href="#fnref1">↩</a></p></li>
 <li id="fn2"><p>Conducted by NORC at the University of Chicago.<a href="#fnref2">↩</a></p></li>
 </ol>
 </div>

@@ -90,9 +90,9 @@ Using your naive Bayes model, explain how the model works locally for the five h
 * [Implementation of Lime in Python](https://github.com/marcotcr/lime)
 * [Implementation of LIME in R](http://uc-r.github.io/lime)
 
-##### Support for `e1701::naiveBayes()`
+##### Support for `e1071::naiveBayes()`
 
-If you use R and the `naiveBayes` function from `e1701`, include the following code to allow `lime` to accept an `naiveBayes` object for the `explainer()` function:
+If you use R and the `naiveBayes` function from `e1071`, include the following code to allow `lime` to accept an `naiveBayes` object for the `explainer()` function:
 
 ```r
 # generate model support in lime
