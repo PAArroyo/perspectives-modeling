@@ -1055,36 +1055,36 @@ class: center, middle, inverse, title-slide
 
 * Multicollinearity
 
-    
-    ```
-    ## 
-    ## Call:
-    ## lm(formula = Sale_Price ~ Gr_Liv_Area + TotRms_AbvGrd, data = ames_train)
-    ## 
-    ## Coefficients:
-    ##   (Intercept)    Gr_Liv_Area  TotRms_AbvGrd  
-    ##       41170.0          137.7       -10332.2
-    ```
-    
-    ```
-    ## 
-    ## Call:
-    ## lm(formula = Sale_Price ~ Gr_Liv_Area, data = ames_train)
-    ## 
-    ## Coefficients:
-    ## (Intercept)  Gr_Liv_Area  
-    ##     13206.1        111.8
-    ```
-    
-    ```
-    ## 
-    ## Call:
-    ## lm(formula = Sale_Price ~ TotRms_AbvGrd, data = ames_train)
-    ## 
-    ## Coefficients:
-    ##   (Intercept)  TotRms_AbvGrd  
-    ##         16384          25464
-    ```
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; term &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; both &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; living_area &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; rooms_abv &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; (Intercept) &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 41170.0166 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 13206.1388 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 16384.03 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Gr_Liv_Area &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 137.6906 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 111.8337 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; NA &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; TotRms_AbvGrd &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -10332.2107 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; NA &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 25463.57 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
 
 * Insufficient solution
 * Interpretability
@@ -1128,7 +1128,7 @@ class: center, middle, inverse, title-slide
 
 # Ridge regression
 
-&lt;img src="selection-regulation_files/figure-html/ridge-example-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ridge-example-1.png" width="864" /&gt;
 
 ---
 
@@ -1136,7 +1136,7 @@ class: center, middle, inverse, title-slide
 
 
 
-&lt;img src="selection-regulation_files/figure-html/ames-ridge-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ames-ridge-1.png" width="864" /&gt;
 
 ---
 
@@ -1166,13 +1166,13 @@ class: center, middle, inverse, title-slide
 * `\(\lambda\)` with minimum MSE
 * Largest `\(\lambda\)` within one SE of the minimum MSE
 
-&lt;img src="selection-regulation_files/figure-html/ames-ridge-tune-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ames-ridge-tune-1.png" width="864" /&gt;
 
 ---
 
 # Ridge regression
 
-&lt;img src="selection-regulation_files/figure-html/ames-ridge-min-mse-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ames-ridge-min-mse-1.png" width="864" /&gt;
 
 ---
 
@@ -1187,7 +1187,7 @@ class: center, middle, inverse, title-slide
 
 # Ridge regression
 
-&lt;img src="selection-regulation_files/figure-html/ames-ridge-imp-vars-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ames-ridge-imp-vars-1.png" width="864" /&gt;
 
 ---
 
@@ -1206,13 +1206,13 @@ class: center, middle, inverse, title-slide
 
 # Lasso regression
 
-&lt;img src="selection-regulation_files/figure-html/lasso-example-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/lasso-example-1.png" width="864" /&gt;
 
 ---
 
 # Lasso regression
 
-&lt;img src="selection-regulation_files/figure-html/ames-lasso-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ames-lasso-1.png" width="864" /&gt;
 
 ---
 
@@ -1222,13 +1222,13 @@ class: center, middle, inverse, title-slide
 * `\(\lambda\)` with minimum MSE
 * Largest `\(\lambda\)` within one SE of the minimum MSE
 
-&lt;img src="selection-regulation_files/figure-html/ames-lasso-tune-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ames-lasso-tune-1.png" width="864" /&gt;
 
 ---
 
 # Lasso regression
 
-&lt;img src="selection-regulation_files/figure-html/ames-lasso-min-mse-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ames-lasso-min-mse-1.png" width="864" /&gt;
 
 ---
 
@@ -1245,7 +1245,7 @@ class: center, middle, inverse, title-slide
 
 # Lasso regression
 
-&lt;img src="selection-regulation_files/figure-html/ames-lasso-imp-vars-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ames-lasso-imp-vars-1.png" width="864" /&gt;
 
 ---
 
@@ -1271,7 +1271,7 @@ class: center, middle, inverse, title-slide
 
 * Grid search
 
-&lt;img src="selection-regulation_files/figure-html/ames-elastic-net-tune-1.png" width="504" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ames-elastic-net-tune-1.png" width="864" /&gt;
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="macros.js"></script>

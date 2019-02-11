@@ -399,16 +399,18 @@ coef(final_best, which.min(ames_lite_cv$.estimate))
 
 * Multicollinearity
 
-    ```{r ames-colin, dependson = "ames"}
-    # fit with two strongly correlated variables
-    lm(Sale_Price ~ Gr_Liv_Area + TotRms_AbvGrd, data = ames_train)
-    
-    # fit with just Gr_Liv_Area
-    lm(Sale_Price ~ Gr_Liv_Area, data = ames_train)
-    
-    # fit with just TotRms_Area
-    lm(Sale_Price ~ TotRms_AbvGrd, data = ames_train)
-    ```
+```{r ames-colin, dependson = "ames"}
+# fit with two strongly correlated variables
+list(
+  both = lm(Sale_Price ~ Gr_Liv_Area + TotRms_AbvGrd, data = ames_train),
+  living_area = lm(Sale_Price ~ Gr_Liv_Area, data = ames_train),
+  rooms_abv = lm(Sale_Price ~ TotRms_AbvGrd, data = ames_train)
+) %>%
+  map_df(tidy, .id = "model") %>%
+  select(model, term, estimate) %>%
+  spread(model, estimate) %>%
+  knitr::kable(format = "html")
+```
 
 * Insufficient solution
 * Interpretability
@@ -452,7 +454,7 @@ $$\hat{\beta}^{\text{ridge}} = (\mathbf{X}' \mathbf{X} + \lambda \mathbf{I})^{-1
 
 # Ridge regression
 
-```{r ridge-example}
+```{r ridge-example, fig.width = 12}
 credit <- ISLR::Credit %>%
   as_tibble
 
@@ -482,7 +484,7 @@ ames_test_x <- model.matrix(Sale_Price ~ ., ames_test)[, -1]
 ames_test_y <- log(ames_test$Sale_Price)
 ```
 
-```{r ames-ridge, dependson = "ames-train-matrix"}
+```{r ames-ridge, dependson = "ames-train-matrix", fig.width = 12}
 # Apply Ridge regression to ames data
 ames_ridge <- glmnet(
   x = ames_train_x,
@@ -517,7 +519,7 @@ coef(ames_ridge)[c("Gr_Liv_Area", "TotRms_AbvGrd"), 100]
 * $\lambda$ with minimum MSE
 * Largest $\lambda$ within one SE of the minimum MSE
 
-```{r ames-ridge-tune, dependson = "ames-train-matrix"}
+```{r ames-ridge-tune, dependson = "ames-train-matrix", fig.width = 12}
 # Apply CV Ridge regression to ames data
 ames_ridge <- cv.glmnet(
   x = ames_train_x,
@@ -533,7 +535,7 @@ plot(ames_ridge)
 
 # Ridge regression
 
-```{r ames-ridge-min-mse, dependson = "ames-ridge-tune"}
+```{r ames-ridge-min-mse, dependson = "ames-ridge-tune", fig.width = 12}
 ames_ridge_min <- glmnet(
   x = ames_train_x,
   y = ames_train_y,
@@ -557,7 +559,7 @@ abline(v = log(ames_ridge$lambda.1se), col = "red", lty = "dashed")
 
 # Ridge regression
 
-```{r ames-ridge-imp-vars, dependson = "ames-ridge"}
+```{r ames-ridge-imp-vars, dependson = "ames-ridge", fig.width = 12}
 coef(ames_ridge, s = "lambda.1se") %>%
   tidy() %>%
   filter(row != "(Intercept)") %>%
@@ -586,7 +588,7 @@ coef(ames_ridge, s = "lambda.1se") %>%
 
 # Lasso regression
 
-```{r lasso-example, dependson = "ridge-example"}
+```{r lasso-example, dependson = "ridge-example", fig.width = 12}
 credit_lasso <- glmnet(
   x = credit_x,
   y = credit_y,
@@ -600,7 +602,7 @@ plot(credit_lasso, xvar = "lambda")
 
 # Lasso regression
 
-```{r ames-lasso, dependson = "ames-train-matrix"}
+```{r ames-lasso, dependson = "ames-train-matrix", fig.width = 12}
 ames_lasso <- glmnet(
   x = ames_train_x,
   y = ames_train_y,
@@ -618,7 +620,7 @@ plot(ames_lasso, xvar = "lambda")
 * $\lambda$ with minimum MSE
 * Largest $\lambda$ within one SE of the minimum MSE
 
-```{r ames-lasso-tune, dependson = "ames-train-matrix"}
+```{r ames-lasso-tune, dependson = "ames-train-matrix", fig.width = 12}
 ames_lasso <- cv.glmnet(
   x = ames_train_x,
   y = ames_train_y,
@@ -633,7 +635,7 @@ plot(ames_lasso)
 
 # Lasso regression
 
-```{r ames-lasso-min-mse, dependson = "ames-lasso-tune"}
+```{r ames-lasso-min-mse, dependson = "ames-lasso-tune", fig.width = 12}
 ames_lasso_min <- glmnet(
   x = ames_train_x,
   y = ames_train_y,
@@ -660,7 +662,7 @@ abline(v = log(ames_lasso$lambda.1se), col = "red", lty = "dashed")
 
 # Lasso regression
 
-```{r ames-lasso-imp-vars, dependson = "ames-lasso", fig.asp = .7}
+```{r ames-lasso-imp-vars, dependson = "ames-lasso", fig.asp = .7, fig.width = 12}
 coef(ames_lasso, s = "lambda.1se") %>%
   tidy() %>%
   filter(row != "(Intercept)") %>%
@@ -707,7 +709,7 @@ plot(ridge, xvar = "lambda", main = "Ridge (Alpha = 0)\n\n\n")
 
 * Grid search
 
-```{r ames-elastic-net-tune, dependson = "ames-model-matrix"}
+```{r ames-elastic-net-tune, dependson = "ames-model-matrix", fig.width = 12}
 # maintain the same folds across all models
 fold_id <- sample(1:10, size = length(ames_train_y), replace = TRUE)
 
