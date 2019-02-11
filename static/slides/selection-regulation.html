@@ -1011,20 +1011,8 @@ class: center, middle, inverse, title-slide
 * May lead to different selection of variables for each model
 
 
-```
-## Reordering variables and trying again:
-## Reordering variables and trying again:
-## Reordering variables and trying again:
-## Reordering variables and trying again:
-## Reordering variables and trying again:
-## Reordering variables and trying again:
-## Reordering variables and trying again:
-## Reordering variables and trying again:
-## Reordering variables and trying again:
-## Reordering variables and trying again:
-```
 
-&lt;img src="selection-regulation_files/figure-html/ames-subset-cv-1.png" width="864" /&gt;
+&lt;img src="selection-regulation_files/figure-html/ames-subset-cv-plot-1.png" width="864" /&gt;
 
 ---
 
@@ -1043,6 +1031,247 @@ class: center, middle, inverse, title-slide
 ##    Garage_Cars   Wood_Deck_SF        Mo_Sold    Gr_Liv_Area 
 ##   1.755460e+04   1.615806e+01  -1.312901e+01   5.506215e+01
 ```
+
+---
+
+# Least squares
+
+* Least squares objective function
+
+    `$$\min \left\{ \text{RSS} = \sum_{i=1}^n (y_i - \hat{y}_i)^2 \right\}$$`
+
+## Works well with
+
+* Linear relationship
+* Multivariate normality
+* No autocorrelation
+* Homoscedastic error terms
+* `\(n &gt; p\)`
+* No or little multicollinearity
+
+---
+
+# As `\(p\)` increases
+
+* Multicollinearity
+
+    
+    ```
+    ## 
+    ## Call:
+    ## lm(formula = Sale_Price ~ Gr_Liv_Area + TotRms_AbvGrd, data = ames_train)
+    ## 
+    ## Coefficients:
+    ##   (Intercept)    Gr_Liv_Area  TotRms_AbvGrd  
+    ##       41170.0          137.7       -10332.2
+    ```
+    
+    ```
+    ## 
+    ## Call:
+    ## lm(formula = Sale_Price ~ Gr_Liv_Area, data = ames_train)
+    ## 
+    ## Coefficients:
+    ## (Intercept)  Gr_Liv_Area  
+    ##     13206.1        111.8
+    ```
+    
+    ```
+    ## 
+    ## Call:
+    ## lm(formula = Sale_Price ~ TotRms_AbvGrd, data = ames_train)
+    ## 
+    ## Coefficients:
+    ##   (Intercept)  TotRms_AbvGrd  
+    ##         16384          25464
+    ```
+
+* Insufficient solution
+* Interpretability
+    * Hard thresholding
+    * Soft thresholding
+
+---
+
+# Regularized regression
+
+* Penalized or shrinkage models
+* Constrain the magnitude of the coefficients
+* Shrink the coefficients towards zero
+
+    `$$\min \{ \text{RSS} + P \}$$`
+
+---
+
+# Ridge regression
+
+`$$\min \left\{ \text{RSS} + \lambda \sum_{j=1}^p \beta_j^2 \right\}$$`
+
+* `\(L_2\)` penalty
+* Tuning parameter `\(\lambda\)`
+    * `\(\lambda = 0\)`
+    * `\(\lambda \rightarrow \infty\)`
+* Importance of standardizing predictors
+
+---
+
+# Ridge regression with `\(p &gt; n\)`
+
+`$$\text{RSS}(\lambda) = (\mathbf{y} - \mathbf{X} \beta)' (\mathbf{y} - \mathbf{X}\beta) + \lambda \beta' \beta$$`
+`$$\hat{\beta}^{\text{ridge}} = (\mathbf{X}' \mathbf{X} + \lambda \mathbf{I})^{-1} \mathbf{X}' \mathbf{y}$$`
+
+* Ridge regression solution is linear function of `\(\mathbf{y}\)`
+* Adds positive constant to `\(\mathbf{X}' \mathbf{X}\)` before inversion
+* Makes the matrix non-singular, even if `\(\mathbf{X}' \mathbf{X}\)` is not full rank
+
+---
+
+# Ridge regression
+
+&lt;img src="selection-regulation_files/figure-html/ridge-example-1.png" width="504" /&gt;
+
+---
+
+# Ridge regression
+
+
+
+&lt;img src="selection-regulation_files/figure-html/ames-ridge-1.png" width="504" /&gt;
+
+---
+
+# Ridge regression
+
+## Largest lambda parameter
+
+
+```
+##   Gr_Liv_Area TotRms_AbvGrd 
+##  5.659034e-40  1.306590e-37
+```
+
+## Smallest lambda parameter
+
+
+```
+##   Gr_Liv_Area TotRms_AbvGrd 
+##  0.0001038977  0.0080380009
+```
+
+---
+
+# Tuning `\(\lambda\)`
+
+* `\(10\)`-fold cross-validation
+* `\(\lambda\)` with minimum MSE
+* Largest `\(\lambda\)` within one SE of the minimum MSE
+
+&lt;img src="selection-regulation_files/figure-html/ames-ridge-tune-1.png" width="504" /&gt;
+
+---
+
+# Ridge regression
+
+&lt;img src="selection-regulation_files/figure-html/ames-ridge-min-mse-1.png" width="504" /&gt;
+
+---
+
+# Ridge regression
+
+* Pushes correlated features towards each other
+* Non-important features pushed towards zero
+* Reducing the noise, increasing the signal
+* Retains all variables (i.e. not feature selection)
+
+---
+
+# Ridge regression
+
+&lt;img src="selection-regulation_files/figure-html/ames-ridge-imp-vars-1.png" width="504" /&gt;
+
+---
+
+# Lasso regression
+
+* Least absolute shrinkage and selection operator (LASSO)
+
+    `$$\min \left\{ \text{RSS} + \lambda \sum_{j=1}^p | \beta_j | \right\}$$`
+
+* `\(L_1\)` penalty
+* Pushes variables to actual zero
+* Increased regulation
+* Automated feature selection
+
+---
+
+# Lasso regression
+
+&lt;img src="selection-regulation_files/figure-html/lasso-example-1.png" width="504" /&gt;
+
+---
+
+# Lasso regression
+
+&lt;img src="selection-regulation_files/figure-html/ames-lasso-1.png" width="504" /&gt;
+
+---
+
+# Tuning `\(\lambda\)`
+
+* `\(10\)`-fold cross-validation
+* `\(\lambda\)` with minimum MSE
+* Largest `\(\lambda\)` within one SE of the minimum MSE
+
+&lt;img src="selection-regulation_files/figure-html/ames-lasso-tune-1.png" width="504" /&gt;
+
+---
+
+# Lasso regression
+
+&lt;img src="selection-regulation_files/figure-html/ames-lasso-min-mse-1.png" width="504" /&gt;
+
+---
+
+# Lasso regression
+
+* Pushes collinear features towards each other
+* Pushes coefficients to zero
+* Simplifies feature selection
+* Oversimplification leads to less accuracy
+    * Ridge MSE: 0.0208176
+    * Lasso MSE: 0.0236304
+
+---
+
+# Lasso regression
+
+&lt;img src="selection-regulation_files/figure-html/ames-lasso-imp-vars-1.png" width="504" /&gt;
+
+---
+
+# Elastic nets
+
+* Generalization of the ridge and lasso models
+
+    `$$\min \left\{ \text{RSS} + \lambda_1 \sum_{j=1}^p \beta_j^2 + \lambda_2 \sum_{j=1}^p | \beta_j | \right\}$$`
+    
+* Balances strengths/weaknesses of both approaches
+    * Effective regularization with ridge ($L_2$ penalty)
+    * Feature selection with lasso ($L_1$ penalty)
+
+---
+
+# Elastic nets
+
+&lt;img src="selection-regulation_files/figure-html/ames-elastic-net-1.png" width="864" /&gt;
+
+---
+
+# Tuning `\(\lambda\)` and `\(\alpha\)`
+
+* Grid search
+
+&lt;img src="selection-regulation_files/figure-html/ames-elastic-net-tune-1.png" width="504" /&gt;
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="macros.js"></script>
