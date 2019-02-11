@@ -676,6 +676,12 @@ coef(ames_lasso, s = "lambda.1se") %>%
 
 ---
 
+# Variable selection with ridge/lasso
+
+![](/img/esl-3-11.png)
+
+---
+
 # Elastic nets
 
 * Generalization of the ridge and lasso models
