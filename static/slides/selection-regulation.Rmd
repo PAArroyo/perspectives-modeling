@@ -119,7 +119,7 @@ summary(best_subset)$outmat
 # Forward stepwise selection
 
 ```{r ames-forward, dependson = c("ames", "ames-subset")}
-forward <- regsubsets(Sale_Price ~ ., ames_train, nvmax = 308, method = "forward")
+forward <- regsubsets(Sale_Price ~ ., ames_lite, nvmax = 308, method = "forward")
 summary(forward)$outmat
 ```
 
@@ -142,7 +142,7 @@ summary(forward)$outmat
 # Backward stepwise selection
 
 ```{r ames-backward, dependson = c("ames", "ames-subset")}
-backward <- regsubsets(Sale_Price ~ ., ames_train, nvmax = 308, method = "backward")
+backward <- regsubsets(Sale_Price ~ ., ames_lite, nvmax = 308, method = "backward")
 summary(backward)$outmat
 ```
 
@@ -678,7 +678,11 @@ coef(ames_lasso, s = "lambda.1se") %>%
 
 # Variable selection with ridge/lasso
 
+.center[
+
 ![](/img/esl-3-11.png)
+
+]
 
 ---
 
