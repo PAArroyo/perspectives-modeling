@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Linear Model Selection and Regulation</title>
+    <meta charset="utf-8">
+    <meta name="author" content="MACS 30100   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Linear Model Selection and Regulation
+### <a href="https://model.uchicago.edu">MACS 30100</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Linear model
+
+`$$Y = \beta_0 + \beta_1 X_1 + \ldots + \beta_p X_p + \epsilon$$`
+
+* Least squares
+* Adaptations of the linear model
+    * Non-linear, additive, relationships
+    * Alternative model fitting strategies
+* Prediction accuracy
+* Model interpretability
+
+---
+
+# Alternatives to least squares
+
+* Subset selection
+* Shrinkage (regularization)
+* Dimension reduction
+
+---
+
+# Ames housing data
+
+
+```
+## Observations: 2,054
+## Variables: 81
+## $ MS_SubClass        &lt;fct&gt; One_Story_1946_and_Newer_All_Styles, One_Stor…
+## $ MS_Zoning          &lt;fct&gt; Residential_Low_Density, Residential_High_Den…
+## $ Lot_Frontage       &lt;dbl&gt; 141, 80, 74, 78, 41, 39, 60, 63, 85, 0, 152, …
+## $ Lot_Area           &lt;int&gt; 31770, 11622, 13830, 9978, 4920, 5389, 7500, …
+## $ Street             &lt;fct&gt; Pave, Pave, Pave, Pave, Pave, Pave, Pave, Pav…
+## $ Alley              &lt;fct&gt; No_Alley_Access, No_Alley_Access, No_Alley_Ac…
+## $ Lot_Shape          &lt;fct&gt; Slightly_Irregular, Regular, Slightly_Irregul…
+## $ Land_Contour       &lt;fct&gt; Lvl, Lvl, Lvl, Lvl, Lvl, Lvl, Lvl, Lvl, Lvl, …
+## $ Utilities          &lt;fct&gt; AllPub, AllPub, AllPub, AllPub, AllPub, AllPu…
+## $ Lot_Config         &lt;fct&gt; Corner, Inside, Inside, Inside, Inside, Insid…
+## $ Land_Slope         &lt;fct&gt; Gtl, Gtl, Gtl, Gtl, Gtl, Gtl, Gtl, Gtl, Gtl, …
+## $ Neighborhood       &lt;fct&gt; North_Ames, North_Ames, Gilbert, Gilbert, Sto…
+## $ Condition_1        &lt;fct&gt; Norm, Feedr, Norm, Norm, Norm, Norm, Norm, No…
+## $ Condition_2        &lt;fct&gt; Norm, Norm, Norm, Norm, Norm, Norm, Norm, Nor…
+## $ Bldg_Type          &lt;fct&gt; OneFam, OneFam, OneFam, OneFam, TwnhsE, Twnhs…
+## $ House_Style        &lt;fct&gt; One_Story, One_Story, Two_Story, Two_Story, O…
+## $ Overall_Qual       &lt;fct&gt; Above_Average, Average, Average, Above_Averag…
+## $ Overall_Cond       &lt;fct&gt; Average, Above_Average, Average, Above_Averag…
+## $ Year_Built         &lt;int&gt; 1960, 1961, 1997, 1998, 2001, 1995, 1999, 199…
+## $ Year_Remod_Add     &lt;int&gt; 1960, 1961, 1998, 1998, 2001, 1996, 1999, 199…
+## $ Roof_Style         &lt;fct&gt; Hip, Gable, Gable, Gable, Gable, Gable, Gable…
+## $ Roof_Matl          &lt;fct&gt; CompShg, CompShg, CompShg, CompShg, CompShg, …
+## $ Exterior_1st       &lt;fct&gt; BrkFace, VinylSd, VinylSd, VinylSd, CemntBd, …
+## $ Exterior_2nd       &lt;fct&gt; Plywood, VinylSd, VinylSd, VinylSd, CmentBd, …
+## $ Mas_Vnr_Type       &lt;fct&gt; Stone, None, None, BrkFace, None, None, None,…
+## $ Mas_Vnr_Area       &lt;dbl&gt; 112, 0, 0, 20, 0, 0, 0, 0, 0, 0, 0, 350, 0, 1…
+## $ Exter_Qual         &lt;fct&gt; Typical, Typical, Typical, Typical, Good, Goo…
+## $ Exter_Cond         &lt;fct&gt; Typical, Typical, Typical, Typical, Typical, …
+## $ Foundation         &lt;fct&gt; CBlock, CBlock, PConc, PConc, PConc, PConc, P…
+## $ Bsmt_Qual          &lt;fct&gt; Typical, Typical, Good, Typical, Good, Good, …
+## $ Bsmt_Cond          &lt;fct&gt; Good, Typical, Typical, Typical, Typical, Typ…
+## $ Bsmt_Exposure      &lt;fct&gt; Gd, No, No, No, Mn, No, No, No, Gd, Av, Av, A…
+## $ BsmtFin_Type_1     &lt;fct&gt; BLQ, Rec, GLQ, GLQ, GLQ, GLQ, Unf, Unf, GLQ, …
+## $ BsmtFin_SF_1       &lt;dbl&gt; 2, 6, 3, 3, 3, 3, 7, 7, 3, 3, 3, 3, 4, 1, 2, …
+## $ BsmtFin_Type_2     &lt;fct&gt; Unf, LwQ, Unf, Unf, Unf, Unf, Unf, Unf, Unf, …
+## $ BsmtFin_SF_2       &lt;dbl&gt; 0, 144, 0, 0, 0, 0, 0, 0, 0, 1120, 0, 0, 0, 1…
+## $ Bsmt_Unf_SF        &lt;dbl&gt; 441, 270, 137, 324, 722, 415, 994, 789, 663, …
+## $ Total_Bsmt_SF      &lt;dbl&gt; 1080, 882, 928, 926, 1338, 1595, 994, 789, 13…
+## $ Heating            &lt;fct&gt; GasA, GasA, GasA, GasA, GasA, GasA, GasA, Gas…
+## $ Heating_QC         &lt;fct&gt; Fair, Typical, Good, Excellent, Excellent, Ex…
+## $ Central_Air        &lt;fct&gt; Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, …
+## $ Electrical         &lt;fct&gt; SBrkr, SBrkr, SBrkr, SBrkr, SBrkr, SBrkr, SBr…
+## $ First_Flr_SF       &lt;int&gt; 1656, 896, 928, 926, 1338, 1616, 1028, 789, 1…
+## $ Second_Flr_SF      &lt;int&gt; 0, 0, 701, 678, 0, 0, 776, 676, 0, 0, 672, 0,…
+## $ Low_Qual_Fin_SF    &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+## $ Gr_Liv_Area        &lt;int&gt; 1656, 896, 1629, 1604, 1338, 1616, 1804, 1465…
+## $ Bsmt_Full_Bath     &lt;dbl&gt; 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, …
+## $ Bsmt_Half_Bath     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+## $ Full_Bath          &lt;int&gt; 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 2, 1, 1, 2, 2, …
+## $ Half_Bath          &lt;int&gt; 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, …
+## $ Bedroom_AbvGr      &lt;int&gt; 3, 2, 3, 3, 2, 2, 3, 3, 2, 1, 4, 1, 2, 3, 3, …
+## $ Kitchen_AbvGr      &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+## $ Kitchen_Qual       &lt;fct&gt; Typical, Typical, Typical, Good, Good, Good, …
+## $ TotRms_AbvGrd      &lt;int&gt; 7, 5, 6, 7, 6, 5, 7, 7, 5, 4, 8, 8, 4, 7, 7, …
+## $ Functional         &lt;fct&gt; Typ, Typ, Typ, Typ, Typ, Typ, Typ, Typ, Typ, …
+## $ Fireplaces         &lt;int&gt; 2, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 2, 1, …
+## $ Fireplace_Qu       &lt;fct&gt; Good, No_Fireplace, Typical, Good, No_Firepla…
+## $ Garage_Type        &lt;fct&gt; Attchd, Attchd, Attchd, Attchd, Attchd, Attch…
+## $ Garage_Finish      &lt;fct&gt; Fin, Unf, Fin, Fin, Fin, RFn, Fin, Fin, Unf, …
+## $ Garage_Cars        &lt;dbl&gt; 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 2, …
+## $ Garage_Area        &lt;dbl&gt; 528, 730, 482, 470, 582, 608, 442, 393, 506, …
+## $ Garage_Qual        &lt;fct&gt; Typical, Typical, Typical, Typical, Typical, …
+## $ Garage_Cond        &lt;fct&gt; Typical, Typical, Typical, Typical, Typical, …
+## $ Paved_Drive        &lt;fct&gt; Partial_Pavement, Paved, Paved, Paved, Paved,…
+## $ Wood_Deck_SF       &lt;int&gt; 210, 140, 212, 360, 0, 237, 140, 0, 192, 0, 3…
+## $ Open_Porch_SF      &lt;int&gt; 62, 0, 34, 36, 0, 152, 60, 75, 0, 54, 12, 0, …
+## $ Enclosed_Porch     &lt;int&gt; 0, 0, 0, 0, 170, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+## $ Three_season_porch &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+## $ Screen_Porch       &lt;int&gt; 0, 120, 0, 0, 0, 0, 0, 0, 0, 140, 0, 0, 0, 0,…
+## $ Pool_Area          &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+## $ Pool_QC            &lt;fct&gt; No_Pool, No_Pool, No_Pool, No_Pool, No_Pool, …
+## $ Fence              &lt;fct&gt; No_Fence, Minimum_Privacy, Minimum_Privacy, N…
+## $ Misc_Feature       &lt;fct&gt; None, None, None, None, None, None, None, Non…
+## $ Misc_Val           &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+## $ Mo_Sold            &lt;int&gt; 5, 6, 3, 6, 4, 3, 6, 5, 2, 6, 6, 6, 6, 2, 1, …
+## $ Year_Sold          &lt;int&gt; 2010, 2010, 2010, 2010, 2010, 2010, 2010, 201…
+## $ Sale_Type          &lt;fct&gt; WD , WD , WD , WD , WD , WD , WD , WD , WD , …
+## $ Sale_Condition     &lt;fct&gt; Normal, Normal, Normal, Normal, Normal, Norma…
+## $ Sale_Price         &lt;int&gt; 215000, 105000, 189900, 195500, 213500, 23650…
+## $ Longitude          &lt;dbl&gt; -93.61975, -93.61976, -93.63893, -93.63893, -…
+## $ Latitude           &lt;dbl&gt; 42.05403, 42.05301, 42.06090, 42.06078, 42.06…
+```
+
+---
+
+# Subset selection
+
+* Fit separate least squares regression to each possible combination of the `\(p\)` predictors
+
+1. Let `\(M_0\)` denote the null model, which contains no predictors. This model simply predicts the sample mean for each observation.
+1. For `\(k = 1, 2, \ldots, p\)`:
+    * Fit `\(\binom{p}{k}\)` models, and call it `\(M_k\)`
+    * Pick the best among the `\(\binom{p}{k}\)` models, and call it `\(M_k\)`
+1. Select a single best model from among `\(M_0, \ldots, M_p\)`
+
+---
+
+# Subset selection
+
+
+```
+## Reordering variables and trying again:
+```
+
+```
+##           Lot_Frontage Lot_Area Year_Built Year_Remod_Add Mas_Vnr_Area
+## 1  ( 1 )  " "          " "      " "        " "            " "         
+## 2  ( 1 )  " "          " "      "*"        " "            " "         
+## 3  ( 1 )  " "          " "      "*"        " "            " "         
+## 4  ( 1 )  " "          " "      "*"        " "            " "         
+## 5  ( 1 )  " "          " "      " "        "*"            "*"         
+## 6  ( 1 )  " "          " "      " "        "*"            "*"         
+## 7  ( 1 )  " "          " "      "*"        "*"            "*"         
+## 8  ( 1 )  " "          " "      "*"        "*"            "*"         
+## 9  ( 1 )  " "          " "      "*"        "*"            "*"         
+## 10  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 11  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 12  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 13  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 14  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 15  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 16  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 17  ( 1 ) " "          "*"      "*"        "*"            "*"         
+## 18  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 19  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 20  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 21  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 22  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 23  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 24  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 25  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 26  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 27  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 28  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 29  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 30  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 31  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 32  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 33  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+##           BsmtFin_SF_1 BsmtFin_SF_2 Bsmt_Unf_SF Total_Bsmt_SF First_Flr_SF
+## 1  ( 1 )  " "          " "          " "         " "           " "         
+## 2  ( 1 )  " "          " "          " "         " "           " "         
+## 3  ( 1 )  " "          " "          " "         "*"           " "         
+## 4  ( 1 )  " "          " "          " "         "*"           " "         
+## 5  ( 1 )  " "          " "          " "         "*"           " "         
+## 6  ( 1 )  " "          " "          " "         "*"           " "         
+## 7  ( 1 )  " "          " "          " "         "*"           " "         
+## 8  ( 1 )  " "          " "          " "         "*"           " "         
+## 9  ( 1 )  " "          " "          " "         "*"           " "         
+## 10  ( 1 ) " "          " "          "*"         "*"           " "         
+## 11  ( 1 ) " "          " "          " "         "*"           " "         
+## 12  ( 1 ) " "          " "          " "         "*"           " "         
+## 13  ( 1 ) " "          " "          " "         "*"           " "         
+## 14  ( 1 ) " "          " "          " "         "*"           " "         
+## 15  ( 1 ) " "          " "          " "         "*"           "*"         
+## 16  ( 1 ) " "          " "          " "         "*"           "*"         
+## 17  ( 1 ) " "          " "          "*"         "*"           " "         
+## 18  ( 1 ) " "          " "          "*"         "*"           " "         
+## 19  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 20  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 21  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 22  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 23  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 24  ( 1 ) " "          "*"          "*"         "*"           "*"         
+## 25  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 26  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 27  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 28  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 29  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 30  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 31  ( 1 ) "*"          "*"          "*"         "*"           " "         
+## 32  ( 1 ) "*"          "*"          "*"         "*"           " "         
+## 33  ( 1 ) "*"          "*"          "*"         "*"           "*"         
+##           Second_Flr_SF Low_Qual_Fin_SF Gr_Liv_Area Bsmt_Full_Bath
+## 1  ( 1 )  " "           " "             "*"         " "           
+## 2  ( 1 )  " "           " "             "*"         " "           
+## 3  ( 1 )  " "           " "             "*"         " "           
+## 4  ( 1 )  " "           " "             "*"         " "           
+## 5  ( 1 )  " "           " "             "*"         " "           
+## 6  ( 1 )  " "           " "             "*"         " "           
+## 7  ( 1 )  " "           " "             "*"         " "           
+## 8  ( 1 )  " "           " "             "*"         " "           
+## 9  ( 1 )  " "           " "             "*"         " "           
+## 10  ( 1 ) " "           " "             "*"         " "           
+## 11  ( 1 ) " "           " "             "*"         "*"           
+## 12  ( 1 ) " "           " "             "*"         "*"           
+## 13  ( 1 ) " "           " "             "*"         "*"           
+## 14  ( 1 ) " "           " "             "*"         "*"           
+## 15  ( 1 ) "*"           " "             " "         "*"           
+## 16  ( 1 ) "*"           " "             " "         "*"           
+## 17  ( 1 ) " "           " "             "*"         "*"           
+## 18  ( 1 ) " "           " "             "*"         "*"           
+## 19  ( 1 ) "*"           " "             " "         "*"           
+## 20  ( 1 ) "*"           " "             " "         "*"           
+## 21  ( 1 ) "*"           " "             " "         "*"           
+## 22  ( 1 ) "*"           " "             " "         "*"           
+## 23  ( 1 ) "*"           " "             " "         "*"           
+## 24  ( 1 ) "*"           " "             " "         "*"           
+## 25  ( 1 ) " "           "*"             "*"         "*"           
+## 26  ( 1 ) " "           "*"             "*"         "*"           
+## 27  ( 1 ) " "           "*"             "*"         "*"           
+## 28  ( 1 ) " "           "*"             "*"         "*"           
+## 29  ( 1 ) " "           "*"             "*"         "*"           
+## 30  ( 1 ) " "           "*"             "*"         "*"           
+## 31  ( 1 ) " "           "*"             "*"         "*"           
+## 32  ( 1 ) " "           "*"             "*"         "*"           
+## 33  ( 1 ) "*"           "*"             " "         "*"           
+##           Bsmt_Half_Bath Full_Bath Half_Bath Bedroom_AbvGr Kitchen_AbvGr
+## 1  ( 1 )  " "            " "       " "       " "           " "          
+## 2  ( 1 )  " "            " "       " "       " "           " "          
+## 3  ( 1 )  " "            " "       " "       " "           " "          
+## 4  ( 1 )  " "            " "       " "       " "           " "          
+## 5  ( 1 )  " "            " "       " "       " "           " "          
+## 6  ( 1 )  " "            " "       " "       " "           " "          
+## 7  ( 1 )  " "            " "       " "       " "           " "          
+## 8  ( 1 )  " "            " "       " "       " "           " "          
+## 9  ( 1 )  " "            " "       " "       " "           "*"          
+## 10  ( 1 ) " "            " "       " "       " "           "*"          
+## 11  ( 1 ) " "            " "       " "       " "           "*"          
+## 12  ( 1 ) " "            " "       " "       "*"           "*"          
+## 13  ( 1 ) " "            " "       " "       "*"           "*"          
+## 14  ( 1 ) " "            " "       " "       "*"           "*"          
+## 15  ( 1 ) " "            " "       " "       "*"           "*"          
+## 16  ( 1 ) " "            " "       " "       "*"           "*"          
+## 17  ( 1 ) " "            " "       " "       "*"           "*"          
+## 18  ( 1 ) " "            " "       " "       "*"           "*"          
+## 19  ( 1 ) " "            " "       " "       "*"           "*"          
+## 20  ( 1 ) " "            " "       " "       "*"           "*"          
+## 21  ( 1 ) " "            " "       " "       "*"           "*"          
+## 22  ( 1 ) " "            " "       " "       "*"           "*"          
+## 23  ( 1 ) " "            " "       " "       "*"           "*"          
+## 24  ( 1 ) " "            " "       " "       "*"           "*"          
+## 25  ( 1 ) " "            " "       "*"       "*"           "*"          
+## 26  ( 1 ) " "            "*"       "*"       "*"           "*"          
+## 27  ( 1 ) " "            "*"       "*"       "*"           "*"          
+## 28  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 29  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 30  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 31  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 32  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 33  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+##           TotRms_AbvGrd Fireplaces Garage_Cars Garage_Area Wood_Deck_SF
+## 1  ( 1 )  " "           " "        " "         " "         " "         
+## 2  ( 1 )  " "           " "        " "         " "         " "         
+## 3  ( 1 )  " "           " "        " "         " "         " "         
+## 4  ( 1 )  " "           " "        "*"         " "         " "         
+## 5  ( 1 )  " "           " "        "*"         " "         " "         
+## 6  ( 1 )  " "           "*"        "*"         " "         " "         
+## 7  ( 1 )  " "           "*"        " "         "*"         " "         
+## 8  ( 1 )  " "           "*"        " "         "*"         " "         
+## 9  ( 1 )  " "           "*"        " "         "*"         " "         
+## 10  ( 1 ) " "           "*"        "*"         " "         " "         
+## 11  ( 1 ) " "           "*"        " "         "*"         " "         
+## 12  ( 1 ) " "           "*"        " "         "*"         " "         
+## 13  ( 1 ) "*"           "*"        " "         "*"         " "         
+## 14  ( 1 ) "*"           "*"        " "         "*"         " "         
+## 15  ( 1 ) "*"           "*"        " "         "*"         " "         
+## 16  ( 1 ) "*"           "*"        " "         "*"         "*"         
+## 17  ( 1 ) "*"           "*"        "*"         "*"         " "         
+## 18  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 19  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 20  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 21  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 22  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 23  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 24  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 25  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 26  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 27  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 28  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 29  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 30  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 31  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 32  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 33  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+##           Open_Porch_SF Enclosed_Porch Three_season_porch Screen_Porch
+## 1  ( 1 )  " "           " "            " "                " "         
+## 2  ( 1 )  " "           " "            " "                " "         
+## 3  ( 1 )  " "           " "            " "                " "         
+## 4  ( 1 )  " "           " "            " "                " "         
+## 5  ( 1 )  " "           " "            " "                " "         
+## 6  ( 1 )  " "           " "            " "                " "         
+## 7  ( 1 )  " "           " "            " "                " "         
+## 8  ( 1 )  " "           " "            " "                " "         
+## 9  ( 1 )  " "           " "            " "                " "         
+## 10  ( 1 ) " "           " "            " "                " "         
+## 11  ( 1 ) " "           " "            " "                " "         
+## 12  ( 1 ) " "           " "            " "                " "         
+## 13  ( 1 ) " "           " "            " "                " "         
+## 14  ( 1 ) " "           " "            " "                "*"         
+## 15  ( 1 ) " "           " "            " "                "*"         
+## 16  ( 1 ) " "           " "            " "                "*"         
+## 17  ( 1 ) " "           " "            " "                "*"         
+## 18  ( 1 ) " "           " "            " "                "*"         
+## 19  ( 1 ) " "           " "            " "                "*"         
+## 20  ( 1 ) " "           "*"            " "                "*"         
+## 21  ( 1 ) " "           "*"            " "                "*"         
+## 22  ( 1 ) " "           "*"            " "                "*"         
+## 23  ( 1 ) " "           "*"            " "                "*"         
+## 24  ( 1 ) " "           "*"            " "                "*"         
+## 25  ( 1 ) " "           "*"            " "                "*"         
+## 26  ( 1 ) " "           "*"            " "                "*"         
+## 27  ( 1 ) "*"           "*"            " "                "*"         
+## 28  ( 1 ) "*"           "*"            " "                "*"         
+## 29  ( 1 ) "*"           "*"            " "                "*"         
+## 30  ( 1 ) "*"           "*"            "*"                "*"         
+## 31  ( 1 ) "*"           "*"            "*"                "*"         
+## 32  ( 1 ) "*"           "*"            "*"                "*"         
+## 33  ( 1 ) "*"           "*"            "*"                "*"         
+##           Pool_Area Misc_Val Mo_Sold Year_Sold Longitude Latitude
+## 1  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 2  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 3  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 4  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 5  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 6  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 7  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 8  ( 1 )  " "       "*"      " "     " "       " "       " "     
+## 9  ( 1 )  " "       "*"      " "     " "       " "       " "     
+## 10  ( 1 ) " "       "*"      " "     " "       " "       " "     
+## 11  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 12  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 13  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 14  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 15  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 16  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 17  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 18  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 19  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 20  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 21  ( 1 ) "*"       "*"      " "     " "       " "       "*"     
+## 22  ( 1 ) "*"       "*"      " "     " "       " "       "*"     
+## 23  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 24  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 25  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 26  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 27  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 28  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 29  ( 1 ) "*"       "*"      " "     "*"       "*"       "*"     
+## 30  ( 1 ) "*"       "*"      " "     "*"       "*"       "*"     
+## 31  ( 1 ) "*"       "*"      " "     "*"       "*"       "*"     
+## 32  ( 1 ) "*"       "*"      "*"     "*"       "*"       "*"     
+## 33  ( 1 ) "*"       "*"      "*"     "*"       "*"       "*"
+```
+
+---
+
+# Subset selection
+
+* Computationally intractable - search space is too large
+* Requires estimating `\(2^p\)` models
+    * `\(p = 10 \leadsto 2^{10} = 1024\)` possible models
+    * `\(p = 80 \leadsto 2^{80} = 1.2089258\times 10^{24}\)` possible models
+* Does not evaluate statistical significance of individual coefficients
+
+---
+
+# Forward stepwise selection
+
+* Begin with null model, add predictors one at at time
+* Only keep the variable which improves the model the most
+* Requires fitting `\(1 + \sum_{k=0}^{p-1} (p-k) = 1 + \frac{p(p+1)}{2}\)` models
+
+--
+
+1. Let `\(M_0\)` denote the null model, which contains no predictors
+1. For `\(k = 0, \ldots, p-1\)`:
+    * Consider all `\(p-k\)` models that augment the predictors in `\(M_k\)` with one additional predictor
+    * Choose the best among these `\(p-k\)` models and call it `\(M_{k+1}\)`
+1. Select a single best model from among `\(M_0, \ldots, M_p\)`
+
+---
+
+# Forward stepwise selection
+
+
+```
+## Reordering variables and trying again:
+```
+
+```
+##           Lot_Frontage Lot_Area Year_Built Year_Remod_Add Mas_Vnr_Area
+## 1  ( 1 )  " "          " "      " "        " "            " "         
+## 2  ( 1 )  " "          " "      "*"        " "            " "         
+## 3  ( 1 )  " "          " "      "*"        " "            " "         
+## 4  ( 1 )  " "          " "      "*"        " "            " "         
+## 5  ( 1 )  " "          " "      "*"        " "            " "         
+## 6  ( 1 )  " "          " "      "*"        " "            "*"         
+## 7  ( 1 )  " "          " "      "*"        "*"            "*"         
+## 8  ( 1 )  " "          " "      "*"        "*"            "*"         
+## 9  ( 1 )  " "          " "      "*"        "*"            "*"         
+## 10  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 11  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 12  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 13  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 14  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 15  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 16  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 17  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 18  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 19  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 20  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 21  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 22  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 23  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 24  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 25  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 26  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 27  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 28  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 29  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 30  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 31  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 32  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 33  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+##           BsmtFin_SF_1 BsmtFin_SF_2 Bsmt_Unf_SF Total_Bsmt_SF First_Flr_SF
+## 1  ( 1 )  " "          " "          " "         " "           " "         
+## 2  ( 1 )  " "          " "          " "         " "           " "         
+## 3  ( 1 )  " "          " "          " "         "*"           " "         
+## 4  ( 1 )  " "          " "          " "         "*"           " "         
+## 5  ( 1 )  " "          " "          " "         "*"           " "         
+## 6  ( 1 )  " "          " "          " "         "*"           " "         
+## 7  ( 1 )  " "          " "          " "         "*"           " "         
+## 8  ( 1 )  " "          " "          " "         "*"           " "         
+## 9  ( 1 )  " "          " "          " "         "*"           " "         
+## 10  ( 1 ) " "          " "          "*"         "*"           " "         
+## 11  ( 1 ) " "          " "          "*"         "*"           " "         
+## 12  ( 1 ) " "          " "          "*"         "*"           " "         
+## 13  ( 1 ) " "          " "          "*"         "*"           " "         
+## 14  ( 1 ) " "          " "          "*"         "*"           " "         
+## 15  ( 1 ) " "          " "          "*"         "*"           " "         
+## 16  ( 1 ) " "          " "          "*"         "*"           " "         
+## 17  ( 1 ) " "          " "          "*"         "*"           " "         
+## 18  ( 1 ) " "          " "          "*"         "*"           " "         
+## 19  ( 1 ) " "          " "          "*"         "*"           " "         
+## 20  ( 1 ) " "          " "          "*"         "*"           " "         
+## 21  ( 1 ) " "          " "          "*"         "*"           " "         
+## 22  ( 1 ) " "          " "          "*"         "*"           " "         
+## 23  ( 1 ) " "          " "          "*"         "*"           " "         
+## 24  ( 1 ) " "          " "          "*"         "*"           " "         
+## 25  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 26  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 27  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 28  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 29  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 30  ( 1 ) " "          "*"          "*"         "*"           " "         
+## 31  ( 1 ) "*"          "*"          "*"         "*"           " "         
+## 32  ( 1 ) "*"          "*"          "*"         "*"           " "         
+## 33  ( 1 ) "*"          "*"          "*"         "*"           " "         
+##           Second_Flr_SF Low_Qual_Fin_SF Gr_Liv_Area Bsmt_Full_Bath
+## 1  ( 1 )  " "           " "             "*"         " "           
+## 2  ( 1 )  " "           " "             "*"         " "           
+## 3  ( 1 )  " "           " "             "*"         " "           
+## 4  ( 1 )  " "           " "             "*"         " "           
+## 5  ( 1 )  " "           " "             "*"         " "           
+## 6  ( 1 )  " "           " "             "*"         " "           
+## 7  ( 1 )  " "           " "             "*"         " "           
+## 8  ( 1 )  " "           " "             "*"         " "           
+## 9  ( 1 )  " "           " "             "*"         " "           
+## 10  ( 1 ) " "           " "             "*"         " "           
+## 11  ( 1 ) " "           " "             "*"         " "           
+## 12  ( 1 ) " "           " "             "*"         " "           
+## 13  ( 1 ) " "           " "             "*"         " "           
+## 14  ( 1 ) " "           " "             "*"         " "           
+## 15  ( 1 ) " "           " "             "*"         "*"           
+## 16  ( 1 ) " "           " "             "*"         "*"           
+## 17  ( 1 ) " "           " "             "*"         "*"           
+## 18  ( 1 ) " "           " "             "*"         "*"           
+## 19  ( 1 ) " "           "*"             "*"         "*"           
+## 20  ( 1 ) " "           "*"             "*"         "*"           
+## 21  ( 1 ) " "           "*"             "*"         "*"           
+## 22  ( 1 ) " "           "*"             "*"         "*"           
+## 23  ( 1 ) " "           "*"             "*"         "*"           
+## 24  ( 1 ) " "           "*"             "*"         "*"           
+## 25  ( 1 ) " "           "*"             "*"         "*"           
+## 26  ( 1 ) " "           "*"             "*"         "*"           
+## 27  ( 1 ) " "           "*"             "*"         "*"           
+## 28  ( 1 ) " "           "*"             "*"         "*"           
+## 29  ( 1 ) " "           "*"             "*"         "*"           
+## 30  ( 1 ) " "           "*"             "*"         "*"           
+## 31  ( 1 ) " "           "*"             "*"         "*"           
+## 32  ( 1 ) " "           "*"             "*"         "*"           
+## 33  ( 1 ) "*"           "*"             "*"         "*"           
+##           Bsmt_Half_Bath Full_Bath Half_Bath Bedroom_AbvGr Kitchen_AbvGr
+## 1  ( 1 )  " "            " "       " "       " "           " "          
+## 2  ( 1 )  " "            " "       " "       " "           " "          
+## 3  ( 1 )  " "            " "       " "       " "           " "          
+## 4  ( 1 )  " "            " "       " "       " "           " "          
+## 5  ( 1 )  " "            " "       " "       " "           "*"          
+## 6  ( 1 )  " "            " "       " "       " "           "*"          
+## 7  ( 1 )  " "            " "       " "       " "           "*"          
+## 8  ( 1 )  " "            " "       " "       " "           "*"          
+## 9  ( 1 )  " "            " "       " "       " "           "*"          
+## 10  ( 1 ) " "            " "       " "       " "           "*"          
+## 11  ( 1 ) " "            " "       " "       " "           "*"          
+## 12  ( 1 ) " "            " "       " "       "*"           "*"          
+## 13  ( 1 ) " "            " "       " "       "*"           "*"          
+## 14  ( 1 ) " "            " "       " "       "*"           "*"          
+## 15  ( 1 ) " "            " "       " "       "*"           "*"          
+## 16  ( 1 ) " "            " "       " "       "*"           "*"          
+## 17  ( 1 ) " "            " "       " "       "*"           "*"          
+## 18  ( 1 ) " "            " "       " "       "*"           "*"          
+## 19  ( 1 ) " "            " "       " "       "*"           "*"          
+## 20  ( 1 ) " "            " "       " "       "*"           "*"          
+## 21  ( 1 ) " "            " "       " "       "*"           "*"          
+## 22  ( 1 ) " "            " "       " "       "*"           "*"          
+## 23  ( 1 ) " "            " "       " "       "*"           "*"          
+## 24  ( 1 ) " "            " "       "*"       "*"           "*"          
+## 25  ( 1 ) " "            " "       "*"       "*"           "*"          
+## 26  ( 1 ) " "            "*"       "*"       "*"           "*"          
+## 27  ( 1 ) " "            "*"       "*"       "*"           "*"          
+## 28  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 29  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 30  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 31  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 32  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 33  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+##           TotRms_AbvGrd Fireplaces Garage_Cars Garage_Area Wood_Deck_SF
+## 1  ( 1 )  " "           " "        " "         " "         " "         
+## 2  ( 1 )  " "           " "        " "         " "         " "         
+## 3  ( 1 )  " "           " "        " "         " "         " "         
+## 4  ( 1 )  " "           " "        "*"         " "         " "         
+## 5  ( 1 )  " "           " "        "*"         " "         " "         
+## 6  ( 1 )  " "           " "        "*"         " "         " "         
+## 7  ( 1 )  " "           " "        "*"         " "         " "         
+## 8  ( 1 )  " "           "*"        "*"         " "         " "         
+## 9  ( 1 )  " "           "*"        "*"         " "         " "         
+## 10  ( 1 ) " "           "*"        "*"         " "         " "         
+## 11  ( 1 ) " "           "*"        "*"         " "         " "         
+## 12  ( 1 ) " "           "*"        "*"         " "         " "         
+## 13  ( 1 ) "*"           "*"        "*"         " "         " "         
+## 14  ( 1 ) "*"           "*"        "*"         " "         " "         
+## 15  ( 1 ) "*"           "*"        "*"         " "         " "         
+## 16  ( 1 ) "*"           "*"        "*"         " "         " "         
+## 17  ( 1 ) "*"           "*"        "*"         "*"         " "         
+## 18  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 19  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 20  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 21  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 22  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 23  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 24  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 25  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 26  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 27  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 28  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 29  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 30  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 31  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 32  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 33  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+##           Open_Porch_SF Enclosed_Porch Three_season_porch Screen_Porch
+## 1  ( 1 )  " "           " "            " "                " "         
+## 2  ( 1 )  " "           " "            " "                " "         
+## 3  ( 1 )  " "           " "            " "                " "         
+## 4  ( 1 )  " "           " "            " "                " "         
+## 5  ( 1 )  " "           " "            " "                " "         
+## 6  ( 1 )  " "           " "            " "                " "         
+## 7  ( 1 )  " "           " "            " "                " "         
+## 8  ( 1 )  " "           " "            " "                " "         
+## 9  ( 1 )  " "           " "            " "                " "         
+## 10  ( 1 ) " "           " "            " "                " "         
+## 11  ( 1 ) " "           " "            " "                " "         
+## 12  ( 1 ) " "           " "            " "                " "         
+## 13  ( 1 ) " "           " "            " "                " "         
+## 14  ( 1 ) " "           " "            " "                " "         
+## 15  ( 1 ) " "           " "            " "                " "         
+## 16  ( 1 ) " "           " "            " "                "*"         
+## 17  ( 1 ) " "           " "            " "                "*"         
+## 18  ( 1 ) " "           " "            " "                "*"         
+## 19  ( 1 ) " "           " "            " "                "*"         
+## 20  ( 1 ) " "           "*"            " "                "*"         
+## 21  ( 1 ) " "           "*"            " "                "*"         
+## 22  ( 1 ) " "           "*"            " "                "*"         
+## 23  ( 1 ) " "           "*"            " "                "*"         
+## 24  ( 1 ) " "           "*"            " "                "*"         
+## 25  ( 1 ) " "           "*"            " "                "*"         
+## 26  ( 1 ) " "           "*"            " "                "*"         
+## 27  ( 1 ) "*"           "*"            " "                "*"         
+## 28  ( 1 ) "*"           "*"            " "                "*"         
+## 29  ( 1 ) "*"           "*"            " "                "*"         
+## 30  ( 1 ) "*"           "*"            "*"                "*"         
+## 31  ( 1 ) "*"           "*"            "*"                "*"         
+## 32  ( 1 ) "*"           "*"            "*"                "*"         
+## 33  ( 1 ) "*"           "*"            "*"                "*"         
+##           Pool_Area Misc_Val Mo_Sold Year_Sold Longitude Latitude
+## 1  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 2  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 3  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 4  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 5  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 6  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 7  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 8  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 9  ( 1 )  " "       "*"      " "     " "       " "       " "     
+## 10  ( 1 ) " "       "*"      " "     " "       " "       " "     
+## 11  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 12  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 13  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 14  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 15  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 16  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 17  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 18  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 19  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 20  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 21  ( 1 ) "*"       "*"      " "     " "       " "       "*"     
+## 22  ( 1 ) "*"       "*"      " "     " "       " "       "*"     
+## 23  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 24  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 25  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 26  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 27  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 28  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 29  ( 1 ) "*"       "*"      " "     "*"       "*"       "*"     
+## 30  ( 1 ) "*"       "*"      " "     "*"       "*"       "*"     
+## 31  ( 1 ) "*"       "*"      " "     "*"       "*"       "*"     
+## 32  ( 1 ) "*"       "*"      "*"     "*"       "*"       "*"     
+## 33  ( 1 ) "*"       "*"      "*"     "*"       "*"       "*"
+```
+
+---
+
+# Backward stepwise selection
+
+* Begin with full least squares model, remove predictors one at at time
+
+--
+
+1. Let `\(M_p\)` denote the full model, which contains all `\(p\)` predictors
+1. For `\(k = p, p-1, , \ldots, 1\)`:
+    * Consider all `\(k\)` models that contain all but one of the predictors in `\(M_k\)` for a total of `\(k - 1\)` predictors
+    * Choose the best among these `\(k\)` models and call it `\(M_{k-1}\)`
+1. Select a single best model from among `\(M_0, \ldots, M_p\)`
+
+---
+
+# Backward stepwise selection
+
+
+```
+## Reordering variables and trying again:
+```
+
+```
+##           Lot_Frontage Lot_Area Year_Built Year_Remod_Add Mas_Vnr_Area
+## 1  ( 1 )  " "          " "      " "        " "            " "         
+## 2  ( 1 )  " "          " "      " "        " "            " "         
+## 3  ( 1 )  " "          " "      "*"        " "            " "         
+## 4  ( 1 )  " "          " "      "*"        " "            " "         
+## 5  ( 1 )  " "          " "      "*"        "*"            " "         
+## 6  ( 1 )  " "          " "      "*"        "*"            "*"         
+## 7  ( 1 )  " "          " "      "*"        "*"            "*"         
+## 8  ( 1 )  " "          " "      "*"        "*"            "*"         
+## 9  ( 1 )  " "          " "      "*"        "*"            "*"         
+## 10  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 11  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 12  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 13  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 14  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 15  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 16  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 17  ( 1 ) " "          " "      "*"        "*"            "*"         
+## 18  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 19  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 20  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 21  ( 1 ) "*"          " "      "*"        "*"            "*"         
+## 22  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 23  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 24  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 25  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 26  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 27  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 28  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 29  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 30  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 31  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 32  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+## 33  ( 1 ) "*"          "*"      "*"        "*"            "*"         
+##           BsmtFin_SF_1 BsmtFin_SF_2 Bsmt_Unf_SF Total_Bsmt_SF First_Flr_SF
+## 1  ( 1 )  " "          " "          " "         " "           "*"         
+## 2  ( 1 )  " "          " "          " "         " "           "*"         
+## 3  ( 1 )  " "          " "          " "         " "           "*"         
+## 4  ( 1 )  " "          " "          " "         " "           "*"         
+## 5  ( 1 )  " "          " "          " "         " "           "*"         
+## 6  ( 1 )  " "          " "          " "         " "           "*"         
+## 7  ( 1 )  " "          " "          " "         " "           "*"         
+## 8  ( 1 )  " "          " "          " "         "*"           "*"         
+## 9  ( 1 )  " "          " "          " "         "*"           "*"         
+## 10  ( 1 ) " "          " "          " "         "*"           "*"         
+## 11  ( 1 ) " "          " "          " "         "*"           "*"         
+## 12  ( 1 ) " "          " "          " "         "*"           "*"         
+## 13  ( 1 ) " "          " "          " "         "*"           "*"         
+## 14  ( 1 ) " "          " "          " "         "*"           "*"         
+## 15  ( 1 ) " "          " "          " "         "*"           "*"         
+## 16  ( 1 ) " "          " "          " "         "*"           "*"         
+## 17  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 18  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 19  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 20  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 21  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 22  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 23  ( 1 ) " "          " "          "*"         "*"           "*"         
+## 24  ( 1 ) " "          "*"          "*"         "*"           "*"         
+## 25  ( 1 ) " "          "*"          "*"         "*"           "*"         
+## 26  ( 1 ) " "          "*"          "*"         "*"           "*"         
+## 27  ( 1 ) " "          "*"          "*"         "*"           "*"         
+## 28  ( 1 ) " "          "*"          "*"         "*"           "*"         
+## 29  ( 1 ) " "          "*"          "*"         "*"           "*"         
+## 30  ( 1 ) " "          "*"          "*"         "*"           "*"         
+## 31  ( 1 ) " "          "*"          "*"         "*"           "*"         
+## 32  ( 1 ) "*"          "*"          "*"         "*"           "*"         
+## 33  ( 1 ) "*"          "*"          "*"         "*"           "*"         
+##           Second_Flr_SF Low_Qual_Fin_SF Gr_Liv_Area Bsmt_Full_Bath
+## 1  ( 1 )  " "           " "             " "         " "           
+## 2  ( 1 )  "*"           " "             " "         " "           
+## 3  ( 1 )  "*"           " "             " "         " "           
+## 4  ( 1 )  "*"           " "             " "         " "           
+## 5  ( 1 )  "*"           " "             " "         " "           
+## 6  ( 1 )  "*"           " "             " "         " "           
+## 7  ( 1 )  "*"           " "             " "         " "           
+## 8  ( 1 )  "*"           " "             " "         " "           
+## 9  ( 1 )  "*"           " "             " "         " "           
+## 10  ( 1 ) "*"           " "             " "         " "           
+## 11  ( 1 ) "*"           " "             " "         "*"           
+## 12  ( 1 ) "*"           " "             " "         "*"           
+## 13  ( 1 ) "*"           " "             " "         "*"           
+## 14  ( 1 ) "*"           " "             " "         "*"           
+## 15  ( 1 ) "*"           " "             " "         "*"           
+## 16  ( 1 ) "*"           " "             " "         "*"           
+## 17  ( 1 ) "*"           " "             " "         "*"           
+## 18  ( 1 ) "*"           " "             " "         "*"           
+## 19  ( 1 ) "*"           " "             " "         "*"           
+## 20  ( 1 ) "*"           " "             " "         "*"           
+## 21  ( 1 ) "*"           " "             " "         "*"           
+## 22  ( 1 ) "*"           " "             " "         "*"           
+## 23  ( 1 ) "*"           " "             " "         "*"           
+## 24  ( 1 ) "*"           " "             " "         "*"           
+## 25  ( 1 ) "*"           " "             " "         "*"           
+## 26  ( 1 ) "*"           " "             " "         "*"           
+## 27  ( 1 ) "*"           " "             " "         "*"           
+## 28  ( 1 ) "*"           " "             " "         "*"           
+## 29  ( 1 ) "*"           " "             " "         "*"           
+## 30  ( 1 ) "*"           "*"             " "         "*"           
+## 31  ( 1 ) "*"           "*"             " "         "*"           
+## 32  ( 1 ) "*"           "*"             " "         "*"           
+## 33  ( 1 ) "*"           "*"             " "         "*"           
+##           Bsmt_Half_Bath Full_Bath Half_Bath Bedroom_AbvGr Kitchen_AbvGr
+## 1  ( 1 )  " "            " "       " "       " "           " "          
+## 2  ( 1 )  " "            " "       " "       " "           " "          
+## 3  ( 1 )  " "            " "       " "       " "           " "          
+## 4  ( 1 )  " "            " "       " "       " "           " "          
+## 5  ( 1 )  " "            " "       " "       " "           " "          
+## 6  ( 1 )  " "            " "       " "       " "           " "          
+## 7  ( 1 )  " "            " "       " "       " "           " "          
+## 8  ( 1 )  " "            " "       " "       " "           " "          
+## 9  ( 1 )  " "            " "       " "       " "           " "          
+## 10  ( 1 ) " "            " "       " "       " "           "*"          
+## 11  ( 1 ) " "            " "       " "       " "           "*"          
+## 12  ( 1 ) " "            " "       " "       " "           "*"          
+## 13  ( 1 ) " "            " "       " "       "*"           "*"          
+## 14  ( 1 ) " "            " "       " "       "*"           "*"          
+## 15  ( 1 ) " "            " "       " "       "*"           "*"          
+## 16  ( 1 ) " "            " "       " "       "*"           "*"          
+## 17  ( 1 ) " "            " "       " "       "*"           "*"          
+## 18  ( 1 ) " "            " "       " "       "*"           "*"          
+## 19  ( 1 ) " "            " "       " "       "*"           "*"          
+## 20  ( 1 ) " "            " "       " "       "*"           "*"          
+## 21  ( 1 ) " "            " "       " "       "*"           "*"          
+## 22  ( 1 ) " "            " "       " "       "*"           "*"          
+## 23  ( 1 ) " "            " "       " "       "*"           "*"          
+## 24  ( 1 ) " "            " "       " "       "*"           "*"          
+## 25  ( 1 ) " "            " "       "*"       "*"           "*"          
+## 26  ( 1 ) " "            "*"       "*"       "*"           "*"          
+## 27  ( 1 ) " "            "*"       "*"       "*"           "*"          
+## 28  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 29  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 30  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 31  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 32  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+## 33  ( 1 ) "*"            "*"       "*"       "*"           "*"          
+##           TotRms_AbvGrd Fireplaces Garage_Cars Garage_Area Wood_Deck_SF
+## 1  ( 1 )  " "           " "        " "         " "         " "         
+## 2  ( 1 )  " "           " "        " "         " "         " "         
+## 3  ( 1 )  " "           " "        " "         " "         " "         
+## 4  ( 1 )  " "           " "        " "         "*"         " "         
+## 5  ( 1 )  " "           " "        " "         "*"         " "         
+## 6  ( 1 )  " "           " "        " "         "*"         " "         
+## 7  ( 1 )  " "           "*"        " "         "*"         " "         
+## 8  ( 1 )  " "           "*"        " "         "*"         " "         
+## 9  ( 1 )  " "           "*"        " "         "*"         " "         
+## 10  ( 1 ) " "           "*"        " "         "*"         " "         
+## 11  ( 1 ) " "           "*"        " "         "*"         " "         
+## 12  ( 1 ) " "           "*"        " "         "*"         " "         
+## 13  ( 1 ) " "           "*"        " "         "*"         " "         
+## 14  ( 1 ) "*"           "*"        " "         "*"         " "         
+## 15  ( 1 ) "*"           "*"        " "         "*"         " "         
+## 16  ( 1 ) "*"           "*"        "*"         "*"         " "         
+## 17  ( 1 ) "*"           "*"        "*"         "*"         " "         
+## 18  ( 1 ) "*"           "*"        "*"         "*"         " "         
+## 19  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 20  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 21  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 22  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 23  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 24  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 25  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 26  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 27  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 28  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 29  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 30  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 31  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 32  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+## 33  ( 1 ) "*"           "*"        "*"         "*"         "*"         
+##           Open_Porch_SF Enclosed_Porch Three_season_porch Screen_Porch
+## 1  ( 1 )  " "           " "            " "                " "         
+## 2  ( 1 )  " "           " "            " "                " "         
+## 3  ( 1 )  " "           " "            " "                " "         
+## 4  ( 1 )  " "           " "            " "                " "         
+## 5  ( 1 )  " "           " "            " "                " "         
+## 6  ( 1 )  " "           " "            " "                " "         
+## 7  ( 1 )  " "           " "            " "                " "         
+## 8  ( 1 )  " "           " "            " "                " "         
+## 9  ( 1 )  " "           " "            " "                " "         
+## 10  ( 1 ) " "           " "            " "                " "         
+## 11  ( 1 ) " "           " "            " "                " "         
+## 12  ( 1 ) " "           " "            " "                " "         
+## 13  ( 1 ) " "           " "            " "                " "         
+## 14  ( 1 ) " "           " "            " "                " "         
+## 15  ( 1 ) " "           " "            " "                "*"         
+## 16  ( 1 ) " "           " "            " "                "*"         
+## 17  ( 1 ) " "           " "            " "                "*"         
+## 18  ( 1 ) " "           " "            " "                "*"         
+## 19  ( 1 ) " "           " "            " "                "*"         
+## 20  ( 1 ) " "           "*"            " "                "*"         
+## 21  ( 1 ) " "           "*"            " "                "*"         
+## 22  ( 1 ) " "           "*"            " "                "*"         
+## 23  ( 1 ) " "           "*"            " "                "*"         
+## 24  ( 1 ) " "           "*"            " "                "*"         
+## 25  ( 1 ) " "           "*"            " "                "*"         
+## 26  ( 1 ) " "           "*"            " "                "*"         
+## 27  ( 1 ) "*"           "*"            " "                "*"         
+## 28  ( 1 ) "*"           "*"            " "                "*"         
+## 29  ( 1 ) "*"           "*"            " "                "*"         
+## 30  ( 1 ) "*"           "*"            " "                "*"         
+## 31  ( 1 ) "*"           "*"            "*"                "*"         
+## 32  ( 1 ) "*"           "*"            "*"                "*"         
+## 33  ( 1 ) "*"           "*"            "*"                "*"         
+##           Pool_Area Misc_Val Mo_Sold Year_Sold Longitude Latitude
+## 1  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 2  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 3  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 4  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 5  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 6  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 7  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 8  ( 1 )  " "       " "      " "     " "       " "       " "     
+## 9  ( 1 )  " "       "*"      " "     " "       " "       " "     
+## 10  ( 1 ) " "       "*"      " "     " "       " "       " "     
+## 11  ( 1 ) " "       "*"      " "     " "       " "       " "     
+## 12  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 13  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 14  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 15  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 16  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 17  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 18  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 19  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 20  ( 1 ) " "       "*"      " "     " "       " "       "*"     
+## 21  ( 1 ) "*"       "*"      " "     " "       " "       "*"     
+## 22  ( 1 ) "*"       "*"      " "     " "       " "       "*"     
+## 23  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 24  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 25  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 26  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 27  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 28  ( 1 ) "*"       "*"      " "     "*"       " "       "*"     
+## 29  ( 1 ) "*"       "*"      " "     "*"       "*"       "*"     
+## 30  ( 1 ) "*"       "*"      " "     "*"       "*"       "*"     
+## 31  ( 1 ) "*"       "*"      " "     "*"       "*"       "*"     
+## 32  ( 1 ) "*"       "*"      " "     "*"       "*"       "*"     
+## 33  ( 1 ) "*"       "*"      "*"     "*"       "*"       "*"
+```
+
+---
+
+# Comparing models
+
+* Select the **best** model based on test error
+* Indirectly estimate test error
+* Directly estimate test error
+
+---
+
+# Indirect tests
+
+| Statistic | Objective | Equation |
+|--------------------------------------|-----------|--------------------------------------------------------------|
+| `\(C_p\)` | Minimize | `\(C_p = \frac{1}{n} (RSS + 2d\hat{\sigma}^2)\)` |
+| Akaike information criterion (AIC) | Minimize | `\(AIC = \frac{1}{n\hat{\sigma}^2} (RSS + 2d\hat{\sigma}^2)\)` |
+| Bayesian information criterion (BIC) | Minimize | `\(BIC = \frac{1}{n}(RSS + \log(n) d\hat{\sigma}^2)\)` |
+| Adjusted `\(R^2\)` | Maximize | `\(\text{adj} \, R^2 = 1 - \frac{RSS / (n - d - 1)}{TSS / (n-1)}\)` |
+
+* `\(d\)` - number of predictors
+* `\(\sigma^2\)` - estimate of the variance of the error `\(\epsilon\)`
+
+---
+
+# Subset selection
+
+&lt;img src="selection-regulation_files/figure-html/ames-subset-stats-1.png" width="864" /&gt;
+
+---
+
+# Subset selection
+
+&lt;img src="selection-regulation_files/figure-html/ames-best-coef-1.png" width="864" /&gt;
+
+---
+
+# Stepwise forward selection
+
+&lt;img src="selection-regulation_files/figure-html/ames-forward-stats-1.png" width="864" /&gt;
+
+---
+
+# Stepwise backward selection
+
+&lt;img src="selection-regulation_files/figure-html/ames-backward-stats-1.png" width="864" /&gt;
+
+---
+
+# Indirect tests
+
+1. Different subsetting procedures (best subset vs. forward stepwise vs. backward stepwise) will likely identify different "best" models
+1. Different indirect error test estimate statistics will likely identify different "best" models
+
+---
+
+# Direct tests
+
+* Validation/cross-validation approach
+
+---
+
+# Subset selection
+
+
+
+&lt;img src="selection-regulation_files/figure-html/ames-subset-test-mse-1.png" width="864" /&gt;
+
+---
+
+# Subset selection cross-validation
+
+* Perform best subset selection within each of the `\(k\)` training sets
+* May lead to different selection of variables for each model
+
+
+```
+## Reordering variables and trying again:
+## Reordering variables and trying again:
+## Reordering variables and trying again:
+## Reordering variables and trying again:
+## Reordering variables and trying again:
+## Reordering variables and trying again:
+## Reordering variables and trying again:
+## Reordering variables and trying again:
+## Reordering variables and trying again:
+## Reordering variables and trying again:
+```
+
+&lt;img src="selection-regulation_files/figure-html/ames-subset-cv-1.png" width="864" /&gt;
+
+---
+
+# Subset selection
+
+
+```
+## Reordering variables and trying again:
+```
+
+```
+##    (Intercept)     Year_Built Year_Remod_Add   Mas_Vnr_Area  Total_Bsmt_SF 
+##  -1.748771e+06   3.563548e+02   5.488921e+02   5.162402e+01   3.084406e+01 
+## Bsmt_Full_Bath Bsmt_Half_Bath  Kitchen_AbvGr  TotRms_AbvGrd     Fireplaces 
+##   1.226616e+04  -2.800599e+03  -3.466435e+04   1.352877e+03   1.158998e+04 
+##    Garage_Cars   Wood_Deck_SF        Mo_Sold    Gr_Liv_Area 
+##   1.755460e+04   1.615806e+01  -1.312901e+01   5.506215e+01
+```
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
