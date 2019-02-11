@@ -160,10 +160,10 @@ summary(backward)$outmat
 
 | Statistic | Objective | Equation |
 |--------------------------------------|-----------|--------------------------------------------------------------|
-| $C_p$ | Minimize | $C_p = \frac{1}{n} (RSS + 2d\hat{\sigma}^2)$ |
-| Akaike information criterion (AIC) | Minimize | $AIC = \frac{1}{n\hat{\sigma}^2} (RSS + 2d\hat{\sigma}^2)$ |
-| Bayesian information criterion (BIC) | Minimize | $BIC = \frac{1}{n}(RSS + \log(n) d\hat{\sigma}^2)$ |
-| Adjusted $R^2$ | Maximize | $\text{adj} \, R^2 = 1 - \frac{RSS / (n - d - 1)}{TSS / (n-1)}$ |
+| $C_p$ | Minimize | $C_p = \frac{1}{n} (\text{RSS} + 2d\hat{\sigma}^2)$ |
+| Akaike information criterion (AIC) | Minimize | $\text{AIC} = \frac{1}{n\hat{\sigma}^2} (\text{RSS} + 2d\hat{\sigma}^2)$ |
+| Bayesian information criterion (BIC) | Minimize | $\text{BIC} = \frac{1}{n}(\text{RSS} + \log(n) d\hat{\sigma}^2)$ |
+| Adjusted $R^2$ | Maximize | $\text{adj} \, R^2 = 1 - \frac{\text{RSS} / (n - d - 1)}{\text{TSS} / (n-1)}$ |
 
 * $d$ - number of predictors
 * $\sigma^2$ - estimate of the variance of the error $\epsilon$
@@ -209,7 +209,7 @@ coef(best_subset, results_best$best) %>%
   map(enframe) %>%
   bind_rows(.id = "num_vars") %>%
   filter(name != "(Intercept)") %>%
-  ggplot(aes(name, value)) +
+  ggplot(aes(fct_rev(name), value)) +
   geom_point(aes(color = num_vars), position = "dodge") +
   scale_color_brewer(type = "qual") +
   coord_flip() +
@@ -678,6 +678,20 @@ coef(ames_lasso, s = "lambda.1se") %>%
 
 # Variable selection with ridge/lasso
 
+##### Ridge regression
+
+$$\min_\beta \left\{ \sum_{i=1}^n \left( y_i - \beta_0 - \sum_{j=1}^p \beta_j x_{ij} \right) \right\} \quad \text{subject to} \quad \sum_{j=1}^p \beta_j^2 \leq t$$
+
+##### Lasso regression
+
+$$\min_\beta \left\{ \sum_{i=1}^n \left( y_i - \beta_0 - \sum_{j=1}^p \beta_j x_{ij} \right) \right\} \quad \text{subject to} \quad \sum_{j=1}^p | \beta_j | \leq t$$
+
+* $\lambda \equiv t$
+
+---
+
+# Variable selection with ridge/lasso
+
 .center[
 
 ![](/img/esl-3-11.png)
@@ -690,11 +704,10 @@ coef(ames_lasso, s = "lambda.1se") %>%
 
 * Generalization of the ridge and lasso models
 
-    $$\min \left\{ \text{RSS} + \lambda_1 \sum_{j=1}^p \beta_j^2 + \lambda_2 \sum_{j=1}^p | \beta_j | \right\}$$
-    
-* Balances strengths/weaknesses of both approaches
-    * Effective regularization with ridge ($L_2$ penalty)
-    * Feature selection with lasso ($L_1$ penalty)
+$$\min \left\{ \text{RSS} + \lambda_1 \sum_{j=1}^p \beta_j^2 + \lambda_2 \sum_{j=1}^p | \beta_j | \right\}$$
+
+* Effective regularization with ridge - $L_2$ penalty
+* Feature selection with lasso - $L_1$ penalty
 
 ---
 
@@ -751,7 +764,15 @@ tuning_grid %>%
   ggtitle("MSE ± one standard error")
 ```
 
+---
 
+# A word of warning
+
+.center[
+
+![](https://cdn.junglecreations.com/wp/viralthread/2017/05/hungover-spiderman-with-great-power-comes-great-responsibility-and-headaches-e1495636295826.jpg)
+
+]
 
 
 
