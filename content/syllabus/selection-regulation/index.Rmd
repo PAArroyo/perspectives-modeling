@@ -63,10 +63,10 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::include_url("/slides/selection-regulation.html", height = "505px")
 ```
 
-* 
-
 ### Additional readings
 
+* [Linear model selection](http://uc-r.github.io/model_selection)
+* [Regularized regression](http://uc-r.github.io/regularized_regression)
 
 ## What you need to do
 
