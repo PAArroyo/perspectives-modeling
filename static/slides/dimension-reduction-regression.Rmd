@@ -1,0 +1,434 @@
+---
+title: "Dimension Reduction Methods for Regression"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2, fig.width = 12)
+
+library(tidyverse)
+library(tidymodels)
+library(glmnet)
+library(leaps)
+library(here)
+library(rcfss)
+library(patchwork)
+library(pls)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 16))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+# High-dimensional data
+
+* Text
+* Images
+* Genomic
+* MRIs and voxels
+
+---
+
+# Classical statistical inference in high-dimensions
+
+* Multicollinearity
+* Overfitting
+* Curse of dimensionality
+    * More predictors is not always a good thing
+
+---
+
+# Dimension reduction methods
+
+* Controlling variance
+    * Subset of the original variables
+    * Shrink coefficients towards zero
+* Use original predictors $X_1, X_2, \ldots, X_p$
+
+--
+* Alternative approach
+    * Transform predictors
+    * Fit least squares model using transformed variables
+
+---
+
+# Dimension reduction methods
+
+* Linear combination of $p$ predictors $Z_1, Z_2, \ldots, Z_m$
+
+    $$Z_m = \sum_{j=1}^p \phi_{jm} X_j$$
+
+* Fit linear regression model
+
+    $$y_i = \theta_0 + \sum_{m=1}^M \theta_m z_{im} + \epsilon_i, \quad i=1, \ldots, n$$
+
+* $p + 1$ coefficients $\beta_0, \beta_1, \ldots, \beta_P$
+* $m + 1$ coefficients $\theta_0, \theta_1, \ldots, \theta_M$
+* $M < p$
+* Potentially outperforms least squares using original variables
+
+---
+
+# Dimension reduction methods
+
+$$\sum_{m=1}^M \theta_m z_{im} = \sum_{m=1}^M \theta_m \sum_{j=1}^p \phi_{jm} x_{ij} = \sum_{j=1}^p \sum_{m=1}^M \theta_m \phi_{jm} x_{ij} = \sum_{j=1}^p \beta_j x_{ij}$$
+
+where
+
+$$\beta_j = \sum_{m=1}^M \theta_m \phi_{jm}$$
+
+* Constraints $\beta$
+* Potentially increases bias, but reduces variance
+    * $M \ll p$
+    
+---
+
+# Dimension reduction methods
+
+1. Obtain the transformed predictors $Z_1, Z_2, \ldots, Z_M$
+1. Fit the least squares model using $M$ predictors
+
+* How to choose $Z_1, Z_2, \ldots, Z_M$?
+* Principal components regression
+* Partial least squares
+
+---
+
+# Principal components regression
+
+* Unsupervised method
+* Principal components analysis
+* First principal component
+    * Direction on which the observations vary the most
+    
+    $$\max \left\{ \Var(\phi_{11} \times (X_1 - \overline{X_1}) + \phi_{21} \times (X_2 - \overline{X_2})) \right\}, \, \text{subject to} \, \phi_{11}^2 + \phi_{21}^2 = 1$$
+
+---
+
+# Principal component direction
+
+```{r ads}
+# import data
+ads <- ISLR::Carseats %>%
+  as_tibble() %>%
+  filter(Advertising != 0) %>%
+  mutate(Population = Population / 10)
+```
+
+```{r pca, dependson = "ads"}
+# estimate PCA for population and ad spending
+ads_pca <- prcomp(select(ads, Advertising, Population),
+                  center = TRUE, scale = FALSE)
+
+# extract PC scores for 6.14
+ads_pc1 <- ads_pca$x
+ads_pc1[, 2] <- 0
+ads_pc1 <- t(t(ads_pc1 %*% t(ads_pca$rotation)) + ads_pca$center) %>%
+  as_tibble
+
+ads_pc2 <- ads_pca$x
+ads_pc2[, 1] <- 0
+ads_pc2 <- t(t(ads_pc2 %*% t(ads_pca$rotation)) + ads_pca$center) %>%
+  as_tibble
+
+ads_pc <- bind_cols(ads, ads_pc1, ads_pc2) %>%
+  left_join(augment(ads_pca, ads))
+```
+
+$$Z_1 = `r ads_pca$rotation[1,2]` \times (\text{pop} - \overline{\text{pop}}) + `r ads_pca$rotation[1,1]` \times (\text{ad} - \overline{\text{ad}})$$
+
+```{r pca-pc1, dependson = "pca"}
+# figure 6.14
+ads_pc %>%
+  ggplot() +
+  geom_point(aes(Population, Advertising), alpha = .2) +
+  geom_line(aes(Population1, Advertising1, color = "First principal component"),
+            size = 1) +
+  geom_line(aes(Population2, Advertising2, color = "Second principal component"),
+            linetype = 2, size = 1) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "First principal component direction",
+       x = "Population",
+       y = "Ad Spending",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Principal component direction
+
+```{r pca-pc1-direct, dependson = "pca"}
+# figure 6.15a
+ads_pc %>%
+  sample_n(size = 30) %>%
+  ggplot() +
+  geom_point(aes(Population, Advertising)) +
+  geom_line(aes(Population1, Advertising1, color = "First principal component")) +
+  geom_line(aes(Population2, Advertising2, color = "Second principal component"),
+            linetype = 2, size = 1) +
+  geom_segment(aes(x = Population, y = Advertising,
+                   xend = Population1, yend = Advertising1),
+               linetype = 2, alpha = .5, show.legend = FALSE) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "First principal component direction",
+       x = "Population",
+       y = "Ad Spending",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Principal component scores
+
+$$z_{i1} = `r ads_pca$rotation[1,2]` \times (\text{pop}_i - \overline{\text{pop}}) + `r ads_pca$rotation[1,1]` \times (\text{ad}_i - \overline{\text{ad}})$$
+
+* Single number summary of the variables
+
+```{r pca-pc1-scores, dependson = "pca"}
+library(ggfortify)
+autoplot(ads_pca, loadings = TRUE, scale = 0, alpha = 0.2) +
+  labs(title = "Principal component scores",
+       x = "First principal component",
+       y = "Second principal component")
+```
+
+---
+
+# Principal components
+
+```{r pca-pc1-orig, dependson = "pca"}
+{
+  ggplot(ads_pc, aes(.fittedPC1, Population)) +
+    geom_point() +
+    labs(x = "First principal component",
+         y = "Population")
+} +
+{
+  ggplot(ads_pc, aes(.fittedPC1, Advertising)) +
+    geom_point() +
+    labs(x = "First principal component",
+         y = "Ad Spending")
+}
+```
+
+---
+
+# Additional principal components
+
+* Up to $p$ distinct principal components
+* $Z_2$
+
+    $$\max \left\{ \Var(\phi_{12} \times (X_1 - \overline{X_1}) + \phi_{22} \times (X_2 - \overline{X_2})) \right\}$$
+    
+    Subject to:
+    
+    * $\text{Cor}(Z_1, Z_2) = 0$ (orthogonal)
+    * $\phi_{12}^2 + \phi_{22}^2 = 1$
+
+---
+
+# Additional principal components
+
+$$Z_2 = `r ads_pca$rotation[2,2]` \times (\text{pop} - \overline{\text{pop}}) + `r ads_pca$rotation[2,1]` \times (\text{ad} - \overline{\text{ad}})$$
+
+```{r pca-pc2-direct, dependson = "pca"}
+ads_pc %>%
+  sample_n(size = 30) %>%
+  ggplot() +
+  geom_point(aes(Population, Advertising)) +
+  geom_line(aes(Population1, Advertising1, color = "First principal component")) +
+  geom_line(aes(Population2, Advertising2, color = "Second principal component"),
+            linetype = 2, size = 1) +
+  geom_segment(aes(x = Population, y = Advertising,
+                   xend = Population2, yend = Advertising2),
+               linetype = 2, alpha = .5, show.legend = FALSE) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Second principal component direction",
+       x = "Population",
+       y = "Ad Spending",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Additional principal components
+
+```{r pca-pc2-orig, dependson = "pca"}
+{
+  ggplot(ads_pc, aes(.fittedPC2, Population)) +
+    geom_point() +
+    labs(x = "Second principal component",
+         y = "Population")
+} +
+{
+  ggplot(ads_pc, aes(.fittedPC2, Advertising)) +
+    geom_point() +
+    labs(x = "Second principal component",
+         y = "Ad Spending")
+}
+```
+
+---
+
+# Principal components regression
+
+* Construct first $M$ principal components $Z_1, \ldots, Z_M$
+* Use components as predictors for least squares regression model
+* Assume the directions in which $X_1, \ldots, X_p$ show the most variation are the directions associated with $Y$
+    * Most information in $X_1, \ldots, X_p$ is captured in $Z_1, \ldots, Z_M$ with $M \ll p$
+    * Avoids overfitting
+* Tuning parameter $M$
+
+---
+
+# Ames housing data
+
+```{r ames}
+ames_split <- initial_split(AmesHousing::make_ames(), prop = .7, strata = "Sale_Price")
+ames_train <- training(ames_split)
+ames_test  <- testing(ames_split)
+
+glimpse(ames_train)
+```
+
+---
+
+# Ames PCR
+
+```{r ames-pcr, dependson = "ames"}
+ames_pcr <- pcr(Sale_Price ~ .,
+                data = select_if(ames_train, is.numeric),
+                center = TRUE,
+                scale = TRUE,
+                validation = "CV")
+
+# extract needed stats
+ames_pcr_stats <- tibble(
+  pct_exp = loadings(ames_pcr) %>% attr("explvar"),
+  mse = as.vector(MSEP(ames_pcr, estimate = "CV", intercept = FALSE)$val)
+) %>%
+  mutate(pc = row_number(),
+         cum_exp = cumsum(pct_exp) / 100)
+
+# percent of variance explained by M
+ggplot(ames_pcr_stats, aes(pc, cum_exp)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = expression(M),
+       y = "Cumulative percent of variance explained")
+```
+
+---
+
+# Ames PCR
+
+```{r ames-pcr-mse, dependson = "ames-pcr"}
+# MSE comparison
+ggplot(ames_pcr_stats, aes(pc, mse)) +
+  geom_line() +
+  geom_vline(xintercept = which.min(ames_pcr_stats$mse), linetype = 2) +
+  labs(x = expression(M),
+       y = "CV estimate of MSE")
+```
+
+---
+
+# Partial least squares
+
+* Supervised method
+* Uses $Y$ to identify new features $Z_1, \ldots, Z_M$
+    * Approximate the original features
+    * Related to the outcome of interest
+
+---
+
+# Partial least squares
+
+1. Standardize each predictor $X_1, \ldots, X_p$
+1. Compute $Z_1 = \sum_{j=1}^p \phi_{j1} X_j$
+    * $\phi_{j1}$ is equal to the least squares regression coefficient of $Y$ on $X_j$
+    * Coefficient is proportional to correlation between $X_j$ and $Y$
+1. Adjust each of the variables for $Z_1$
+    * Regress each variable on $Z_1$
+    * Replace $X_1, \ldots, X_p$ with associated residuals
+    * Orthogonalization
+1. Compute $Z_2, \ldots, Z_p$ using same approach
+1. Fit least squares model of $Y$ on $Z_1, \ldots, Z_M$
+
+---
+
+# Partial least squares
+
+```{r ames-pls, dependson = "ames"}
+ames_pls <- plsr(Sale_Price ~ .,
+                 data = select_if(ames_train, is.numeric),
+                 center = TRUE,
+                 scale = TRUE,
+                 validation = "CV")
+
+# extract needed stats
+ames_pls_stats <- tibble(
+  pct_exp = loadings(ames_pls) %>% attr("explvar"),
+  mse = as.vector(MSEP(ames_pls, estimate = "CV", intercept = FALSE)$val)
+) %>%
+  mutate(pc = row_number(),
+         cum_exp = cumsum(pct_exp) / 100)
+
+ames_stats <- bind_rows(PCR = ames_pcr_stats,
+                        PLS = ames_pls_stats,
+                        .id = "model")
+
+# percent of variance explained by M
+ggplot(ames_stats, aes(pc, cum_exp, color = model)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::percent) +
+  scale_color_brewer(type = "qual") +
+  labs(x = expression(M),
+       y = "Cumulative percent of variance explained",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Ames PLS
+
+```{r ames-pls-mse, dependson = "ames-pls"}
+# MSE comparison
+ggplot(ames_stats, aes(pc, mse, color = model)) +
+  geom_line() +
+  geom_vline(data = tribble(
+    ~pc, ~model,
+    which.min(ames_pls_stats$mse), "PLS",
+    which.min(ames_pcr_stats$mse), "PCR"
+  ),
+  aes(xintercept = pc, color = model), linetype = 2, show.legend = FALSE) +
+  scale_color_brewer(type = "qual") +
+  labs(x = expression(M),
+       y = "CV estimate of MSE",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+
+
+
+

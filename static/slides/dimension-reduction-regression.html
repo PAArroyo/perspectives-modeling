@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Dimension Reduction Methods for Regression</title>
+    <meta charset="utf-8">
+    <meta name="author" content="MACS 30100   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Dimension Reduction Methods for Regression
+### <a href="https://model.uchicago.edu">MACS 30100</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# High-dimensional data
+
+* Text
+* Images
+* Genomic
+* MRIs and voxels
+
+---
+
+# Classical statistical inference in high-dimensions
+
+* Multicollinearity
+* Overfitting
+* Curse of dimensionality
+    * More predictors is not always a good thing
+
+---
+
+# Dimension reduction methods
+
+* Controlling variance
+    * Subset of the original variables
+    * Shrink coefficients towards zero
+* Use original predictors `\(X_1, X_2, \ldots, X_p\)`
+
+--
+* Alternative approach
+    * Transform predictors
+    * Fit least squares model using transformed variables
+
+---
+
+# Dimension reduction methods
+
+* Linear combination of `\(p\)` predictors `\(Z_1, Z_2, \ldots, Z_m\)`
+
+    `$$Z_m = \sum_{j=1}^p \phi_{jm} X_j$$`
+
+* Fit linear regression model
+
+    `$$y_i = \theta_0 + \sum_{m=1}^M \theta_m z_{im} + \epsilon_i, \quad i=1, \ldots, n$$`
+
+* `\(p + 1\)` coefficients `\(\beta_0, \beta_1, \ldots, \beta_P\)`
+* `\(m + 1\)` coefficients `\(\theta_0, \theta_1, \ldots, \theta_M\)`
+* `\(M &lt; p\)`
+* Potentially outperforms least squares using original variables
+
+---
+
+# Dimension reduction methods
+
+`$$\sum_{m=1}^M \theta_m z_{im} = \sum_{m=1}^M \theta_m \sum_{j=1}^p \phi_{jm} x_{ij} = \sum_{j=1}^p \sum_{m=1}^M \theta_m \phi_{jm} x_{ij} = \sum_{j=1}^p \beta_j x_{ij}$$`
+
+where
+
+`$$\beta_j = \sum_{m=1}^M \theta_m \phi_{jm}$$`
+
+* Constraints `\(\beta\)`
+* Potentially increases bias, but reduces variance
+    * `\(M \ll p\)`
+    
+---
+
+# Dimension reduction methods
+
+1. Obtain the transformed predictors `\(Z_1, Z_2, \ldots, Z_M\)`
+1. Fit the least squares model using `\(M\)` predictors
+
+* How to choose `\(Z_1, Z_2, \ldots, Z_M\)`?
+* Principal components regression
+* Partial least squares
+
+---
+
+# Principal components regression
+
+* Unsupervised method
+* Principal components analysis
+* First principal component
+    * Direction on which the observations vary the most
+    
+    `$$\max \left\{ \Var(\phi_{11} \times (X_1 - \overline{X_1}) + \phi_{21} \times (X_2 - \overline{X_2})) \right\}, \, \text{subject to} \, \phi_{11}^2 + \phi_{21}^2 = 1$$`
+
+---
+
+# Principal component direction
+
+
+
+
+
+`$$Z_1 = 0.993001 \times (\text{pop} - \overline{\text{pop}}) + 0.1181056 \times (\text{ad} - \overline{\text{ad}})$$`
+
+&lt;img src="dimension-reduction-regression_files/figure-html/pca-pc1-1.png" width="864" /&gt;
+
+---
+
+# Principal component direction
+
+&lt;img src="dimension-reduction-regression_files/figure-html/pca-pc1-direct-1.png" width="864" /&gt;
+
+---
+
+# Principal component scores
+
+`$$z_{i1} = 0.993001 \times (\text{pop}_i - \overline{\text{pop}}) + 0.1181056 \times (\text{ad}_i - \overline{\text{ad}})$$`
+
+* Single number summary of the variables
+
+&lt;img src="dimension-reduction-regression_files/figure-html/pca-pc1-scores-1.png" width="864" /&gt;
+
+---
+
+# Principal components
+
+&lt;img src="dimension-reduction-regression_files/figure-html/pca-pc1-orig-1.png" width="864" /&gt;
+
+---
+
+# Additional principal components
+
+* Up to `\(p\)` distinct principal components
+* `\(Z_2\)`
+
+    `$$\max \left\{ \Var(\phi_{12} \times (X_1 - \overline{X_1}) + \phi_{22} \times (X_2 - \overline{X_2})) \right\}$$`
+    
+    Subject to:
+    
+    * `\(\text{Cor}(Z_1, Z_2) = 0\)` (orthogonal)
+    * `\(\phi_{12}^2 + \phi_{22}^2 = 1\)`
+
+---
+
+# Additional principal components
+
+`$$Z_2 = -0.1181056 \times (\text{pop} - \overline{\text{pop}}) + 0.993001 \times (\text{ad} - \overline{\text{ad}})$$`
+
+&lt;img src="dimension-reduction-regression_files/figure-html/pca-pc2-direct-1.png" width="864" /&gt;
+
+---
+
+# Additional principal components
+
+&lt;img src="dimension-reduction-regression_files/figure-html/pca-pc2-orig-1.png" width="864" /&gt;
+
+---
+
+# Principal components regression
+
+* Construct first `\(M\)` principal components `\(Z_1, \ldots, Z_M\)`
+* Use components as predictors for least squares regression model
+* Assume the directions in which `\(X_1, \ldots, X_p\)` show the most variation are the directions associated with `\(Y\)`
+    * Most information in `\(X_1, \ldots, X_p\)` is captured in `\(Z_1, \ldots, Z_M\)` with `\(M \ll p\)`
+    * Avoids overfitting
+* Tuning parameter `\(M\)`
+
+---
+
+# Ames housing data
+
+
+```
+## Observations: 2,054
+## Variables: 81
+## $ MS_SubClass        &lt;fct&gt; One_Story_1946_and_Newer_All_Styles, One_Stor…
+## $ MS_Zoning          &lt;fct&gt; Residential_High_Density, Residential_Low_Den…
+## $ Lot_Frontage       &lt;dbl&gt; 80, 41, 39, 75, 0, 63, 85, 0, 47, 152, 88, 85…
+## $ Lot_Area           &lt;int&gt; 11622, 4920, 5389, 10000, 7980, 8402, 10176, …
+## $ Street             &lt;fct&gt; Pave, Pave, Pave, Pave, Pave, Pave, Pave, Pav…
+## $ Alley              &lt;fct&gt; No_Alley_Access, No_Alley_Access, No_Alley_Ac…
+## $ Lot_Shape          &lt;fct&gt; Regular, Regular, Slightly_Irregular, Slightl…
+## $ Land_Contour       &lt;fct&gt; Lvl, Lvl, Lvl, Lvl, Lvl, Lvl, Lvl, Lvl, HLS, …
+## $ Utilities          &lt;fct&gt; AllPub, AllPub, AllPub, AllPub, AllPub, AllPu…
+## $ Lot_Config         &lt;fct&gt; Inside, Inside, Inside, Corner, Inside, Insid…
+## $ Land_Slope         &lt;fct&gt; Gtl, Gtl, Gtl, Gtl, Gtl, Gtl, Gtl, Gtl, Mod, …
+## $ Neighborhood       &lt;fct&gt; North_Ames, Stone_Brook, Stone_Brook, Gilbert…
+## $ Condition_1        &lt;fct&gt; Feedr, Norm, Norm, Norm, Norm, Norm, Norm, No…
+## $ Condition_2        &lt;fct&gt; Norm, Norm, Norm, Norm, Norm, Norm, Norm, Nor…
+## $ Bldg_Type          &lt;fct&gt; OneFam, TwnhsE, TwnhsE, OneFam, OneFam, OneFa…
+## $ House_Style        &lt;fct&gt; One_Story, One_Story, One_Story, Two_Story, O…
+## $ Overall_Qual       &lt;fct&gt; Average, Very_Good, Very_Good, Above_Average,…
+## $ Overall_Cond       &lt;fct&gt; Above_Average, Average, Average, Average, Goo…
+## $ Year_Built         &lt;int&gt; 1961, 2001, 1995, 1993, 1992, 1998, 1990, 198…
+## $ Year_Remod_Add     &lt;int&gt; 1961, 2001, 1996, 1994, 2007, 1998, 1990, 198…
+## $ Roof_Style         &lt;fct&gt; Gable, Gable, Gable, Gable, Gable, Gable, Gab…
+## $ Roof_Matl          &lt;fct&gt; CompShg, CompShg, CompShg, CompShg, CompShg, …
+## $ Exterior_1st       &lt;fct&gt; VinylSd, CemntBd, CemntBd, HdBoard, HdBoard, …
+## $ Exterior_2nd       &lt;fct&gt; VinylSd, CmentBd, CmentBd, HdBoard, HdBoard, …
+## $ Mas_Vnr_Type       &lt;fct&gt; None, None, None, None, None, None, None, Non…
+## $ Mas_Vnr_Area       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 603, 0, 350, 119, 480…
+## $ Exter_Qual         &lt;fct&gt; Typical, Good, Good, Typical, Typical, Typica…
+## $ Exter_Cond         &lt;fct&gt; Typical, Typical, Typical, Typical, Good, Typ…
+## $ Foundation         &lt;fct&gt; CBlock, PConc, PConc, PConc, PConc, PConc, PC…
+## $ Bsmt_Qual          &lt;fct&gt; Typical, Good, Good, Good, Good, Good, Good, …
+## $ Bsmt_Cond          &lt;fct&gt; Typical, Typical, Typical, Typical, Typical, …
+## $ Bsmt_Exposure      &lt;fct&gt; No, Mn, No, No, No, No, Gd, Av, Gd, Av, Av, N…
+## $ BsmtFin_Type_1     &lt;fct&gt; Rec, GLQ, GLQ, Unf, ALQ, Unf, GLQ, GLQ, ALQ, …
+## $ BsmtFin_SF_1       &lt;dbl&gt; 6, 3, 3, 7, 1, 7, 3, 3, 1, 3, 3, 1, 2, 3, 1, …
+## $ BsmtFin_Type_2     &lt;fct&gt; LwQ, Unf, Unf, Unf, Unf, Unf, Unf, BLQ, Unf, …
+## $ BsmtFin_SF_2       &lt;dbl&gt; 144, 0, 0, 0, 0, 0, 0, 1120, 0, 0, 0, 163, 0,…
+## $ Bsmt_Unf_SF        &lt;dbl&gt; 270, 722, 415, 763, 233, 789, 663, 0, 234, 13…
+## $ Total_Bsmt_SF      &lt;dbl&gt; 882, 1338, 1595, 763, 1168, 789, 1300, 1488, …
+## $ Heating            &lt;fct&gt; GasA, GasA, GasA, GasA, GasA, GasA, GasA, Gas…
+## $ Heating_QC         &lt;fct&gt; Typical, Excellent, Excellent, Good, Excellen…
+## $ Central_Air        &lt;fct&gt; Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, Y, …
+## $ Electrical         &lt;fct&gt; SBrkr, SBrkr, SBrkr, SBrkr, SBrkr, SBrkr, SBr…
+## $ First_Flr_SF       &lt;int&gt; 896, 1338, 1616, 763, 1187, 789, 1341, 1502, …
+## $ Second_Flr_SF      &lt;int&gt; 0, 0, 0, 892, 0, 676, 0, 0, 1589, 672, 0, 0, …
+## $ Low_Qual_Fin_SF    &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+## $ Gr_Liv_Area        &lt;int&gt; 896, 1338, 1616, 1655, 1187, 1465, 1341, 1502…
+## $ Bsmt_Full_Bath     &lt;dbl&gt; 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, …
+## $ Bsmt_Half_Bath     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+## $ Full_Bath          &lt;int&gt; 1, 2, 2, 2, 2, 2, 1, 1, 3, 2, 1, 2, 2, 2, 1, …
+## $ Half_Bath          &lt;int&gt; 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, …
+## $ Bedroom_AbvGr      &lt;int&gt; 2, 2, 2, 3, 3, 3, 2, 1, 4, 4, 1, 3, 3, 3, 2, …
+## $ Kitchen_AbvGr      &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+## $ Kitchen_Qual       &lt;fct&gt; Typical, Good, Good, Typical, Typical, Typica…
+## $ TotRms_AbvGrd      &lt;int&gt; 5, 6, 5, 7, 6, 7, 5, 4, 12, 8, 8, 7, 7, 7, 5,…
+## $ Functional         &lt;fct&gt; Typ, Typ, Typ, Typ, Typ, Typ, Typ, Typ, Mod, …
+## $ Fireplaces         &lt;int&gt; 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 2, 1, 0, 1, …
+## $ Fireplace_Qu       &lt;fct&gt; No_Fireplace, No_Fireplace, Typical, Typical,…
+## $ Garage_Type        &lt;fct&gt; Attchd, Attchd, Attchd, Attchd, Attchd, Attch…
+## $ Garage_Finish      &lt;fct&gt; Unf, Fin, RFn, Fin, Fin, Fin, Unf, RFn, Fin, …
+## $ Garage_Cars        &lt;dbl&gt; 1, 2, 2, 2, 2, 2, 2, 2, 3, 2, 3, 2, 2, 2, 2, …
+## $ Garage_Area        &lt;dbl&gt; 730, 582, 608, 440, 420, 393, 506, 528, 841, …
+## $ Garage_Qual        &lt;fct&gt; Typical, Typical, Typical, Typical, Typical, …
+## $ Garage_Cond        &lt;fct&gt; Typical, Typical, Typical, Typical, Typical, …
+## $ Paved_Drive        &lt;fct&gt; Paved, Paved, Paved, Paved, Paved, Paved, Pav…
+## $ Wood_Deck_SF       &lt;int&gt; 140, 0, 237, 157, 483, 0, 192, 0, 503, 325, 1…
+## $ Open_Porch_SF      &lt;int&gt; 0, 0, 152, 84, 21, 75, 0, 54, 36, 12, 0, 0, 1…
+## $ Enclosed_Porch     &lt;int&gt; 0, 170, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+## $ Three_season_porch &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+## $ Screen_Porch       &lt;int&gt; 120, 0, 0, 0, 0, 0, 0, 140, 210, 0, 0, 0, 0, …
+## $ Pool_Area          &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+## $ Pool_QC            &lt;fct&gt; No_Pool, No_Pool, No_Pool, No_Pool, No_Pool, …
+## $ Fence              &lt;fct&gt; Minimum_Privacy, No_Fence, No_Fence, No_Fence…
+## $ Misc_Feature       &lt;fct&gt; None, None, None, None, Shed, None, None, Non…
+## $ Misc_Val           &lt;int&gt; 0, 0, 0, 0, 500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7…
+## $ Mo_Sold            &lt;int&gt; 6, 4, 3, 4, 3, 5, 2, 6, 6, 6, 6, 2, 1, 1, 3, …
+## $ Year_Sold          &lt;int&gt; 2010, 2010, 2010, 2010, 2010, 2010, 2010, 201…
+## $ Sale_Type          &lt;fct&gt; WD , WD , WD , WD , WD , WD , WD , WD , WD , …
+## $ Sale_Condition     &lt;fct&gt; Normal, Normal, Normal, Normal, Normal, Norma…
+## $ Sale_Price         &lt;int&gt; 105000, 213500, 236500, 175900, 185000, 18040…
+## $ Longitude          &lt;dbl&gt; -93.61976, -93.63379, -93.63285, -93.63695, -…
+## $ Latitude           &lt;dbl&gt; 42.05301, 42.06298, 42.06112, 42.05848, 42.05…
+```
+
+---
+
+# Ames PCR
+
+&lt;img src="dimension-reduction-regression_files/figure-html/ames-pcr-1.png" width="864" /&gt;
+
+---
+
+# Ames PCR
+
+&lt;img src="dimension-reduction-regression_files/figure-html/ames-pcr-mse-1.png" width="864" /&gt;
+
+---
+
+# Partial least squares
+
+* Supervised method
+* Uses `\(Y\)` to identify new features `\(Z_1, \ldots, Z_M\)`
+    * Approximate the original features
+    * Related to the outcome of interest
+
+---
+
+# Partial least squares
+
+1. Standardize each predictor `\(X_1, \ldots, X_p\)`
+1. Compute `\(Z_1 = \sum_{j=1}^p \phi_{j1} X_j\)`
+    * `\(\phi_{j1}\)` is equal to the least squares regression coefficient of `\(Y\)` on `\(X_j\)`
+    * Coefficient is proportional to correlation between `\(X_j\)` and `\(Y\)`
+1. Adjust each of the variables for `\(Z_1\)`
+    * Regress each variable on `\(Z_1\)`
+    * Replace `\(X_1, \ldots, X_p\)` with associated residuals
+    * Orthogonalization
+1. Compute `\(Z_2, \ldots, Z_p\)` using same approach
+1. Fit least squares model of `\(Y\)` on `\(Z_1, \ldots, Z_M\)`
+
+---
+
+# Partial least squares
+
+&lt;img src="dimension-reduction-regression_files/figure-html/ames-pls-1.png" width="864" /&gt;
+
+---
+
+# Ames PLS
+
+&lt;img src="dimension-reduction-regression_files/figure-html/ames-pls-mse-1.png" width="864" /&gt;
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
