@@ -1,0 +1,92 @@
+---
+title: "Homework 06: Linear Model Selection and Regularization"
+date: 2019-02-12T13:30:00-06:00  # Schedule page publish date
+
+draft: false
+type: post
+
+output:
+  blogdown::html_page:
+    number_sections: false
+
+summary: "Implement methods for linear model selection, regularization, and dimension reduction."
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#fork-the-hw06-repository">Fork the <code>hw06</code> repository</a></li>
+<li><a href="#submission-format">Submission format</a></li>
+<li><a href="#conceptual-exercises-4-points">Conceptual exercises (4 points)</a><ul>
+<li><a href="#trainingtest-error-for-subset-selection">Training/test error for subset selection</a></li>
+</ul></li>
+<li><a href="#application-exercises-6-points">Application exercises (6 points)</a></li>
+</ul>
+</div>
+
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<p>Due by 11:59pm February 18th.</p>
+</div>
+<div id="fork-the-hw06-repository" class="section level1">
+<h1>Fork the <code>hw06</code> repository</h1>
+<p>Go <a href="https://github.com/css-model/hw06">here</a> to fork the repo for homework 06.</p>
+</div>
+<div id="submission-format" class="section level1">
+<h1>Submission format</h1>
+<p>For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). The document should be <strong>reproducible</strong>. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (<code>.ipynb</code>) or R Markdown (<code>.Rmd</code>) rendered as <code>pdf_document</code>.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+</div>
+<div id="conceptual-exercises-4-points" class="section level1">
+<h1>Conceptual exercises (4 points)</h1>
+<div id="trainingtest-error-for-subset-selection" class="section level2">
+<h2>Training/test error for subset selection</h2>
+<ol style="list-style-type: lower-alpha">
+<li><p>Generate a data set with <span class="math inline">\(p = 20\)</span> features, <span class="math inline">\(n = 1000\)</span> observations, and an associated quantitative response vector generated according to the model</p>
+<p><span class="math display">\[Y = X\beta + \epsilon\]</span></p>
+<p>where <span class="math inline">\(\beta\)</span> has some elements that are exactly equal to zero.</p></li>
+<li>Split your data set into a training set containing 100 observations and a test set containing 900 observations.</li>
+<li>Perform best subset selection on the training set, and plot the training set MSE associated with the best model of each size. For which model size does the training set MSE take on its minimum value?</li>
+<li>Plot the test set MSE associated with the best model of each size.</li>
+<li><p>For which model size does the test set MSE take on its minimum value? Comment on your results.</p>
+<blockquote>
+<p>If it takes on its minimum value for a model containing only an intercept or a model containing all of the features, then play around with the way that you generate the data in (a) until you create a data generating process in which the test set MSE is minimized for an intermediate model size.</p>
+</blockquote></li>
+<li>How does the model at which the test set MSE is minimized compare to the true model used to generate the data? Comment on the coefficient sizes.</li>
+<li><p>Create a plot displaying</p>
+<p><span class="math display">\[\sqrt{\sum_{j=1}^p (\beta_j - \hat{\beta}_j^r)^2}\]</span></p>
+<p>for a range of values of <span class="math inline">\(r\)</span>, where <span class="math inline">\(\hat{\beta}_j^r\)</span> is the <span class="math inline">\(j\)</span>th coefficient estimate for the best model containing <span class="math inline">\(r\)</span> coefficients. Comment on what you observe. How does this compare to the test MSE plot from (d)?</p></li>
+</ol>
+</div>
+</div>
+<div id="application-exercises-6-points" class="section level1">
+<h1>Application exercises (6 points)</h1>
+<p>The <a href="http://gss.norc.org/">General Social Survey</a> is a biannual survey of the American public.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
+<blockquote>
+<p><a href="http://gss.norc.org/About-The-GSS">The GSS gathers data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes. Hundreds of trends have been tracked since 1972. In addition, since the GSS adopted questions from earlier surveys, trends can be followed for up to 70 years. The GSS contains a standard core of demographic, behavioral, and attitudinal questions, plus topics of special interest. Among the topics covered are civil liberties, crime and violence, intergroup tolerance, morality, national spending priorities, psychological well-being, social mobility, and stress and traumatic events.</a></p>
+</blockquote>
+<p>In this problem set, you are going to predict individual feelings towards egalitarianism. Specifically, <code>egalit_scale</code> is an additive index constructed from a series of questions designed to measure how egalitarian individuals are – that is, the extend to which they think economic opportunities should be distributed more equally in society. The variable ranges from 1 (low egalitarianism) to 35 (high egalitarianism).</p>
+<p><code>gss_*.csv</code> contain a selection of variables from the 2012 GSS. Documentation for the other predictors (if the variable is not clearly coded) can be viewed <a href="https://gssdataexplorer.norc.org/variables/vfilter">here</a>. Some data pre-processing has been done in advance for you to ease your model fitting:</p>
+<ol style="list-style-type: decimal">
+<li>Missing values have been imputed.</li>
+<li>Nominal variables with more than two classes have been converted to dummy variables.</li>
+<li>Remaining categorical variables have been converted to integer values, stripping their original labels.</li>
+</ol>
+<p>Your mission is to construct a series of statistical/machine learning models to accurately predict an individual’s egalitarianism using model selection and regularization methods. Use all the available predictors for each model, unless otherwise specified.</p>
+<ol style="list-style-type: decimal">
+<li>Fit a linear model using least squares on the training set, and report the test MSE.</li>
+<li>Fit a ridge regression model on the training set, with <span class="math inline">\(\lambda\)</span> chosen by 10-fold cross-validation. Report the test MSE.</li>
+<li>Fit a lasso model on the training set, with <span class="math inline">\(\lambda\)</span> chosen by 10-fold cross-validation. Report the test MSE, along with the number of non-zero coefficient estimates.</li>
+<li>Fit an elastic net model on the training set, with <span class="math inline">\(\alpha\)</span> and <span class="math inline">\(\lambda\)</span> chosen by 10-fold cross-validation. That is, estimate models with <span class="math inline">\(\alpha = 0, 0.1, 0.2, \ldots, 1\)</span> using the same values for lambda across each model. Select the combination of <span class="math inline">\(\alpha\)</span> and <span class="math inline">\(\lambda\)</span> with the lowest cross-validation MSE. For that combination, report the test MSE along with the number of non-zero coefficient estimates.</li>
+<li>Fit a PCR model on the training set, with <span class="math inline">\(M\)</span> chosen by 10-fold cross-validation. Only use non-binary variables as predictors for this model. Report the test error obtained, along with the value of <span class="math inline">\(M\)</span> selected by cross-validation.</li>
+<li>Fit a PLS model on the training set, with <span class="math inline">\(M\)</span> chosen by 10-fold cross-validation. Only use non-binary variables as predictors for this model. Report the test error obtained, along with the value of <span class="math inline">\(M\)</span> selected by cross-validation.</li>
+<li>Comment on the results obtained. How accurately can we predict an individual’s egalitarianism? Is there much difference among the test errors resulting from these six approaches?</li>
+</ol>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 😢<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Conducted by NORC at the University of Chicago.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>
