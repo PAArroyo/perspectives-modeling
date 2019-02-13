@@ -44,7 +44,7 @@ $$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{
 
 ---
 
-# Classical statistical inference in high-dimensions
+# Classical statistics with $p > n$
 
 * Multicollinearity
 * Overfitting
@@ -296,6 +296,8 @@ ads_pc %>%
     * Most information in $X_1, \ldots, X_p$ is captured in $Z_1, \ldots, Z_M$ with $M \ll p$
     * Avoids overfitting
 * Tuning parameter $M$
+* Always rescale predictors
+* Works best for continuous, normally distributed predictors
 
 ---
 
