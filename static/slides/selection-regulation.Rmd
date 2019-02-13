@@ -692,11 +692,308 @@ $$\min_\beta \left\{ \sum_{i=1}^n \left( y_i - \beta_0 - \sum_{j=1}^p \beta_j x_
 
 # Variable selection with ridge/lasso
 
-.center[
+```{r compare-ridge-lasso}
+# source: http://www.socr.umich.edu/people/dinov/courses/DSPA_notes/17_RegularizedLinModel_KnockoffFilter.html#94_regression_solution_paths_-_ridge_vs_lasso
+library(needs)
 
-![](/img/esl-3-11.png)
+# Constructing Quadratic Formula
+quadraticEquSolver <- function(a, b, c) {
+  if (delta(a, b, c) > 0) {
+    # first case D>0
+    x_1 = (-b + sqrt(delta(a, b, c))) / (2 * a)
+    x_2 = (-b - sqrt(delta(a, b, c))) / (2 * a)
+    result = c(x_1, x_2)
+    # print(result)
+  }
+  else if (delta(a, b, c) == 0) {
+    # second case D=0
+    result = -b / (2 * a)
+    # print(result)
+  }
+  else {
+    "There are no real roots."
+  } # third case D<0
+}
 
-]
+# Constructing delta
+delta <- function(a, b, c) {
+  b ^ 2 - 4 * a * c
+}
+
+mlb <- read.table('https://umich.instructure.com/files/330381/download?download_frd=1',
+                  as.is = TRUE,
+                  header = TRUE)
+
+fit <- lm(Height ~ Weight + Age - 1, data = as.data.frame(scale(mlb[, 4:6])))
+
+points = data.frame(
+  x = c(0, fit$coefficients[1]),
+  y = c(0, fit$coefficients[2]),
+  z = c("(0,0)", "OLS Coef")
+)
+
+Y = scale(mlb$Height)
+X = scale(mlb[, c(5, 6)])
+beta1 = seq(-0.556, 1.556, length.out = 100)
+beta2 = seq(-0.661, 0.3386, length.out = 100)
+df <- expand.grid(beta1 = beta1, beta2 = beta2)
+b = as.matrix(df)
+df$sse <-
+  rep(t(Y) %*% Y, 100 * 100) - 2 * b %*% t(X) %*% Y + diag(b %*% t(X) %*% X %*%
+                                                             t(b))
+
+base <- ggplot(df) +
+  stat_contour(
+    aes(beta1, beta2, z = sse),
+    breaks = round(quantile(df$sse, seq(0, 0.2, 0.03)), 0),
+    size = 0.5,
+    color = "darkorchid2",
+    alpha = 0.8
+  ) +
+  scale_x_continuous(limits = c(-0.4, 1)) +
+  scale_y_continuous(limits = c(-0.55, 0.4)) +
+  coord_fixed(ratio = 1) +
+  geom_point(data = points, aes(x, y)) +
+  geom_text(data = points,
+            aes(x, y, label = z),
+            vjust = 2,
+            size = 3.5) +
+  geom_segment(
+    aes(
+      x = -0.4,
+      y = 0,
+      xend = 1,
+      yend = 0
+    ),
+    colour = "grey46",
+    arrow = arrow(length = unit(0.30, "cm")),
+    size = 0.5,
+    alpha = 0.8
+  ) +
+  geom_segment(
+    aes(
+      x = 0,
+      y = -0.55,
+      xend = 0,
+      yend = 0.4
+    ),
+    colour = "grey46",
+    arrow = arrow(length = unit(0.30, "cm")),
+    size = 0.5,
+    alpha = 0.8
+  )
+
+plot_alpha = function(alpha = 0,
+                      restrict = 0.2,
+                      beta1_range = 0.2,
+                      annot = c(0.15, -0.25, 0.205, -0.05)) {
+  a = alpha
+  t = restrict
+  k = beta1_range
+  pos = data.frame(V1 = annot[1:4])
+  tex = paste("(",
+              as.character(annot[3]),
+              ",",
+              as.character(annot[4]),
+              ")",
+              sep = "")
+  K = seq(0, k, length.out = 50)
+  y = unlist(lapply((1 - a) * K ^ 2 / 2 + a * K - t,
+                    quadraticEquSolver,
+                    a = (1 - a) / 2,
+                    b = a
+  ))[seq(1, 99, by = 2)]
+  fills = data.frame(x = c(rev(-K), K),
+                     y1 = c(rev(y), y),
+                     y2 = c(-rev(y), -y))
+  p <-
+    base + geom_line(
+      data = fills,
+      aes(x = x, y = y1),
+      colour = "salmon1",
+      alpha = 0.6,
+      size = 0.7
+    ) +
+    geom_line(
+      data = fills,
+      aes(x = x, y = y2),
+      colour = "salmon1",
+      alpha = 0.6,
+      size = 0.7
+    ) +
+    geom_polygon(data = fills,
+                 aes(x, y1),
+                 fill = "red",
+                 alpha = 0.2) +
+    geom_polygon(data = fills,
+                 aes(x, y2),
+                 fill = "red",
+                 alpha = 0.2) +
+    geom_segment(
+      data = pos,
+      aes(
+        x = V1[1] ,
+        y = V1[2],
+        xend = V1[3],
+        yend = V1[4]
+      ),
+      arrow = arrow(length = unit(0.30, "cm")),
+      alpha = 0.8,
+      colour = "magenta"
+    ) +
+    ggplot2::annotate(
+      "text",
+      x = pos$V1[1] - 0.01,
+      y = pos$V1[2] - 0.11,
+      label = paste(
+        tex,
+        "\n",
+        "Point of Contact \n i.e., Coef of",
+        "alpha=",
+        MASS::fractions(a)
+      ),
+      size = 3
+    ) +
+    xlab(expression(beta[1])) +
+    ylab(expression(beta[2])) +
+    ggtitle(paste("alpha =", as.character(MASS::fractions(a)))) +
+    theme_minimal(base_size = 8) +
+    theme(legend.position = "none")
+}
+# $\alpha=0$ - Ridge
+p1 <-
+  plot_alpha(
+    alpha = 0,
+    restrict = (0.21 ^ 2) / 2,
+    beta1_range = 0.21,
+    annot = c(0.15, -0.25, 0.205, -0.05)
+  )
+p1 <- p1 + ggtitle(expression(paste(alpha, "=0 (Ridge)")))
+# $\alpha=1/9$
+p2 <-
+  plot_alpha(
+    alpha = 1 / 9,
+    restrict = 0.046,
+    beta1_range = 0.22,
+    annot = c(0.15, -0.25, 0.212, -0.02)
+  )
+p2 <- p2 + ggtitle(expression(paste(alpha, "=1/9")))
+# $\alpha=1/5$
+p3 <-
+  plot_alpha(
+    alpha = 1 / 5,
+    restrict = 0.063,
+    beta1_range = 0.22,
+    annot = c(0.13, -0.25, 0.22, 0)
+  )
+p3 <- p3 + ggtitle(expression(paste(alpha, "=1/5")))
+# $\alpha=1/2$
+p4 <-
+  plot_alpha(
+    alpha = 1 / 2,
+    restrict = 0.123,
+    beta1_range = 0.22,
+    annot = c(0.12, -0.25, 0.22, 0)
+  )
+p4 <- p4 + ggtitle(expression(paste(alpha, "=1/2")))
+# $\alpha=3/4$
+p5 <-
+  plot_alpha(
+    alpha = 3 / 4,
+    restrict = 0.17,
+    beta1_range = 0.22,
+    annot = c(0.12, -0.25, 0.22, 0)
+  )
+p5 <- p5 + ggtitle(expression(paste(alpha, "=3/4")))
+# $\alpha=1$ - LASSO
+t = 0.22
+K = seq(0, t, length.out = 50)
+fills = data.frame(
+  x = c(-rev(K), K),
+  y1 = c(rev(t - K), c(t - K)),
+  y2 = c(-rev(t - K), -c(t - K))
+)
+p6 <- base +
+  geom_segment(
+    aes(
+      x = 0,
+      y = t,
+      xend = t,
+      yend = 0
+    ),
+    colour = "salmon1",
+    alpha = 0.1,
+    size = 0.2
+  ) +
+  geom_segment(
+    aes(
+      x = 0,
+      y = t,
+      xend = -t,
+      yend = 0
+    ),
+    colour = "salmon1",
+    alpha = 0.1,
+    size = 0.2
+  ) +
+  geom_segment(
+    aes(
+      x = 0,
+      y = -t,
+      xend = t,
+      yend = 0
+    ),
+    colour = "salmon1",
+    alpha = 0.1,
+    size = 0.2
+  ) +
+  geom_segment(
+    aes(
+      x = 0,
+      y = -t,
+      xend = -t,
+      yend = 0
+    ),
+    colour = "salmon1",
+    alpha = 0.1,
+    size = 0.2
+  ) +
+  geom_polygon(data = fills,
+               aes(x, y1),
+               fill = "red",
+               alpha = 0.2) +
+  geom_polygon(data = fills,
+               aes(x, y2),
+               fill = "red",
+               alpha = 0.2) +
+  geom_segment(
+    aes(
+      x = 0.12 ,
+      y = -0.25,
+      xend = 0.22,
+      yend = 0
+    ),
+    colour = "magenta",
+    arrow = arrow(length = unit(0.30, "cm")),
+    alpha = 0.8
+  ) +
+  ggplot2::annotate(
+    "text",
+    x = 0.11,
+    y = -0.36,
+    label = "(0.22,0)\n Point of Contact \n i.e Coef of LASSO",
+    size = 3
+  ) +
+  xlab(expression(beta[1])) +
+  ylab(expression(beta[2])) +
+  theme(legend.position = "none") +
+  ggtitle(expression(paste(alpha, "=1 (LASSO)")))
+```
+
+```{r ridge-lasso-plot, dependson = "compare-ridge-lasso", fig.width = 12}
+p1 +
+  p6
+```
 
 ---
 
@@ -708,6 +1005,20 @@ $$\min \left\{ \text{RSS} + \lambda_1 \sum_{j=1}^p \beta_j^2 + \lambda_2 \sum_{j
 
 * Effective regularization with ridge - $L_2$ penalty
 * Feature selection with lasso - $L_1$ penalty
+
+---
+
+# Elastic nets
+
+```{r elastic-net-plot, dependson = "compare-ridge-lasso", fig.width = 12}
+p1 +
+  p2 +
+  p3 +
+  p4 +
+  p5 +
+  p6 +
+  plot_layout(ncol = 3)
+```
 
 ---
 
