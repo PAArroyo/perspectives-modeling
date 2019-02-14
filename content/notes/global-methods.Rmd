@@ -22,8 +22,7 @@ knitr::opts_chunk$set(cache = TRUE)
 
 ```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
 library(tidyverse)
-library(modelr)
-library(broom)
+library(tidymodels)
 library(rcfss)
 library(titanic)
 library(knitr)
@@ -55,8 +54,10 @@ $$Y = 2 + 3X + \epsilon$$
 where $\epsilon$ is random error distributed normally $N(0,3)$.
 
 ```{r sim-linear}
-sim_linear <- tibble(x = runif(100, 0, 10),
-                         y = 2 + 3 * x + rnorm(100, 0, 3))
+sim_linear <- tibble(
+  x = runif(100, 0, 10),
+  y = 2 + 3 * x + rnorm(100, 0, 3)
+)
 sim_linear_mod <- glm(y ~ x, data = sim_linear)
 
 ggplot(sim_linear, aes(x, y)) +
@@ -68,21 +69,19 @@ ggplot(sim_linear, aes(x, y)) +
 When this assumption holds, the **residuals** of the observations should be distributed normally with an expected error $E(\epsilon) = 0$ and not be correlated with the fitted values.
 
 ```{r sim-linear-resid, dependson = "sim-linear"}
-sim_linear_pred <- sim_linear %>%
-  add_predictions(sim_linear_mod) %>%
-  add_residuals(sim_linear_mod)
+sim_linear_pred <- augment(sim_linear_mod)
 
 # distribution of residuals
-ggplot(sim_linear_pred, aes(resid)) +
+ggplot(sim_linear_pred, aes(.resid)) +
   geom_histogram(aes(y = stat(density))) +
   stat_function(fun = dnorm,
-                args = list(mean = mean(sim_linear_pred$resid),
-                            sd = sd(sim_linear_pred$resid))) +
+                args = list(mean = mean(sim_linear_pred$.resid),
+                            sd = sd(sim_linear_pred$.resid))) +
   labs(title = "Linear model for a linear relationship",
        x = "Residuals")
 
 # predicted vs. residuals
-ggplot(sim_linear_pred, aes(pred, resid)) +
+ggplot(sim_linear_pred, aes(.fitted, .resid)) +
   geom_point() +
   geom_smooth(se = FALSE) +
   labs(title = "Linear model for a linear relationship",
@@ -101,8 +100,10 @@ with the same distribution of $\epsilon$ and fit a linear model to the data:
 $$\hat{Y} = \hat{\beta}_0 + \hat{\beta}_1 X + \epsilon$$
 
 ```{r sim-nonlinear}
-sim_nonlinear <- tibble(x = runif(100, 0, 10),
-                         y = 2 + 3 * x + 2 * x^2 + rnorm(100, 0, 3))
+sim_nonlinear <- tibble(
+  x = runif(100, 0, 10),
+  y = 2 + 3 * x + 2 * x^2 + rnorm(100, 0, 3)
+)
 sim_nonlinear_mod <- glm(y ~ x, data = sim_nonlinear)
 
 ggplot(sim_nonlinear, aes(x, y)) +
@@ -114,21 +115,19 @@ ggplot(sim_nonlinear, aes(x, y)) +
 Now that the assumption no longer holds true, we see a distinct polynomial relationship between the predicted values $\hat{y}_i$ and the residuals $(y_i - \hat{y}_i)^2$.
 
 ```{r sim-nonlinear-resid, dependson = "sim-nonlinear"}
-sim_nonlinear_pred <- sim_nonlinear %>%
-  add_predictions(sim_nonlinear_mod) %>%
-  add_residuals(sim_nonlinear_mod)
+sim_nonlinear_pred <- augment(sim_nonlinear_mod)
 
 # distribution of residuals
-ggplot(sim_nonlinear_pred, aes(resid)) +
+ggplot(sim_nonlinear_pred, aes(.resid)) +
   geom_histogram(aes(y = stat(density))) +
   stat_function(fun = dnorm,
-                args = list(mean = mean(sim_nonlinear_pred$resid),
-                            sd = sd(sim_nonlinear_pred$resid))) +
+                args = list(mean = mean(sim_nonlinear_pred$.resid),
+                            sd = sd(sim_nonlinear_pred$.resid))) +
   labs(title = "Linear model for a non-linear relationship",
        x = "Residuals")
 
 # predicted vs. residuals
-ggplot(sim_nonlinear_pred, aes(pred, resid)) +
+ggplot(sim_nonlinear_pred, aes(.fitted, .resid)) +
   geom_point() +
   geom_smooth(se = FALSE) +
   labs(title = "Linear model for a non-linear relationship",
@@ -153,14 +152,14 @@ $$Y = 2 + 3X + \epsilon$$
 where $\epsilon$ is random error distributed normally $N(0,1)$.
 
 ```{r sim-homo}
-sim_homo <- tibble(x = runif(1000, 0, 10),
-                       y = 2 + 3 * x + rnorm(1000, 0, 1))
+sim_homo <- tibble(
+  x = runif(1000, 0, 10),
+  y = 2 + 3 * x + rnorm(1000, 0, 1)
+)
 sim_homo_mod <- glm(y ~ x, data = sim_homo)
 
-sim_homo %>%
-  add_predictions(sim_homo_mod) %>%
-  add_residuals(sim_homo_mod) %>%
-  ggplot(aes(pred, resid)) +
+augment(sim_homo_mod) %>%
+  ggplot(aes(.fitted, .resid)) +
   geom_point(alpha = .2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_quantile(method = "rqss", lambda = 5, quantiles = c(.05, .95)) +
@@ -176,14 +175,14 @@ $$Y = 2 + 3X + \epsilon$$
 where $\epsilon$ is random error distributed normally $N(0,\frac{X}{2})$. Note that the variance for the error term of each observation $\epsilon_i$ is not constant, and is itself a function of $X$.
 
 ```{r sim-hetero}
-sim_hetero <- tibble(x = runif(1000, 0, 10),
-                       y = 2 + 3 * x + rnorm(1000, 0, (x / 2)))
+sim_hetero <- tibble(
+  x = runif(1000, 0, 10),
+  y = 2 + 3 * x + rnorm(1000, 0, (x / 2))
+)
 sim_hetero_mod <- glm(y ~ x, data = sim_hetero)
 
-sim_hetero %>%
-  add_predictions(sim_hetero_mod) %>%
-  add_residuals(sim_hetero_mod) %>%
-  ggplot(aes(pred, resid)) +
+augment(sim_hetero_mod) %>%
+  ggplot(aes(.fitted, .resid)) +
   geom_point(alpha = .2) +
   geom_hline(yintercept = 0, linetype = 2) +
   geom_quantile(method = "rqss", lambda = 5, quantiles = c(.05, .95)) +
@@ -326,7 +325,7 @@ As $d$ increases, the linear model's flexibility increases. We still use ordinar
 
 ### Biden and age
 
-Let's take a look at the [Joe Biden feeling thermometer data](https://github.com/UC-MACSS/persp-model/blob/master/assignments/PS5/ps5-linear-regression.md) again and estimate a polynomial regression of the relationship between age and attitudes towards Biden:
+Let's take a look at the Joe Biden feeling thermometer data again and estimate a polynomial regression of the relationship between age and attitudes towards Biden:
 
 $$\text{Biden}_i = \beta_0 + \beta_1 \text{Age} + \beta_2 \text{Age}^2 + \beta_3 \text{Age}^3 + \beta_4 \text{Age}^4$$
 
@@ -339,7 +338,7 @@ biden_age <- glm(biden ~ I(age^1) + I(age^2) + I(age^3) + I(age^4), data = biden
 tidy(biden_age)
 
 # estimate the predicted values and confidence interval
-biden_pred <- augment(biden_age, newdata = data_grid(biden, age)) %>%
+biden_pred <- augment(biden_age, newdata = biden) %>%
   mutate(pred_low = .fitted - 1.96 * .se.fit,
          pred_high = .fitted + 1.96 * .se.fit)
 
@@ -373,7 +372,7 @@ What is the variance of the fit for this point, i.e. $\text{Var}(\hat{f}(x_o))$.
 
 ### Voter turnout and mental health
 
-Likewise, we can use polynomial regression for classification problems as well. Consider the [mental health and voting data](https://github.com/UC-MACSS/persp-model/blob/master/assignments/PS6/ps6-glm.md). Let's estimate a logistic regression model of the relationship between mental health and voter turnout:
+Likewise, we can use polynomial regression for classification problems as well. Consider the mental health and voting data. Let's estimate a logistic regression model of the relationship between mental health and voter turnout:
 
 $$\Pr(\text{Voter turnout} = \text{Yes} | \text{mhealth}) = \frac{\exp[\beta_0 + \beta_1 \text{mhealth} + \beta_2 \text{mhealth}^2 + \beta_3 \text{mhealth}^3 + \beta_4 \text{mhealth}^4]}{1 + \exp[\beta_0 + \beta_1 \text{mhealth} + \beta_2 \text{mhealth}^2 + \beta_3 \text{mhealth}^3 + \beta_4 \text{mhealth}^4]}$$
 
@@ -387,7 +386,8 @@ mh_mod <- glm(vote96 ~ poly(mhealth_sum, 4, raw = TRUE), data = mh,
 tidy(mh_mod)
 
 # estimate the predicted values and confidence interval
-mh_pred <- augment(mh_mod, newdata = data_grid(mh, mhealth_sum)) %>%
+mh_pred <- augment(mh_mod, newdata = mh) %>%
+  distinct(mhealth_sum, .fitted, .se.fit) %>%
   rename(pred = .fitted) %>%
   mutate(pred_low = pred - 1.96 * .se.fit,
          pred_high = pred + 1.96 * .se.fit) 
@@ -403,7 +403,7 @@ ggplot(mh_pred, aes(mhealth_sum, pred, ymin = pred_low, ymax = pred_high)) +
 
 # plot the probability curve
 mh_pred %>%
-  mutate_each(funs(logit2prob), starts_with("pred")) %>%
+  mutate_at(vars(starts_with("pred")), funs(logit2prob)) %>%
   ggplot(aes(mhealth_sum, pred, ymin = pred_low, ymax = pred_high)) +
   geom_point() +
   geom_errorbar() +
@@ -433,7 +433,7 @@ biden_step <- glm(biden ~ cut(age, 5), data = biden)
 tidy(biden_step)
 
 # estimate the predicted values and confidence interval
-biden_step_pred <- augment(biden_step, newdata = data_grid(biden, age)) %>%
+biden_step_pred <- augment(biden_step, newdata = biden) %>%
   mutate(pred_low = .fitted - 1.96 * .se.fit,
          pred_high = .fitted + 1.96 * .se.fit)
 
@@ -480,29 +480,37 @@ Of course this leads to a somewhat odd and discontinuous function:
 
 ```{r sim-piecewise}
 # simulate data
-sim_piece <- tibble(x = runif(100, 0, 10),
-                        y = ifelse(x < 5,
-                                   .05 * x + .05 * x^2 + .05 * x^3 + rnorm(100, 0, 3),
-                                   .1 * x + .1 * x^2 - .05 * x^3 + rnorm(100, 0, 3)))
+sim_piece <- tibble(
+  x = runif(100, 0, 10),
+  y = ifelse(x < 5,
+             .05 * x + .05 * x^2 + .05 * x^3 + rnorm(100, 0, 3),
+             .1 * x + .1 * x^2 - .05 * x^3 + rnorm(100, 0, 3))
+)
 
 # estimate models
 sim_piece_mod1 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece, subset = x < 5)
 sim_piece_mod2 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece, subset = x >= 5)
 
 # draw the plot
-sim_piece %>%
-  data_grid(x = seq(0, 10, by = .001)) %>%
-  gather_predictions(sim_piece_mod1, sim_piece_mod2) %>%
+sim_piece_grid <- tibble(
+  x = seq(0, 10, by = .001)
+)
+
+bind_rows(
+  sim_piece_mod1 = augment(sim_piece_mod1, newdata = sim_piece_grid),
+  sim_piece_mod2 = augment(sim_piece_mod2, newdata = sim_piece_grid),
+  .id = "model"
+) %>%
   filter((x < 5 & model == "sim_piece_mod1") |
            (x >=5 & model == "sim_piece_mod2")) %>%
   ggplot(aes(x, y)) +
   geom_point(data = sim_piece) +
-  geom_line(aes(y = pred, color = model), size = 1) +
+  geom_line(aes(y = .fitted, color = model), size = 1) +
   geom_vline(xintercept = 5, linetype = 2, color = "grey") +
+  scale_color_brewer(type = "qual", guide = FALSE) +
   labs(title = "Piecewise cubic regression",
        x = "X",
-       y = "Y") +
-  theme(legend.position = "none")
+       y = "Y")
 ```
 
 ## Constraints and splines
@@ -522,9 +530,11 @@ sim_piece_cont_mod1 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece_cont, su
 sim_piece_cont_mod2 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece_cont, subset = x >= 5)
 
 # draw the plot
-sim_piece_cont %>%
-  data_grid(x = seq(0, 10, by = .001)) %>%
-  gather_predictions(sim_piece_cont_mod1, sim_piece_cont_mod2) %>%
+bind_rows(
+  sim_piece_cont_mod1 = augment(sim_piece_cont_mod1, newdata = sim_piece_grid),
+  sim_piece_cont_mod2 = augment(sim_piece_cont_mod2, newdata = sim_piece_grid),
+  .id = "model"
+) %>%
   filter((x < 5 & model == "sim_piece_cont_mod1") |
            (x >=5 & model == "sim_piece_cont_mod2")) %>%
   ggplot() +
@@ -532,12 +542,12 @@ sim_piece_cont %>%
                mutate(y = ifelse(x < 5,
                                  15 + .05 * x - .5 * x^2 - .05 * x^3 + rnorm(100, 0, 3),
                                  .05 * x + .1 * x^2 - .05 * x^3) + rnorm(100, 0, 3)), aes(x, y)) +
-  geom_line(aes(x, pred, color = model), size = 1) +
+  geom_line(aes(x, .fitted, color = model), size = 1) +
   geom_vline(xintercept = 5, linetype = 2, color = "grey") +
+  scale_color_brewer(type = "qual", guide = FALSE) +
   labs(title = "Continuous piecewise cubic regression",
        x = "X",
-       y = "Y") +
-  theme(legend.position = "none")
+       y = "Y")
 ```
 
 But notice that this constraint is insufficient. Now the function is continuous, but still looks unnatural because of the V-shaped join. We should add two additional constraints: not only should the fitted curve be continuous, but the first and second **derivatives** should also be continuous at the knot. This will generate a fitted curve that is continuous and **smooth**.
@@ -547,28 +557,29 @@ But notice that this constraint is insufficient. Now the function is continuous,
 sim_piece_smooth <- glm(y ~ bs(x, knots = c(5)), data = sim_piece)
 
 # draw the plot
-sim_piece %>%
-  add_predictions(sim_piece_smooth) %>%
+augment(sim_piece_smooth, newdata = sim_piece) %>%
   ggplot(aes(x)) +
   geom_point(aes(y = y)) +
-  geom_line(aes(y = pred), size = 1) +
+  geom_line(aes(y = .fitted), size = 1) +
   geom_vline(xintercept = 5, linetype = 2, color = "grey") +
   labs(title = "Cubic spline",
        x = "X",
-       y = "Y") +
-  theme(legend.position = "none")
+       y = "Y")
 ```
 
 By increasing the number of knots, we will increase the flexibility of the resulting spline:
 
 ```{r sim-spline-smooth-5}
-tibble(terms = c(1, 5, 10),
-           models = map(terms, ~ glm(y ~ bs(x, df = . + 3), data = sim_piece)),
-           pred = map(models, ~ add_predictions(sim_piece, .))) %>%
+tibble(
+  terms = c(1, 5, 10),
+  models = map(terms, ~ glm(y ~ bs(x, df = . + 3), data = sim_piece)),
+  pred = map(models, augment, newdata = sim_piece)
+) %>%
   unnest(pred) %>%
   ggplot(aes(x, y)) +
   geom_point(data = sim_piece, alpha = .2) +
-  geom_line(aes(y = pred, color = factor(terms))) +
+  geom_line(aes(y = .fitted, color = factor(terms))) +
+  scale_color_brewer(type = "qual") +
   labs(title = "Cubic spline",
        x = "X",
        y = "Y",
@@ -584,7 +595,7 @@ Typically knots are placed in a uniform fashion; that is, the cutpoints $c$ are 
 biden_spline <- glm(biden ~ bs(age, df = 8), data = biden)
 
 # estimate the predicted values and confidence interval
-biden_spline_pred <- augment(biden_spline, newdata = data_grid(biden, age)) %>%
+biden_spline_pred <- augment(biden_spline, newdata = biden) %>%
   mutate(pred_low = .fitted - 1.96 * .se.fit,
          pred_high = .fitted + 1.96 * .se.fit)
 
@@ -602,7 +613,7 @@ ggplot(biden_spline_pred, aes(age)) +
        y = "Predicted Biden thermometer rating")
 ```
 
-But this still leaves unaddressed the matter of how many knots should we use? Or how many degrees should each polynomial be? While theory should still be our guide, we can also use [cross-validation](persp006_resampling.html) to determine the optimal number of knots and/or polynomial degrees.
+But this still leaves unaddressed the matter of how many knots should we use? Or how many degrees should each polynomial be? While theory should still be our guide, we can also use [cross-validation](/notes/cross-validation/) to determine the optimal number of knots and/or polynomial degrees.
 
 Let's apply this approach to the running `Wage` example in ISL.
 
@@ -619,31 +630,43 @@ We can estimate $10$-fold CV MSE for varying numbers of polynomial degrees and k
 
 ```{r wage-cv}
 # function to simplify things
-wage_spline_cv <- function(data, degree = 3, df = NULL){
+wage_spline <- function(splits, degree = 3, df = NULL){
   # estimate the model on each fold
-  models <- map(data$train, ~ glm(wage ~ bs(age, df = df, degree = degree),
-                                  data = .))
+  model <- glm(wage ~ bs(age, df = df, degree = degree),
+                data = analysis(splits))
   
-  # calculate mse for each test fold
-  models_mse <- map2_dbl(models, data$test, mse)
+  model_mse <- augment(model, newdata = assessment(splits)) %>%
+    mse(truth = wage, estimate = .fitted)
   
-  return(mean(models_mse, na.rm = TRUE))
+  mean(model_mse$.estimate)
 }
 
-# fold the data
-wage_kfold <- crossv_kfold(wage, k = 10)
+tune_over_degrees <- function(splits){
+  results <- tibble(
+    degree = 1:10,
+    df = 3 + degree
+  ) %>%
+    mutate(mse = map2_dbl(degree, df, ~ wage_spline(splits, .x, .y)))
+}
+
+summarize_tune_results <- function(splits){
+  map_df(splits$splits, tune_over_degrees) %>%
+    group_by(degree) %>%
+    summarize(mean_mse = mean(mse))
+}
 
 # estimate mse for polynomial degrees in 1:10
-wage_degree_mse <- tibble(degrees = 1:10,
-                              mse = map_dbl(degrees, ~ wage_spline_cv(wage_kfold, degree = .,
-                                                                      df = 3 + .)))
-
-# estimate mse for degrees of freedom (aka knots)
-wage_df_mse <- tibble(df = 1:10,
-                          mse = map_dbl(df, ~ wage_spline_cv(wage_kfold, df = 3 + .)))
+results <- nested_cv(wage,
+                     outside = vfold_cv(v = 10),
+                     inside = vfold_cv(v = 10)) %>%
+  mutate(degrees = map(inner_resamples, summarize_tune_results))
 
 # graph the results
-ggplot(wage_degree_mse, aes(degrees, mse)) +
+results %>%
+  unnest(degrees) %>%
+  group_by(degree) %>%
+  summarize(mse = mean(mean_mse)) %>%
+  ggplot(aes(degree, mse)) +
   geom_point() +
   geom_line() +
   scale_x_continuous(breaks = 1:10) +
@@ -652,7 +675,31 @@ ggplot(wage_degree_mse, aes(degrees, mse)) +
        x = "Highest-order polynomial",
        y = "10-fold CV MSE")
 
-ggplot(wage_df_mse, aes(df, mse)) +
+# estimate mse for degrees of freedom (aka knots)
+tune_over_df <- function(splits){
+  results <- tibble(
+    degree = 1:10,
+    df = 3 + degree
+  ) %>%
+    mutate(mse = map_dbl(df, ~ wage_spline(splits, df = .x)))
+}
+
+summarize_tune_results_df <- function(splits){
+  map_df(splits$splits, tune_over_df) %>%
+    group_by(df) %>%
+    summarize(mean_mse = mean(mse))
+}
+
+results <- results %>%
+  mutate(df = map(inner_resamples, summarize_tune_results_df))
+
+# graph the results
+results %>%
+  unnest(df) %>%
+  mutate(degree = df - 3) %>%
+  group_by(degree) %>%
+  summarize(mse = mean(mean_mse)) %>%
+  ggplot(aes(degree, mse)) +
   geom_point() +
   geom_line() +
   scale_x_continuous(breaks = 1:10) +
@@ -662,12 +709,12 @@ ggplot(wage_df_mse, aes(df, mse)) +
        y = "10-fold CV MSE")
 ```
 
-These results suggest the optimal number of polynomial degrees is 6, while the optimal number of knots is 2. The resulting model produced by these parameters is:
+These results suggest the optimal number of polynomial degrees is 2, while the optimal number of knots is 2. The resulting model produced by these parameters is:
 
 ```{r wage-optimal-mod}
-wage_optim <- glm(wage ~ bs(age, df = 8, degree = 6), data = wage)
+wage_optim <- glm(wage ~ bs(age, df = 2, degree = 2), data = wage)
 
-augment(wage_optim, newdata = data_grid(wage, age)) %>%
+augment(wage_optim, newdata = wage) %>%
   mutate(.fitted_low = .fitted - 1.96 * .se.fit,
          .fitted_high = .fitted + 1.96 * .se.fit) %>%
   ggplot(aes(age, .fitted)) +
@@ -677,7 +724,7 @@ augment(wage_optim, newdata = data_grid(wage, age)) %>%
   geom_line(aes(y = .fitted_high), linetype = 2) +
   geom_vline(xintercept = attr(bs(wage$age, df = 8, degree = 6), "knots"),
              linetype = 2, color = "blue") +
-  labs(title = "Sixth-order polynomial spline of wage",
+  labs(title = "Second-order polynomial spline of wage",
        subtitle = "Knots = 2",
        x = "Age",
        y = "Wage")
@@ -699,82 +746,79 @@ To obtain the local regression fit at a new value of $x_0$, we have to perform t
 Here is an example of a local linear regression on the `ethanol` dataset in the `lattice` package:
 
 ```{r loess, echo = FALSE, warning = FALSE, message = FALSE}
+library(broom)
 library(lattice)
 
 mod <- loess(NOx ~ E, ethanol, degree = 1, span = .75)
 fit <- augment(mod)
 
-mod0 <- loess(NOx ~ E, ethanol, degree = 0, span = .75)
-mod1 <- loess(NOx ~ E, ethanol, degree = 1, span = .75)
-mod2 <- loess(NOx ~ E, ethanol, degree = 2, span = .75)
-
-fit_all <- ethanol %>%
-  gather_predictions(mod0, mod1, mod2) %>%
-  mutate(model = factor(model, levels = c("mod0", "mod1", "mod2"),
-                        labels = c("Constant", "Linear", "Quadratic")))
-
-ggplot(fit_all, aes(E, NOx)) +
+ggplot(fit, aes(E, NOx)) +
   geom_point() +
-  geom_line(aes(y = pred, color = model)) +
-  labs(title = "Local linear regression",
-       x = "Equivalence ratio",
-       y = "Concentration of nitrogen oxides in micrograms/J",
-       color = "Regression")
+  geom_line(aes(y = .fitted), color = "red") +
+  labs(x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J")
 ```
 
 The LOESS is built up point-by-point:
 
-```{r loess_buildup, dependson="loess", fig.show = "animate", echo = FALSE, warning = FALSE, message = FALSE}
+```{r loess_buildup, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE}
 dat <- ethanol %>%
-  inflate(center = unique(ethanol$E)) %>%
+  crossing(center = unique(ethanol$E)) %>%
   mutate(dist = abs(E - center)) %>%
   filter(rank(dist) / n() <= .75) %>%
   mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
 
 library(gganimate)
 
-p <- ggplot(dat, aes(E, NOx)) +
-  geom_point(aes(alpha = weight, frame = center)) +
-  geom_smooth(aes(group = center, frame = center, weight = weight), method = "lm", se = FALSE) +
-  geom_vline(aes(xintercept = center, frame = center), lty = 2) +
+ggplot(dat, aes(E, NOx)) +
+  geom_point(aes(alpha = weight)) +
+  geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
+  geom_vline(aes(xintercept = center), lty = 2) +
   geom_line(aes(y = .fitted), data = fit, color = "red") +
-  labs(x = "Equivalence ratio",
-       y = "Concentration of nitrogen oxides in micrograms/J")
-gg_animate(p)
+  labs(title = "Centered over {closest_state}",
+       x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J") +
+  transition_states(center,
+                    transition_length = 2,
+                    state_length = 1) + 
+  ease_aes("cubic-in-out")
 ```
 
-One important argument you can control with LOESS is the **span**, or how smooth the LOESS function will become. A larger span will result in a smoother curve, but may not be as accurate. A smaller span will be more local and wiggly, but improve our fit to the training data.
+One important argument you can control with LOESS is the **span**, or how smooth the LOESS function will become. A larger span will result in a smoother curve, but may not be as accurate.
 
-```{r loess_span, dependson="loess", fig.show = "animate", echo = FALSE, warning = FALSE, message = FALSE}
+```{r loess_span, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE}
 spans <- c(.25, .5, .75, 1)
 
 # create loess fits, one for each span
-fits <- tibble(span = spans) %>%
+fits <- data_frame(span = spans) %>%
   group_by(span) %>%
   do(augment(loess(NOx ~ E, ethanol, degree = 1, span = .$span)))
 
 # calculate weights to reproduce this with local weighted fits
 dat <- ethanol %>%
-  inflate(span = spans, center = unique(ethanol$E)) %>%
+  crossing(span = spans, center = unique(ethanol$E)) %>%
   mutate(dist = abs(E - center)) %>%
   filter(rank(dist) / n() <= span) %>%
   mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
 
 # create faceted plot with changing points, local linear fits, and vertical lines,
 # and constant hollow points and loess fit
-p <- ggplot(dat, aes(E, NOx)) +
-  geom_point(aes(alpha = weight, frame = center)) +
-  geom_smooth(aes(group = center, frame = center, weight = weight), method = "lm", se = FALSE) +
-  geom_vline(aes(xintercept = center, frame = center), lty = 2) +
+ggplot(dat, aes(E, NOx)) +
+  geom_point(aes(alpha = weight)) +
+  geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
+  geom_vline(aes(xintercept = center), lty = 2) +
   geom_point(shape = 1, data = ethanol, alpha = .25) +
-  geom_line(aes(y = .fitted, frame = E, cumulative = TRUE), data = fits, color = "red") +
+  geom_line(aes(y = .fitted), data = fits, color = "red") +
   facet_wrap(~span) +
   ylim(0, 5) +
   ggtitle("x0 = ") +
-  labs(x = "Equivalence ratio",
-       y = "Concentration of nitrogen oxides in micrograms/J")
-
-gg_animate(p)
+  labs(title = "Centered over {closest_state}",
+       x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J") +
+  transition_states(center,
+                    transition_length = 2,
+                    state_length = 1) + 
+  ease_aes("cubic-in-out")
 ```
 
 # Generalized additive models
