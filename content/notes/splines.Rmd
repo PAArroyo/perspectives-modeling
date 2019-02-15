@@ -1,0 +1,370 @@
+---
+title: Regression splines
+date: 2019-02-18T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Moving beyond linearity
+    weight: 2
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(tidymodels)
+library(rcfss)
+library(titanic)
+library(knitr)
+library(splines)
+library(ISLR)
+library(lattice)
+library(gam)
+library(here)
+library(patchwork)
+library(margins)
+
+set.seed(1234)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+# Basis functions
+
+**Basis functions** are a family of functions or transformations applied to a variable $X$: $b_1(X), b_2(X), \ldots, b_K(X)$. Instead of fitting the linear model to $X$, we fit the model:
+
+$$y_i = \beta_0 + \beta_1 b_1(x_i) + \beta_2 b_2(x_i) + \beta_3 b_3(x_i) + \ldots + \beta_K b_K(x_i) + \epsilon_i$$
+
+The functional form of the basis function is determined in advanced and is fixed and known. [Polynomial and step functions](/notes/global-methods/) are specific types of basis functions. For polynomial regression, $b_j(x_i) = x_i^j$ where $j$ is the polynomial degree. Since this linear model is just a transformation of the predictors $X_i$, we can use least squares to estimate the model and apply all the standard statistical inferential techniques to evaluate and interpret the model.
+
+# Regression splines
+
+**Regression splines** extend polynomial transformations and piecewise constant regression by fitting separate polynomial functions over different regions of $X$.
+
+## Piecewise polynomials
+
+**Piecewise polynomial regression** fits separate low-degree polynomials for different regions of $X$. For instance, a cubic piecewise polynomial regression model takes the form:
+
+$$y_i = \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 + \epsilon_i$$
+
+where the $\beta$s are now vectors with different values for different parts of the range of $X$. The points where the parameters change are called **knots**.
+
+The special case of a piecewise cubic polynomial with 0 knots is just an ordinary cubic polynomial:
+
+$$y_i = \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 + \epsilon_i$$
+
+Likewise, the special case of a piecewise constant polynomial (i.e. polynomial with degree $0$) is piecewise constant regression. 
+
+A piecewise cubic polynomial with a single knot at point $c$ takes the form:
+
+$$y_i = \begin{cases} 
+      \beta_{01} + \beta_{11}x_i^2 + \beta_{21}x_i^2 + \beta_{31}x_i^3 + \epsilon_i & \text{if } x_i < c \\
+      \beta_{02} + \beta_{12}x_i^2 + \beta_{22}x_i^2 + \beta_{32}x_i^3 + \epsilon_i & \text{if } x_i \geq c
+   \end{cases}$$
+   
+In essence, we fit two separate polynomial functions to the data. Each function is estimated using least squares applied to the individual functions and subsets of data. The more knots $K$ used, the more flexible the piecewise polynomial.
+
+While the example here uses a cubic (third-order) polynomial, we don't have to use it. We could select any higher-order degree for the polynomial.
+
+Of course this leads to a somewhat odd and discontinuous function:
+
+```{r sim-piecewise, echo = FALSE}
+# simulate data
+sim_piece <- tibble(
+  x = runif(100, 0, 10),
+  y = ifelse(x < 5,
+             .05 * x + .05 * x^2 + .05 * x^3 + rnorm(100, 0, 3),
+             .1 * x + .1 * x^2 - .05 * x^3 + rnorm(100, 0, 3))
+)
+
+# estimate models
+sim_piece_mod1 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece, subset = x < 5)
+sim_piece_mod2 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece, subset = x >= 5)
+
+# draw the plot
+sim_piece_grid <- tibble(
+  x = seq(0, 10, by = .001)
+)
+
+bind_rows(
+  sim_piece_mod1 = augment(sim_piece_mod1, newdata = sim_piece_grid),
+  sim_piece_mod2 = augment(sim_piece_mod2, newdata = sim_piece_grid),
+  .id = "model"
+) %>%
+  filter((x < 5 & model == "sim_piece_mod1") |
+           (x >=5 & model == "sim_piece_mod2")) %>%
+  ggplot(aes(x, y)) +
+  geom_point(data = sim_piece) +
+  geom_line(aes(y = .fitted, color = model), size = 1) +
+  geom_vline(xintercept = 5, linetype = 2, color = "grey") +
+  scale_color_brewer(type = "qual", guide = FALSE) +
+  labs(title = "Piecewise cubic regression",
+       x = "X",
+       y = "Y")
+```
+
+## Constraints and splines
+
+Instead of a discontinuous piecewise function, we'd rather have something continuous. That is, we impose the **constraint** that the fitted curve must be continuous.
+
+```{r sim-spline, echo = FALSE}
+###### very hackish implementation
+# simulate data
+sim_piece_cont <- sim_piece %>%
+  mutate(y = ifelse(x < 5,
+                    15 + .05 * x - .5 * x^2 - .05 * x^3,
+                    .05 * x + .1 * x^2 - .05 * x^3))
+
+# estimate models
+sim_piece_cont_mod1 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece_cont, subset = x < 5)
+sim_piece_cont_mod2 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece_cont, subset = x >= 5)
+
+# draw the plot
+bind_rows(
+  sim_piece_cont_mod1 = augment(sim_piece_cont_mod1, newdata = sim_piece_grid),
+  sim_piece_cont_mod2 = augment(sim_piece_cont_mod2, newdata = sim_piece_grid),
+  .id = "model"
+) %>%
+  filter((x < 5 & model == "sim_piece_cont_mod1") |
+           (x >=5 & model == "sim_piece_cont_mod2")) %>%
+  ggplot() +
+  geom_point(data = sim_piece %>%
+               mutate(y = ifelse(x < 5,
+                                 15 + .05 * x - .5 * x^2 - .05 * x^3 + rnorm(100, 0, 3),
+                                 .05 * x + .1 * x^2 - .05 * x^3) + rnorm(100, 0, 3)), aes(x, y)) +
+  geom_line(aes(x, .fitted, color = model), size = 1) +
+  geom_vline(xintercept = 5, linetype = 2, color = "grey") +
+  scale_color_brewer(type = "qual", guide = FALSE) +
+  labs(title = "Continuous piecewise cubic regression",
+       x = "X",
+       y = "Y")
+```
+
+But notice that this constraint is insufficient. Now the function is continuous, but still looks unnatural because of the V-shaped join. We should add two additional constraints: not only should the fitted curve be continuous, but the first and second **derivatives** should also be continuous at the knot. This will generate a fitted curve that is continuous and **smooth**.
+
+```{r sim-spline-smooth, echo = FALSE}
+# estimate models
+sim_piece_smooth <- glm(y ~ bs(x, knots = c(5)), data = sim_piece)
+
+# draw the plot
+augment(sim_piece_smooth, newdata = sim_piece) %>%
+  ggplot(aes(x)) +
+  geom_point(aes(y = y)) +
+  geom_line(aes(y = .fitted), size = 1) +
+  geom_vline(xintercept = 5, linetype = 2, color = "grey") +
+  labs(title = "Cubic spline",
+       x = "X",
+       y = "Y")
+```
+
+By increasing the number of knots, we will increase the flexibility of the resulting spline:
+
+```{r sim-spline-smooth-5, echo = FALSE}
+tibble(
+  terms = c(1, 5, 10),
+  models = map(terms, ~ glm(y ~ bs(x, df = . + 3), data = sim_piece)),
+  pred = map(models, augment, newdata = sim_piece)
+) %>%
+  unnest(pred) %>%
+  ggplot(aes(x, y)) +
+  geom_point(data = sim_piece, alpha = .2) +
+  geom_line(aes(y = .fitted, color = factor(terms))) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Cubic spline",
+       x = "X",
+       y = "Y",
+       color = "Knots")
+```
+
+## Basis splines vs. natural splines
+
+One drawback to the splines as currently presented (known as **basis splines**) is that they have high variance at the outer range of the predictors. Consider a basis spline with 3 knots applied to the [voting and age logistic regression model](/notes/global-methods/#age-and-voting):
+
+```{r mhealth}
+mh <- read_csv(here("static", "data", "mental_health.csv")) %>%
+  na.omit
+```
+
+```{r vote-age-basis-spline, dependson = "mhealth"}
+# estimate model
+glm(vote96 ~ bs(age, df = 6), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  labs(title = "Predicted probability of voting",
+       subtitle = "Basis spline with 3 knots",
+       x = "Age",
+       y = "Predicted probability of voting")
+```
+
+Notice the 95% confidence interval balloons at both low and high values for age. To control for this, we impose **boundary constraints**: the function is required to be linear at the boundary (the region where $X$ is smaller than the smallest knot, or larger than the largest knot). This type of spline is known as a **natural spline**. This leads to more stable estimates at the boundaries.
+
+```{r vote-age-natural-spline, dependson = "mhealth"}
+# estimate basis spline model
+vote_age_basis <- glm(vote96 ~ bs(age, df = 6), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE)
+vote_age_natural <- glm(vote96 ~ ns(age, df = 6), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE)
+
+bind_rows(
+  Basis = vote_age_basis,
+  Natural = vote_age_natural,
+  .id = "model"
+) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals, color = model)) +
+  geom_line(aes(y = upper, color = model), linetype = 2) +
+  geom_line(aes(y = lower, color = model), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Predicted probability of voting",
+       x = "Age",
+       y = "Predicted probability of voting",
+       color = "Spline") +
+  theme(legend.position = "bottom")
+```
+
+## Choosing the number and location of knots
+
+Typically knots are placed in a uniform fashion; that is, the cutpoints $c$ are determined by first identifying the number of knots $K$ for the model, then partitioning $X$ into uniform quantiles. So if we fit a cubic regression spline with 5 knots on the voting and age logistic regression, it would divide `age` into 5 equal quantiles^[That is, each interval contains the same number of observations rather than each interval having an equal width.] and estimate the cubic spline function for each quantile:
+
+```{r vote-spline}
+# estimate model
+glm(vote96 ~ ns(age, df = 8), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  geom_vline(xintercept = attr(bs(mh$age, df = 8), "knots"),
+             linetype = 2, color = "blue") +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  labs(title = "Predicted probability of voting",
+       subtitle = "Natural spline with 5 knots",
+       x = "Age",
+       y = "Predicted probability of voting")
+```
+
+But this still leaves unaddressed the matter of how many knots should we use? Or how many degrees should each polynomial be? While theory should still be our guide, we can also use [cross-validation](/notes/cross-validation/) to determine the optimal number of knots and/or polynomial degrees. For our voting and age model, we can estimate $10$-fold CV MSE for varying numbers of knots for a cubic natural spline:
+
+```{r vote-cv}
+# function to simplify things
+vote_spline <- function(splits, df = NULL){
+  # estimate the model on each fold
+  model <- glm(vote96 ~ ns(age, df = df),
+                data = analysis(splits))
+  
+  model_acc <- augment(model, newdata = assessment(splits)) %>%
+    accuracy(truth = factor(vote96), estimate = factor(round(.fitted)))
+  
+  mean(model_acc$.estimate)
+}
+
+tune_over_knots <- function(splits, knots){
+  vote_spline(splits, df = knots + 3)
+}
+
+# estimate CV error for knots in 0:25
+results <- vfold_cv(mh, v = 10)
+
+expand(results, id, knots = 1:25) %>%
+  left_join(results) %>%
+  mutate(acc = map2_dbl(splits, knots, tune_over_knots)) %>%
+  group_by(knots) %>%
+  summarize(acc = mean(acc)) %>%
+  mutate(err = 1 - acc) %>%
+  ggplot(aes(knots, err)) +
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Optimal number of knots for natural cubic spline regression",
+       x = "Knots",
+       y = "10-fold CV error")
+```
+
+These results (weakly) suggest the optimal number of knots is around 7. The resulting model produced by these parameters is:
+
+```{r vote-optimal-mod}
+glm(vote96 ~ ns(age, df = 10), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  geom_vline(xintercept = attr(bs(mh$age, df = 10), "knots"),
+             linetype = 2, color = "blue") +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  labs(title = "Predicted probability of voting",
+       subtitle = "Natural spline with 9 knots",
+       x = "Age",
+       y = "Predicted probability of voting")
+```
+
+## Comparison to polynomial regression
+
+```{r vote-spline-poly, dependson = "mhealth"}
+# estimate natural spline model with df = 15
+vote_age_spline <- glm(vote96 ~ ns(age, df = 15), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE)
+vote_age_poly <- glm(vote96 ~ poly(age, degree = 15), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE)
+
+bind_rows(
+  `Natural cubic spline` = vote_age_spline,
+  `Polynomial` = vote_age_poly,
+  .id = "model"
+) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals, color = model)) +
+  # geom_line(aes(y = upper, color = model), linetype = 2) +
+  # geom_line(aes(y = lower, color = model), linetype = 2) +
+  # geom_hline(yintercept = 0, linetype = 1) +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Predicted probability of voting",
+       x = "Age",
+       y = "Predicted probability of voting",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+Splines are generally superior to polynomial regression because their flexibility is defined primarily in terms of the number of knots in the model, rather than the degree of the highest polynomial term (e.g. $X^{15}$), whereas polynomial regression models must use high degree polynomials to achieve similar flexibility. This leads to more overfitting and wilder behavior, especially in the boundary regions. In the comparison above, we fit a natural cubic spline with 15 degrees of freedom (aka 12 knots) and compare it to a degree-15 polynomial regression. Notice the undesirable behavior of the polynomial regression model at the boundaries relative to the natural cubic spline.
+
+# Smoothing splines
+
+
+# Multivariate adaptive regression splines (MARS)
+
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* @james2013introduction
+* @friedman2001elements

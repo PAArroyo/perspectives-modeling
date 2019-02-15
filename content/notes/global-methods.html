@@ -66,32 +66,22 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#interpreting-transformed-variables"><span class="toc-section-number">2.2</span> Interpreting transformed variables</a><ul>
 <li><a href="#log-transformations"><span class="toc-section-number">2.2.1</span> Log transformations</a></li>
 </ul></li>
-<li><a href="#polynomial-regressions"><span class="toc-section-number">2.3</span> Polynomial regressions</a><ul>
-<li><a href="#biden-and-age"><span class="toc-section-number">2.3.1</span> Biden and age</a></li>
-<li><a href="#voter-turnout-and-mental-health"><span class="toc-section-number">2.3.2</span> Voter turnout and mental health</a></li>
 </ul></li>
+<li><a href="#polynomial-regressions"><span class="toc-section-number">3</span> Polynomial regressions</a><ul>
+<li><a href="#biden-and-age"><span class="toc-section-number">3.1</span> Biden and age</a></li>
+<li><a href="#voter-turnout-and-mental-health"><span class="toc-section-number">3.2</span> Voter turnout and mental health</a></li>
 </ul></li>
-<li><a href="#step-functions"><span class="toc-section-number">3</span> Step functions</a><ul>
-<li><a href="#age-and-voting"><span class="toc-section-number">3.1</span> Age and voting</a></li>
+<li><a href="#step-functions"><span class="toc-section-number">4</span> Step functions</a><ul>
+<li><a href="#age-and-voting"><span class="toc-section-number">4.1</span> Age and voting</a></li>
 </ul></li>
-<li><a href="#basis-functions"><span class="toc-section-number">4</span> Basis functions</a></li>
-<li><a href="#regression-splines"><span class="toc-section-number">5</span> Regression splines</a><ul>
-<li><a href="#piecewise-polynomials"><span class="toc-section-number">5.1</span> Piecewise polynomials</a></li>
-<li><a href="#constraints-and-splines"><span class="toc-section-number">5.2</span> Constraints and splines</a></li>
-<li><a href="#basis-splines-vs.natural-splines"><span class="toc-section-number">5.3</span> Basis splines vs. natural splines</a></li>
-<li><a href="#choosing-the-number-and-location-of-knots"><span class="toc-section-number">5.4</span> Choosing the number and location of knots</a></li>
-<li><a href="#comparison-to-polynomial-regression"><span class="toc-section-number">5.5</span> Comparison to polynomial regression</a></li>
+<li><a href="#local-regression"><span class="toc-section-number">5</span> Local regression</a><ul>
+<li><a href="#algorithm-for-local-linear-regression"><span class="toc-section-number">5.1</span> Algorithm for local linear regression</a></li>
 </ul></li>
-<li><a href="#smoothing-splines"><span class="toc-section-number">6</span> Smoothing splines</a></li>
-<li><a href="#multivariate-adaptive-regression-splines-mars"><span class="toc-section-number">7</span> Multivariate adaptive regression splines (MARS)</a></li>
-<li><a href="#local-regression"><span class="toc-section-number">8</span> Local regression</a><ul>
-<li><a href="#algorithm-for-local-linear-regression"><span class="toc-section-number">8.1</span> Algorithm for local linear regression</a></li>
+<li><a href="#generalized-additive-models"><span class="toc-section-number">6</span> Generalized additive models</a><ul>
+<li><a href="#gams-for-regression-problems"><span class="toc-section-number">6.1</span> GAMs for regression problems</a></li>
 </ul></li>
-<li><a href="#generalized-additive-models"><span class="toc-section-number">9</span> Generalized additive models</a><ul>
-<li><a href="#gams-for-regression-problems"><span class="toc-section-number">9.1</span> GAMs for regression problems</a></li>
-</ul></li>
-<li><a href="#session-info"><span class="toc-section-number">10</span> Session Info</a></li>
-<li><a href="#references"><span class="toc-section-number">11</span> References</a></li>
+<li><a href="#session-info"><span class="toc-section-number">7</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">8</span> References</a></li>
 </ul>
 </div>
 
@@ -245,15 +235,16 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </div>
 </div>
 </div>
-<div id="polynomial-regressions" class="section level2">
-<h2><span class="header-section-number">2.3</span> Polynomial regressions</h2>
+</div>
+<div id="polynomial-regressions" class="section level1">
+<h1><span class="header-section-number">3</span> Polynomial regressions</h1>
 <p><strong>Polynomial regression</strong> is a technique we have already discussed at length and is just a special case of monotonic transformations. Rather than fitting the standard linear model:</p>
 <p><span class="math display">\[y_i = \beta_0 + \beta_{1}x_{i} + \epsilon_{i}\]</span></p>
 <p>we instead fit a polynomial function:</p>
 <p><span class="math display">\[y_i = \beta_0 + \beta_{1}x_{i} + \beta_{2}x_i^2 + \beta_{3}x_i^3 + \dots + \beta_{d}x_i^d + \epsilon_i\]</span></p>
 <p>As <span class="math inline">\(d\)</span> increases, the linear model’s flexibility increases. We still use ordinary least squares (OLS) regression (or a Normal GLM) to estimate the parameters, which are also interpreted in the same way.</p>
-<div id="biden-and-age" class="section level3">
-<h3><span class="header-section-number">2.3.1</span> Biden and age</h3>
+<div id="biden-and-age" class="section level2">
+<h2><span class="header-section-number">3.1</span> Biden and age</h2>
 <p>Let’s take a look at the Joe Biden feeling thermometer data again and estimate a polynomial regression of the relationship between age and attitudes towards Biden:</p>
 <p><span class="math display">\[\text{Biden}_i = \beta_0 + \beta_1 \text{Age} + \beta_2 \text{Age}^2 + \beta_3 \text{Age}^3 + \beta_4 \text{Age}^4\]</span></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get data</span>
@@ -300,7 +291,7 @@ biden_pred &lt;-<span class="st"> </span><span class="kw">augment</span>(biden_a
 <span class="st">  </span><span class="kw">kable</span>(<span class="dt">caption =</span> <span class="st">&quot;Variance-covariance matrix of Biden polynomial regression&quot;</span>,
         <span class="dt">digits =</span> <span class="dv">5</span>)</code></pre></div>
 <table>
-<caption><span id="tab:biden-matrix">Table 2.1: </span>Variance-covariance matrix of Biden polynomial regression</caption>
+<caption><span id="tab:biden-matrix">Table 3.1: </span>Variance-covariance matrix of Biden polynomial regression</caption>
 <thead>
 <tr class="header">
 <th></th>
@@ -379,8 +370,8 @@ biden_pred &lt;-<span class="st"> </span><span class="kw">augment</span>(biden_a
 <pre><code>## Warning in title(...): &quot;plot&quot; is not a graphical parameter</code></pre>
 <p><img src="/notes/global-methods_files/figure-html/biden-margins-1.png" width="672" /><img src="/notes/global-methods_files/figure-html/biden-margins-2.png" width="672" /></p>
 </div>
-<div id="voter-turnout-and-mental-health" class="section level3">
-<h3><span class="header-section-number">2.3.2</span> Voter turnout and mental health</h3>
+<div id="voter-turnout-and-mental-health" class="section level2">
+<h2><span class="header-section-number">3.2</span> Voter turnout and mental health</h2>
 <p>Likewise, we can use polynomial regression for classification problems as well. Consider the mental health and voting data. Let’s estimate a logistic regression model of the relationship between mental health and voter turnout:</p>
 <p><span class="math display">\[\Pr(\text{Voter turnout} = \text{Yes} | \text{mhealth}) = \frac{\exp[\beta_0 + \beta_1 \text{mhealth} + \beta_2 \text{mhealth}^2 + \beta_3 \text{mhealth}^3 + \beta_4 \text{mhealth}^4]}{1 + \exp[\beta_0 + \beta_1 \text{mhealth} + \beta_2 \text{mhealth}^2 + \beta_3 \text{mhealth}^3 + \beta_4 \text{mhealth}^4]}\]</span></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># load data</span>
@@ -507,14 +498,13 @@ pred_mh <span class="op">+</span>
 <p>With logistic regression we presume the relationship between <span class="math inline">\(X\)</span> and the log-odds of <span class="math inline">\(Y\)</span> is linear, whereas the relationship between <span class="math inline">\(X\)</span> and the probability of <span class="math inline">\(Y\)</span> is curvilinear, defined by the logit function <span class="math inline">\(\log \left( \frac{\Pr(Y)}{1 - \Pr(Y)} \right)\)</span>. Now with the polynomial terms, even the predicted log-odds relationship is <strong>curvilinear</strong>. Notice that the confidence intervals are narrow for lower mental health scores and larger for higher values. This is because there are fewer individuals with high levels of depression, so the variance is larger around these scores for mental health.</p>
 </div>
 </div>
-</div>
 <div id="step-functions" class="section level1">
-<h1><span class="header-section-number">3</span> Step functions</h1>
+<h1><span class="header-section-number">4</span> Step functions</h1>
 <p>Monotonic transformations impose a <strong>global</strong> structure on the non-linear function of <span class="math inline">\(X\)</span>. That is, the function applies across the entire range of <span class="math inline">\(X\)</span>. Instead, we may believe that the non-linear behavior of <span class="math inline">\(X\)</span> is instead a <strong>local</strong> structure that varies across the range of <span class="math inline">\(X\)</span>. We can use <strong>step functions</strong> to avoid imposing a global structure. In step functions, you split the predictor <span class="math inline">\(X\)</span> into <strong>bins</strong> and fit a different constant to each bin. This converts a continuous variable into an <strong>ordered categorical variable</strong>.</p>
 <p>We create <span class="math inline">\(c_1, c_2, \dots, c_K\)</span> cutpoints in the range of <span class="math inline">\(X\)</span>, and construct <span class="math inline">\(K + 1\)</span> new variables <span class="math inline">\(C_1(X), C_2(X), \dots, C_K(X)\)</span>. Each of the new variables is an <strong>indicator</strong> or <strong>dummy</strong> variable that returns a 1 if <span class="math inline">\(x_i\)</span> falls within the range of the cutpoints and 0 otherwise. For any given <span class="math inline">\(x_i\)</span>, the sum of these variables will be precisely <span class="math inline">\(1\)</span>. We can then fit the linear regression model to the new indicator variables as predictors:</p>
 <p><span class="math display">\[y_i = \beta_0 + \beta_1 C_1 (x_i) + \beta_2 C_2 (x_i) + \dots + \beta_K C_K (x_i) + \epsilon_i\]</span></p>
 <div id="age-and-voting" class="section level2">
-<h2><span class="header-section-number">3.1</span> Age and voting</h2>
+<h2><span class="header-section-number">4.1</span> Age and voting</h2>
 <p>We can fit a piecewise constant regression to the voting data set, regressing age on the probability of voting. Dividing age into 5 bins looks like this:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># plain model</span>
 <span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span>age, <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
@@ -636,346 +626,11 @@ pred_mh <span class="op">+</span>
 <p>The drawback to step functions is unless there are natural breakpoints in the predictors, piecewise-constant functions can easily miss the actual relationship between <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>.</p>
 </div>
 </div>
-<div id="basis-functions" class="section level1">
-<h1><span class="header-section-number">4</span> Basis functions</h1>
-<p><strong>Basis functions</strong> are a family of functions or transformations applied to a variable <span class="math inline">\(X\)</span>: <span class="math inline">\(b_1(X), b_2(X), \ldots, b_K(X)\)</span>. Instead of fitting the linear model to <span class="math inline">\(X\)</span>, we fit the model:</p>
-<p><span class="math display">\[y_i = \beta_0 + \beta_1 b_1(x_i) + \beta_2 b_2(x_i) + \beta_3 b_3(x_i) + \ldots + \beta_K b_K(x_i) + \epsilon_i\]</span></p>
-<p>The functional form of the basis function is determined in advanced and is fixed and known. Polynomial and step functions are specific types of basis functions. For polynomial regression, <span class="math inline">\(b_j(x_i) = x_i^j\)</span> where <span class="math inline">\(j\)</span> is the polynomial degree. Since this linear model is just a transformation of the predictors <span class="math inline">\(X_i\)</span>, we can use least squares to estimate the model and apply all the standard statistical inferential techniques to evaluate and interpret the model.</p>
-</div>
-<div id="regression-splines" class="section level1">
-<h1><span class="header-section-number">5</span> Regression splines</h1>
-<p><strong>Regression splines</strong> extend polynomial transformations and piecewise constant regression by fitting separate polynomial functions over different regions of <span class="math inline">\(X\)</span>.</p>
-<div id="piecewise-polynomials" class="section level2">
-<h2><span class="header-section-number">5.1</span> Piecewise polynomials</h2>
-<p><strong>Piecewise polynomial regression</strong> fits separate low-degree polynomials for different regions of <span class="math inline">\(X\)</span>. For instance, a cubic piecewise polynomial regression model takes the form:</p>
-<p><span class="math display">\[y_i = \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 + \epsilon_i\]</span></p>
-<p>where the <span class="math inline">\(\beta\)</span>s are now vectors with different values for different parts of the range of <span class="math inline">\(X\)</span>. The points where the parameters change are called <strong>knots</strong>.</p>
-<p>The special case of a piecewise cubic polynomial with 0 knots is just an ordinary cubic polynomial:</p>
-<p><span class="math display">\[y_i = \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 + \epsilon_i\]</span></p>
-<p>Likewise, the special case of a piecewise constant polynomial (i.e. polynomial with degree <span class="math inline">\(0\)</span>) is piecewise constant regression.</p>
-<p>A piecewise cubic polynomial with a single knot at point <span class="math inline">\(c\)</span> takes the form:</p>
-<p><span class="math display">\[y_i = \begin{cases} 
-      \beta_{01} + \beta_{11}x_i^2 + \beta_{21}x_i^2 + \beta_{31}x_i^3 + \epsilon_i &amp; \text{if } x_i &lt; c \\
-      \beta_{02} + \beta_{12}x_i^2 + \beta_{22}x_i^2 + \beta_{32}x_i^3 + \epsilon_i &amp; \text{if } x_i \geq c
-   \end{cases}\]</span></p>
-<p>In essence, we fit two separate polynomial functions to the data. Each function is estimated using least squares applied to the individual functions and subsets of data. The more knots <span class="math inline">\(K\)</span> used, the more flexible the piecewise polynomial.</p>
-<p>While the example here uses a cubic (third-order) polynomial, we don’t have to use it. We could select any higher-order degree for the polynomial.</p>
-<p>Of course this leads to a somewhat odd and discontinuous function:</p>
-<p><img src="/notes/global-methods_files/figure-html/sim-piecewise-1.png" width="672" /></p>
-</div>
-<div id="constraints-and-splines" class="section level2">
-<h2><span class="header-section-number">5.2</span> Constraints and splines</h2>
-<p>Instead of a discontinuous piecewise function, we’d rather have something continuous. That is, we impose the <strong>constraint</strong> that the fitted curve must be continuous.</p>
-<p><img src="/notes/global-methods_files/figure-html/sim-spline-1.png" width="672" /></p>
-<p>But notice that this constraint is insufficient. Now the function is continuous, but still looks unnatural because of the V-shaped join. We should add two additional constraints: not only should the fitted curve be continuous, but the first and second <strong>derivatives</strong> should also be continuous at the knot. This will generate a fitted curve that is continuous and <strong>smooth</strong>.</p>
-<p><img src="/notes/global-methods_files/figure-html/sim-spline-smooth-1.png" width="672" /></p>
-<p>By increasing the number of knots, we will increase the flexibility of the resulting spline:</p>
-<p><img src="/notes/global-methods_files/figure-html/sim-spline-smooth-5-1.png" width="672" /></p>
-</div>
-<div id="basis-splines-vs.natural-splines" class="section level2">
-<h2><span class="header-section-number">5.3</span> Basis splines vs. natural splines</h2>
-<p>One drawback to the splines as currently presented (known as <strong>basis splines</strong>) is that they have high variance at the outer range of the predictors. Consider a basis spline with 3 knots applied to the voting and age logistic regression model:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate model</span>
-<span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">bs</span>(age, <span class="dt">df =</span> <span class="dv">6</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> lower), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">1</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_rug</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mh, vote96 <span class="op">==</span><span class="st"> </span><span class="dv">0</span>), <span class="kw">aes</span>(age), <span class="dt">alpha =</span> .<span class="dv">02</span>, <span class="dt">sides =</span> <span class="st">&quot;b&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_rug</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mh, vote96 <span class="op">==</span><span class="st"> </span><span class="dv">1</span>), <span class="kw">aes</span>(age), <span class="dt">alpha =</span> .<span class="dv">02</span>, <span class="dt">sides =</span> <span class="st">&quot;t&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="st">&quot;Basis spline with 3 knots&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
-       <span class="dt">y =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.4282572 0.6315037 0.2250108
-## 2  22.875 0.4302940 0.5164704 0.3441176
-## 3  25.750 0.4627694 0.5435835 0.3819553
-## 4  28.625 0.5123251 0.5778767 0.4467736
-## 5  31.500 0.5643390 0.6248809 0.5037972
-## 6  34.375 0.6046836 0.6687555 0.5406117
-## 7  37.250 0.6321075 0.6856957 0.5785192
-## 8  40.125 0.6572544 0.7098796 0.6046293
-## 9  43.000 0.6899492 0.7485517 0.6313467
-## 10 45.875 0.7318233 0.7852485 0.6783982
-## 11 48.750 0.7748341 0.8202808 0.7293873
-## 12 51.625 0.8122626 0.8565635 0.7679616
-## 13 54.500 0.8402300 0.8873578 0.7931022
-## 14 57.375 0.8570720 0.9048012 0.8093428
-## 15 60.250 0.8638145 0.9093047 0.8183243
-## 16 63.125 0.8626314 0.9058251 0.8194377
-## 17 66.000 0.8545801 0.8984857 0.8106745
-## 18 68.875 0.8399964 0.8899250 0.7900678
-## 19 71.750 0.8188883 0.8797559 0.7580207
-## 20 74.625 0.7912946 0.8650531 0.7175361</code></pre>
-<p><img src="/notes/global-methods_files/figure-html/vote-age-basis-spline-1.png" width="672" /></p>
-<p>Notice the 95% confidence interval balloons at both low and high values for age. To control for this, we impose <strong>boundary constraints</strong>: the function is required to be linear at the boundary (the region where <span class="math inline">\(X\)</span> is smaller than the smallest knot, or larger than the largest knot). This type of spline is known as a <strong>natural spline</strong>. This leads to more stable estimates at the boundaries.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate basis spline model</span>
-vote_age_basis &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">bs</span>(age, <span class="dt">df =</span> <span class="dv">6</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.4282572 0.6315037 0.2250108
-## 2  22.875 0.4302940 0.5164704 0.3441176
-## 3  25.750 0.4627694 0.5435835 0.3819553
-## 4  28.625 0.5123251 0.5778767 0.4467736
-## 5  31.500 0.5643390 0.6248809 0.5037972
-## 6  34.375 0.6046836 0.6687555 0.5406117
-## 7  37.250 0.6321075 0.6856957 0.5785192
-## 8  40.125 0.6572544 0.7098796 0.6046293
-## 9  43.000 0.6899492 0.7485517 0.6313467
-## 10 45.875 0.7318233 0.7852485 0.6783982
-## 11 48.750 0.7748341 0.8202808 0.7293873
-## 12 51.625 0.8122626 0.8565635 0.7679616
-## 13 54.500 0.8402300 0.8873578 0.7931022
-## 14 57.375 0.8570720 0.9048012 0.8093428
-## 15 60.250 0.8638145 0.9093047 0.8183243
-## 16 63.125 0.8626314 0.9058251 0.8194377
-## 17 66.000 0.8545801 0.8984857 0.8106745
-## 18 68.875 0.8399964 0.8899250 0.7900678
-## 19 71.750 0.8188883 0.8797559 0.7580207
-## 20 74.625 0.7912946 0.8650531 0.7175361</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">vote_age_natural &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> <span class="dv">6</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.4104826 0.5694648 0.2515004
-## 2  22.875 0.4360929 0.5241522 0.3480335
-## 3  25.750 0.4671766 0.5368465 0.3975066
-## 4  28.625 0.5088239 0.5837505 0.4338973
-## 5  31.500 0.5624939 0.6227874 0.5022005
-## 6  34.375 0.6105011 0.6791545 0.5418478
-## 7  37.250 0.6345767 0.6965424 0.5726110
-## 8  40.125 0.6485917 0.7086990 0.5884845
-## 9  43.000 0.6785472 0.7470780 0.6100163
-## 10 45.875 0.7301420 0.7856302 0.6746538
-## 11 48.750 0.7836706 0.8343419 0.7329993
-## 12 51.625 0.8239502 0.8782916 0.7696088
-## 13 54.500 0.8470984 0.8976731 0.7965238
-## 14 57.375 0.8581347 0.9018701 0.8143992
-## 15 60.250 0.8606929 0.9014754 0.8199105
-## 16 63.125 0.8568879 0.9017039 0.8120720
-## 17 66.000 0.8480399 0.8996926 0.7963872
-## 18 68.875 0.8344507 0.8913064 0.7775950
-## 19 71.750 0.8158132 0.8755124 0.7561140
-## 20 74.625 0.7917365 0.8538166 0.7296564</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">bind_rows</span>(
-  <span class="dt">Basis =</span> vote_age_basis,
-  <span class="dt">Natural =</span> vote_age_natural,
-  <span class="dt">.id =</span> <span class="st">&quot;model&quot;</span>
-) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals, <span class="dt">color =</span> model)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper, <span class="dt">color =</span> model), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> lower, <span class="dt">color =</span> model), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">1</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_rug</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mh, vote96 <span class="op">==</span><span class="st"> </span><span class="dv">0</span>), <span class="kw">aes</span>(age), <span class="dt">alpha =</span> .<span class="dv">02</span>, <span class="dt">sides =</span> <span class="st">&quot;b&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_rug</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mh, vote96 <span class="op">==</span><span class="st"> </span><span class="dv">1</span>), <span class="kw">aes</span>(age), <span class="dt">alpha =</span> .<span class="dv">02</span>, <span class="dt">sides =</span> <span class="st">&quot;t&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
-       <span class="dt">y =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>,
-       <span class="dt">color =</span> <span class="st">&quot;Spline&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
-<p><img src="/notes/global-methods_files/figure-html/vote-age-natural-spline-1.png" width="672" /></p>
-</div>
-<div id="choosing-the-number-and-location-of-knots" class="section level2">
-<h2><span class="header-section-number">5.4</span> Choosing the number and location of knots</h2>
-<p>Typically knots are placed in a uniform fashion; that is, the cutpoints <span class="math inline">\(c\)</span> are determined by first identifying the number of knots <span class="math inline">\(K\)</span> for the model, then partitioning <span class="math inline">\(X\)</span> into uniform quantiles. So if we fit a cubic regression spline with 5 knots on the voting and age logistic regression, it would divide <code>age</code> into 5 equal quantiles<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> and estimate the cubic spline function for each quantile:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate model</span>
-<span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> <span class="dv">8</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> lower), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">1</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_vline</span>(<span class="dt">xintercept =</span> <span class="kw">attr</span>(<span class="kw">bs</span>(mh<span class="op">$</span>age, <span class="dt">df =</span> <span class="dv">8</span>), <span class="st">&quot;knots&quot;</span>),
-             <span class="dt">linetype =</span> <span class="dv">2</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_rug</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mh, vote96 <span class="op">==</span><span class="st"> </span><span class="dv">0</span>), <span class="kw">aes</span>(age), <span class="dt">alpha =</span> .<span class="dv">02</span>, <span class="dt">sides =</span> <span class="st">&quot;b&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_rug</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mh, vote96 <span class="op">==</span><span class="st"> </span><span class="dv">1</span>), <span class="kw">aes</span>(age), <span class="dt">alpha =</span> .<span class="dv">02</span>, <span class="dt">sides =</span> <span class="st">&quot;t&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="st">&quot;Natural spline with 5 knots&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
-       <span class="dt">y =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.4365875 0.6152524 0.2579225
-## 2  22.875 0.4328343 0.5205456 0.3451230
-## 3  25.750 0.4498344 0.5346405 0.3650284
-## 4  28.625 0.5067269 0.5790485 0.4344054
-## 5  31.500 0.5821232 0.6651290 0.4991173
-## 6  34.375 0.6231946 0.6923669 0.5540224
-## 7  37.250 0.6237312 0.7086129 0.5388495
-## 8  40.125 0.6228755 0.6946885 0.5510625
-## 9  43.000 0.6680380 0.7513065 0.5847694
-## 10 45.875 0.7529138 0.8133569 0.6924707
-## 11 48.750 0.8127571 0.8773629 0.7481513
-## 12 51.625 0.8315533 0.8859030 0.7772036
-## 13 54.500 0.8316128 0.8860993 0.7771264
-## 14 57.375 0.8309324 0.8956626 0.7662023
-## 15 60.250 0.8363073 0.8975423 0.7750724
-## 16 63.125 0.8434146 0.8953149 0.7915143
-## 17 66.000 0.8478102 0.8979973 0.7976231
-## 18 68.875 0.8453973 0.9022059 0.7885887
-## 19 71.750 0.8334613 0.8969400 0.7699826
-## 20 74.625 0.8114817 0.8792868 0.7436766</code></pre>
-<p><img src="/notes/global-methods_files/figure-html/vote-spline-1.png" width="672" /></p>
-<p>But this still leaves unaddressed the matter of how many knots should we use? Or how many degrees should each polynomial be? While theory should still be our guide, we can also use <a href="/notes/cross-validation/">cross-validation</a> to determine the optimal number of knots and/or polynomial degrees. For our voting and age model, we can estimate <span class="math inline">\(10\)</span>-fold CV MSE for varying numbers of knots for a cubic natural spline:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># function to simplify things</span>
-vote_spline &lt;-<span class="st"> </span><span class="cf">function</span>(splits, <span class="dt">df =</span> <span class="ot">NULL</span>){
-  <span class="co"># estimate the model on each fold</span>
-  model &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> df),
-                <span class="dt">data =</span> <span class="kw">analysis</span>(splits))
-  
-  model_acc &lt;-<span class="st"> </span><span class="kw">augment</span>(model, <span class="dt">newdata =</span> <span class="kw">assessment</span>(splits)) <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">accuracy</span>(<span class="dt">truth =</span> <span class="kw">factor</span>(vote96), <span class="dt">estimate =</span> <span class="kw">factor</span>(<span class="kw">round</span>(.fitted)))
-  
-  <span class="kw">mean</span>(model_acc<span class="op">$</span>.estimate)
-}
-
-tune_over_knots &lt;-<span class="st"> </span><span class="cf">function</span>(splits, knots){
-  <span class="kw">vote_spline</span>(splits, <span class="dt">df =</span> knots <span class="op">+</span><span class="st"> </span><span class="dv">3</span>)
-}
-
-<span class="co"># estimate CV error for knots in 0:25</span>
-results &lt;-<span class="st"> </span><span class="kw">vfold_cv</span>(mh, <span class="dt">v =</span> <span class="dv">10</span>)
-
-<span class="kw">expand</span>(results, id, <span class="dt">knots =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">25</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">left_join</span>(results) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">acc =</span> <span class="kw">map2_dbl</span>(splits, knots, tune_over_knots)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">group_by</span>(knots) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">summarize</span>(<span class="dt">acc =</span> <span class="kw">mean</span>(acc)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">err =</span> <span class="dv">1</span> <span class="op">-</span><span class="st"> </span>acc) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(knots, err)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_y_continuous</span>(<span class="dt">labels =</span> scales<span class="op">::</span>percent) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Optimal number of knots for natural cubic spline regression&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Knots&quot;</span>,
-       <span class="dt">y =</span> <span class="st">&quot;10-fold CV error&quot;</span>)</code></pre></div>
-<pre><code>## Joining, by = &quot;id&quot;</code></pre>
-<p><img src="/notes/global-methods_files/figure-html/vote-cv-1.png" width="672" /></p>
-<p>These results (weakly) suggest the optimal number of knots is around 7. The resulting model produced by these parameters is:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> <span class="dv">10</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> lower), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">1</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_vline</span>(<span class="dt">xintercept =</span> <span class="kw">attr</span>(<span class="kw">bs</span>(mh<span class="op">$</span>age, <span class="dt">df =</span> <span class="dv">10</span>), <span class="st">&quot;knots&quot;</span>),
-             <span class="dt">linetype =</span> <span class="dv">2</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_rug</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mh, vote96 <span class="op">==</span><span class="st"> </span><span class="dv">0</span>), <span class="kw">aes</span>(age), <span class="dt">alpha =</span> .<span class="dv">02</span>, <span class="dt">sides =</span> <span class="st">&quot;b&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_rug</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mh, vote96 <span class="op">==</span><span class="st"> </span><span class="dv">1</span>), <span class="kw">aes</span>(age), <span class="dt">alpha =</span> .<span class="dv">02</span>, <span class="dt">sides =</span> <span class="st">&quot;t&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="st">&quot;Natural spline with 9 knots&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
-       <span class="dt">y =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.4282471 0.6252063 0.2312880
-## 2  22.875 0.4348659 0.5276855 0.3420463
-## 3  25.750 0.4556856 0.5549905 0.3563806
-## 4  28.625 0.5031728 0.5913505 0.4149951
-## 5  31.500 0.5759378 0.6593652 0.4925103
-## 6  34.375 0.6289635 0.7183163 0.5396107
-## 7  37.250 0.6243092 0.7120114 0.5366070
-## 8  40.125 0.6185019 0.6979372 0.5390666
-## 9  43.000 0.6683266 0.7593541 0.5772991
-## 10 45.875 0.7578417 0.8313389 0.6843446
-## 11 48.750 0.8104157 0.8759382 0.7448932
-## 12 51.625 0.8263481 0.8944110 0.7582853
-## 13 54.500 0.8319732 0.9015882 0.7623582
-## 14 57.375 0.8351908 0.8945150 0.7758667
-## 15 60.250 0.8384688 0.9091522 0.7677855
-## 16 63.125 0.8428727 0.9123006 0.7734447
-## 17 66.000 0.8456804 0.9030068 0.7883540
-## 18 68.875 0.8435757 0.8995645 0.7875869
-## 19 71.750 0.8330172 0.8994600 0.7665745
-## 20 74.625 0.8119896 0.8872808 0.7366983</code></pre>
-<p><img src="/notes/global-methods_files/figure-html/vote-optimal-mod-1.png" width="672" /></p>
-</div>
-<div id="comparison-to-polynomial-regression" class="section level2">
-<h2><span class="header-section-number">5.5</span> Comparison to polynomial regression</h2>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate natural spline model with df = 15</span>
-vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> <span class="dv">15</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.3793679 0.5937175 0.1650183
-## 2  22.875 0.4671325 0.5806376 0.3536274
-## 3  25.750 0.4581774 0.5564811 0.3598738
-## 4  28.625 0.4840827 0.5847188 0.3834465
-## 5  31.500 0.6029202 0.7061861 0.4996543
-## 6  34.375 0.6179708 0.7159191 0.5200224
-## 7  37.250 0.6235426 0.7238391 0.5232461
-## 8  40.125 0.6247015 0.7286857 0.5207172
-## 9  43.000 0.6674434 0.7672512 0.5676356
-## 10 45.875 0.7508906 0.8340875 0.6676938
-## 11 48.750 0.8144245 0.8898146 0.7390344
-## 12 51.625 0.8351965 0.9218317 0.7485614
-## 13 54.500 0.8314213 0.9177248 0.7451178
-## 14 57.375 0.8246783 0.9038665 0.7454902
-## 15 60.250 0.8285899 0.9252102 0.7319696
-## 16 63.125 0.8456132 0.9235091 0.7677174
-## 17 66.000 0.8595835 0.9339104 0.7852565
-## 18 68.875 0.8560419 0.9333724 0.7787114
-## 19 71.750 0.8343533 0.9014878 0.7672188
-## 20 74.625 0.8024240 0.8888855 0.7159626</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">vote_age_poly &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(age, <span class="dt">degree =</span> <span class="dv">15</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper       lower
-## 1  20.000 0.3147316 0.6468989 -0.01743579
-## 2  22.875 0.4481369 0.5904278  0.30584594
-## 3  25.750 0.4493254 0.5489748  0.34967596
-## 4  28.625 0.5029676 0.5920328  0.41390234
-## 5  31.500 0.5772570 0.6624795  0.49203446
-## 6  34.375 0.6270813 0.6999641  0.55419857
-## 7  37.250 0.6262224 0.7007168  0.55172801
-## 8  40.125 0.6197892 0.6946550  0.54492341
-## 9  43.000 0.6669163 0.7433337  0.59049880
-## 10 45.875 0.7529868 0.8194943  0.68647929
-## 11 48.750 0.8153374 0.8780881  0.75258669
-## 12 51.625 0.8336618 0.8975367  0.76978695
-## 13 54.500 0.8274747 0.8973390  0.75761035
-## 14 57.375 0.8261138 0.9013465  0.75088105
-## 15 60.250 0.8390544 0.9160919  0.76201684
-## 16 63.125 0.8480082 0.9289159  0.76710054
-## 17 66.000 0.8413788 0.9238493  0.75890838
-## 18 68.875 0.8362665 0.9250883  0.74744477
-## 19 71.750 0.8524834 0.9369094  0.76805735
-## 20 74.625 0.8572613 0.9520232  0.76249934</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">bind_rows</span>(
-  <span class="st">`</span><span class="dt">Natural cubic spline</span><span class="st">`</span> =<span class="st"> </span>vote_age_spline,
-  <span class="st">`</span><span class="dt">Polynomial</span><span class="st">`</span> =<span class="st"> </span>vote_age_poly,
-  <span class="dt">.id =</span> <span class="st">&quot;model&quot;</span>
-) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals, <span class="dt">color =</span> model)) <span class="op">+</span>
-<span class="st">  </span><span class="co"># geom_line(aes(y = upper, color = model), linetype = 2) +</span>
-<span class="st">  </span><span class="co"># geom_line(aes(y = lower, color = model), linetype = 2) +</span>
-<span class="st">  </span><span class="co"># geom_hline(yintercept = 0, linetype = 1) +</span>
-<span class="st">  </span><span class="kw">geom_rug</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mh, vote96 <span class="op">==</span><span class="st"> </span><span class="dv">0</span>), <span class="kw">aes</span>(age), <span class="dt">alpha =</span> .<span class="dv">02</span>, <span class="dt">sides =</span> <span class="st">&quot;b&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_rug</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mh, vote96 <span class="op">==</span><span class="st"> </span><span class="dv">1</span>), <span class="kw">aes</span>(age), <span class="dt">alpha =</span> .<span class="dv">02</span>, <span class="dt">sides =</span> <span class="st">&quot;t&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
-       <span class="dt">y =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>,
-       <span class="dt">color =</span> <span class="ot">NULL</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
-<p><img src="/notes/global-methods_files/figure-html/vote-spline-poly-1.png" width="672" /></p>
-<p>Splines are generally superior to polynomial regression because their flexibility is defined primarily in terms of the number of knots in the model, rather than the degree of the highest polynomial term (e.g. <span class="math inline">\(X^{15}\)</span>), whereas polynomial regression models must use high degree polynomials to achieve similar flexibility. This leads to more overfitting and wilder behavior, especially in the boundary regions. In the comparison above, we fit a natural cubic spline with 15 degrees of freedom (aka 12 knots) and compare it to a degree-15 polynomial regression. Notice the undesirable behavior of the polynomial regression model at the boundaries relative to the natural cubic spline.</p>
-</div>
-</div>
-<div id="smoothing-splines" class="section level1">
-<h1><span class="header-section-number">6</span> Smoothing splines</h1>
-</div>
-<div id="multivariate-adaptive-regression-splines-mars" class="section level1">
-<h1><span class="header-section-number">7</span> Multivariate adaptive regression splines (MARS)</h1>
-</div>
 <div id="local-regression" class="section level1">
-<h1><span class="header-section-number">8</span> Local regression</h1>
+<h1><span class="header-section-number">5</span> Local regression</h1>
 <p><strong>Locally weighted scatterplot smoothing</strong> (local regression, LOWESS, or LOESS) fits a separate non-linear function at each target point <span class="math inline">\(x_0\)</span> using only the nearby training observations. This method estimates a regression line based on localized subsets of the data, building up the global function <span class="math inline">\(f\)</span> point-by-point.</p>
 <div id="algorithm-for-local-linear-regression" class="section level2">
-<h2><span class="header-section-number">8.1</span> Algorithm for local linear regression</h2>
+<h2><span class="header-section-number">5.1</span> Algorithm for local linear regression</h2>
 <ol style="list-style-type: decimal">
 <li>Gather the fraction <span class="math inline">\(s = \frac{k}{n}\)</span> of training points whose <span class="math inline">\(x_i\)</span> are closest to <span class="math inline">\(x_0\)</span>.</li>
 <li>Assign a weight <span class="math inline">\(K_{i0} = K(x_i, x_0)\)</span> to each point in the neighborhood, so that the point furthest from <span class="math inline">\(x_0\)</span> has a weight of 0, and the closest has the highest weight. All but these <span class="math inline">\(k\)</span> nearest neighbors get a weight of 0.</li>
@@ -992,10 +647,10 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 </div>
 </div>
 <div id="generalized-additive-models" class="section level1">
-<h1><span class="header-section-number">9</span> Generalized additive models</h1>
+<h1><span class="header-section-number">6</span> Generalized additive models</h1>
 <p>So far each of these nonlinear methods has been implemented for a single predictor <span class="math inline">\(X\)</span>. To generalize this approach to multiple predictors <span class="math inline">\(X_1, X_2, \dots, X_p\)</span>, we need to utilize a <strong>generalized additive model</strong> (GAM). GAMs extend the linear model by allowing non-linear functions of each of the variables, while also maintaining the <strong>additive assumption</strong> that each variable independently and additively shapes the response variable <span class="math inline">\(Y\)</span>. GAMs work for both quantitative and qualitative responses.</p>
 <div id="gams-for-regression-problems" class="section level2">
-<h2><span class="header-section-number">9.1</span> GAMs for regression problems</h2>
+<h2><span class="header-section-number">6.1</span> GAMs for regression problems</h2>
 <p>To extend the multiple linear regression model</p>
 <p><span class="math display">\[y_i = \beta_0 + \beta_{1} X_{i1} + \beta_{2} X_{i2} + \dots + \beta_{p} X_{ip} + \epsilon_i\]</span></p>
 <p>and allow for non-linear relationships between each predictor and the response variable, we replace each linear component <span class="math inline">\(\beta_{j} x_{ij}\)</span> with a smooth, non-linear function <span class="math inline">\(f_j(x_{ij})\)</span>:</p>
@@ -1247,7 +902,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 </div>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
-<h1><span class="header-section-number">10</span> Session Info</h1>
+<h1><span class="header-section-number">7</span> Session Info</h1>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
@@ -1268,7 +923,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  base64enc       0.1-3      2015-07-28 [2]
 ##  bayesplot       1.6.0      2018-08-02 [2]
 ##  bindr           0.1.1      2018-03-13 [2]
-##  bindrcpp      * 0.2.2      2018-03-29 [1]
+##  bindrcpp        0.2.2      2018-03-29 [1]
 ##  blogdown        0.10       2019-01-09 [1]
 ##  bookdown        0.9        2018-12-21 [1]
 ##  broom         * 0.5.1      2018-12-05 [2]
@@ -1290,13 +945,11 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  DT              0.5        2018-11-05 [2]
 ##  dygraphs        1.1.1.6    2018-07-11 [2]
 ##  evaluate        0.12       2018-10-09 [2]
-##  farver          1.1.0      2018-11-20 [1]
 ##  forcats       * 0.3.0      2018-02-19 [2]
 ##  foreach       * 1.4.4      2017-12-12 [2]
 ##  fs              1.2.6      2018-08-23 [1]
 ##  gam           * 1.16       2018-07-20 [2]
 ##  generics        0.0.2      2018-11-29 [1]
-##  gganimate     * 1.0.0      2019-01-02 [1]
 ##  ggplot2       * 3.1.0      2018-10-25 [1]
 ##  ggridges        0.5.1      2018-09-27 [2]
 ##  glue            1.3.0      2018-07-17 [2]
@@ -1320,7 +973,6 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  janeaustenr     0.1.5      2017-06-10 [2]
 ##  jsonlite        1.6        2018-12-07 [2]
 ##  knitr         * 1.21       2018-12-10 [2]
-##  labeling        0.3        2014-08-23 [2]
 ##  later           0.7.5      2018-09-18 [2]
 ##  lattice       * 0.20-38    2018-11-04 [2]
 ##  lava            1.6.4      2018-11-25 [2]
@@ -1333,7 +985,6 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  markdown        0.9        2018-12-07 [2]
 ##  MASS            7.3-51.1   2018-11-01 [2]
 ##  Matrix          1.2-15     2018-11-01 [2]
-##  MatrixModels  * 0.4-1      2015-08-22 [2]
 ##  matrixStats     0.54.0     2018-07-23 [2]
 ##  memoise         1.1.0      2017-04-21 [2]
 ##  mime            0.6        2018-10-05 [1]
@@ -1356,14 +1007,11 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  pROC            1.13.0     2018-09-24 [1]
 ##  processx        3.2.1      2018-12-05 [2]
 ##  prodlim         2018.04.18 2018-04-18 [2]
-##  progress        1.2.0      2018-06-14 [2]
 ##  promises        1.0.1      2018-04-13 [2]
 ##  ps              1.3.0      2018-12-21 [2]
 ##  purrr         * 0.3.0      2019-01-27 [2]
-##  quantreg      * 5.38       2018-12-18 [2]
 ##  R6              2.3.0      2018-10-04 [1]
 ##  rcfss         * 0.1.5      2019-01-24 [1]
-##  RColorBrewer    1.1-2      2014-12-07 [2]
 ##  Rcpp            1.0.0      2018-11-07 [1]
 ##  readr         * 1.3.1      2018-12-21 [2]
 ##  readxl          1.2.0      2018-12-19 [2]
@@ -1388,7 +1036,6 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  shinystan       2.5.0      2018-05-01 [2]
 ##  shinythemes     1.1.2      2018-11-06 [2]
 ##  SnowballC       0.6.0      2019-01-15 [2]
-##  SparseM       * 1.77       2017-04-23 [2]
 ##  StanHeaders     2.18.0-1   2018-12-13 [2]
 ##  stringi         1.2.4      2018-07-20 [2]
 ##  stringr       * 1.3.1      2018-05-10 [2]
@@ -1406,7 +1053,6 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  timeDate        3043.102   2018-02-21 [2]
 ##  titanic       * 0.1.0      2015-08-31 [2]
 ##  tokenizers      0.2.1      2018-03-29 [2]
-##  tweenr          1.0.1      2018-12-14 [1]
 ##  usethis         1.4.0      2018-08-14 [1]
 ##  withr           2.1.2      2018-03-15 [2]
 ##  xfun            0.4        2018-10-23 [1]
@@ -1450,8 +1096,6 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1475,7 +1119,6 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.1)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1487,7 +1130,6 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1512,9 +1154,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  local                               
 ##  CRAN (R 3.5.0)                      
@@ -1523,7 +1163,6 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1542,7 +1181,6 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1569,13 +1207,12 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
 ## 
 ## [1] /Users/soltoffbc/Library/R/3.5/library
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
 </div>
 <div id="references" class="section level1 toc-ignore">
-<h1><span class="header-section-number">11</span> References</h1>
+<h1><span class="header-section-number">8</span> References</h1>
 <ul>
 <li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
 <li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
@@ -1588,10 +1225,4 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 <p>James, Gareth, Daniela Witten, Trevor Hastie, and Robert Tibshirani. 2013. <em>An Introduction to Statistical Learning</em>. Vol. 112. Springer. <a href="http://www-bcf.usc.edu/~gareth/ISL/" class="uri">http://www-bcf.usc.edu/~gareth/ISL/</a>.</p>
 </div>
 </div>
-</div>
-<div class="footnotes">
-<hr />
-<ol>
-<li id="fn1"><p>That is, each interval contains the same number of observations rather than each interval having an equal width.<a href="#fnref1">↩</a></p></li>
-</ol>
 </div>
