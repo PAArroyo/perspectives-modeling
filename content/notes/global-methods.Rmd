@@ -768,7 +768,7 @@ glm(vote96 ~ ns(age, df = 8), data = mh, family = binomial) %>%
 
 But this still leaves unaddressed the matter of how many knots should we use? Or how many degrees should each polynomial be? While theory should still be our guide, we can also use [cross-validation](/notes/cross-validation/) to determine the optimal number of knots and/or polynomial degrees. For our voting and age model, we can estimate $10$-fold CV MSE for varying numbers of knots for a cubic natural spline:
 
-```{r wage-cv}
+```{r vote-cv}
 # function to simplify things
 vote_spline <- function(splits, df = NULL){
   # estimate the model on each fold
@@ -805,7 +805,7 @@ expand(results, id, knots = 1:25) %>%
 
 These results (weakly) suggest the optimal number of knots is around 7. The resulting model produced by these parameters is:
 
-```{r wage-optimal-mod}
+```{r vote-optimal-mod}
 glm(vote96 ~ ns(age, df = 10), data = mh, family = binomial) %>%
   cplot("age", what = "prediction", draw = FALSE) %>%
   ggplot(aes(x = xvals)) + 
@@ -822,6 +822,37 @@ glm(vote96 ~ ns(age, df = 10), data = mh, family = binomial) %>%
        x = "Age",
        y = "Predicted probability of voting")
 ```
+
+## Comparison to polynomial regression
+
+```{r vote-spline-poly, dependson = "mhealth"}
+# estimate natural spline model with df = 15
+vote_age_spline <- glm(vote96 ~ ns(age, df = 15), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE)
+vote_age_poly <- glm(vote96 ~ poly(age, degree = 15), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE)
+
+bind_rows(
+  `Natural cubic spline` = vote_age_spline,
+  `Polynomial` = vote_age_poly,
+  .id = "model"
+) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals, color = model)) +
+  # geom_line(aes(y = upper, color = model), linetype = 2) +
+  # geom_line(aes(y = lower, color = model), linetype = 2) +
+  # geom_hline(yintercept = 0, linetype = 1) +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Predicted probability of voting",
+       x = "Age",
+       y = "Predicted probability of voting",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+Splines are generally superior to polynomial regression because their flexibility is defined primarily in terms of the number of knots in the model, rather than the degree of the highest polynomial term (e.g. $X^{15}$), whereas polynomial regression models must use high degree polynomials to achieve similar flexibility. This leads to more overfitting and wilder behavior, especially in the boundary regions. In the comparison above, we fit a natural cubic spline with 15 degrees of freedom (aka 12 knots) and compare it to a degree-15 polynomial regression. Notice the undesirable behavior of the polynomial regression model at the boundaries relative to the natural cubic spline.
 
 # Smoothing splines
 
