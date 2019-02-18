@@ -1,0 +1,342 @@
+---
+title: Local regression
+date: 2019-02-20T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Moving beyond linearity
+    weight: 3
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(tidymodels)
+library(rcfss)
+library(titanic)
+library(knitr)
+library(splines)
+library(ISLR)
+library(lattice)
+library(gam)
+library(here)
+library(patchwork)
+library(margins)
+
+set.seed(1234)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+# Local regression
+
+**Locally weighted scatterplot smoothing** (local regression, LOWESS, or LOESS) fits a separate non-linear function at each target point $x_0$ using only the nearby training observations. This method estimates a regression line based on localized subsets of the data, building up the global function $f$ point-by-point.
+
+## Algorithm for local linear regression
+
+1. Gather the fraction $s = \frac{k}{n}$ of training points whose $x_i$ are closest to $x_0$.
+1. Assign a weight $K_{i0} = K(x_i, x_0)$ to each point in the neighborhood, so that the point furthest from $x_0$ has a weight of 0, and the closest has the highest weight. All but these $k$ nearest neighbors get a weight of 0.
+1. Fit a **weighted least squares regression** of the $y_i$ on the $x_i$ using the aformentioned weights. Weighted least squares allows us to adjust the variance for each observation $\sigma_i^2$ by weights $w_i$. This is useful in correcting for heteroscedasticity in OLS, and also allows us to estimate the local regression.
+1. The fitted value at $x_0$ is given by $\hat{f}(x_0) = \hat{\beta}_0 + \hat{\beta}_1 x_0$
+
+To obtain the local regression fit at a new value of $x_0$, we have to perform this same procedure again adjusting the weights for the new region of data.
+
+Here is an example of a local linear regression on the `ethanol` dataset in the `lattice` package:
+
+```{r loess, echo = FALSE, warning = FALSE, message = FALSE}
+library(broom)
+library(lattice)
+
+mod <- loess(NOx ~ E, ethanol, degree = 1, span = .75)
+fit <- augment(mod)
+
+ggplot(fit, aes(E, NOx)) +
+  geom_point() +
+  geom_line(aes(y = .fitted), color = "red") +
+  labs(x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J")
+```
+
+The LOESS is built up point-by-point:
+
+```{r loess_buildup, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE}
+dat <- ethanol %>%
+  crossing(center = unique(ethanol$E)) %>%
+  mutate(dist = abs(E - center)) %>%
+  filter(rank(dist) / n() <= .75) %>%
+  mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
+
+library(gganimate)
+
+ggplot(dat, aes(E, NOx)) +
+  geom_point(aes(alpha = weight)) +
+  geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
+  geom_vline(aes(xintercept = center), lty = 2) +
+  geom_line(aes(y = .fitted), data = fit, color = "red") +
+  labs(title = "Centered over {closest_state}",
+       x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J") +
+  transition_states(center,
+                    transition_length = 2,
+                    state_length = 1) + 
+  ease_aes("cubic-in-out")
+```
+
+One important argument you can control with LOESS is the **span**, or how smooth the LOESS function will become. A larger span will result in a smoother curve, but may not be as accurate.
+
+```{r loess_span, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE}
+spans <- c(.25, .5, .75, 1)
+
+# create loess fits, one for each span
+fits <- data_frame(span = spans) %>%
+  group_by(span) %>%
+  do(augment(loess(NOx ~ E, ethanol, degree = 1, span = .$span)))
+
+# calculate weights to reproduce this with local weighted fits
+dat <- ethanol %>%
+  crossing(span = spans, center = unique(ethanol$E)) %>%
+  mutate(dist = abs(E - center)) %>%
+  filter(rank(dist) / n() <= span) %>%
+  mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
+
+# create faceted plot with changing points, local linear fits, and vertical lines,
+# and constant hollow points and loess fit
+ggplot(dat, aes(E, NOx)) +
+  geom_point(aes(alpha = weight)) +
+  geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
+  geom_vline(aes(xintercept = center), lty = 2) +
+  geom_point(shape = 1, data = ethanol, alpha = .25) +
+  geom_line(aes(y = .fitted), data = fits, color = "red") +
+  facet_wrap(~span) +
+  ylim(0, 5) +
+  ggtitle("x0 = ") +
+  labs(title = "Centered over {closest_state}",
+       x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J") +
+  transition_states(center,
+                    transition_length = 2,
+                    state_length = 1) + 
+  ease_aes("cubic-in-out")
+```
+
+# Generalized additive models
+
+So far each of these nonlinear methods has been implemented for a single predictor $X$. To generalize this approach to multiple predictors $X_1, X_2, \dots, X_p$, we need to utilize a **generalized additive model** (GAM). GAMs extend the linear model by allowing non-linear functions of each of the variables, while also maintaining the **additive assumption** that each variable independently and additively shapes the response variable $Y$. GAMs work for both quantitative and qualitative responses.
+
+## GAMs for regression problems
+
+To extend the multiple linear regression model
+
+$$y_i = \beta_0 + \beta_{1} X_{i1} + \beta_{2} X_{i2} + \dots + \beta_{p} X_{ip} + \epsilon_i$$
+
+and allow for non-linear relationships between each predictor and the response variable, we replace each linear component $\beta_{j} x_{ij}$ with a smooth, non-linear function $f_j(x_{ij})$:
+
+$$y_i = \beta_0 + \sum_{j = 1}^p f_j(x_{ij}) + \epsilon_i$$
+
+$$y_i = \beta_0 + f_1(x_{i1}) + \beta_{2} f_2(x_{i2}) + \dots + f_p(x_{ip}) + \epsilon_i$$
+
+As you can see, each $f_j$ provides an **additive** component to the overall model of $y_i$. We estimate each $f_j$ then add together all of their contributions. Importantly, each functional component is estimated **simultaneously** so that it is truly still a multiple variable regression model. Let's estimate a GAM for the Biden dataset using the model
+
+$$\text{Biden} = \beta_0 + f_1(\text{Age}) + f_2(\text{Education}) + f_3(\text{Gender}) + \epsilon$$
+
+Where $f_1$ and $f_2$ are cubic splines with 2 knots and $f_3$ generates a separate constant for males and females using traditional dummy variables.
+
+```{r biden}
+# get data
+biden <- read_csv(here("static", "data", "biden.csv"))
+```
+
+```{r biden-gam}
+# estimate model for splines on age and education plus dichotomous female
+biden_gam <- gam(biden ~ bs(age, df = 5) + bs(educ, df = 5) + female, data = biden)
+summary(biden_gam)
+
+# get graphs of each term
+biden_gam_terms <- preplot(biden_gam, se = TRUE, rug = FALSE)
+
+## age
+tibble(x = biden_gam_terms$`bs(age, df = 5)`$x,
+           y = biden_gam_terms$`bs(age, df = 5)`$y,
+           se.fit = biden_gam_terms$`bs(age, df = 5)`$se.y) %>%
+  mutate(y_low = y - 1.96 * se.fit,
+         y_high = y + 1.96 * se.fit) %>%
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_line(aes(y = y_low), linetype = 2) +
+  geom_line(aes(y = y_high), linetype = 2) +
+  labs(title = "GAM of Biden feeling thermometer",
+       subtitle = "Cubic spline",
+       x = "Age",
+       y = expression(f[1](age)))
+
+## education
+tibble(x = biden_gam_terms$`bs(educ, df = 5)`$x,
+           y = biden_gam_terms$`bs(educ, df = 5)`$y,
+           se.fit = biden_gam_terms$`bs(educ, df = 5)`$se.y) %>%
+  mutate(y_low = y - 1.96 * se.fit,
+         y_high = y + 1.96 * se.fit) %>%
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_line(aes(y = y_low), linetype = 2) +
+  geom_line(aes(y = y_high), linetype = 2) +
+  labs(title = "GAM of Biden feeling thermometer",
+       subtitle = "Cubic spline",
+       x = "Education",
+       y = expression(f[2](education)))
+
+## gender
+tibble(x = biden_gam_terms$female$x,
+           y = biden_gam_terms$female$y,
+           se.fit = biden_gam_terms$female$se.y) %>%
+  unique %>%
+  mutate(y_low = y - 1.96 * se.fit,
+         y_high = y + 1.96 * se.fit,
+         x = factor(x, levels = 0:1, labels = c("Male", "Female"))) %>%
+  ggplot(aes(x, y, ymin = y_low, ymax = y_high)) +
+  geom_errorbar() +
+  geom_point() +
+  labs(title = "GAM of Biden feeling thermometer",
+       x = NULL,
+       y = expression(f[3](gender)))
+```
+
+For age, there does not appear to be a substantial or significant relationship with Biden feeling thermometers after controlling for education and gender. The cubic spline is relatively flat and the 95% confidence interval is wide. For education, the effect appears substantial and statistically significant; as education increases, predicted Biden feeling thermometer ratings decrease until approximately 15 years of formal education, then increase again for those with college or post-graduate degrees. Finally, for gender the difference between males and females is substantial and statistically distinguishable from 0.
+
+Instead of cubic splines, we could use local regression. At this point we can no longer use OLS to fit the model, but instead uses a **backfitting** process to model each predictor simultaneously.
+
+```{r biden-gam-local}
+# estimate model for splines on age and education plus dichotomous female
+biden_gam_local <- gam(biden ~ lo(age) + lo(educ) + female, data = biden)
+summary(biden_gam_local)
+
+# get graphs of each term
+biden_gam_local_terms <- preplot(biden_gam_local, se = TRUE, rug = FALSE)
+
+## age
+tibble(x = biden_gam_local_terms$`lo(age)`$x,
+           y = biden_gam_local_terms$`lo(age)`$y,
+           se.fit = biden_gam_local_terms$`lo(age)`$se.y) %>%
+  mutate(y_low = y - 1.96 * se.fit,
+         y_high = y + 1.96 * se.fit) %>%
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_line(aes(y = y_low), linetype = 2) +
+  geom_line(aes(y = y_high), linetype = 2) +
+  labs(title = "GAM of Biden feeling thermometer",
+       subtitle = "Local regression",
+       x = "Age",
+       y = expression(f[1](age)))
+
+## education
+tibble(x = biden_gam_local_terms$`lo(educ)`$x,
+           y = biden_gam_local_terms$`lo(educ)`$y,
+           se.fit = biden_gam_local_terms$`lo(educ)`$se.y) %>%
+  mutate(y_low = y - 1.96 * se.fit,
+         y_high = y + 1.96 * se.fit) %>%
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_line(aes(y = y_low), linetype = 2) +
+  geom_line(aes(y = y_high), linetype = 2) +
+  labs(title = "GAM of Biden feeling thermometer",
+       subtitle = "Local regression",
+       x = "Education",
+       y = expression(f[2](education)))
+
+## gender
+tibble(x = biden_gam_local_terms$female$x,
+           y = biden_gam_local_terms$female$y,
+           se.fit = biden_gam_local_terms$female$se.y) %>%
+  unique %>%
+  mutate(y_low = y - 1.96 * se.fit,
+         y_high = y + 1.96 * se.fit,
+         x = factor(x, levels = 0:1, labels = c("Male", "Female"))) %>%
+  ggplot(aes(x, y, ymin = y_low, ymax = y_high)) +
+  geom_errorbar() +
+  geom_point() +
+  labs(title = "GAM of Biden feeling thermometer",
+       x = NULL,
+       y = expression(f[3](gender)))
+```
+
+The results are pretty similar to the cubic splines.
+
+We can also use GAMs for classification problems, like the Titanic example.
+
+```{r titanic-gam}
+library(titanic)
+
+# estimate model for splines on age and education plus dichotomous female
+titanic_gam <- gam(Survived ~ bs(Age, df = 5) + bs(Fare, df = 5) + Sex, data = titanic_train,
+                   family = binomial)
+summary(titanic_gam)
+
+# get graphs of each term
+titanic_gam_terms <- preplot(titanic_gam, se = TRUE, rug = FALSE)
+
+## age
+tibble(x = titanic_gam_terms$`bs(Age, df = 5)`$x,
+           y = titanic_gam_terms$`bs(Age, df = 5)`$y,
+           se.fit = titanic_gam_terms$`bs(Age, df = 5)`$se.y) %>%
+  mutate(y_low = y - 1.96 * se.fit,
+         y_high = y + 1.96 * se.fit) %>%
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_line(aes(y = y_low), linetype = 2) +
+  geom_line(aes(y = y_high), linetype = 2) +
+  labs(title = "GAM of Titanic survival",
+       subtitle = "Cubic spline",
+       x = "Age",
+       y = expression(f[1](age)))
+
+## fare
+tibble(x = titanic_gam_terms$`bs(Fare, df = 5)`$x,
+           y = titanic_gam_terms$`bs(Fare, df = 5)`$y,
+           se.fit = titanic_gam_terms$`bs(Fare, df = 5)`$se.y) %>%
+  mutate(y_low = y - 1.96 * se.fit,
+         y_high = y + 1.96 * se.fit) %>%
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_line(aes(y = y_low), linetype = 2) +
+  geom_line(aes(y = y_high), linetype = 2) +
+  labs(title = "GAM of Titanic survival",
+       subtitle = "Cubic spline",
+       x = "Fare",
+       y = expression(f[2](fare)))
+
+## gender
+tibble(x = titanic_gam_terms$Sex$x,
+           y = titanic_gam_terms$Sex$y,
+           se.fit = titanic_gam_terms$Sex$se.y) %>%
+  unique %>%
+  mutate(y_low = y - 1.96 * se.fit,
+         y_high = y + 1.96 * se.fit,
+         x = factor(x, levels = c("male", "female"), labels = c("Male", "Female"))) %>%
+  ggplot(aes(x, y, ymin = y_low, ymax = y_high)) +
+  geom_errorbar() +
+  geom_point() +
+  labs(title = "GAM of Titanic survival",
+       x = NULL,
+       y = expression(f[3](gender)))
+```
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* @james2013introduction
+* @friedman2001elements

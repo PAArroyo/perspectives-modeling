@@ -1,0 +1,702 @@
+---
+title: Local regression
+date: 2019-02-20T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Moving beyond linearity
+    weight: 3
+---
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+<div id="TOC">
+<ul>
+<li><a href="#local-regression"><span class="toc-section-number">1</span> Local regression</a><ul>
+<li><a href="#algorithm-for-local-linear-regression"><span class="toc-section-number">1.1</span> Algorithm for local linear regression</a></li>
+</ul></li>
+<li><a href="#generalized-additive-models"><span class="toc-section-number">2</span> Generalized additive models</a><ul>
+<li><a href="#gams-for-regression-problems"><span class="toc-section-number">2.1</span> GAMs for regression problems</a></li>
+</ul></li>
+<li><a href="#session-info"><span class="toc-section-number">3</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">4</span> References</a></li>
+</ul>
+</div>
+
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse)
+<span class="kw">library</span>(tidymodels)
+<span class="kw">library</span>(rcfss)
+<span class="kw">library</span>(titanic)
+<span class="kw">library</span>(knitr)
+<span class="kw">library</span>(splines)
+<span class="kw">library</span>(ISLR)
+<span class="kw">library</span>(lattice)
+<span class="kw">library</span>(gam)
+<span class="kw">library</span>(here)
+<span class="kw">library</span>(patchwork)
+<span class="kw">library</span>(margins)
+
+<span class="kw">set.seed</span>(<span class="dv">1234</span>)
+<span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
+<div id="local-regression" class="section level1">
+<h1><span class="header-section-number">1</span> Local regression</h1>
+<p><strong>Locally weighted scatterplot smoothing</strong> (local regression, LOWESS, or LOESS) fits a separate non-linear function at each target point <span class="math inline">\(x_0\)</span> using only the nearby training observations. This method estimates a regression line based on localized subsets of the data, building up the global function <span class="math inline">\(f\)</span> point-by-point.</p>
+<div id="algorithm-for-local-linear-regression" class="section level2">
+<h2><span class="header-section-number">1.1</span> Algorithm for local linear regression</h2>
+<ol style="list-style-type: decimal">
+<li>Gather the fraction <span class="math inline">\(s = \frac{k}{n}\)</span> of training points whose <span class="math inline">\(x_i\)</span> are closest to <span class="math inline">\(x_0\)</span>.</li>
+<li>Assign a weight <span class="math inline">\(K_{i0} = K(x_i, x_0)\)</span> to each point in the neighborhood, so that the point furthest from <span class="math inline">\(x_0\)</span> has a weight of 0, and the closest has the highest weight. All but these <span class="math inline">\(k\)</span> nearest neighbors get a weight of 0.</li>
+<li>Fit a <strong>weighted least squares regression</strong> of the <span class="math inline">\(y_i\)</span> on the <span class="math inline">\(x_i\)</span> using the aformentioned weights. Weighted least squares allows us to adjust the variance for each observation <span class="math inline">\(\sigma_i^2\)</span> by weights <span class="math inline">\(w_i\)</span>. This is useful in correcting for heteroscedasticity in OLS, and also allows us to estimate the local regression.</li>
+<li>The fitted value at <span class="math inline">\(x_0\)</span> is given by <span class="math inline">\(\hat{f}(x_0) = \hat{\beta}_0 + \hat{\beta}_1 x_0\)</span></li>
+</ol>
+<p>To obtain the local regression fit at a new value of <span class="math inline">\(x_0\)</span>, we have to perform this same procedure again adjusting the weights for the new region of data.</p>
+<p>Here is an example of a local linear regression on the <code>ethanol</code> dataset in the <code>lattice</code> package:</p>
+<p><img src="/notes/local-regression_files/figure-html/loess-1.png" width="672" /></p>
+<p>The LOESS is built up point-by-point:</p>
+<p><img src="/notes/local-regression_files/figure-html/loess_buildup-1.gif" /><!-- --></p>
+<p>One important argument you can control with LOESS is the <strong>span</strong>, or how smooth the LOESS function will become. A larger span will result in a smoother curve, but may not be as accurate.</p>
+<p><img src="/notes/local-regression_files/figure-html/loess_span-1.gif" /><!-- --></p>
+</div>
+</div>
+<div id="generalized-additive-models" class="section level1">
+<h1><span class="header-section-number">2</span> Generalized additive models</h1>
+<p>So far each of these nonlinear methods has been implemented for a single predictor <span class="math inline">\(X\)</span>. To generalize this approach to multiple predictors <span class="math inline">\(X_1, X_2, \dots, X_p\)</span>, we need to utilize a <strong>generalized additive model</strong> (GAM). GAMs extend the linear model by allowing non-linear functions of each of the variables, while also maintaining the <strong>additive assumption</strong> that each variable independently and additively shapes the response variable <span class="math inline">\(Y\)</span>. GAMs work for both quantitative and qualitative responses.</p>
+<div id="gams-for-regression-problems" class="section level2">
+<h2><span class="header-section-number">2.1</span> GAMs for regression problems</h2>
+<p>To extend the multiple linear regression model</p>
+<p><span class="math display">\[y_i = \beta_0 + \beta_{1} X_{i1} + \beta_{2} X_{i2} + \dots + \beta_{p} X_{ip} + \epsilon_i\]</span></p>
+<p>and allow for non-linear relationships between each predictor and the response variable, we replace each linear component <span class="math inline">\(\beta_{j} x_{ij}\)</span> with a smooth, non-linear function <span class="math inline">\(f_j(x_{ij})\)</span>:</p>
+<p><span class="math display">\[y_i = \beta_0 + \sum_{j = 1}^p f_j(x_{ij}) + \epsilon_i\]</span></p>
+<p><span class="math display">\[y_i = \beta_0 + f_1(x_{i1}) + \beta_{2} f_2(x_{i2}) + \dots + f_p(x_{ip}) + \epsilon_i\]</span></p>
+<p>As you can see, each <span class="math inline">\(f_j\)</span> provides an <strong>additive</strong> component to the overall model of <span class="math inline">\(y_i\)</span>. We estimate each <span class="math inline">\(f_j\)</span> then add together all of their contributions. Importantly, each functional component is estimated <strong>simultaneously</strong> so that it is truly still a multiple variable regression model. Let’s estimate a GAM for the Biden dataset using the model</p>
+<p><span class="math display">\[\text{Biden} = \beta_0 + f_1(\text{Age}) + f_2(\text{Education}) + f_3(\text{Gender}) + \epsilon\]</span></p>
+<p>Where <span class="math inline">\(f_1\)</span> and <span class="math inline">\(f_2\)</span> are cubic splines with 2 knots and <span class="math inline">\(f_3\)</span> generates a separate constant for males and females using traditional dummy variables.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get data</span>
+biden &lt;-<span class="st"> </span><span class="kw">read_csv</span>(<span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;biden.csv&quot;</span>))</code></pre></div>
+<pre><code>## Parsed with column specification:
+## cols(
+##   biden = col_double(),
+##   female = col_double(),
+##   age = col_double(),
+##   educ = col_double(),
+##   dem = col_double(),
+##   rep = col_double()
+## )</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate model for splines on age and education plus dichotomous female</span>
+biden_gam &lt;-<span class="st"> </span><span class="kw">gam</span>(biden <span class="op">~</span><span class="st"> </span><span class="kw">bs</span>(age, <span class="dt">df =</span> <span class="dv">5</span>) <span class="op">+</span><span class="st"> </span><span class="kw">bs</span>(educ, <span class="dt">df =</span> <span class="dv">5</span>) <span class="op">+</span><span class="st"> </span>female, <span class="dt">data =</span> biden)
+<span class="kw">summary</span>(biden_gam)</code></pre></div>
+<pre><code>## 
+## Call: gam(formula = biden ~ bs(age, df = 5) + bs(educ, df = 5) + female, 
+##     data = biden)
+## Deviance Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -67.4989 -13.5223   0.5484  17.9535  46.5817 
+## 
+## (Dispersion Parameter for gaussian family taken to be 532.4635)
+## 
+##     Null Deviance: 994143.5 on 1806 degrees of freedom
+## Residual Deviance: 955771.9 on 1795 degrees of freedom
+## AIC: 16485.47 
+## 
+## Number of Local Scoring Iterations: 2 
+## 
+## Anova for Parametric Effects
+##                    Df Sum Sq Mean Sq F value    Pr(&gt;F)    
+## bs(age, df = 5)     5   4038   807.5  1.5166    0.1814    
+## bs(educ, df = 5)    5  16660  3332.1  6.2579 9.174e-06 ***
+## female              1  17673 17673.4 33.1918 9.805e-09 ***
+## Residuals        1795 955772   532.5                      
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get graphs of each term</span>
+biden_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(biden_gam, <span class="dt">se =</span> <span class="ot">TRUE</span>, <span class="dt">rug =</span> <span class="ot">FALSE</span>)
+
+## age
+<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(age, df = 5)</span><span class="st">`</span><span class="op">$</span>x,
+           <span class="dt">y =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(age, df = 5)</span><span class="st">`</span><span class="op">$</span>y,
+           <span class="dt">se.fit =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(age, df = 5)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Cubic spline&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
+       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">1</span>](age)))</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/biden-gam-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## education
+<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(educ, df = 5)</span><span class="st">`</span><span class="op">$</span>x,
+           <span class="dt">y =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(educ, df = 5)</span><span class="st">`</span><span class="op">$</span>y,
+           <span class="dt">se.fit =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(educ, df = 5)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Cubic spline&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Education&quot;</span>,
+       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">2</span>](education)))</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/biden-gam-2.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## gender
+<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_terms<span class="op">$</span>female<span class="op">$</span>x,
+           <span class="dt">y =</span> biden_gam_terms<span class="op">$</span>female<span class="op">$</span>y,
+           <span class="dt">se.fit =</span> biden_gam_terms<span class="op">$</span>female<span class="op">$</span>se.y) <span class="op">%&gt;%</span>
+<span class="st">  </span>unique <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">x =</span> <span class="kw">factor</span>(x, <span class="dt">levels =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">1</span>, <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;Male&quot;</span>, <span class="st">&quot;Female&quot;</span>))) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y, <span class="dt">ymin =</span> y_low, <span class="dt">ymax =</span> y_high)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_errorbar</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">3</span>](gender)))</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/biden-gam-3.png" width="672" /></p>
+<p>For age, there does not appear to be a substantial or significant relationship with Biden feeling thermometers after controlling for education and gender. The cubic spline is relatively flat and the 95% confidence interval is wide. For education, the effect appears substantial and statistically significant; as education increases, predicted Biden feeling thermometer ratings decrease until approximately 15 years of formal education, then increase again for those with college or post-graduate degrees. Finally, for gender the difference between males and females is substantial and statistically distinguishable from 0.</p>
+<p>Instead of cubic splines, we could use local regression. At this point we can no longer use OLS to fit the model, but instead uses a <strong>backfitting</strong> process to model each predictor simultaneously.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate model for splines on age and education plus dichotomous female</span>
+biden_gam_local &lt;-<span class="st"> </span><span class="kw">gam</span>(biden <span class="op">~</span><span class="st"> </span><span class="kw">lo</span>(age) <span class="op">+</span><span class="st"> </span><span class="kw">lo</span>(educ) <span class="op">+</span><span class="st"> </span>female, <span class="dt">data =</span> biden)
+<span class="kw">summary</span>(biden_gam_local)</code></pre></div>
+<pre><code>## 
+## Call: gam(formula = biden ~ lo(age) + lo(educ) + female, data = biden)
+## Deviance Residuals:
+##    Min     1Q Median     3Q    Max 
+## -66.66 -13.92   1.28  18.97  44.03 
+## 
+## (Dispersion Parameter for gaussian family taken to be 533.8858)
+## 
+##     Null Deviance: 994143.5 on 1806 degrees of freedom
+## Residual Deviance: 959708.2 on 1797.591 degrees of freedom
+## AIC: 16487.72 
+## 
+## Number of Local Scoring Iterations: 2 
+## 
+## Anova for Parametric Effects
+##               Df Sum Sq Mean Sq F value    Pr(&gt;F)    
+## lo(age)      1.0   1406  1406.4  2.6344    0.1047    
+## lo(educ)     1.0   8338  8337.7 15.6171 8.055e-05 ***
+## female       1.0  17750 17750.3 33.2474 9.532e-09 ***
+## Residuals 1797.6 959708   533.9                      
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Anova for Nonparametric Effects
+##             Npar Df Npar F    Pr(F)   
+## (Intercept)                           
+## lo(age)         2.4 0.8267 0.454360   
+## lo(educ)        3.1 3.8734 0.008521 **
+## female                                
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get graphs of each term</span>
+biden_gam_local_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(biden_gam_local, <span class="dt">se =</span> <span class="ot">TRUE</span>, <span class="dt">rug =</span> <span class="ot">FALSE</span>)
+
+## age
+<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(age)</span><span class="st">`</span><span class="op">$</span>x,
+           <span class="dt">y =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(age)</span><span class="st">`</span><span class="op">$</span>y,
+           <span class="dt">se.fit =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(age)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Local regression&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
+       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">1</span>](age)))</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/biden-gam-local-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## education
+<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(educ)</span><span class="st">`</span><span class="op">$</span>x,
+           <span class="dt">y =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(educ)</span><span class="st">`</span><span class="op">$</span>y,
+           <span class="dt">se.fit =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(educ)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Local regression&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Education&quot;</span>,
+       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">2</span>](education)))</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/biden-gam-local-2.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## gender
+<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_local_terms<span class="op">$</span>female<span class="op">$</span>x,
+           <span class="dt">y =</span> biden_gam_local_terms<span class="op">$</span>female<span class="op">$</span>y,
+           <span class="dt">se.fit =</span> biden_gam_local_terms<span class="op">$</span>female<span class="op">$</span>se.y) <span class="op">%&gt;%</span>
+<span class="st">  </span>unique <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">x =</span> <span class="kw">factor</span>(x, <span class="dt">levels =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">1</span>, <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;Male&quot;</span>, <span class="st">&quot;Female&quot;</span>))) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y, <span class="dt">ymin =</span> y_low, <span class="dt">ymax =</span> y_high)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_errorbar</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">3</span>](gender)))</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/biden-gam-local-3.png" width="672" /></p>
+<p>The results are pretty similar to the cubic splines.</p>
+<p>We can also use GAMs for classification problems, like the Titanic example.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(titanic)
+
+<span class="co"># estimate model for splines on age and education plus dichotomous female</span>
+titanic_gam &lt;-<span class="st"> </span><span class="kw">gam</span>(Survived <span class="op">~</span><span class="st"> </span><span class="kw">bs</span>(Age, <span class="dt">df =</span> <span class="dv">5</span>) <span class="op">+</span><span class="st"> </span><span class="kw">bs</span>(Fare, <span class="dt">df =</span> <span class="dv">5</span>) <span class="op">+</span><span class="st"> </span>Sex, <span class="dt">data =</span> titanic_train,
+                   <span class="dt">family =</span> binomial)
+<span class="kw">summary</span>(titanic_gam)</code></pre></div>
+<pre><code>## 
+## Call: gam(formula = Survived ~ bs(Age, df = 5) + bs(Fare, df = 5) + 
+##     Sex, family = binomial, data = titanic_train)
+## Deviance Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -2.7426 -0.6055 -0.4912  0.7351  2.2300 
+## 
+## (Dispersion Parameter for binomial family taken to be 1)
+## 
+##     Null Deviance: 964.516 on 713 degrees of freedom
+## Residual Deviance: 684.4498 on 702 degrees of freedom
+## AIC: 708.4498 
+## 177 observations deleted due to missingness 
+## 
+## Number of Local Scoring Iterations: 9 
+## 
+## Anova for Parametric Effects
+##                   Df Sum Sq Mean Sq  F value    Pr(&gt;F)    
+## bs(Age, df = 5)    5   8.41   1.682   1.6035    0.1568    
+## bs(Fare, df = 5)   5  40.86   8.172   7.7905  3.79e-07 ***
+## Sex                1 141.62 141.617 135.0111 &lt; 2.2e-16 ***
+## Residuals        702 736.35   1.049                       
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get graphs of each term</span>
+titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(titanic_gam, <span class="dt">se =</span> <span class="ot">TRUE</span>, <span class="dt">rug =</span> <span class="ot">FALSE</span>)
+
+## age
+<span class="kw">tibble</span>(<span class="dt">x =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Age, df = 5)</span><span class="st">`</span><span class="op">$</span>x,
+           <span class="dt">y =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Age, df = 5)</span><span class="st">`</span><span class="op">$</span>y,
+           <span class="dt">se.fit =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Age, df = 5)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Titanic survival&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Cubic spline&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
+       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">1</span>](age)))</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/titanic-gam-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## fare
+<span class="kw">tibble</span>(<span class="dt">x =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Fare, df = 5)</span><span class="st">`</span><span class="op">$</span>x,
+           <span class="dt">y =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Fare, df = 5)</span><span class="st">`</span><span class="op">$</span>y,
+           <span class="dt">se.fit =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Fare, df = 5)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Titanic survival&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Cubic spline&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Fare&quot;</span>,
+       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">2</span>](fare)))</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/titanic-gam-2.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## gender
+<span class="kw">tibble</span>(<span class="dt">x =</span> titanic_gam_terms<span class="op">$</span>Sex<span class="op">$</span>x,
+           <span class="dt">y =</span> titanic_gam_terms<span class="op">$</span>Sex<span class="op">$</span>y,
+           <span class="dt">se.fit =</span> titanic_gam_terms<span class="op">$</span>Sex<span class="op">$</span>se.y) <span class="op">%&gt;%</span>
+<span class="st">  </span>unique <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
+         <span class="dt">x =</span> <span class="kw">factor</span>(x, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="st">&quot;male&quot;</span>, <span class="st">&quot;female&quot;</span>), <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;Male&quot;</span>, <span class="st">&quot;Female&quot;</span>))) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y, <span class="dt">ymin =</span> y_low, <span class="dt">ymax =</span> y_high)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_errorbar</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Titanic survival&quot;</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">3</span>](gender)))</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/titanic-gam-3.png" width="672" /></p>
+</div>
+</div>
+<div id="session-info" class="section level1 toc-ignore">
+<h1><span class="header-section-number">3</span> Session Info</h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
+<pre><code>## ─ Session info ──────────────────────────────────────────────────────────
+##  setting  value                       
+##  version  R version 3.5.2 (2018-12-20)
+##  os       macOS Mojave 10.14.2        
+##  system   x86_64, darwin15.6.0        
+##  ui       X11                         
+##  language (EN)                        
+##  collate  en_US.UTF-8                 
+##  ctype    en_US.UTF-8                 
+##  tz       America/Chicago             
+##  date     2019-02-18                  
+## 
+## ─ Packages ──────────────────────────────────────────────────────────────
+##  package       * version    date       lib
+##  assertthat      0.2.0      2017-04-11 [2]
+##  backports       1.1.3      2018-12-14 [2]
+##  base64enc       0.1-3      2015-07-28 [2]
+##  bayesplot       1.6.0      2018-08-02 [2]
+##  bindr           0.1.1      2018-03-13 [2]
+##  bindrcpp      * 0.2.2      2018-03-29 [1]
+##  blogdown        0.10       2019-01-09 [1]
+##  bookdown        0.9        2018-12-21 [1]
+##  broom         * 0.5.1      2018-12-05 [2]
+##  callr           3.1.1      2018-12-21 [2]
+##  cellranger      1.1.0      2016-07-27 [2]
+##  class           7.3-15     2019-01-01 [2]
+##  cli             1.0.1      2018-09-25 [1]
+##  codetools       0.2-16     2018-12-24 [2]
+##  colorspace      1.4-0      2019-01-13 [2]
+##  colourpicker    1.0        2017-09-27 [2]
+##  crayon          1.3.4      2017-09-16 [2]
+##  crosstalk       1.0.0      2016-12-21 [2]
+##  data.table      1.12.0     2019-01-13 [2]
+##  desc            1.2.0      2018-05-01 [2]
+##  devtools        2.0.1      2018-10-26 [1]
+##  dials         * 0.0.2      2018-12-09 [1]
+##  digest          0.6.18     2018-10-10 [1]
+##  dplyr         * 0.7.8      2018-11-10 [1]
+##  DT              0.5        2018-11-05 [2]
+##  dygraphs        1.1.1.6    2018-07-11 [2]
+##  evaluate        0.12       2018-10-09 [2]
+##  farver          1.1.0      2018-11-20 [1]
+##  forcats       * 0.3.0      2018-02-19 [2]
+##  foreach       * 1.4.4      2017-12-12 [2]
+##  fs              1.2.6      2018-08-23 [1]
+##  gam           * 1.16       2018-07-20 [2]
+##  generics        0.0.2      2018-11-29 [1]
+##  gganimate     * 1.0.0      2019-01-02 [1]
+##  ggplot2       * 3.1.0      2018-10-25 [1]
+##  ggridges        0.5.1      2018-09-27 [2]
+##  glue            1.3.0      2018-07-17 [2]
+##  gower           0.1.2      2017-02-23 [2]
+##  gridExtra       2.3        2017-09-09 [2]
+##  gtable          0.2.0      2016-02-26 [2]
+##  gtools          3.8.1      2018-06-26 [2]
+##  haven           2.0.0      2018-11-22 [2]
+##  here          * 0.1        2017-05-28 [2]
+##  hms             0.4.2      2018-03-10 [2]
+##  htmltools       0.3.6      2017-04-28 [1]
+##  htmlwidgets     1.3        2018-09-30 [2]
+##  httpuv          1.4.5.1    2018-12-18 [2]
+##  httr            1.4.0      2018-12-11 [2]
+##  igraph          1.2.2      2018-07-27 [2]
+##  infer         * 0.4.0      2018-11-15 [1]
+##  inline          0.3.15     2018-05-18 [2]
+##  ipred           0.9-8      2018-11-05 [1]
+##  ISLR          * 1.2        2017-10-20 [2]
+##  iterators       1.0.10     2018-07-13 [2]
+##  janeaustenr     0.1.5      2017-06-10 [2]
+##  jsonlite        1.6        2018-12-07 [2]
+##  knitr         * 1.21       2018-12-10 [2]
+##  labeling        0.3        2014-08-23 [2]
+##  later           0.7.5      2018-09-18 [2]
+##  lattice       * 0.20-38    2018-11-04 [2]
+##  lava            1.6.4      2018-11-25 [2]
+##  lazyeval        0.2.1      2017-10-29 [2]
+##  lme4            1.1-19     2018-11-10 [2]
+##  loo             2.0.0      2018-04-11 [2]
+##  lubridate       1.7.4      2018-04-11 [2]
+##  magrittr        1.5        2014-11-22 [2]
+##  margins       * 0.3.23     2018-05-22 [2]
+##  markdown        0.9        2018-12-07 [2]
+##  MASS            7.3-51.1   2018-11-01 [2]
+##  Matrix          1.2-15     2018-11-01 [2]
+##  matrixStats     0.54.0     2018-07-23 [2]
+##  memoise         1.1.0      2017-04-21 [2]
+##  mime            0.6        2018-10-05 [1]
+##  miniUI          0.1.1.1    2018-05-18 [2]
+##  minqa           1.2.4      2014-10-09 [2]
+##  modelr          0.1.2      2018-05-11 [2]
+##  munsell         0.5.0      2018-06-12 [2]
+##  nlme            3.1-137    2018-04-07 [2]
+##  nloptr          1.2.1      2018-10-03 [2]
+##  nnet            7.3-12     2016-02-02 [2]
+##  parsnip       * 0.0.1      2018-11-12 [1]
+##  patchwork     * 0.0.1      2018-09-06 [1]
+##  pillar          1.3.1      2018-12-15 [2]
+##  pkgbuild        1.0.2      2018-10-16 [1]
+##  pkgconfig       2.0.2      2018-08-16 [2]
+##  pkgload         1.0.2      2018-10-29 [1]
+##  plyr            1.8.4      2016-06-08 [2]
+##  prediction      0.3.6.1    2018-12-04 [2]
+##  prettyunits     1.0.2      2015-07-13 [2]
+##  pROC            1.13.0     2018-09-24 [1]
+##  processx        3.2.1      2018-12-05 [2]
+##  prodlim         2018.04.18 2018-04-18 [2]
+##  progress        1.2.0      2018-06-14 [2]
+##  promises        1.0.1      2018-04-13 [2]
+##  ps              1.3.0      2018-12-21 [2]
+##  purrr         * 0.3.0      2019-01-27 [2]
+##  R6              2.3.0      2018-10-04 [1]
+##  rcfss         * 0.1.5      2019-01-24 [1]
+##  Rcpp            1.0.0      2018-11-07 [1]
+##  readr         * 1.3.1      2018-12-21 [2]
+##  readxl          1.2.0      2018-12-19 [2]
+##  recipes       * 0.1.4      2018-11-19 [1]
+##  remotes         2.0.2      2018-10-30 [1]
+##  reshape2        1.4.3      2017-12-11 [2]
+##  rlang           0.3.1      2019-01-08 [1]
+##  rmarkdown       1.11       2018-12-08 [2]
+##  rpart           4.1-13     2018-02-23 [1]
+##  rprojroot       1.3-2      2018-01-03 [2]
+##  rsample       * 0.0.4      2019-01-07 [1]
+##  rsconnect       0.8.13     2019-01-10 [2]
+##  rstan           2.18.2     2018-11-07 [2]
+##  rstanarm        2.18.2     2018-11-10 [2]
+##  rstantools      1.5.1      2018-08-22 [2]
+##  rstudioapi      0.9.0      2019-01-09 [1]
+##  rvest           0.3.2      2016-06-17 [2]
+##  scales        * 1.0.0      2018-08-09 [1]
+##  sessioninfo     1.1.1      2018-11-05 [1]
+##  shiny           1.2.0      2018-11-02 [2]
+##  shinyjs         1.0        2018-01-08 [2]
+##  shinystan       2.5.0      2018-05-01 [2]
+##  shinythemes     1.1.2      2018-11-06 [2]
+##  SnowballC       0.6.0      2019-01-15 [2]
+##  StanHeaders     2.18.0-1   2018-12-13 [2]
+##  stringi         1.2.4      2018-07-20 [2]
+##  stringr       * 1.3.1      2018-05-10 [2]
+##  survival        2.43-3     2018-11-26 [2]
+##  testthat        2.0.1      2018-10-13 [2]
+##  threejs         0.3.1      2017-08-13 [2]
+##  tibble        * 2.0.1      2019-01-12 [2]
+##  tidymodels    * 0.0.2      2018-11-27 [1]
+##  tidyposterior   0.0.2      2018-11-15 [1]
+##  tidypredict     0.3.0      2019-01-10 [1]
+##  tidyr         * 0.8.2.9000 2019-02-11 [1]
+##  tidyselect      0.2.5      2018-10-11 [1]
+##  tidytext        0.2.0      2018-10-17 [1]
+##  tidyverse     * 1.2.1      2017-11-14 [2]
+##  timeDate        3043.102   2018-02-21 [2]
+##  titanic       * 0.1.0      2015-08-31 [2]
+##  tokenizers      0.2.1      2018-03-29 [2]
+##  tweenr          1.0.1      2018-12-14 [1]
+##  usethis         1.4.0      2018-08-14 [1]
+##  withr           2.1.2      2018-03-15 [2]
+##  xfun            0.4        2018-10-23 [1]
+##  xml2            1.2.0      2018-01-24 [2]
+##  xtable          1.8-3      2018-08-29 [2]
+##  xts             0.11-2     2018-11-05 [2]
+##  yaml            2.2.0      2018-07-25 [2]
+##  yardstick     * 0.0.2      2018-11-05 [1]
+##  zoo             1.8-4      2018-09-19 [2]
+##  source                              
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.1)                      
+##  Github (thomasp85/patchwork@7fb35b1)
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  local                               
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  Github (tidyverse/tidyr@0b27690)    
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+## 
+## [1] /Users/soltoffbc/Library/R/3.5/library
+## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
+</div>
+<div id="references" class="section level1 toc-ignore">
+<h1><span class="header-section-number">4</span> References</h1>
+<ul>
+<li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
+<li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
+</ul>
+<div id="refs" class="references">
+<div id="ref-friedman2001elements">
+<p>Friedman, Jerome, Trevor Hastie, and Robert Tibshirani. 2001. <em>The Elements of Statistical Learning</em>. Vol. 1. 10. Springer series in statistics New York, NY, USA: <a href="https://web.stanford.edu/~hastie/ElemStatLearn/" class="uri">https://web.stanford.edu/~hastie/ElemStatLearn/</a>.</p>
+</div>
+<div id="ref-james2013introduction">
+<p>James, Gareth, Daniela Witten, Trevor Hastie, and Robert Tibshirani. 2013. <em>An Introduction to Statistical Learning</em>. Vol. 112. Springer. <a href="http://www-bcf.usc.edu/~gareth/ISL/" class="uri">http://www-bcf.usc.edu/~gareth/ISL/</a>.</p>
+</div>
+</div>
+</div>

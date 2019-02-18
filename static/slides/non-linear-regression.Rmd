@@ -89,7 +89,7 @@ sim_linear_pred <- augment(sim_linear_mod)
   # predicted vs. residuals
   ggplot(sim_linear_pred, aes(.fitted, .resid)) +
     geom_point() +
-    geom_smooth(se = FALSE) +
+    geom_smooth(method = "lm", se = FALSE) +
     labs(title = "Linear model for a linear relationship",
          x = "Predicted values",
          y = "Residuals")
@@ -233,7 +233,7 @@ tibble(x = runif(1000, 0, 10),
   gather(transform, value, -x) %>%
   mutate(transform = factor(transform,
                             levels = c("cube", "square", "identity", "sqrt", "cubert", "log"),
-                            labels = c("X^3", "X^2", "X", "sqrt(X)", "sqrt(X, 3)", "ln(X)"))) %>%
+                            labels = c("X^3", "X^2", "X", "sqrt(X)", "sqrt(X, 3)", "log(X)"))) %>%
   ggplot(aes(x, value)) +
   geom_line() +
   facet_wrap( ~ transform, scales = "free_y", labeller = label_parsed) +
@@ -385,7 +385,7 @@ tidy(mh_mod)
 # log-odds
 ## predicted probability
 pred_mh <- cplot(mh_mod, "mhealth_sum", what = "prediction",
-                 type = "link", draw = FALSE) %>%
+                 type = "link", n = 101, draw = FALSE) %>%
   ggplot(aes(x = xvals)) + 
   geom_line(aes(y = yvals)) +
   geom_line(aes(y = upper), linetype = 2) +
@@ -418,7 +418,7 @@ pred_mh +
 ```{r mhealth-prob, dependson = "mhealth", results = "hide", fig.show = "asis"}
 # probability
 ## predicted probability
-pred_mh <- cplot(mh_mod, "mhealth_sum", what = "prediction", draw = FALSE) %>%
+pred_mh <- cplot(mh_mod, "mhealth_sum", what = "prediction", n = 101, draw = FALSE) %>%
   ggplot(aes(x = xvals)) + 
   geom_line(aes(y = yvals)) +
   geom_line(aes(y = upper), linetype = 2) +
@@ -513,7 +513,7 @@ $$y_i = \beta_0 + \beta_1 C_1 (x_i) + \beta_2 C_2 (x_i) + \dots + \beta_K C_K (x
 } + {
   # plain model
   glm(vote96 ~ age, data = mh, family = binomial) %>%
-    cplot("age", what = "prediction", draw = FALSE) %>%
+    cplot("age", what = "prediction", n = 101, draw = FALSE) %>%
     ggplot(aes(x = xvals)) + 
     geom_line(aes(y = yvals)) +
     geom_line(aes(y = upper), linetype = 2) +
@@ -527,7 +527,7 @@ $$y_i = \beta_0 + \beta_1 C_1 (x_i) + \beta_2 C_2 (x_i) + \dots + \beta_K C_K (x
 } + {
   # polynomial model
   glm(vote96 ~ poly(age, degree = 5, raw = TRUE), data = mh, family = binomial) %>%
-    cplot("age", what = "prediction", draw = FALSE) %>%
+    cplot("age", what = "prediction", n = 101, draw = FALSE) %>%
     ggplot(aes(x = xvals)) + 
     geom_line(aes(y = yvals)) +
     geom_line(aes(y = upper), linetype = 2) +
@@ -545,7 +545,7 @@ $$y_i = \beta_0 + \beta_1 C_1 (x_i) + \beta_2 C_2 (x_i) + \dots + \beta_K C_K (x
 
 # Basis functions
 
-* Family of functions or transformations applied to a variable $X$: $b_1(X), b_2(X), \ldots, b_K(X)$
+* Family of functions or transformations applied to a variable $X$
 
     $$y_i = \beta_0 + \beta_1 b_1(x_i) + \beta_2 b_2(x_i) + \beta_3 b_3(x_i) + \ldots + \beta_K b_K(x_i) + \epsilon_i$$
     
@@ -567,8 +567,10 @@ $$y_i = \beta_0 + \beta_1 C_1 (x_i) + \beta_2 C_2 (x_i) + \dots + \beta_K C_K (x
 
     $$y_i = \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 + \epsilon_i$$
 
-* Knots
-* Piecewise cubic polynomial with 0 knots:
+    * $K$ knots
+
+--
+* Piecewise cubic polynomial with 0 knots
 
     $$y_i = \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 + \epsilon_i$$
 
@@ -709,7 +711,7 @@ tibble(
 * Regression splines as basis functions
 * Cubic spline with $K$ knots
 
-    $$y_i = \beta_0 + \beta_1 b_1 (x_i) + \beta_3 b_3 (x_i) + \cdots + \beta_{K + 3} b_{K + 3} (x_i) + \epsilon_i$$
+    $$y_i = \beta_0 + \beta_1 b_1 (x_i) + \beta_2 b_2 (x_i) + \cdots + \beta_{K + 3} b_{K + 3} (x_i) + \epsilon_i$$
 * Imposing constraints with truncated power basis
 
     $$
@@ -750,7 +752,7 @@ sim_piece %>%
 ```{r vote-age-basis-spline, dependson = "mhealth", results = "hide", fig.show = "asis"}
 # estimate model
 glm(vote96 ~ bs(age, df = 6), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE) %>%
+  cplot("age", what = "prediction", n = 101, draw = FALSE) %>%
   ggplot(aes(x = xvals)) + 
   geom_line(aes(y = yvals)) +
   geom_line(aes(y = upper), linetype = 2) +
@@ -774,9 +776,9 @@ glm(vote96 ~ bs(age, df = 6), data = mh, family = binomial) %>%
 ```{r vote-age-natural-spline, dependson = "mhealth", results = "hide", fig.show = "asis"}
 # estimate basis spline model
 vote_age_basis <- glm(vote96 ~ bs(age, df = 6), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE)
+  cplot("age", what = "prediction", n = 101, draw = FALSE)
 vote_age_natural <- glm(vote96 ~ ns(age, df = 6), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE)
+  cplot("age", what = "prediction", n = 101, draw = FALSE)
 
 bind_rows(
   Basis = vote_age_basis,
@@ -812,7 +814,7 @@ bind_rows(
 ```{r vote-spline, results = "hide", fig.show = "asis"}
 # estimate model
 glm(vote96 ~ ns(age, df = 8), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE) %>%
+  cplot("age", what = "prediction", n = 101, draw = FALSE) %>%
   ggplot(aes(x = xvals)) + 
   geom_line(aes(y = yvals)) +
   geom_line(aes(y = upper), linetype = 2) +
@@ -867,20 +869,24 @@ expand(results, id, knots = 1:25) %>%
        y = "10-fold CV error")
 ```
 
+---
+
+# Choosing the knots
+
 ```{r vote-optimal-mod, results = "hide", fig.show = "asis"}
 glm(vote96 ~ ns(age, df = 15), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE) %>%
+  cplot("age", what = "prediction", n = 101, draw = FALSE) %>%
   ggplot(aes(x = xvals)) + 
   geom_line(aes(y = yvals)) +
   geom_line(aes(y = upper), linetype = 2) +
   geom_line(aes(y = lower), linetype = 2) +
   geom_hline(yintercept = 0, linetype = 1) +
-  geom_vline(xintercept = attr(bs(mh$age, df = 10), "knots"),
+  geom_vline(xintercept = attr(bs(mh$age, df = 15), "knots"),
              linetype = 2, color = "blue") +
   geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
   geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
   labs(title = "Predicted probability of voting",
-       subtitle = "Natural spline with 9 knots",
+       subtitle = "Natural spline with 12 knots",
        x = "Age",
        y = "Predicted probability of voting")
 ```
@@ -892,9 +898,9 @@ glm(vote96 ~ ns(age, df = 15), data = mh, family = binomial) %>%
 ```{r vote-spline-poly, dependson = "mhealth", results = "hide", fig.show = "asis"}
 # estimate natural spline model with df = 15
 vote_age_spline <- glm(vote96 ~ ns(age, df = 15), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE)
+  cplot("age", what = "prediction", n = 101, draw = FALSE)
 vote_age_poly <- glm(vote96 ~ poly(age, degree = 15), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE)
+  cplot("age", what = "prediction", n = 101, draw = FALSE)
 
 bind_rows(
   `Natural cubic spline` = vote_age_spline,
@@ -1029,10 +1035,10 @@ list(
   ggplot(aes(x, y)) +
   geom_point(data = sim_spline_data, alpha = .2) +
   geom_line(aes(color = df)) +
-  scale_color_brewer(type = "qual", palette = "Dark2") +
-  labs(x = expression(X),
-       y = expression(Y),
-       color = "Effective degrees of freedom") +
-  theme(legend.position = "bottom")
+  scale_color_brewer(type = "qual", palette = "Dark2", guide = FALSE) +
+  facet_wrap(~ df) +
+  labs(title = "Effective degrees of freedom",
+       x = expression(X),
+       y = expression(Y))
 ```
 

@@ -192,7 +192,7 @@ tibble(
 
 Regression splines can be represented as basis functions, which identifies how they can be estimated using OLS and still fit it under the constraint that it and its derivatives can be continuous. A cubic spline with $K$ knots can be modeled as
 
-$$y_i = \beta_0 + \beta_1 b_1 (x_i) + \beta_3 b_3 (x_i) + \cdots + \beta_{K + 3} b_{K + 3} (x_i) + \epsilon_i$$
+$$y_i = \beta_0 + \beta_1 b_1 (x_i) + \beta_2 b_2 (x_i) + \cdots + \beta_{K + 3} b_{K + 3} (x_i) + \epsilon_i$$
 
 for an appropriate choice of basis functions $b_1, b_2, \ldots, b_{K+3}$$.^[$K$ knots with a polynomial degree of $3$.]
 
@@ -235,7 +235,7 @@ mh <- read_csv(here("static", "data", "mental_health.csv")) %>%
 ```{r vote-age-basis-spline, dependson = "mhealth"}
 # estimate model
 glm(vote96 ~ bs(age, df = 6), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE) %>%
+  cplot("age", what = "prediction", n = 101, draw = FALSE) %>%
   ggplot(aes(x = xvals)) + 
   geom_line(aes(y = yvals)) +
   geom_line(aes(y = upper), linetype = 2) +
@@ -254,9 +254,9 @@ Notice the 95% confidence interval balloons at both low and high values for age.
 ```{r vote-age-natural-spline, dependson = "mhealth"}
 # estimate basis spline model
 vote_age_basis <- glm(vote96 ~ bs(age, df = 6), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE)
+  cplot("age", what = "prediction", n = 101, draw = FALSE)
 vote_age_natural <- glm(vote96 ~ ns(age, df = 6), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE)
+  cplot("age", what = "prediction", n = 101, draw = FALSE)
 
 bind_rows(
   Basis = vote_age_basis,
@@ -285,7 +285,7 @@ Typically knots are placed in a uniform fashion; that is, the cutpoints $c$ are 
 ```{r vote-spline}
 # estimate model
 glm(vote96 ~ ns(age, df = 8), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE) %>%
+  cplot("age", what = "prediction", n = 101, draw = FALSE) %>%
   ggplot(aes(x = xvals)) + 
   geom_line(aes(y = yvals)) +
   geom_line(aes(y = upper), linetype = 2) +
@@ -342,7 +342,7 @@ These results (weakly) suggest the optimal number of knots is around 7. The resu
 
 ```{r vote-optimal-mod}
 glm(vote96 ~ ns(age, df = 10), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE) %>%
+  cplot("age", what = "prediction", n = 101, draw = FALSE) %>%
   ggplot(aes(x = xvals)) + 
   geom_line(aes(y = yvals)) +
   geom_line(aes(y = upper), linetype = 2) +
@@ -363,9 +363,9 @@ glm(vote96 ~ ns(age, df = 10), data = mh, family = binomial) %>%
 ```{r vote-spline-poly, dependson = "mhealth"}
 # estimate natural spline model with df = 15
 vote_age_spline <- glm(vote96 ~ ns(age, df = 15), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE)
+  cplot("age", what = "prediction", n = 101, draw = FALSE)
 vote_age_poly <- glm(vote96 ~ poly(age, degree = 15), data = mh, family = binomial) %>%
-  cplot("age", what = "prediction", draw = FALSE)
+  cplot("age", what = "prediction", n = 101, draw = FALSE)
 
 bind_rows(
   `Natural cubic spline` = vote_age_spline,
@@ -489,11 +489,11 @@ list(
   ggplot(aes(x, y)) +
   geom_point(data = sim_spline_data, alpha = .2) +
   geom_line(aes(color = df)) +
-  scale_color_brewer(type = "qual", palette = "Dark2") +
-  labs(x = expression(X),
-       y = expression(Y),
-       color = "Effective degrees of freedom") +
-  theme(legend.position = "bottom")
+  scale_color_brewer(type = "qual", palette = "Dark2", guide = FALSE) +
+  facet_wrap(~ df) +
+  labs(title = "Effective degrees of freedom",
+       x = expression(X),
+       y = expression(Y))
 ```
 
 # Multivariate adaptive regression splines (MARS)

@@ -132,7 +132,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="spline-basis-representation" class="section level2">
 <h2><span class="header-section-number">2.3</span> Spline basis representation</h2>
 <p>Regression splines can be represented as basis functions, which identifies how they can be estimated using OLS and still fit it under the constraint that it and its derivatives can be continuous. A cubic spline with <span class="math inline">\(K\)</span> knots can be modeled as</p>
-<p><span class="math display">\[y_i = \beta_0 + \beta_1 b_1 (x_i) + \beta_3 b_3 (x_i) + \cdots + \beta_{K + 3} b_{K + 3} (x_i) + \epsilon_i\]</span></p>
+<p><span class="math display">\[y_i = \beta_0 + \beta_1 b_1 (x_i) + \beta_2 b_2 (x_i) + \cdots + \beta_{K + 3} b_{K + 3} (x_i) + \epsilon_i\]</span></p>
 <p>for an appropriate choice of basis functions <span class="math inline">\(b_1, b_2, \ldots, b_{K+3}\)</span><span class="math inline">\(.^[\)</span>K$ knots with a polynomial degree of <span class="math inline">\(3\)</span>.]</p>
 <p>The basis function for a cubic spline is to start with a basis for a cubic polynomial and then add one <strong>truncated power basis</strong> function per knot. A truncated power basis function is defined as:</p>
 <p><span class="math display">\[
@@ -184,7 +184,7 @@ h(x, \zeta) = (x - \zeta)_+^3 =
 ## )</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate model</span>
 <span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">bs</span>(age, <span class="dt">df =</span> <span class="dv">6</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">n =</span> <span class="dv">101</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
@@ -196,76 +196,76 @@ h(x, \zeta) = (x - \zeta)_+^3 =
        <span class="dt">subtitle =</span> <span class="st">&quot;Basis spline with 3 knots&quot;</span>,
        <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
        <span class="dt">y =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.4282572 0.6315037 0.2250108
-## 2  22.875 0.4302940 0.5164704 0.3441176
-## 3  25.750 0.4627694 0.5435835 0.3819553
-## 4  28.625 0.5123251 0.5778767 0.4467736
-## 5  31.500 0.5643390 0.6248809 0.5037972
-## 6  34.375 0.6046836 0.6687555 0.5406117
-## 7  37.250 0.6321075 0.6856957 0.5785192
-## 8  40.125 0.6572544 0.7098796 0.6046293
-## 9  43.000 0.6899492 0.7485517 0.6313467
-## 10 45.875 0.7318233 0.7852485 0.6783982
-## 11 48.750 0.7748341 0.8202808 0.7293873
-## 12 51.625 0.8122626 0.8565635 0.7679616
-## 13 54.500 0.8402300 0.8873578 0.7931022
-## 14 57.375 0.8570720 0.9048012 0.8093428
-## 15 60.250 0.8638145 0.9093047 0.8183243
-## 16 63.125 0.8626314 0.9058251 0.8194377
-## 17 66.000 0.8545801 0.8984857 0.8106745
-## 18 68.875 0.8399964 0.8899250 0.7900678
-## 19 71.750 0.8188883 0.8797559 0.7580207
-## 20 74.625 0.7912946 0.8650531 0.7175361</code></pre>
+<pre><code>##    xvals     yvals     upper     lower
+## 1  20.00 0.4282572 0.6315037 0.2250108
+## 2  20.69 0.4252639 0.5830173 0.2675105
+## 3  21.38 0.4246071 0.5481272 0.3010870
+## 4  22.07 0.4260944 0.5265015 0.3256873
+## 5  22.76 0.4295415 0.5170318 0.3420513
+## 6  23.45 0.4347695 0.5170475 0.3524915
+## 7  24.14 0.4416011 0.5228858 0.3603164
+## 8  24.83 0.4498581 0.5313812 0.3683349
+## 9  25.52 0.4593585 0.5405596 0.3781574
+## 10 26.21 0.4699149 0.5494659 0.3903640
+## 11 26.90 0.4813335 0.5578165 0.4048505
+## 12 27.59 0.4934140 0.5657556 0.4210723
+## 13 28.28 0.5059509 0.5737105 0.4381912
+## 14 28.97 0.5187348 0.5822745 0.4551952
+## 15 29.66 0.5315551 0.5920402 0.4710700
+## 16 30.35 0.5442022 0.6033437 0.4850607
+## 17 31.04 0.5564701 0.6160135 0.4969267
+## 18 31.73 0.5681589 0.6293302 0.5069876
+## 19 32.42 0.5790760 0.6422407 0.5159114
+## 20 33.11 0.5890377 0.6536391 0.5244362</code></pre>
 <p><img src="/notes/splines_files/figure-html/vote-age-basis-spline-1.png" width="672" /></p>
 <p>Notice the 95% confidence interval balloons at both low and high values for age. To control for this, we impose <strong>boundary constraints</strong>: the function is required to be linear at the boundary (the region where <span class="math inline">\(X\)</span> is smaller than the smallest knot, or larger than the largest knot). This type of spline is known as a <strong>natural spline</strong>. This leads to more stable estimates at the boundaries.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate basis spline model</span>
 vote_age_basis &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">bs</span>(age, <span class="dt">df =</span> <span class="dv">6</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.4282572 0.6315037 0.2250108
-## 2  22.875 0.4302940 0.5164704 0.3441176
-## 3  25.750 0.4627694 0.5435835 0.3819553
-## 4  28.625 0.5123251 0.5778767 0.4467736
-## 5  31.500 0.5643390 0.6248809 0.5037972
-## 6  34.375 0.6046836 0.6687555 0.5406117
-## 7  37.250 0.6321075 0.6856957 0.5785192
-## 8  40.125 0.6572544 0.7098796 0.6046293
-## 9  43.000 0.6899492 0.7485517 0.6313467
-## 10 45.875 0.7318233 0.7852485 0.6783982
-## 11 48.750 0.7748341 0.8202808 0.7293873
-## 12 51.625 0.8122626 0.8565635 0.7679616
-## 13 54.500 0.8402300 0.8873578 0.7931022
-## 14 57.375 0.8570720 0.9048012 0.8093428
-## 15 60.250 0.8638145 0.9093047 0.8183243
-## 16 63.125 0.8626314 0.9058251 0.8194377
-## 17 66.000 0.8545801 0.8984857 0.8106745
-## 18 68.875 0.8399964 0.8899250 0.7900678
-## 19 71.750 0.8188883 0.8797559 0.7580207
-## 20 74.625 0.7912946 0.8650531 0.7175361</code></pre>
+<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">n =</span> <span class="dv">101</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<pre><code>##    xvals     yvals     upper     lower
+## 1  20.00 0.4282572 0.6315037 0.2250108
+## 2  20.69 0.4252639 0.5830173 0.2675105
+## 3  21.38 0.4246071 0.5481272 0.3010870
+## 4  22.07 0.4260944 0.5265015 0.3256873
+## 5  22.76 0.4295415 0.5170318 0.3420513
+## 6  23.45 0.4347695 0.5170475 0.3524915
+## 7  24.14 0.4416011 0.5228858 0.3603164
+## 8  24.83 0.4498581 0.5313812 0.3683349
+## 9  25.52 0.4593585 0.5405596 0.3781574
+## 10 26.21 0.4699149 0.5494659 0.3903640
+## 11 26.90 0.4813335 0.5578165 0.4048505
+## 12 27.59 0.4934140 0.5657556 0.4210723
+## 13 28.28 0.5059509 0.5737105 0.4381912
+## 14 28.97 0.5187348 0.5822745 0.4551952
+## 15 29.66 0.5315551 0.5920402 0.4710700
+## 16 30.35 0.5442022 0.6033437 0.4850607
+## 17 31.04 0.5564701 0.6160135 0.4969267
+## 18 31.73 0.5681589 0.6293302 0.5069876
+## 19 32.42 0.5790760 0.6422407 0.5159114
+## 20 33.11 0.5890377 0.6536391 0.5244362</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">vote_age_natural &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> <span class="dv">6</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.4104826 0.5694648 0.2515004
-## 2  22.875 0.4360929 0.5241522 0.3480335
-## 3  25.750 0.4671766 0.5368465 0.3975066
-## 4  28.625 0.5088239 0.5837505 0.4338973
-## 5  31.500 0.5624939 0.6227874 0.5022005
-## 6  34.375 0.6105011 0.6791545 0.5418478
-## 7  37.250 0.6345767 0.6965424 0.5726110
-## 8  40.125 0.6485917 0.7086990 0.5884845
-## 9  43.000 0.6785472 0.7470780 0.6100163
-## 10 45.875 0.7301420 0.7856302 0.6746538
-## 11 48.750 0.7836706 0.8343419 0.7329993
-## 12 51.625 0.8239502 0.8782916 0.7696088
-## 13 54.500 0.8470984 0.8976731 0.7965238
-## 14 57.375 0.8581347 0.9018701 0.8143992
-## 15 60.250 0.8606929 0.9014754 0.8199105
-## 16 63.125 0.8568879 0.9017039 0.8120720
-## 17 66.000 0.8480399 0.8996926 0.7963872
-## 18 68.875 0.8344507 0.8913064 0.7775950
-## 19 71.750 0.8158132 0.8755124 0.7561140
-## 20 74.625 0.7917365 0.8538166 0.7296564</code></pre>
+<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">n =</span> <span class="dv">101</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<pre><code>##    xvals     yvals     upper     lower
+## 1  20.00 0.4104826 0.5694648 0.2515004
+## 2  20.69 0.4164015 0.5559878 0.2768153
+## 3  21.38 0.4224142 0.5436063 0.3012221
+## 4  22.07 0.4285896 0.5330443 0.3241349
+## 5  22.76 0.4349974 0.5251454 0.3448493
+## 6  23.45 0.4417080 0.5208182 0.3625978
+## 7  24.14 0.4487925 0.5208045 0.3767806
+## 8  24.83 0.4563220 0.5252608 0.3873833
+## 9  25.52 0.4643677 0.5334863 0.3952491
+## 10 26.21 0.4730003 0.5441737 0.4018268
+## 11 26.90 0.4822894 0.5559448 0.4086340
+## 12 27.59 0.4923030 0.5676942 0.4169119
+## 13 28.28 0.5031066 0.5786781 0.4275350
+## 14 28.97 0.5147614 0.5885220 0.4410008
+## 15 29.66 0.5272658 0.5973413 0.4571904
+## 16 30.35 0.5403484 0.6059590 0.4747378
+## 17 31.04 0.5536612 0.6154724 0.4918501
+## 18 31.73 0.5668598 0.6267950 0.5069247
+## 19 32.42 0.5796078 0.6401201 0.5190955
+## 20 33.11 0.5915809 0.6546306 0.5285313</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">bind_rows</span>(
   <span class="dt">Basis =</span> vote_age_basis,
   <span class="dt">Natural =</span> vote_age_natural,
@@ -291,7 +291,7 @@ vote_age_basis &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 
 <p>Typically knots are placed in a uniform fashion; that is, the cutpoints <span class="math inline">\(c\)</span> are determined by first identifying the number of knots <span class="math inline">\(K\)</span> for the model, then partitioning <span class="math inline">\(X\)</span> into uniform quantiles. So if we fit a cubic regression spline with 5 knots on the voting and age logistic regression, it would divide <code>age</code> into 5 equal quantiles<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> and estimate the cubic spline function for each quantile:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate model</span>
 <span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> <span class="dv">8</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">n =</span> <span class="dv">101</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
@@ -305,27 +305,27 @@ vote_age_basis &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 
        <span class="dt">subtitle =</span> <span class="st">&quot;Natural spline with 5 knots&quot;</span>,
        <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
        <span class="dt">y =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.4365875 0.6152524 0.2579225
-## 2  22.875 0.4328343 0.5205456 0.3451230
-## 3  25.750 0.4498344 0.5346405 0.3650284
-## 4  28.625 0.5067269 0.5790485 0.4344054
-## 5  31.500 0.5821232 0.6651290 0.4991173
-## 6  34.375 0.6231946 0.6923669 0.5540224
-## 7  37.250 0.6237312 0.7086129 0.5388495
-## 8  40.125 0.6228755 0.6946885 0.5510625
-## 9  43.000 0.6680380 0.7513065 0.5847694
-## 10 45.875 0.7529138 0.8133569 0.6924707
-## 11 48.750 0.8127571 0.8773629 0.7481513
-## 12 51.625 0.8315533 0.8859030 0.7772036
-## 13 54.500 0.8316128 0.8860993 0.7771264
-## 14 57.375 0.8309324 0.8956626 0.7662023
-## 15 60.250 0.8363073 0.8975423 0.7750724
-## 16 63.125 0.8434146 0.8953149 0.7915143
-## 17 66.000 0.8478102 0.8979973 0.7976231
-## 18 68.875 0.8453973 0.9022059 0.7885887
-## 19 71.750 0.8334613 0.8969400 0.7699826
-## 20 74.625 0.8114817 0.8792868 0.7436766</code></pre>
+<pre><code>##    xvals     yvals     upper     lower
+## 1  20.00 0.4365875 0.6152524 0.2579225
+## 2  20.69 0.4349055 0.5858878 0.2839233
+## 3  21.38 0.4335110 0.5594090 0.3076131
+## 4  22.07 0.4326892 0.5375872 0.3277911
+## 5  22.76 0.4327249 0.5223324 0.3431174
+## 6  23.45 0.4339044 0.5150604 0.3527483
+## 7  24.14 0.4365161 0.5155818 0.3574504
+## 8  24.83 0.4408527 0.5218540 0.3598515
+## 9  25.52 0.4472125 0.5312197 0.3632054
+## 10 26.21 0.4558994 0.5415780 0.3702207
+## 11 26.90 0.4672208 0.5517345 0.3827072
+## 12 27.59 0.4813729 0.5615872 0.4011587
+## 13 28.28 0.4978562 0.5725209 0.4231915
+## 14 28.97 0.5158829 0.5866117 0.4451542
+## 15 29.66 0.5346433 0.6052594 0.4640272
+## 16 30.35 0.5533227 0.6276864 0.4789591
+## 17 31.04 0.5711232 0.6509459 0.4913005
+## 18 31.73 0.5872816 0.6714543 0.5031089
+## 19 32.42 0.6010806 0.6861865 0.5159747
+## 20 33.11 0.6118473 0.6932035 0.5304911</code></pre>
 <p><img src="/notes/splines_files/figure-html/vote-spline-1.png" width="672" /></p>
 <p>But this still leaves unaddressed the matter of how many knots should we use? Or how many degrees should each polynomial be? While theory should still be our guide, we can also use <a href="/notes/cross-validation/">cross-validation</a> to determine the optimal number of knots and/or polynomial degrees. For our voting and age model, we can estimate <span class="math inline">\(10\)</span>-fold CV MSE for varying numbers of knots for a cubic natural spline:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># function to simplify things</span>
@@ -364,7 +364,7 @@ results &lt;-<span class="st"> </span><span class="kw">vfold_cv</span>(mh, <span
 <p><img src="/notes/splines_files/figure-html/vote-cv-1.png" width="672" /></p>
 <p>These results (weakly) suggest the optimal number of knots is around 7. The resulting model produced by these parameters is:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> <span class="dv">10</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">n =</span> <span class="dv">101</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
@@ -378,78 +378,78 @@ results &lt;-<span class="st"> </span><span class="kw">vfold_cv</span>(mh, <span
        <span class="dt">subtitle =</span> <span class="st">&quot;Natural spline with 9 knots&quot;</span>,
        <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
        <span class="dt">y =</span> <span class="st">&quot;Predicted probability of voting&quot;</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.4282471 0.6252063 0.2312880
-## 2  22.875 0.4348659 0.5276855 0.3420463
-## 3  25.750 0.4556856 0.5549905 0.3563806
-## 4  28.625 0.5031728 0.5913505 0.4149951
-## 5  31.500 0.5759378 0.6593652 0.4925103
-## 6  34.375 0.6289635 0.7183163 0.5396107
-## 7  37.250 0.6243092 0.7120114 0.5366070
-## 8  40.125 0.6185019 0.6979372 0.5390666
-## 9  43.000 0.6683266 0.7593541 0.5772991
-## 10 45.875 0.7578417 0.8313389 0.6843446
-## 11 48.750 0.8104157 0.8759382 0.7448932
-## 12 51.625 0.8263481 0.8944110 0.7582853
-## 13 54.500 0.8319732 0.9015882 0.7623582
-## 14 57.375 0.8351908 0.8945150 0.7758667
-## 15 60.250 0.8384688 0.9091522 0.7677855
-## 16 63.125 0.8428727 0.9123006 0.7734447
-## 17 66.000 0.8456804 0.9030068 0.7883540
-## 18 68.875 0.8435757 0.8995645 0.7875869
-## 19 71.750 0.8330172 0.8994600 0.7665745
-## 20 74.625 0.8119896 0.8872808 0.7366983</code></pre>
+<pre><code>##    xvals     yvals     upper     lower
+## 1  20.00 0.4282471 0.6252063 0.2312880
+## 2  20.69 0.4293039 0.5890076 0.2696002
+## 3  21.38 0.4305556 0.5583606 0.3027506
+## 4  22.07 0.4321971 0.5369902 0.3274039
+## 5  22.76 0.4344240 0.5279673 0.3408806
+## 6  23.45 0.4374334 0.5304412 0.3444256
+## 7  24.14 0.4414241 0.5391198 0.3437284
+## 8  24.83 0.4465971 0.5482488 0.3449455
+## 9  25.52 0.4531559 0.5540876 0.3522242
+## 10 26.21 0.4613048 0.5553154 0.3672942
+## 11 26.90 0.4711676 0.5551890 0.3871463
+## 12 27.59 0.4827288 0.5616053 0.4038523
+## 13 28.28 0.4959521 0.5792913 0.4126129
+## 14 28.97 0.5107901 0.6041743 0.4174059
+## 15 29.66 0.5271801 0.6278985 0.4264617
+## 16 30.35 0.5450170 0.6439796 0.4460544
+## 17 31.04 0.5636486 0.6533090 0.4739883
+## 18 31.73 0.5819142 0.6631953 0.5006332
+## 19 32.42 0.5986776 0.6793978 0.5179575
+## 20 33.11 0.6128695 0.6994918 0.5262471</code></pre>
 <p><img src="/notes/splines_files/figure-html/vote-optimal-mod-1.png" width="672" /></p>
 </div>
 <div id="comparison-to-polynomial-regression" class="section level2">
 <h2><span class="header-section-number">2.6</span> Comparison to polynomial regression</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate natural spline model with df = 15</span>
 vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> <span class="dv">15</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper     lower
-## 1  20.000 0.3793679 0.5937175 0.1650183
-## 2  22.875 0.4671325 0.5806376 0.3536274
-## 3  25.750 0.4581774 0.5564811 0.3598738
-## 4  28.625 0.4840827 0.5847188 0.3834465
-## 5  31.500 0.6029202 0.7061861 0.4996543
-## 6  34.375 0.6179708 0.7159191 0.5200224
-## 7  37.250 0.6235426 0.7238391 0.5232461
-## 8  40.125 0.6247015 0.7286857 0.5207172
-## 9  43.000 0.6674434 0.7672512 0.5676356
-## 10 45.875 0.7508906 0.8340875 0.6676938
-## 11 48.750 0.8144245 0.8898146 0.7390344
-## 12 51.625 0.8351965 0.9218317 0.7485614
-## 13 54.500 0.8314213 0.9177248 0.7451178
-## 14 57.375 0.8246783 0.9038665 0.7454902
-## 15 60.250 0.8285899 0.9252102 0.7319696
-## 16 63.125 0.8456132 0.9235091 0.7677174
-## 17 66.000 0.8595835 0.9339104 0.7852565
-## 18 68.875 0.8560419 0.9333724 0.7787114
-## 19 71.750 0.8343533 0.9014878 0.7672188
-## 20 74.625 0.8024240 0.8888855 0.7159626</code></pre>
+<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">n =</span> <span class="dv">101</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<pre><code>##    xvals     yvals     upper     lower
+## 1  20.00 0.3793679 0.5937175 0.1650183
+## 2  20.69 0.4036169 0.5701519 0.2370819
+## 3  21.38 0.4269748 0.5554718 0.2984778
+## 4  22.07 0.4478904 0.5579094 0.3378715
+## 5  22.76 0.4648086 0.5768161 0.3528010
+## 6  23.45 0.4762154 0.5978715 0.3545592
+## 7  24.14 0.4806509 0.6066536 0.3546482
+## 8  24.83 0.4766980 0.5953759 0.3580200
+## 9  25.52 0.4637043 0.5662287 0.3611799
+## 10 26.21 0.4472652 0.5433292 0.3512012
+## 11 26.90 0.4360408 0.5421729 0.3299086
+## 12 27.59 0.4385613 0.5527483 0.3243743
+## 13 28.28 0.4632700 0.5686895 0.3578505
+## 14 28.97 0.5078890 0.6113495 0.4044285
+## 15 29.66 0.5551993 0.6810660 0.4293325
+## 16 30.35 0.5876407 0.7186129 0.4566685
+## 17 31.04 0.6009741 0.7130297 0.4889185
+## 18 31.73 0.6026509 0.7059829 0.4993189
+## 19 32.42 0.6001666 0.7159611 0.4843721
+## 20 33.11 0.6009303 0.7182665 0.4835942</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">vote_age_poly &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(age, <span class="dt">degree =</span> <span class="dv">15</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
-<pre><code>##     xvals     yvals     upper       lower
-## 1  20.000 0.3147316 0.6468989 -0.01743579
-## 2  22.875 0.4481369 0.5904278  0.30584594
-## 3  25.750 0.4493254 0.5489748  0.34967596
-## 4  28.625 0.5029676 0.5920328  0.41390234
-## 5  31.500 0.5772570 0.6624795  0.49203446
-## 6  34.375 0.6270813 0.6999641  0.55419857
-## 7  37.250 0.6262224 0.7007168  0.55172801
-## 8  40.125 0.6197892 0.6946550  0.54492341
-## 9  43.000 0.6669163 0.7433337  0.59049880
-## 10 45.875 0.7529868 0.8194943  0.68647929
-## 11 48.750 0.8153374 0.8780881  0.75258669
-## 12 51.625 0.8336618 0.8975367  0.76978695
-## 13 54.500 0.8274747 0.8973390  0.75761035
-## 14 57.375 0.8261138 0.9013465  0.75088105
-## 15 60.250 0.8390544 0.9160919  0.76201684
-## 16 63.125 0.8480082 0.9289159  0.76710054
-## 17 66.000 0.8413788 0.9238493  0.75890838
-## 18 68.875 0.8362665 0.9250883  0.74744477
-## 19 71.750 0.8524834 0.9369094  0.76805735
-## 20 74.625 0.8572613 0.9520232  0.76249934</code></pre>
+<span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">n =</span> <span class="dv">101</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<pre><code>##    xvals     yvals     upper       lower
+## 1  20.00 0.3147316 0.6468989 -0.01743579
+## 2  20.69 0.4336945 0.6230703  0.24431868
+## 3  21.38 0.4661499 0.6331999  0.29909993
+## 4  22.07 0.4622876 0.6096001  0.31497514
+## 5  22.76 0.4500350 0.5924091  0.30766088
+## 6  23.45 0.4408239 0.5808743  0.30077352
+## 7  24.14 0.4376567 0.5674496  0.30786382
+## 8  24.83 0.4400282 0.5547577  0.32529862
+## 9  25.52 0.4464936 0.5488403  0.34414683
+## 10 26.21 0.4557857 0.5521246  0.35944689
+## 11 26.90 0.4671423 0.5615938  0.37269092
+## 12 27.59 0.4802441 0.5731831  0.38730502
+## 13 28.28 0.4949974 0.5854407  0.40455399
+## 14 28.97 0.5113020 0.5991466  0.42345751
+## 15 29.66 0.5288806 0.6152420  0.44251919
+## 16 30.35 0.5472025 0.6332668  0.46113821
+## 17 31.04 0.5655059 0.6513874  0.47962443
+## 18 31.73 0.5828948 0.6675462  0.49824339
+## 19 32.42 0.5984739 0.6804517  0.51649598
+## 20 33.11 0.6114804 0.6898582  0.53310260</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">bind_rows</span>(
   <span class="st">`</span><span class="dt">Natural cubic spline</span><span class="st">`</span> =<span class="st"> </span>vote_age_spline,
   <span class="st">`</span><span class="dt">Polynomial</span><span class="st">`</span> =<span class="st"> </span>vote_age_poly,
@@ -545,11 +545,11 @@ sim_smooth &lt;-<span class="st"> </span><span class="kw">smooth.spline</span>(s
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">data =</span> sim_spline_data, <span class="dt">alpha =</span> .<span class="dv">2</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">color =</span> df)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="kw">expression</span>(X),
-       <span class="dt">y =</span> <span class="kw">expression</span>(Y),
-       <span class="dt">color =</span> <span class="st">&quot;Effective degrees of freedom&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>, <span class="dt">guide =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>df) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Effective degrees of freedom&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y))</code></pre></div>
 <p><img src="/notes/splines_files/figure-html/sim-smooth-spline-compare-1.png" width="672" /></p>
 </div>
 </div>
@@ -700,7 +700,6 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package       * version    date       lib
-##  AmesHousing     0.0.3      2017-12-17 [1]
 ##  assertthat      0.2.0      2017-04-11 [2]
 ##  backports       1.1.3      2018-12-14 [2]
 ##  base64enc       0.1-3      2015-07-28 [2]
@@ -799,6 +798,7 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ##  purrr         * 0.3.0      2019-01-27 [2]
 ##  R6              2.3.0      2018-10-04 [1]
 ##  rcfss         * 0.1.5      2019-01-24 [1]
+##  RColorBrewer    1.1-2      2014-12-07 [2]
 ##  Rcpp            1.0.0      2018-11-07 [1]
 ##  readr         * 1.3.1      2018-12-21 [2]
 ##  readxl          1.2.0      2018-12-19 [2]
@@ -851,7 +851,6 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ##  yardstick     * 0.0.2      2018-11-05 [1]
 ##  zoo             1.8-4      2018-09-19 [2]
 ##  source                              
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -950,6 +949,7 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  local                               
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
