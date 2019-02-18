@@ -59,12 +59,19 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#regression-splines"><span class="toc-section-number">2</span> Regression splines</a><ul>
 <li><a href="#piecewise-polynomials"><span class="toc-section-number">2.1</span> Piecewise polynomials</a></li>
 <li><a href="#constraints-and-splines"><span class="toc-section-number">2.2</span> Constraints and splines</a></li>
-<li><a href="#basis-splines-vs.natural-splines"><span class="toc-section-number">2.3</span> Basis splines vs. natural splines</a></li>
-<li><a href="#choosing-the-number-and-location-of-knots"><span class="toc-section-number">2.4</span> Choosing the number and location of knots</a></li>
-<li><a href="#comparison-to-polynomial-regression"><span class="toc-section-number">2.5</span> Comparison to polynomial regression</a></li>
+<li><a href="#spline-basis-representation"><span class="toc-section-number">2.3</span> Spline basis representation</a></li>
+<li><a href="#basis-splines-vs.natural-splines"><span class="toc-section-number">2.4</span> Basis splines vs. natural splines</a></li>
+<li><a href="#choosing-the-number-and-location-of-knots"><span class="toc-section-number">2.5</span> Choosing the number and location of knots</a></li>
+<li><a href="#comparison-to-polynomial-regression"><span class="toc-section-number">2.6</span> Comparison to polynomial regression</a></li>
 </ul></li>
-<li><a href="#smoothing-splines"><span class="toc-section-number">3</span> Smoothing splines</a></li>
-<li><a href="#multivariate-adaptive-regression-splines-mars"><span class="toc-section-number">4</span> Multivariate adaptive regression splines (MARS)</a></li>
+<li><a href="#smoothing-splines"><span class="toc-section-number">3</span> Smoothing splines</a><ul>
+<li><a href="#choosing-the-smoothing-parameter-lambda"><span class="toc-section-number">3.1</span> Choosing the smoothing parameter <span class="math inline">\(\lambda\)</span></a></li>
+</ul></li>
+<li><a href="#multivariate-adaptive-regression-splines-mars"><span class="toc-section-number">4</span> Multivariate adaptive regression splines (MARS)</a><ul>
+<li><a href="#basis-functions-1"><span class="toc-section-number">4.1</span> Basis functions</a></li>
+<li><a href="#model-construction"><span class="toc-section-number">4.2</span> Model construction</a></li>
+<li><a href="#application-to-ames-housing-data"><span class="toc-section-number">4.3</span> Application to Ames housing data</a></li>
+</ul></li>
 <li><a href="#session-info"><span class="toc-section-number">5</span> Session Info</a></li>
 <li><a href="#references"><span class="toc-section-number">6</span> References</a></li>
 </ul>
@@ -82,6 +89,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <span class="kw">library</span>(here)
 <span class="kw">library</span>(patchwork)
 <span class="kw">library</span>(margins)
+<span class="kw">library</span>(earth)
 
 <span class="kw">set.seed</span>(<span class="dv">1234</span>)
 <span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
@@ -121,8 +129,45 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>By increasing the number of knots, we will increase the flexibility of the resulting spline:</p>
 <p><img src="/notes/splines_files/figure-html/sim-spline-smooth-5-1.png" width="672" /></p>
 </div>
+<div id="spline-basis-representation" class="section level2">
+<h2><span class="header-section-number">2.3</span> Spline basis representation</h2>
+<p>Regression splines can be represented as basis functions, which identifies how they can be estimated using OLS and still fit it under the constraint that it and its derivatives can be continuous. A cubic spline with <span class="math inline">\(K\)</span> knots can be modeled as</p>
+<p><span class="math display">\[y_i = \beta_0 + \beta_1 b_1 (x_i) + \beta_3 b_3 (x_i) + \cdots + \beta_{K + 3} b_{K + 3} (x_i) + \epsilon_i\]</span></p>
+<p>for an appropriate choice of basis functions <span class="math inline">\(b_1, b_2, \ldots, b_{K+3}\)</span><span class="math inline">\(.^[\)</span>K$ knots with a polynomial degree of <span class="math inline">\(3\)</span>.]</p>
+<p>The basis function for a cubic spline is to start with a basis for a cubic polynomial and then add one <strong>truncated power basis</strong> function per knot. A truncated power basis function is defined as:</p>
+<p><span class="math display">\[
+h(x, \zeta) = (x - \zeta)_+^3 = 
+\begin{cases} 
+  (x - \zeta)^3 &amp; \text{if } x &gt; \zeta \\
+  0 &amp; \text{otherwise}
+\end{cases}
+\]</span></p>
+<p>where <span class="math inline">\(\zeta\)</span> is the knot. Adding a term of the form <span class="math inline">\(\beta_4 h(x, \zeta)\)</span> to this model will lead to a discontinuity in only the third derivative at <span class="math inline">\(\zeta\)</span>. The function remains continuous, with continuous first and second derivatives, at each of the knots.</p>
+<p>So fitting a cubic spline to a data set with <span class="math inline">\(K\)</span> knots requires least squares with an intercept and <span class="math inline">\(3 + K\)</span> predictors</p>
+<p><span class="math display">\[X, X^2, X^3, h(X, \zeta_1), h(X, \zeta_2), \ldots, h(X, \zeta_K)\]</span></p>
+<p>where <span class="math inline">\(\zeta_1, \ldots, \zeta_K\)</span> are the knots. This amounts to estimating a total of <span class="math inline">\(K + 4\)</span> regression coefficients, and so fitting a cubic spline with <span class="math inline">\(K\)</span> knots uses <span class="math inline">\(K+4\)</span> degrees of freedom.</p>
+<p>Notice how the model matrix is constructed when constructing a cubic spline with <span class="math inline">\(K = 4\)</span> knots:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_piece <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(x) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">bind_cols</span>(<span class="dt">splines =</span> <span class="kw">bs</span>(sim_piece<span class="op">$</span>x, <span class="dt">df =</span> <span class="dv">7</span>) <span class="op">%&gt;%</span>
+<span class="st">              </span>as_tibble)</code></pre></div>
+<pre><code>## # A tibble: 100 x 8
+##         x    `1`   `2`     `3`    `4`   `5`        `6`   `7`
+##     &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt;
+##  1 1.14   0.499  0.416 0.0489  0      0     0          0    
+##  2 6.22   0      0     0.0203  0.505  0.446 0.0288     0    
+##  3 6.09   0      0     0.0293  0.539  0.412 0.0199     0    
+##  4 6.23   0      0     0.0196  0.502  0.449 0.0297     0    
+##  5 8.61   0      0     0       0.0253 0.271 0.568      0.136
+##  6 6.40   0      0     0.0112  0.454  0.490 0.0450     0    
+##  7 0.0950 0      0     0       0      0     0          0    
+##  8 2.33   0.0326 0.528 0.428   0.0113 0     0          0    
+##  9 6.66   0      0     0.00360 0.377  0.542 0.0773     0    
+## 10 5.14   0      0     0.183   0.663  0.155 0.00000183 0    
+## # … with 90 more rows</code></pre>
+</div>
 <div id="basis-splines-vs.natural-splines" class="section level2">
-<h2><span class="header-section-number">2.3</span> Basis splines vs. natural splines</h2>
+<h2><span class="header-section-number">2.4</span> Basis splines vs. natural splines</h2>
 <p>One drawback to the splines as currently presented (known as <strong>basis splines</strong>) is that they have high variance at the outer range of the predictors. Consider a basis spline with 3 knots applied to the <a href="/notes/global-methods/#age-and-voting">voting and age logistic regression model</a>:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh &lt;-<span class="st"> </span><span class="kw">read_csv</span>(<span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;mental_health.csv&quot;</span>)) <span class="op">%&gt;%</span>
 <span class="st">  </span>na.omit</code></pre></div>
@@ -242,7 +287,7 @@ vote_age_basis &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 
 <p><img src="/notes/splines_files/figure-html/vote-age-natural-spline-1.png" width="672" /></p>
 </div>
 <div id="choosing-the-number-and-location-of-knots" class="section level2">
-<h2><span class="header-section-number">2.4</span> Choosing the number and location of knots</h2>
+<h2><span class="header-section-number">2.5</span> Choosing the number and location of knots</h2>
 <p>Typically knots are placed in a uniform fashion; that is, the cutpoints <span class="math inline">\(c\)</span> are determined by first identifying the number of knots <span class="math inline">\(K\)</span> for the model, then partitioning <span class="math inline">\(X\)</span> into uniform quantiles. So if we fit a cubic regression spline with 5 knots on the voting and age logistic regression, it would divide <code>age</code> into 5 equal quantiles<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> and estimate the cubic spline function for each quantile:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate model</span>
 <span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> <span class="dv">8</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
@@ -357,7 +402,7 @@ results &lt;-<span class="st"> </span><span class="kw">vfold_cv</span>(mh, <span
 <p><img src="/notes/splines_files/figure-html/vote-optimal-mod-1.png" width="672" /></p>
 </div>
 <div id="comparison-to-polynomial-regression" class="section level2">
-<h2><span class="header-section-number">2.5</span> Comparison to polynomial regression</h2>
+<h2><span class="header-section-number">2.6</span> Comparison to polynomial regression</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate natural spline model with df = 15</span>
 vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(age, <span class="dt">df =</span> <span class="dv">15</span>), <span class="dt">data =</span> mh, <span class="dt">family =</span> binomial) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">cplot</span>(<span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;prediction&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>)</code></pre></div>
@@ -429,9 +474,214 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 </div>
 <div id="smoothing-splines" class="section level1">
 <h1><span class="header-section-number">3</span> Smoothing splines</h1>
+<p><strong>Smoothing splines</strong> take a different approach to producing a spline. The goal is to fit a function <span class="math inline">\(g(x)\)</span> to the observed data well; that is,</p>
+<p><span class="math display">\[\min \left\{ \text{RSS} = \sum_{i=1}^n (y_i - g(x_i))^2 \right\}\]</span></p>
+<p>With no constraints, we could generate a function that interpolates all of the <span class="math inline">\(y_i\)</span>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_spline_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x =</span> <span class="kw">runif</span>(<span class="dv">100</span>, <span class="dt">min =</span> <span class="op">-</span><span class="dv">1</span>, <span class="dt">max =</span> <span class="dv">1</span>),
+  <span class="dt">y =</span> <span class="kw">poly</span>(x, <span class="dt">degree =</span> <span class="dv">15</span>, <span class="dt">raw =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">rowSums</span>() <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">100</span>)
+)
+
+<span class="kw">ggplot</span>(sim_spline_data, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y))</code></pre></div>
+<p><img src="/notes/splines_files/figure-html/sim-perfect-fit-1.png" width="672" /></p>
+<p>Clearly such a function would overfit the data. Instead, we want a function <span class="math inline">\(g\)</span> that makes <span class="math inline">\(\text{RSS}\)</span> small, but that is also smooth.</p>
+<p>The approach of a smoothing spline is to find the function that minimizes</p>
+<p><span class="math display">\[\sum_{i=1}^n (y_i - g(x_i))^2 + \lambda \int g&#39;&#39;(t)^2 dt\]</span></p>
+<p>where <span class="math inline">\(\lambda\)</span> is a non-negative tuning parameter. The function that <span class="math inline">\(g\)</span> minimizes is the smoothing spline.</p>
+<p>This is the same “Loss + Penalty” form that we used for <a href="/syllabus/selection-regulation/">ridge/lasso/elastic net regression</a>. The second derivative of the function <span class="math inline">\(g(t)\)</span> is a measure of the function’s <strong>roughness</strong>: it is large in absolute value if <span class="math inline">\(g(t)\)</span> is wiggly, and it is close to zero otherwise. By integrating over <span class="math inline">\(g&#39;&#39;(t)^2\)</span>, we capture the total change in <span class="math inline">\(g&#39;(t)\)</span>.</p>
+<p>Including this as a weighted penalty forces <span class="math inline">\(g(x)\)</span> to impose smooth constraints. Otherwise the function is not minimized appropriately. As <span class="math inline">\(\lambda\)</span> increases, <span class="math inline">\(g\)</span> will become more smooth. When <span class="math inline">\(\lambda = 0\)</span>, <span class="math inline">\(g(x)\)</span> is a line that perfectly interpolates the original data points. When <span class="math inline">\(\lambda \rightarrow \infty\)</span>, <span class="math inline">\(g\)</span> will be perfectly smooth - it will just be a straight line that passes closely to the training points. In fact, it will be the linear least squares fit line.</p>
+<p>What does this function look like?</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># smooth spline data points</span>
+sim_smooth &lt;-<span class="st"> </span><span class="kw">smooth.spline</span>(sim_spline_data<span class="op">$</span>x, sim_spline_data<span class="op">$</span>y, <span class="dt">df =</span> <span class="dv">6</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span>predict <span class="op">%&gt;%</span>
+<span class="st">  </span>as_tibble
+
+<span class="kw">ggplot</span>(sim_spline_data, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Cubic spline&quot;</span>),
+              <span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span><span class="kw">bs</span>(x, <span class="dt">df =</span> <span class="dv">6</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Natural spline&quot;</span>),
+              <span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span><span class="kw">ns</span>(x, <span class="dt">df =</span> <span class="dv">6</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">data =</span> sim_smooth, <span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Smoothing spline&quot;</span>), <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y),
+       <span class="dt">color =</span> <span class="ot">NULL</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
+<p><img src="/notes/splines_files/figure-html/sim-spline-compare-1.png" width="672" /></p>
+<p>A smoothing spline is strongly related to a natural cubic spline, with a couple notable exceptions. First, <span class="math inline">\(g(x)\)</span> is a natural cubic spline with knots at <span class="math inline">\(x_1, \ldots, x_n\)</span>. That is, there is a knot at every observed value of <span class="math inline">\(X\)</span>. Second, it is a <strong>shrunken</strong> version where the value of <span class="math inline">\(\lambda\)</span> controls the level of shrinkage.</p>
+<div id="choosing-the-smoothing-parameter-lambda" class="section level2">
+<h2><span class="header-section-number">3.1</span> Choosing the smoothing parameter <span class="math inline">\(\lambda\)</span></h2>
+<p>One concern with smoothing splines is the number of degrees of freedom. With <span class="math inline">\(K = n\)</span> knots, we seem to need <span class="math inline">\(n + 4\)</span> degrees of freedom. For a linear regression model, that is not possible.</p>
+<p>However, since the tuning parameter <span class="math inline">\(\lambda\)</span> dictates the roughness of the smoothing spline, it also controls the <strong>effective degrees of freedom</strong>. As <span class="math inline">\(\lambda\)</span> increases from <span class="math inline">\(0\)</span> to <span class="math inline">\(\infty\)</span>, the effective degrees of freedom decreases from <span class="math inline">\(n\)</span> to <span class="math inline">\(2\)</span>.</p>
+<p>Degrees of freedom refer to the number of free parameters in a model, such as the number of coefficients fit in a regression model. Since a smoothing spline has <span class="math inline">\(n\)</span> parameters but each parameter is constrained by the penalty component of the loss function, they don’t carry the same value as a normal parameter. <span class="math inline">\(df_\lambda\)</span> is a measure of the flexibility of the smoothing spline, based on effectively how many degrees of freedom the model consumes. We can write this as</p>
+<p><span class="math display">\[\hat{\mathbf{g}}_\lambda = \mathbf{S}_\lambda \mathbf{y}\]</span></p>
+<p>where <span class="math inline">\(\hat{\mathbf{g}}_\lambda\)</span> is the solution to</p>
+<p><span class="math display">\[\sum_{i=1}^n (y_i - g(x_i))^2 + \lambda \int g&#39;&#39;(t)^2 dt\]</span></p>
+<p>for a particular choice of <span class="math inline">\(\lambda\)</span>. This vector of values can be written as an <span class="math inline">\(n \times n\)</span> matrix <span class="math inline">\(\mathbf{S}_\lambda\)</span> times the response vector <span class="math inline">\(\mathbf{y}\)</span>.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> The effective degrees of freedom is defined as</p>
+<p><span class="math display">\[df_\lambda = \sum_{i=1}^n \{\mathbf{S}_\lambda \}_{ii}\]</span></p>
+<p>We do not have to tune the number or location of knots for a smoothing spline - they exist at each <span class="math inline">\(x_1, \ldots, x_n\)</span>. We do need to choose a value for <span class="math inline">\(\lambda\)</span>. We can use cross-validation to determine which value of <span class="math inline">\(\lambda\)</span> generates the smallest test RSS/MSE. However, this can be computationally intensive. Instead, we can use an analytical short-cut for <a href="/notes/cross-validation/#leave-one-out-cross-validation">LOOCV</a>. This short-cut allows us to estimate a single model using the formula</p>
+<p><span class="math display">\[\text{RSS}_{cv}(\lambda) = \sum_{i=1}^n (y_i - \hat{g}_\lambda^{(-i)} (x_i))^2 = \sum_{i=1}^n \left[ \frac{y_i - \hat{g}_\lambda (x_i)}{1 - \{ \mathbf{S}_\lambda \}_{ii}} \right]^2\]</span></p>
+<ul>
+<li><span class="math inline">\(\hat{g}_\lambda^{(-i)} (x_i)\)</span> - fitted value for a smoothing spline evaluated at <span class="math inline">\(x_i\)</span>, fit using all the training observations except the <span class="math inline">\(i\)</span>th observation</li>
+<li><span class="math inline">\(\hat{g}_\lambda (x_i)\)</span> - fitted value for a smoothing spline evaluated at <span class="math inline">\(x_i\)</span>, fit using all the training observations</li>
+</ul>
+<p>To compute the LOOCV fits, we only need to use <span class="math inline">\(\hat{g}_\lambda\)</span>, which is the original model. In truth, most functions use the same approach for LOOCV for all least squares regression model.<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a></p>
+<p>Compare the difference between effective degrees of freedom:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">list</span>(
+  <span class="st">`</span><span class="dt">50</span><span class="st">`</span> =<span class="st"> </span><span class="kw">smooth.spline</span>(sim_spline_data<span class="op">$</span>x, sim_spline_data<span class="op">$</span>y, <span class="dt">df =</span> <span class="dv">50</span>),
+  <span class="st">`</span><span class="dt">20</span><span class="st">`</span> =<span class="st"> </span><span class="kw">smooth.spline</span>(sim_spline_data<span class="op">$</span>x, sim_spline_data<span class="op">$</span>y, <span class="dt">df =</span> <span class="dv">20</span>),
+  <span class="st">`</span><span class="dt">2</span><span class="st">`</span> =<span class="st"> </span><span class="kw">smooth.spline</span>(sim_spline_data<span class="op">$</span>x, sim_spline_data<span class="op">$</span>y, <span class="dt">df =</span> <span class="dv">2</span>),
+  <span class="st">`</span><span class="dt">11</span><span class="st">`</span> =<span class="st"> </span><span class="kw">smooth.spline</span>(sim_spline_data<span class="op">$</span>x, sim_spline_data<span class="op">$</span>y)
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">map_df</span>(predict, <span class="dt">.id =</span> <span class="st">&quot;df&quot;</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">df =</span> <span class="kw">factor</span>(df, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="dv">2</span>, <span class="dv">11</span>, <span class="dv">20</span>, <span class="dv">50</span>),
+                     <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;2&quot;</span>, <span class="st">&quot;11 (CV)&quot;</span>, <span class="st">&quot;20&quot;</span>, <span class="st">&quot;50&quot;</span>))) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">data =</span> sim_spline_data, <span class="dt">alpha =</span> .<span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">color =</span> df)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y),
+       <span class="dt">color =</span> <span class="st">&quot;Effective degrees of freedom&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
+<p><img src="/notes/splines_files/figure-html/sim-smooth-spline-compare-1.png" width="672" /></p>
+</div>
 </div>
 <div id="multivariate-adaptive-regression-splines-mars" class="section level1">
 <h1><span class="header-section-number">4</span> Multivariate adaptive regression splines (MARS)</h1>
+<p>MARS is an adaptive procedure for regression which generalizes many of the earlier approaches we saw such as <a href="http://uc-r.github.io/model_selection#stepwise">stepwise regression</a> and <a href="/notes/global-methods/">polynomial regression and step functions</a>. It works well for high-dimensional data (i.e. lots of predictors) and can be performed efficiently with cross-validation techniques.</p>
+<div id="basis-functions-1" class="section level2">
+<h2><span class="header-section-number">4.1</span> Basis functions</h2>
+<p>MARS uses expansions in piecewise linear basis functions of the form <span class="math inline">\((x - t)_+\)</span> and <span class="math inline">\((t - x)_+\)</span>. The <span class="math inline">\(+\)</span> means positive part, so</p>
+<p><span class="math display">\[
+(x - t)_+ = \begin{cases}
+x - t, &amp; \text{if } x &gt; t, \\
+0, &amp; \text{otherwise}
+\end{cases}
+\]</span></p>
+<p>and</p>
+<p><span class="math display">\[
+(t - x)_+ = \begin{cases}
+t - x, &amp; \text{if } x &lt; t, \\
+0, &amp; \text{otherwise}
+\end{cases}
+\]</span></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(
+  <span class="dt">x =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;xt&quot;</span>), <span class="dt">fun =</span> <span class="cf">function</span>(x) <span class="kw">ifelse</span>(x <span class="op">&gt;</span><span class="st"> </span>.<span class="dv">5</span>, x <span class="op">-</span><span class="st"> </span>.<span class="dv">5</span>, <span class="dv">0</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;tx&quot;</span>), <span class="dt">fun =</span> <span class="cf">function</span>(x) <span class="kw">ifelse</span>(x <span class="op">&lt;</span><span class="st"> </span>.<span class="dv">5</span>, .<span class="dv">5</span> <span class="op">-</span><span class="st"> </span>x, <span class="dv">0</span>),
+                <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>,
+                     <span class="dt">labels =</span> <span class="kw">c</span>(<span class="kw">expression</span>((t <span class="op">-</span><span class="st"> </span>x)[<span class="st">&quot;+&quot;</span>]), <span class="kw">expression</span>((x <span class="op">-</span><span class="st"> </span>t)[<span class="st">&quot;+&quot;</span>]))) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;MARS basis functions&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="kw">expression</span>(t <span class="op">==</span><span class="st"> </span><span class="fl">0.5</span>),
+       <span class="dt">x =</span> <span class="kw">expression</span>(x),
+       <span class="dt">y =</span> <span class="st">&quot;Basis function&quot;</span>,
+       <span class="dt">color =</span> <span class="ot">NULL</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
+<p><img src="/notes/splines_files/figure-html/mars-hinge-1.png" width="672" /></p>
+<p>Each function is piecewise linear (also known as a linear spline), with a knot at the value <span class="math inline">\(t\)</span>. This distinguishes MARS from traditional splines where the piecewise function is a cubic spline and constrained to be smooth at the knots.</p>
+<p>We call these two functions a <strong>reflected pair</strong>. The idea is to form reflected pairs for each input <span class="math inline">\(X_j\)</span> with knots at each observed value <span class="math inline">\(x_{ij}\)</span> of that input. The collection of basis functions is therefore</p>
+<p><span class="math display">\[C = \{ (X_j - t)_+, (t - X_j)_+ \}\]</span></p>
+<p>for</p>
+<p><span class="math display">\[
+\begin{align}
+t &amp;\in \{ x_{1j}, x_{2j}, \ldots, x_{Nj} \} \\
+j &amp;= 1, 2, \ldots, p
+\end{align}
+\]</span></p>
+<p>If all the input values are distinct, then there are <span class="math inline">\(2Np\)</span> basis functions altogether.</p>
+</div>
+<div id="model-construction" class="section level2">
+<h2><span class="header-section-number">4.2</span> Model construction</h2>
+<p>MARS uses a forward stepwise linear regression approach, but instead of using the original inputs we use functions from the set <span class="math inline">\(C\)</span> and their products. So the model takes on the form</p>
+<p><span class="math display">\[f(X) = \beta_0 + \sum_{m=1}^M \beta_m h_m (X)\]</span></p>
+<p>where each <span class="math inline">\(h_m (X)\)</span> is a function in <span class="math inline">\(C\)</span> or a product of two or more functions. Given a choice for <span class="math inline">\(h_m\)</span>, the coefficients are estimated using standard linear regrewssion. We start with only the constant function <span class="math inline">\(h_0 (X) = 1\)</span> in the model, and all functions in <span class="math inline">\(C\)</span> are candidate functions. At each stage, we consider as a new basis function pair all products of a function <span class="math inline">\(h_m\)</span> in the model set <span class="math inline">\(M\)</span> with one of the reflected pairs in <span class="math inline">\(C\)</span>. We add to the model <span class="math inline">\(M\)</span> the term of the form</p>
+<p><span class="math display">\[\hat{\beta}_{M+1} h_{\mathcal{l}}(X) \times (X_j - t)_+ + \hat{\beta}_{M + 2} h_{\mathcal{l}}(X) \times (t - X_j)_+, h_{\mathcal{l}}\in M\]</span></p>
+<p>that produces the largest decrease in training error, where <span class="math inline">\(\hat{\beta}_{M+1}, \hat{\beta}_{M+2}\)</span> are coefficients estimated by least squares. The winning products are added to the model and the process continues until the model set <span class="math inline">\(M\)</span> contains some preset maximum number of terms.</p>
+<p>At this point, we have a large model that overfits the training data, so we use a backward deletion process to remove terms that cause the smallest increase in residual squared error. This produces an estimated best model <span class="math inline">\(\hat{f}_\lambda\)</span> of each size (number of terms) <span class="math inline">\(\lambda\)</span>. We use a generalized form of cross-validation to determine the optimal value for <span class="math inline">\(\lambda\)</span>.</p>
+</div>
+<div id="application-to-ames-housing-data" class="section level2">
+<h2><span class="header-section-number">4.3</span> Application to Ames housing data</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ames_split &lt;-<span class="st"> </span><span class="kw">initial_split</span>(AmesHousing<span class="op">::</span><span class="kw">make_ames</span>(), <span class="dt">prop =</span> .<span class="dv">7</span>, <span class="dt">strata =</span> <span class="st">&quot;Sale_Price&quot;</span>)
+ames_train &lt;-<span class="st"> </span><span class="kw">training</span>(ames_split)
+ames_test  &lt;-<span class="st"> </span><span class="kw">testing</span>(ames_split)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ames_base &lt;-<span class="st"> </span><span class="kw">ggplot</span>(ames_train, <span class="kw">aes</span>(Year_Built, Sale_Price)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">alpha =</span> .<span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_y_continuous</span>(<span class="dt">labels =</span> scales<span class="op">::</span>dollar)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">{
+  ames_base <span class="op">+</span>
+<span class="st">    </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">    </span><span class="kw">ggtitle</span>(<span class="st">&quot;(A) Linear regression&quot;</span>)
+  } <span class="op">+</span><span class="st"> </span>{
+    ames_base <span class="op">+</span>
+<span class="st">      </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(x, <span class="dt">degree =</span> <span class="dv">2</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">      </span><span class="kw">ggtitle</span>(<span class="st">&quot;(B) Degree-2 polynomial regression&quot;</span>)
+  } <span class="op">+</span><span class="st"> </span>{
+    ames_base <span class="op">+</span>
+<span class="st">      </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(x, <span class="dt">degree =</span> <span class="dv">3</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">      </span><span class="kw">ggtitle</span>(<span class="st">&quot;(C) Degree-3 polynomial regression&quot;</span>)
+  } <span class="op">+</span><span class="st"> </span>{
+    ames_base <span class="op">+</span>
+<span class="st">      </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span><span class="kw">cut_interval</span>(x, <span class="dv">3</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">      </span><span class="kw">ggtitle</span>(<span class="st">&quot;(D) Step function regression&quot;</span>)
+  }</code></pre></div>
+<p><img src="/notes/splines_files/figure-html/ames-poly-step-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">year_built_k1 &lt;-<span class="st"> </span><span class="kw">earth</span>(
+  Sale_Price <span class="op">~</span><span class="st"> </span>Year_Built,  
+  <span class="dt">minspan =</span> <span class="op">-</span><span class="dv">1</span>,
+  <span class="dt">data =</span> ames_train   
+) <span class="op">%&gt;%</span>
+<span class="st">  </span>prediction
+
+year_built_k2 &lt;-<span class="st"> </span><span class="kw">earth</span>(
+  Sale_Price <span class="op">~</span><span class="st"> </span>Year_Built,  
+  <span class="dt">minspan =</span> <span class="op">-</span><span class="dv">2</span>,
+  <span class="dt">data =</span> ames_train   
+) <span class="op">%&gt;%</span>
+<span class="st">  </span>prediction
+
+year_built_k3 &lt;-<span class="st"> </span><span class="kw">earth</span>(
+  Sale_Price <span class="op">~</span><span class="st"> </span>Year_Built,  
+  <span class="dt">minspan =</span> <span class="op">-</span><span class="dv">3</span>,
+  <span class="dt">data =</span> ames_train   
+) <span class="op">%&gt;%</span>
+<span class="st">  </span>prediction
+
+year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
+  Sale_Price <span class="op">~</span><span class="st"> </span>Year_Built,  
+  <span class="dt">minspan =</span> <span class="op">-</span><span class="dv">4</span>,
+  <span class="dt">data =</span> ames_train   
+) <span class="op">%&gt;%</span>
+<span class="st">  </span>prediction
+
+{
+  ames_base <span class="op">+</span>
+<span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> year_built_k1, <span class="kw">aes</span>(<span class="dt">y =</span> fitted), <span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
+<span class="st">    </span><span class="kw">ggtitle</span>(<span class="st">&quot;(A) One knot&quot;</span>)
+} <span class="op">+</span><span class="st"> </span>{
+  ames_base <span class="op">+</span>
+<span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> year_built_k2, <span class="kw">aes</span>(<span class="dt">y =</span> fitted), <span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
+<span class="st">    </span><span class="kw">ggtitle</span>(<span class="st">&quot;(B) Two knots&quot;</span>)
+} <span class="op">+</span><span class="st"> </span>{
+  ames_base <span class="op">+</span>
+<span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> year_built_k3, <span class="kw">aes</span>(<span class="dt">y =</span> fitted), <span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
+<span class="st">    </span><span class="kw">ggtitle</span>(<span class="st">&quot;(C) Three knots&quot;</span>)
+} <span class="op">+</span><span class="st"> </span>{
+  ames_base <span class="op">+</span>
+<span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> year_built_k4, <span class="kw">aes</span>(<span class="dt">y =</span> fitted), <span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
+<span class="st">    </span><span class="kw">ggtitle</span>(<span class="st">&quot;(4) Four knots&quot;</span>)
+}</code></pre></div>
+<p><img src="/notes/splines_files/figure-html/ames-mars-knots-1.png" width="672" /></p>
+</div>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
 <h1><span class="header-section-number">5</span> Session Info</h1>
@@ -446,10 +696,11 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-02-15                  
+##  date     2019-02-18                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package       * version    date       lib
+##  AmesHousing     0.0.3      2017-12-17 [1]
 ##  assertthat      0.2.0      2017-04-11 [2]
 ##  backports       1.1.3      2018-12-14 [2]
 ##  base64enc       0.1-3      2015-07-28 [2]
@@ -476,6 +727,7 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 ##  dplyr         * 0.7.8      2018-11-10 [1]
 ##  DT              0.5        2018-11-05 [2]
 ##  dygraphs        1.1.1.6    2018-07-11 [2]
+##  earth         * 4.7.0      2019-01-03 [1]
 ##  evaluate        0.12       2018-10-09 [2]
 ##  forcats       * 0.3.0      2018-02-19 [2]
 ##  foreach       * 1.4.4      2017-12-12 [2]
@@ -534,6 +786,8 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 ##  pkgbuild        1.0.2      2018-10-16 [1]
 ##  pkgconfig       2.0.2      2018-08-16 [2]
 ##  pkgload         1.0.2      2018-10-29 [1]
+##  plotmo        * 3.5.2      2019-01-02 [1]
+##  plotrix       * 3.7-4      2018-10-03 [2]
 ##  plyr            1.8.4      2016-06-08 [2]
 ##  prediction      0.3.6.1    2018-12-04 [2]
 ##  prettyunits     1.0.2      2015-07-13 [2]
@@ -545,7 +799,6 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 ##  purrr         * 0.3.0      2019-01-27 [2]
 ##  R6              2.3.0      2018-10-04 [1]
 ##  rcfss         * 0.1.5      2019-01-24 [1]
-##  RColorBrewer    1.1-2      2014-12-07 [2]
 ##  Rcpp            1.0.0      2018-11-07 [1]
 ##  readr         * 1.3.1      2018-12-21 [2]
 ##  readxl          1.2.0      2018-12-19 [2]
@@ -574,6 +827,7 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 ##  stringi         1.2.4      2018-07-20 [2]
 ##  stringr       * 1.3.1      2018-05-10 [2]
 ##  survival        2.43-3     2018-11-26 [2]
+##  TeachingDemos * 2.10       2016-02-12 [2]
 ##  testthat        2.0.1      2018-10-13 [2]
 ##  threejs         0.3.1      2017-08-13 [2]
 ##  tibble        * 2.0.1      2019-01-12 [2]
@@ -603,6 +857,7 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -623,6 +878,7 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -681,6 +937,8 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.1)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -698,7 +956,6 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -721,6 +978,7 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
@@ -766,5 +1024,7 @@ vote_age_spline &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96
 <hr />
 <ol>
 <li id="fn1"><p>That is, each interval contains the same number of observations rather than each interval having an equal width.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>See ESL ch 5.4.1 for the technical definition of <span class="math inline">\(\mathbf{S}_\lambda\)</span>.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>This trick does not work for GLMs or related modeling strategies.<a href="#fnref3">↩</a></p></li>
 </ol>
 </div>

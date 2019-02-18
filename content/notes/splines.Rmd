@@ -33,6 +33,7 @@ library(gam)
 library(here)
 library(patchwork)
 library(margins)
+library(earth)
 
 set.seed(1234)
 theme_set(theme_minimal())
@@ -185,6 +186,41 @@ tibble(
        x = "X",
        y = "Y",
        color = "Knots")
+```
+
+## Spline basis representation
+
+Regression splines can be represented as basis functions, which identifies how they can be estimated using OLS and still fit it under the constraint that it and its derivatives can be continuous. A cubic spline with $K$ knots can be modeled as
+
+$$y_i = \beta_0 + \beta_1 b_1 (x_i) + \beta_3 b_3 (x_i) + \cdots + \beta_{K + 3} b_{K + 3} (x_i) + \epsilon_i$$
+
+for an appropriate choice of basis functions $b_1, b_2, \ldots, b_{K+3}$$.^[$K$ knots with a polynomial degree of $3$.]
+
+The basis function for a cubic spline is to start with a basis for a cubic polynomial and then add one **truncated power basis** function per knot. A truncated power basis function is defined as:
+
+$$
+h(x, \zeta) = (x - \zeta)_+^3 = 
+\begin{cases} 
+  (x - \zeta)^3 & \text{if } x > \zeta \\
+  0 & \text{otherwise}
+\end{cases}
+$$
+
+where $\zeta$ is the knot. Adding a term of the form $\beta_4 h(x, \zeta)$ to this model will lead to a discontinuity in only the third derivative at $\zeta$. The function remains continuous, with continuous first and second derivatives, at each of the knots.
+
+So fitting a cubic spline to a data set with $K$ knots requires least squares with an intercept and $3 + K$ predictors
+
+$$X, X^2, X^3, h(X, \zeta_1), h(X, \zeta_2), \ldots, h(X, \zeta_K)$$
+
+where $\zeta_1, \ldots, \zeta_K$ are the knots. This amounts to estimating a total of $K + 4$ regression coefficients, and so fitting a cubic spline with $K$ knots uses $K+4$ degrees of freedom.
+
+Notice how the model matrix is constructed when constructing a cubic spline with $K = 4$ knots:
+
+```{r basis-spline-output}
+sim_piece %>%
+  select(x) %>%
+  bind_cols(splines = bs(sim_piece$x, df = 7) %>%
+              as_tibble)
 ```
 
 ## Basis splines vs. natural splines
@@ -355,8 +391,265 @@ Splines are generally superior to polynomial regression because their flexibilit
 
 # Smoothing splines
 
+**Smoothing splines** take a different approach to producing a spline. The goal is to fit a function $g(x)$ to the observed data well; that is,
+
+$$\min \left\{ \text{RSS} = \sum_{i=1}^n (y_i - g(x_i))^2 \right\}$$
+
+With no constraints, we could generate a function that interpolates all of the $y_i$:
+
+```{r sim-perfect-fit}
+sim_spline_data <- tibble(
+  x = runif(100, min = -1, max = 1),
+  y = poly(x, degree = 15, raw = TRUE) %>%
+    rowSums() + rnorm(100)
+)
+
+ggplot(sim_spline_data, aes(x, y)) +
+  geom_point() +
+  geom_line() +
+  labs(x = expression(X),
+       y = expression(Y))
+```
+
+Clearly such a function would overfit the data. Instead, we want a function $g$ that makes $\text{RSS}$ small, but that is also smooth.
+
+The approach of a smoothing spline is to find the function that minimizes
+
+$$\sum_{i=1}^n (y_i - g(x_i))^2 + \lambda \int g''(t)^2 dt$$
+
+where $\lambda$ is a non-negative tuning parameter. The function that $g$ minimizes is the smoothing spline.
+
+This is the same "Loss + Penalty" form that we used for [ridge/lasso/elastic net regression](/syllabus/selection-regulation/). The second derivative of the function $g(t)$ is a measure of the function's **roughness**: it is large in absolute value if $g(t)$ is wiggly, and it is close to zero otherwise. By integrating over $g''(t)^2$, we capture the total change in $g'(t)$.
+
+Including this as a weighted penalty forces $g(x)$ to impose smooth constraints. Otherwise the function is not minimized appropriately. As $\lambda$ increases, $g$ will become more smooth. When $\lambda = 0$, $g(x)$ is a line that perfectly interpolates the original data points. When $\lambda \rightarrow \infty$, $g$ will be perfectly smooth - it will just be a straight line that passes closely to the training points. In fact, it will be the linear least squares fit line.
+
+What does this function look like?
+
+```{r sim-spline-compare, dependson = "sim-perfect-fit"}
+# smooth spline data points
+sim_smooth <- smooth.spline(sim_spline_data$x, sim_spline_data$y, df = 6) %>%
+  predict %>%
+  as_tibble
+
+ggplot(sim_spline_data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(aes(color = "Cubic spline"),
+              method = "lm", formula = y ~ bs(x, df = 6), se = FALSE) +
+  geom_smooth(aes(color = "Natural spline"),
+              method = "lm", formula = y ~ ns(x, df = 6), se = FALSE) +
+  geom_line(data = sim_smooth, aes(color = "Smoothing spline"), size = 1) +
+  scale_color_brewer(type = "qual") +
+  labs(x = expression(X),
+       y = expression(Y),
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+A smoothing spline is strongly related to a natural cubic spline, with a couple notable exceptions. First, $g(x)$ is a natural cubic spline with knots at $x_1, \ldots, x_n$. That is, there is a knot at every observed value of $X$. Second, it is a **shrunken** version where the value of $\lambda$ controls the level of shrinkage.
+
+## Choosing the smoothing parameter $\lambda$
+
+One concern with smoothing splines is the number of degrees of freedom. With $K = n$ knots, we seem to need $n + 4$ degrees of freedom. For a linear regression model, that is not possible.
+
+However, since the tuning parameter $\lambda$ dictates the roughness of the smoothing spline, it also controls the **effective degrees of freedom**. As $\lambda$ increases from $0$ to $\infty$, the effective degrees of freedom decreases from $n$ to $2$.
+
+Degrees of freedom refer to the number of free parameters in a model, such as the number of coefficients fit in a regression model. Since a smoothing spline has $n$ parameters but each parameter is constrained by the penalty component of the loss function, they don't carry the same value as a normal parameter. $df_\lambda$ is a measure of the flexibility of the smoothing spline, based on effectively how many degrees of freedom the model consumes. We can write this as
+
+$$\hat{\mathbf{g}}_\lambda = \mathbf{S}_\lambda \mathbf{y}$$
+
+where $\hat{\mathbf{g}}_\lambda$ is the solution to
+
+$$\sum_{i=1}^n (y_i - g(x_i))^2 + \lambda \int g''(t)^2 dt$$
+
+for a particular choice of $\lambda$. This vector of values can be written as an $n \times n$ matrix $\mathbf{S}_\lambda$ times the response vector $\mathbf{y}$.^[See ESL ch 5.4.1 for the technical definition of $\mathbf{S}_\lambda$.] The effective degrees of freedom is defined as
+
+$$df_\lambda = \sum_{i=1}^n \{\mathbf{S}_\lambda \}_{ii}$$
+
+We do not have to tune the number or location of knots for a smoothing spline - they exist at each $x_1, \ldots, x_n$. We do need to choose a value for $\lambda$. We can use cross-validation to determine which value of $\lambda$ generates the smallest test RSS/MSE. However, this can be computationally intensive. Instead, we can use an analytical short-cut for [LOOCV](/notes/cross-validation/#leave-one-out-cross-validation). This short-cut allows us to estimate a single model using the formula
+
+$$\text{RSS}_{cv}(\lambda) = \sum_{i=1}^n (y_i - \hat{g}_\lambda^{(-i)} (x_i))^2 = \sum_{i=1}^n \left[ \frac{y_i - \hat{g}_\lambda (x_i)}{1 - \{ \mathbf{S}_\lambda \}_{ii}} \right]^2$$
+
+* $\hat{g}_\lambda^{(-i)} (x_i)$ - fitted value for a smoothing spline evaluated at $x_i$, fit using all the training observations except the $i$th observation
+* $\hat{g}_\lambda (x_i)$ - fitted value for a smoothing spline evaluated at $x_i$, fit using all the training observations
+
+To compute the LOOCV fits, we only need to use $\hat{g}_\lambda$, which is the original model. In truth, most functions use the same approach for LOOCV for all least squares regression model.^[This trick does not work for GLMs or related modeling strategies.]
+
+Compare the difference between effective degrees of freedom:
+
+```{r sim-smooth-spline-compare, dependson = "sim-perfect-fit"}
+list(
+  `50` = smooth.spline(sim_spline_data$x, sim_spline_data$y, df = 50),
+  `20` = smooth.spline(sim_spline_data$x, sim_spline_data$y, df = 20),
+  `2` = smooth.spline(sim_spline_data$x, sim_spline_data$y, df = 2),
+  `11` = smooth.spline(sim_spline_data$x, sim_spline_data$y)
+) %>%
+  map_df(predict, .id = "df") %>%
+  mutate(df = factor(df, levels = c(2, 11, 20, 50),
+                     labels = c("2", "11 (CV)", "20", "50"))) %>%
+  ggplot(aes(x, y)) +
+  geom_point(data = sim_spline_data, alpha = .2) +
+  geom_line(aes(color = df)) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  labs(x = expression(X),
+       y = expression(Y),
+       color = "Effective degrees of freedom") +
+  theme(legend.position = "bottom")
+```
 
 # Multivariate adaptive regression splines (MARS)
+
+MARS is an adaptive procedure for regression which generalizes many of the earlier approaches we saw such as [stepwise regression](http://uc-r.github.io/model_selection#stepwise) and [polynomial regression and step functions](/notes/global-methods/). It works well for high-dimensional data (i.e. lots of predictors) and can be performed efficiently with cross-validation techniques.
+
+## Basis functions
+
+MARS uses expansions in piecewise linear basis functions of the form $(x - t)_+$ and $(t - x)_+$. The $+$ means positive part, so
+
+$$
+(x - t)_+ = \begin{cases}
+x - t, & \text{if } x > t, \\
+0, & \text{otherwise}
+\end{cases}
+$$
+
+and
+
+$$
+(t - x)_+ = \begin{cases}
+t - x, & \text{if } x < t, \\
+0, & \text{otherwise}
+\end{cases}
+$$
+
+```{r mars-hinge}
+tibble(
+  x = c(0, 1)
+) %>%
+  ggplot(aes(x)) +
+  stat_function(aes(color = "xt"), fun = function(x) ifelse(x > .5, x - .5, 0)) +
+  stat_function(aes(color = "tx"), fun = function(x) ifelse(x < .5, .5 - x, 0),
+                linetype = 2) +
+  scale_color_brewer(type = "qual",
+                     labels = c(expression((t - x)["+"]), expression((x - t)["+"]))) +
+  labs(title = "MARS basis functions",
+       subtitle = expression(t == 0.5),
+       x = expression(x),
+       y = "Basis function",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+Each function is piecewise linear (also known as a linear spline), with a knot at the value $t$. This distinguishes MARS from traditional splines where the piecewise function is a cubic spline and constrained to be smooth at the knots.
+
+We call these two functions a **reflected pair**. The idea is to form reflected pairs for each input $X_j$ with knots at each observed value $x_{ij}$ of that input. The collection of basis functions is therefore
+
+$$C = \{ (X_j - t)_+, (t - X_j)_+ \}$$
+
+for
+
+$$
+\begin{align}
+t &\in \{ x_{1j}, x_{2j}, \ldots, x_{Nj} \} \\
+j &= 1, 2, \ldots, p
+\end{align}
+$$
+
+If all the input values are distinct, then there are $2Np$ basis functions altogether.
+
+## Model construction
+
+MARS uses a forward stepwise linear regression approach, but instead of using the original inputs we use functions from the set $C$ and their products. So the model takes on the form
+
+$$f(X) = \beta_0 + \sum_{m=1}^M \beta_m h_m (X)$$
+
+where each $h_m (X)$ is a function in $C$ or a product of two or more functions. Given a choice for $h_m$, the coefficients are estimated using standard linear regrewssion. We start with only the constant function $h_0 (X) = 1$ in the model, and all functions in $C$ are candidate functions. At each stage, we consider as a new basis function pair all products of a function $h_m$ in the model set $M$ with one of the reflected pairs in $C$. We add to the model $M$ the term of the form
+
+$$\hat{\beta}_{M+1} h_\lagr (X) \times (X_j - t)_+ + \hat{\beta}_{M + 2} h_\lagr (X) \times (t - X_j)_+, h_\lagr \in M$$
+
+that produces the largest decrease in training error, where $\hat{\beta}_{M+1}, \hat{\beta}_{M+2}$ are coefficients estimated by least squares. The winning products are added to the model and the process continues until the model set $M$ contains some preset maximum number of terms.
+
+At this point, we have a large model that overfits the training data, so we use a backward deletion process to remove terms that cause the smallest increase in residual squared error. This produces an estimated best model $\hat{f}_\lambda$ of each size (number of terms) $\lambda$. We use a generalized form of cross-validation to determine the optimal value for $\lambda$.
+
+## Application to Ames housing data
+
+```{r ames}
+ames_split <- initial_split(AmesHousing::make_ames(), prop = .7, strata = "Sale_Price")
+ames_train <- training(ames_split)
+ames_test  <- testing(ames_split)
+```
+
+```{r ames-base, dependson = "ames"}
+ames_base <- ggplot(ames_train, aes(Year_Built, Sale_Price)) +
+  geom_point(alpha = .1) +
+  scale_y_continuous(labels = scales::dollar)
+```
+
+```{r ames-poly-step, dependson = c("ames", "ames-base")}
+{
+  ames_base +
+    geom_smooth(method = "lm", se = FALSE) +
+    ggtitle("(A) Linear regression")
+  } + {
+    ames_base +
+      geom_smooth(method = "lm", formula = y ~ poly(x, degree = 2), se = FALSE) +
+      ggtitle("(B) Degree-2 polynomial regression")
+  } + {
+    ames_base +
+      geom_smooth(method = "lm", formula = y ~ poly(x, degree = 3), se = FALSE) +
+      ggtitle("(C) Degree-3 polynomial regression")
+  } + {
+    ames_base +
+      geom_smooth(method = "lm", formula = y ~ cut_interval(x, 3), se = FALSE) +
+      ggtitle("(D) Step function regression")
+  }
+```
+
+```{r ames-mars-knots, dependson = c("ames", "ames-base")}
+year_built_k1 <- earth(
+  Sale_Price ~ Year_Built,  
+  minspan = -1,
+  data = ames_train   
+) %>%
+  prediction
+
+year_built_k2 <- earth(
+  Sale_Price ~ Year_Built,  
+  minspan = -2,
+  data = ames_train   
+) %>%
+  prediction
+
+year_built_k3 <- earth(
+  Sale_Price ~ Year_Built,  
+  minspan = -3,
+  data = ames_train   
+) %>%
+  prediction
+
+year_built_k4 <- earth(
+  Sale_Price ~ Year_Built,  
+  minspan = -4,
+  data = ames_train   
+) %>%
+  prediction
+
+{
+  ames_base +
+    geom_line(data = year_built_k1, aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(A) One knot")
+} + {
+  ames_base +
+    geom_line(data = year_built_k2, aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(B) Two knots")
+} + {
+  ames_base +
+    geom_line(data = year_built_k3, aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(C) Three knots")
+} + {
+  ames_base +
+    geom_line(data = year_built_k4, aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(4) Four knots")
+}
+```
 
 
 # Session Info {.toc-ignore}
