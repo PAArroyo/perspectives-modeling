@@ -67,7 +67,7 @@ ggplot(sim_linear, aes(x, y)) +
   labs(title = "Linear model for a linear relationship")
 ```
 
-When this assumption holds, the **residuals** of the observations should be distributed normally with an expected error $E(\epsilon) = 0$ and not be correlated with the fitted values.
+When this assumption holds, the **residuals** of the observations should be distributed normally with an expected error $\E(\epsilon) = 0$ and not be correlated with the fitted values.
 
 ```{r sim-linear-resid, echo = FALSE, dependson = "sim-linear"}
 sim_linear_pred <- augment(sim_linear_mod)
@@ -369,7 +369,7 @@ What is the variance of the fit for this point, i.e. $\text{Var}(\hat{f}(x_o))$.
 
 ```{r biden-margins, dependson = "biden-age"}
 # plot marginal effect
-cplot(biden_age, "age", dx = "age", what = "effect", plot = FALSE) %>%
+cplot(biden_age, "age", dx = "age", what = "effect", draw = FALSE) %>%
   ggplot(aes(x = xvals)) + 
   geom_line(aes(y = yvals)) +
   geom_line(aes(y = upper), linetype = 2) +

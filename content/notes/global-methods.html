@@ -111,7 +111,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p><span class="math display">\[Y = 2 + 3X + \epsilon\]</span></p>
 <p>where <span class="math inline">\(\epsilon\)</span> is random error distributed normally <span class="math inline">\(N(0,3)\)</span>.</p>
 <p><img src="/notes/global-methods_files/figure-html/sim-linear-1.png" width="672" /></p>
-<p>When this assumption holds, the <strong>residuals</strong> of the observations should be distributed normally with an expected error <span class="math inline">\(E(\epsilon) = 0\)</span> and not be correlated with the fitted values.</p>
+<p>When this assumption holds, the <strong>residuals</strong> of the observations should be distributed normally with an expected error <span class="math inline">\({\mathrm{E}}(\epsilon) = 0\)</span> and not be correlated with the fitted values.</p>
 <pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
 <p><img src="/notes/global-methods_files/figure-html/sim-linear-resid-1.png" width="672" /></p>
 <pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
@@ -349,7 +349,7 @@ biden_pred &lt;-<span class="st"> </span><span class="kw">augment</span>(biden_a
 <p><span class="math display">\[\hat{f}(x_0) = \hat{\beta}_0 + \hat{\beta}_1 x_{0} + \hat{\beta}_2 x_{0}^2 + \hat{\beta}_3 x_{0}^3 + \hat{\beta}_4 x_{0}^4\]</span></p>
 <p>What is the variance of the fit for this point, i.e. <span class="math inline">\(\text{Var}(\hat{f}(x_o))\)</span>. The variance is now a function not only of <span class="math inline">\(\hat{\beta}_1\)</span>, but the variance of each of the estimated parameters <span class="math inline">\(\hat{\beta}_j\)</span> as well as the covariances between the pairs of estimated parameters (i.e. the off-diagonal elements). We use all of this information to estimate the <strong>pointwise</strong> standard error of <span class="math inline">\(\hat{f}(x_0)\)</span>, which is the square-root of the variance <span class="math inline">\(\text{Var}(\hat{f}(x_o))\)</span>.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># plot marginal effect</span>
-<span class="kw">cplot</span>(biden_age, <span class="st">&quot;age&quot;</span>, <span class="dt">dx =</span> <span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;effect&quot;</span>, <span class="dt">plot =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
+<span class="kw">cplot</span>(biden_age, <span class="st">&quot;age&quot;</span>, <span class="dt">dx =</span> <span class="st">&quot;age&quot;</span>, <span class="dt">what =</span> <span class="st">&quot;effect&quot;</span>, <span class="dt">draw =</span> <span class="ot">FALSE</span>) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> xvals)) <span class="op">+</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> yvals)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> upper), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
@@ -359,16 +359,7 @@ biden_pred &lt;-<span class="st"> </span><span class="kw">augment</span>(biden_a
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Average marginal effect of age&quot;</span>,
        <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
        <span class="dt">y =</span> <span class="st">&quot;Marginal effect of age&quot;</span>)</code></pre></div>
-<pre><code>## Warning in plot.window(...): &quot;plot&quot; is not a graphical parameter</code></pre>
-<pre><code>## Warning in plot.xy(xy, type, ...): &quot;plot&quot; is not a graphical parameter</code></pre>
-<pre><code>## Warning in axis(side = side, at = at, labels = labels, ...): &quot;plot&quot; is not
-## a graphical parameter
-
-## Warning in axis(side = side, at = at, labels = labels, ...): &quot;plot&quot; is not
-## a graphical parameter</code></pre>
-<pre><code>## Warning in box(...): &quot;plot&quot; is not a graphical parameter</code></pre>
-<pre><code>## Warning in title(...): &quot;plot&quot; is not a graphical parameter</code></pre>
-<p><img src="/notes/global-methods_files/figure-html/biden-margins-1.png" width="672" /><img src="/notes/global-methods_files/figure-html/biden-margins-2.png" width="672" /></p>
+<p><img src="/notes/global-methods_files/figure-html/biden-margins-1.png" width="672" /></p>
 </div>
 <div id="voter-turnout-and-mental-health" class="section level2">
 <h2><span class="header-section-number">3.2</span> Voter turnout and mental health</h2>
@@ -914,7 +905,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-02-15                  
+##  date     2019-02-18                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package       * version    date       lib
@@ -923,7 +914,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  base64enc       0.1-3      2015-07-28 [2]
 ##  bayesplot       1.6.0      2018-08-02 [2]
 ##  bindr           0.1.1      2018-03-13 [2]
-##  bindrcpp        0.2.2      2018-03-29 [1]
+##  bindrcpp      * 0.2.2      2018-03-29 [1]
 ##  blogdown        0.10       2019-01-09 [1]
 ##  bookdown        0.9        2018-12-21 [1]
 ##  broom         * 0.5.1      2018-12-05 [2]
@@ -945,11 +936,13 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  DT              0.5        2018-11-05 [2]
 ##  dygraphs        1.1.1.6    2018-07-11 [2]
 ##  evaluate        0.12       2018-10-09 [2]
+##  farver          1.1.0      2018-11-20 [1]
 ##  forcats       * 0.3.0      2018-02-19 [2]
 ##  foreach       * 1.4.4      2017-12-12 [2]
 ##  fs              1.2.6      2018-08-23 [1]
 ##  gam           * 1.16       2018-07-20 [2]
 ##  generics        0.0.2      2018-11-29 [1]
+##  gganimate     * 1.0.0      2019-01-02 [1]
 ##  ggplot2       * 3.1.0      2018-10-25 [1]
 ##  ggridges        0.5.1      2018-09-27 [2]
 ##  glue            1.3.0      2018-07-17 [2]
@@ -973,6 +966,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  janeaustenr     0.1.5      2017-06-10 [2]
 ##  jsonlite        1.6        2018-12-07 [2]
 ##  knitr         * 1.21       2018-12-10 [2]
+##  labeling        0.3        2014-08-23 [2]
 ##  later           0.7.5      2018-09-18 [2]
 ##  lattice       * 0.20-38    2018-11-04 [2]
 ##  lava            1.6.4      2018-11-25 [2]
@@ -985,6 +979,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  markdown        0.9        2018-12-07 [2]
 ##  MASS            7.3-51.1   2018-11-01 [2]
 ##  Matrix          1.2-15     2018-11-01 [2]
+##  MatrixModels  * 0.4-1      2015-08-22 [2]
 ##  matrixStats     0.54.0     2018-07-23 [2]
 ##  memoise         1.1.0      2017-04-21 [2]
 ##  mime            0.6        2018-10-05 [1]
@@ -1007,9 +1002,11 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  pROC            1.13.0     2018-09-24 [1]
 ##  processx        3.2.1      2018-12-05 [2]
 ##  prodlim         2018.04.18 2018-04-18 [2]
+##  progress        1.2.0      2018-06-14 [2]
 ##  promises        1.0.1      2018-04-13 [2]
 ##  ps              1.3.0      2018-12-21 [2]
 ##  purrr         * 0.3.0      2019-01-27 [2]
+##  quantreg      * 5.38       2018-12-18 [2]
 ##  R6              2.3.0      2018-10-04 [1]
 ##  rcfss         * 0.1.5      2019-01-24 [1]
 ##  Rcpp            1.0.0      2018-11-07 [1]
@@ -1036,6 +1033,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  shinystan       2.5.0      2018-05-01 [2]
 ##  shinythemes     1.1.2      2018-11-06 [2]
 ##  SnowballC       0.6.0      2019-01-15 [2]
+##  SparseM       * 1.77       2017-04-23 [2]
 ##  StanHeaders     2.18.0-1   2018-12-13 [2]
 ##  stringi         1.2.4      2018-07-20 [2]
 ##  stringr       * 1.3.1      2018-05-10 [2]
@@ -1053,6 +1051,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  timeDate        3043.102   2018-02-21 [2]
 ##  titanic       * 0.1.0      2015-08-31 [2]
 ##  tokenizers      0.2.1      2018-03-29 [2]
+##  tweenr          1.0.1      2018-12-14 [1]
 ##  usethis         1.4.0      2018-08-14 [1]
 ##  withr           2.1.2      2018-03-15 [2]
 ##  xfun            0.4        2018-10-23 [1]
@@ -1096,6 +1095,8 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1119,17 +1120,19 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.1)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1154,7 +1157,9 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  local                               
 ##  CRAN (R 3.5.0)                      
@@ -1184,6 +1189,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1192,6 +1198,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  Github (tidyverse/tidyr@0b27690)    
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      

@@ -1,0 +1,1038 @@
+---
+title: "Moving Beyond Linearity"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2, fig.width = 12)
+
+library(tidyverse)
+library(tidymodels)
+library(rcfss)
+library(titanic)
+library(knitr)
+library(splines)
+library(ISLR)
+library(lattice)
+library(gam)
+library(here)
+library(patchwork)
+library(margins)
+library(earth)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 16))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+# Linearity in linear models
+
+* Assumes linear relationship
+* Non-linear relationships
+* Alternative strategies
+    * Decision trees
+    * Support vector machines
+    * Neural networks
+* Conducting inference
+
+---
+
+# Linear relationship
+
+$$Y = 2 + 3X + \epsilon$$
+
+```{r sim-linear, echo = FALSE}
+sim_linear <- tibble(
+  x = runif(100, 0, 10),
+  y = 2 + 3 * x + rnorm(100, 0, 3)
+)
+sim_linear_mod <- glm(y ~ x, data = sim_linear)
+
+ggplot(sim_linear, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Linear model for a linear relationship")
+```
+
+---
+
+# Linear relationship
+
+```{r sim-linear-resid, echo = FALSE, dependson = "sim-linear"}
+sim_linear_pred <- augment(sim_linear_mod)
+
+# distribution of residuals
+{
+  ggplot(sim_linear_pred, aes(.resid)) +
+    geom_histogram(aes(y = stat(density))) +
+    stat_function(fun = dnorm,
+                  args = list(mean = mean(sim_linear_pred$.resid),
+                              sd = sd(sim_linear_pred$.resid))) +
+    labs(title = "Linear model for a linear relationship",
+         x = "Residuals")
+} + {
+  # predicted vs. residuals
+  ggplot(sim_linear_pred, aes(.fitted, .resid)) +
+    geom_point() +
+    geom_smooth(se = FALSE) +
+    labs(title = "Linear model for a linear relationship",
+         x = "Predicted values",
+         y = "Residuals")
+}
+```
+
+---
+
+# Non-linear relationship
+
+$$Y = 2 + 3X + 2X^2 + \epsilon$$
+
+```{r sim-nonlinear, echo = FALSE}
+sim_nonlinear <- tibble(
+  x = runif(100, 0, 10),
+  y = 2 + 3 * x + 2 * x^2 + rnorm(100, 0, 3)
+)
+sim_nonlinear_mod <- glm(y ~ x, data = sim_nonlinear)
+
+ggplot(sim_nonlinear, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Linear model for a non-linear relationship")
+```
+
+---
+
+# Non-linear relationship
+
+```{r sim-nonlinear-resid, echo = FALSE, dependson = "sim-nonlinear"}
+sim_nonlinear_pred <- augment(sim_nonlinear_mod)
+
+# distribution of residuals
+{
+  ggplot(sim_nonlinear_pred, aes(.resid)) +
+    geom_histogram(aes(y = stat(density))) +
+    stat_function(fun = dnorm,
+                  args = list(mean = mean(sim_nonlinear_pred$.resid),
+                              sd = sd(sim_nonlinear_pred$.resid))) +
+    labs(title = "Linear model for a non-linear relationship",
+         x = "Residuals")
+} + {
+  # predicted vs. residuals
+  ggplot(sim_nonlinear_pred, aes(.fitted, .resid)) +
+    geom_point() +
+    geom_smooth(se = FALSE) +
+    labs(title = "Linear model for a non-linear relationship",
+         x = "Predicted values",
+         y = "Residuals")
+}
+```
+
+---
+
+# Variance in the error term
+
+* Assume $\epsilon_i$ has a constant variance $\text{Var}(\epsilon_i) = \sigma^2$
+* Homoscedasticity
+
+    $$\widehat{s.e.}(\hat{\beta}_j) = \sqrt{\hat{\sigma}^{2} (X^{T}X)^{-1}_{jj}}$$
+
+* Heteroscedasticity
+
+---
+
+# Variance in the error term
+
+$$Y = 2 + 3X + \epsilon, \quad \epsilon \sim N(0,1)$$
+
+```{r sim-homo, echo = FALSE}
+sim_homo <- tibble(
+  x = runif(1000, 0, 10),
+  y = 2 + 3 * x + rnorm(1000, 0, 1)
+)
+sim_homo_mod <- glm(y ~ x, data = sim_homo)
+
+augment(sim_homo_mod) %>%
+  ggplot(aes(.fitted, .resid)) +
+  geom_point(alpha = .2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_quantile(method = "rqss", lambda = 5, quantiles = c(.05, .95)) +
+  labs(title = "Homoscedastic variance of error terms",
+       x = "Predicted values",
+       y = "Residuals")
+```
+
+---
+
+# Variance in the error term
+
+$$Y = 2 + 3X + \epsilon, \quad \epsilon \sim N(0, \frac{X}{2})$$
+
+```{r sim-hetero, echo = FALSE}
+sim_hetero <- tibble(
+  x = runif(1000, 0, 10),
+  y = 2 + 3 * x + rnorm(1000, 0, (x / 2))
+)
+sim_hetero_mod <- glm(y ~ x, data = sim_hetero)
+
+augment(sim_hetero_mod) %>%
+  ggplot(aes(.fitted, .resid)) +
+  geom_point(alpha = .2) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_quantile(method = "rqss", lambda = 5, quantiles = c(.05, .95)) +
+  labs(title = "Heteroscedastic variance of error terms",
+       x = "Predicted values",
+       y = "Residuals")
+```
+
+---
+
+# Monotonic transformations
+
+* Function for transforming a set of numbers into a different set of numbers so that the rank order of the original set of numbers is preserved
+
+--
+
+## Ladder of powers
+
+Transformation | Power | $f(X)$
+---------------|-------|--------
+Cube | 3 | $X^3$
+Square | 2 | $X^2$
+Identity | 1 | $X$
+Square root | $\frac{1}{2}$ | $\sqrt{X}$
+Cube root | $\frac{1}{3}$ | $\sqrt[3]{X}$
+Log | 0 (sort of) | $\log(X)$
+
+---
+
+# Ladder of powers
+
+```{r power-ladder, echo = FALSE}
+tibble(x = runif(1000, 0, 10),
+           cube = x^3,
+           square = x^2,
+           identity = x,
+           sqrt = sqrt(x),
+           cubert = x ^ (1/3),
+           log = log(x)) %>%
+  gather(transform, value, -x) %>%
+  mutate(transform = factor(transform,
+                            levels = c("cube", "square", "identity", "sqrt", "cubert", "log"),
+                            labels = c("X^3", "X^2", "X", "sqrt(X)", "sqrt(X, 3)", "ln(X)"))) %>%
+  ggplot(aes(x, value)) +
+  geom_line() +
+  facet_wrap( ~ transform, scales = "free_y", labeller = label_parsed) +
+  labs(title = "Ladder of powers transformations",
+       x = "X",
+       y = "Transformed X")
+```
+
+---
+
+# Which transformation should I use?
+
+.center[
+```{r bulge-rule, echo = FALSE, fig.asp = 1, fig.width = 8}
+# from http://freakonometrics.hypotheses.org/14967
+fakedataMT <- function(p = 1, q = 1, n = 500, s = .1) {
+  X <- seq(1 / (n + 1), 1 - 1 / (n + 1), length = n)
+  Y <- (5 + 2 * X ^ p + rnorm(n, sd = s)) ^ (1 / q)
+  return(tibble(x = X, y = Y))
+}
+
+bind_rows(`1` = fakedataMT(p = .5, q = 2),
+          `2` = fakedataMT(p = 3, q = -5),
+          `3` = fakedataMT(p = .5, q = -1),
+          `4` = fakedataMT(p = 3, q = 5),
+          .id = "id") %>%
+  mutate(id = factor(id, levels = 1:4,
+                     labels = c("Log X or Square Y", "Square X or Y",
+                                "Log X or Y", "Square X or Log Y"))) %>%
+  ggplot(aes(x, y)) +
+  geom_point() +
+  facet_wrap(~ id, scales = "free_y") +
+  labs(title = 'Tukey and Mosteller\'s "Bulging Rule" for monotone transformations to linearity',
+       x = "X",
+       y = "Y") +
+  theme_bw() +
+  theme(axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        panel.grid = element_blank())
+```
+]
+
+---
+
+# Interpreting log transformations
+
+$$\log(Y_i) = \beta_0 + \beta_{1}X_i + \epsilon_i$$
+
+$$\E(Y) = e^{\beta_0 + \beta_{1}X_i}$$
+
+$$\frac{\partial \E(Y)}{\partial X} = e^{\beta_1}$$
+
+$$Y_i = \beta_0 + \beta_{1} \log(X_i) + \epsilon_i$$
+
+---
+
+# Log-log regressions
+
+$$\log(Y_i) = \beta_0 + \beta_{1} \log(X_i) + \dots + \epsilon_i$$
+
+* $\beta_1$ - elasticity of $Y$ with respect to $X$
+
+    $$\text{Elasticity}_{YX} = \frac{\% \Delta Y}{\% \Delta X}$$
+
+---
+
+# Polynomial regressions
+
+$$y_i = \beta_0 + \beta_{1}x_{i} + \epsilon_{i}$$
+
+$$y_i = \beta_0 + \beta_{1}x_{i} + \beta_{2}x_i^2 + \beta_{3}x_i^3 + \dots + \beta_{d}x_i^d + \epsilon_i$$
+
+---
+
+# Biden and age
+
+$$\text{Biden}_i = \beta_0 + \beta_1 \text{Age} + \beta_2 \text{Age}^2 + \beta_3 \text{Age}^3 + \beta_4 \text{Age}^4$$
+
+```{r biden-age}
+# get data
+biden <- read_csv(here("static", "data", "biden.csv"))
+
+# estimate model
+biden_age <- glm(biden ~ age + I(age^2) + I(age^3) + I(age^4), data = biden)
+
+# estimate the predicted values and confidence interval
+biden_pred <- augment(biden_age, newdata = biden) %>%
+  mutate(pred_low = .fitted - 1.96 * .se.fit,
+         pred_high = .fitted + 1.96 * .se.fit)
+
+# plot the curve
+ggplot(biden_pred, aes(age)) +
+  geom_point(data = biden, aes(age, biden), alpha = .05) +
+  geom_line(aes(y = .fitted)) +
+  geom_line(aes(y = pred_low), linetype = 2) +
+  geom_line(aes(y = pred_high), linetype = 2) +
+  labs(title = "Polynomial regression of Biden feeling thermometer",
+       subtitle = "With 95% confidence interval",
+       x = "Age",
+       y = "Predicted Biden thermometer rating")
+```
+
+---
+
+# Biden and age
+
+```{r biden-matrix}
+vcov(biden_age) %>%
+  kable(caption = "Variance-covariance matrix of Biden polynomial regression",
+        digits = 5,
+        format = "html")
+```
+
+---
+
+# Biden and age
+
+```{r biden-margins, dependson = "biden-age"}
+# plot marginal effect
+cplot(biden_age, "age", dx = "age", what = "effect", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  geom_rug(data = biden, aes(x = age)) +
+  labs(title = "Average marginal effect of age",
+       x = "Age",
+       y = "Marginal effect of age")
+```
+
+---
+
+# Voter turnout and mental health
+
+$$\Pr(\text{Voter turnout} = \text{Yes} | \text{mhealth}) = \frac{\exp[\beta_0 + \beta_1 \text{mhealth} + \beta_2 \text{mhealth}^2 + \beta_3 \text{mhealth}^3 + \beta_4 \text{mhealth}^4]}{1 + \exp[\beta_0 + \beta_1 \text{mhealth} + \beta_2 \text{mhealth}^2 + \beta_3 \text{mhealth}^3 + \beta_4 \text{mhealth}^4]}$$
+
+```{r mhealth, results = "hide", fig.show = "asis"}
+# load data
+mh <- read_csv(here("static", "data", "mental_health.csv")) %>%
+  na.omit
+
+# estimate model
+mh_mod <- glm(vote96 ~ mhealth_sum + I(mhealth_sum^2) +
+                I(mhealth_sum^3) + I(mhealth_sum^4), data = mh,
+              family = binomial)
+tidy(mh_mod)
+
+# log-odds
+## predicted probability
+pred_mh <- cplot(mh_mod, "mhealth_sum", what = "prediction",
+                 type = "link", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  labs(title = "Log-odds of voting",
+       x = "Mental health",
+       y = "Predicted log-odds of voting")
+
+## marginal effect
+ame_mh <- cplot(mh_mod, "mhealth_sum", what = "effect",
+                 type = "link", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  labs(title = "Average marginal effect",
+       x = "Mental health",
+       y = "Marginal effect of mental health")
+
+pred_mh +
+  ame_mh
+```
+
+---
+
+# Voter turnout and mental health
+
+```{r mhealth-prob, dependson = "mhealth", results = "hide", fig.show = "asis"}
+# probability
+## predicted probability
+pred_mh <- cplot(mh_mod, "mhealth_sum", what = "prediction", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  labs(title = "Predicted probability of voting",
+       x = "Mental health",
+       y = "Predicted probability of voting")
+
+## marginal effect
+ame_mh <- cplot(mh_mod, "mhealth_sum", what = "effect", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  labs(title = "Average marginal effect",
+       x = "Mental health",
+       y = "Marginal effect of mental health")
+
+pred_mh +
+  ame_mh
+```
+
+---
+
+# Step functions
+
+* Global transformations
+* Local transformations
+* Step functions
+    * Split $X$ into bins
+    * Fit a different constant to each bin
+
+---
+
+# Step functions
+
+* Create $c_1, c_2, \dots, c_K$ cutpoints in the range of $X$
+* Construct $K + 1$ new indicator variables $C_1(X), C_2(X), \dots, C_K(X)$
+* Fit the linear regression model to the new indicator variables as predictors:
+
+$$y_i = \beta_0 + \beta_1 C_1 (x_i) + \beta_2 C_2 (x_i) + \dots + \beta_K C_K (x_i) + \epsilon_i$$
+
+---
+
+# Age and voting
+
+```{r vote96-step, results = "hide", fig.show = "asis"}
+{
+  # stepwise model with 5 intervals
+  glm(vote96 ~ cut_interval(age, 5), data = mh, family = binomial) %>%
+    prediction %>%
+    ggplot(aes(x = age)) + 
+    geom_line(aes(y = fitted)) +
+    geom_line(aes(y = fitted + 1.96 * se.fitted), linetype = 2) +
+    geom_line(aes(y = fitted - 1.96 * se.fitted), linetype = 2) +
+    geom_hline(yintercept = 0, linetype = 1) +
+    geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+    geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+    labs(title = "5 intervals",
+         x = "Age",
+         y = "Predicted probability of voting")
+} + {
+  # stepwise model with 10 intervals
+  glm(vote96 ~ cut_interval(age, 10), data = mh, family = binomial) %>%
+    prediction %>%
+    ggplot(aes(x = age)) + 
+    geom_line(aes(y = fitted)) +
+    geom_line(aes(y = fitted + 1.96 * se.fitted), linetype = 2) +
+    geom_line(aes(y = fitted - 1.96 * se.fitted), linetype = 2) +
+    geom_hline(yintercept = 0, linetype = 1) +
+    geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+    geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+    labs(title = "10 intervals",
+         x = "Age",
+         y = "Predicted probability of voting")
+} + {
+  # stepwise model with 25 intervals
+  glm(vote96 ~ cut_interval(age, 25), data = mh, family = binomial) %>%
+    prediction %>%
+    ggplot(aes(x = age)) + 
+    geom_line(aes(y = fitted)) +
+    geom_line(aes(y = fitted + 1.96 * se.fitted), linetype = 2) +
+    geom_line(aes(y = fitted - 1.96 * se.fitted), linetype = 2) +
+    geom_hline(yintercept = 0, linetype = 1) +
+    geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+    geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+    labs(title = "25 intervals",
+         x = "Age",
+         y = "Predicted probability of voting")
+} + {
+  # plain model
+  glm(vote96 ~ age, data = mh, family = binomial) %>%
+    cplot("age", what = "prediction", draw = FALSE) %>%
+    ggplot(aes(x = xvals)) + 
+    geom_line(aes(y = yvals)) +
+    geom_line(aes(y = upper), linetype = 2) +
+    geom_line(aes(y = lower), linetype = 2) +
+    geom_hline(yintercept = 0, linetype = 1) +
+    geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+    geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+    labs(title = "No step function",
+         x = "Age",
+         y = "Predicted probability of voting")
+} + {
+  # polynomial model
+  glm(vote96 ~ poly(age, degree = 5, raw = TRUE), data = mh, family = binomial) %>%
+    cplot("age", what = "prediction", draw = FALSE) %>%
+    ggplot(aes(x = xvals)) + 
+    geom_line(aes(y = yvals)) +
+    geom_line(aes(y = upper), linetype = 2) +
+    geom_line(aes(y = lower), linetype = 2) +
+    geom_hline(yintercept = 0, linetype = 1) +
+    geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+    geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+    labs(title = "Fifth-order polynomial",
+         x = "Age",
+         y = "Predicted probability of voting")
+}
+```
+
+---
+
+# Basis functions
+
+* Family of functions or transformations applied to a variable $X$: $b_1(X), b_2(X), \ldots, b_K(X)$
+
+    $$y_i = \beta_0 + \beta_1 b_1(x_i) + \beta_2 b_2(x_i) + \beta_3 b_3(x_i) + \ldots + \beta_K b_K(x_i) + \epsilon_i$$
+    
+* Fix the functional form
+* Uses least squares estimation
+
+---
+
+# Regression splines
+
+* Fit separate polynomial functions over different regions of $X$
+
+---
+
+# Piecewise polynomial
+
+* Fit separate low-degree polynomials for different regions of $X$
+* Cubic piecewise polynomial regression model
+
+    $$y_i = \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 + \epsilon_i$$
+
+* Knots
+* Piecewise cubic polynomial with 0 knots:
+
+    $$y_i = \beta_0 + \beta_1 x_i + \beta_2 x_i^2 + \beta_3 x_i^3 + \epsilon_i$$
+
+* Piecewise constant polynomial = piecewise constant regression
+
+---
+
+# Piecewise cubic polynomial
+
+$$y_i = \begin{cases} 
+      \beta_{01} + \beta_{11}x_i^2 + \beta_{21}x_i^2 + \beta_{31}x_i^3 + \epsilon_i & \text{if } x_i < c \\
+      \beta_{02} + \beta_{12}x_i^2 + \beta_{22}x_i^2 + \beta_{32}x_i^3 + \epsilon_i & \text{if } x_i \geq c
+   \end{cases}$$
+
+* $K = 1$
+* Increasing $K$
+
+---
+
+# Piecewise cubic regression
+
+```{r sim-piecewise, echo = FALSE}
+# simulate data
+sim_piece <- tibble(
+  x = runif(100, 0, 10),
+  y = ifelse(x < 5,
+             .05 * x + .05 * x^2 + .05 * x^3 + rnorm(100, 0, 3),
+             .1 * x + .1 * x^2 - .05 * x^3 + rnorm(100, 0, 3))
+)
+
+# estimate models
+sim_piece_mod1 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece, subset = x < 5)
+sim_piece_mod2 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece, subset = x >= 5)
+
+# draw the plot
+sim_piece_grid <- tibble(
+  x = seq(0, 10, by = .001)
+)
+
+bind_rows(
+  sim_piece_mod1 = augment(sim_piece_mod1, newdata = sim_piece_grid),
+  sim_piece_mod2 = augment(sim_piece_mod2, newdata = sim_piece_grid),
+  .id = "model"
+) %>%
+  filter((x < 5 & model == "sim_piece_mod1") |
+           (x >=5 & model == "sim_piece_mod2")) %>%
+  ggplot(aes(x, y)) +
+  geom_point(data = sim_piece) +
+  geom_line(aes(y = .fitted, color = model), size = 1) +
+  geom_vline(xintercept = 5, linetype = 2, color = "grey") +
+  scale_color_brewer(type = "qual", guide = FALSE) +
+  labs(title = "Piecewise cubic regression",
+       x = "X",
+       y = "Y")
+```
+
+---
+
+# Constraints and splines
+
+```{r sim-spline, echo = FALSE}
+###### very hackish implementation
+# simulate data
+sim_piece_cont <- sim_piece %>%
+  mutate(y = ifelse(x < 5,
+                    15 + .05 * x - .5 * x^2 - .05 * x^3,
+                    .05 * x + .1 * x^2 - .05 * x^3))
+
+# estimate models
+sim_piece_cont_mod1 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece_cont, subset = x < 5)
+sim_piece_cont_mod2 <- glm(y ~ poly(x, 3, raw = TRUE), data = sim_piece_cont, subset = x >= 5)
+
+# draw the plot
+bind_rows(
+  sim_piece_cont_mod1 = augment(sim_piece_cont_mod1, newdata = sim_piece_grid),
+  sim_piece_cont_mod2 = augment(sim_piece_cont_mod2, newdata = sim_piece_grid),
+  .id = "model"
+) %>%
+  filter((x < 5 & model == "sim_piece_cont_mod1") |
+           (x >=5 & model == "sim_piece_cont_mod2")) %>%
+  ggplot() +
+  geom_point(data = sim_piece %>%
+               mutate(y = ifelse(x < 5,
+                                 15 + .05 * x - .5 * x^2 - .05 * x^3 + rnorm(100, 0, 3),
+                                 .05 * x + .1 * x^2 - .05 * x^3) + rnorm(100, 0, 3)), aes(x, y)) +
+  geom_line(aes(x, .fitted, color = model), size = 1) +
+  geom_vline(xintercept = 5, linetype = 2, color = "grey") +
+  scale_color_brewer(type = "qual", guide = FALSE) +
+  labs(title = "Continuous piecewise cubic regression",
+       x = "X",
+       y = "Y")
+```
+
+---
+
+# Constraints and splines
+
+```{r sim-spline-smooth, echo = FALSE}
+# estimate models
+sim_piece_smooth <- glm(y ~ bs(x, knots = c(5)), data = sim_piece)
+
+# draw the plot
+augment(sim_piece_smooth, newdata = sim_piece) %>%
+  ggplot(aes(x)) +
+  geom_point(aes(y = y)) +
+  geom_line(aes(y = .fitted), size = 1) +
+  geom_vline(xintercept = 5, linetype = 2, color = "grey") +
+  labs(title = "Cubic spline",
+       x = "X",
+       y = "Y")
+```
+
+---
+
+# Increasing $K$
+
+```{r sim-spline-smooth-5, echo = FALSE}
+tibble(
+  terms = c(1, 5, 10),
+  models = map(terms, ~ glm(y ~ bs(x, df = . + 3), data = sim_piece)),
+  pred = map(models, augment, newdata = sim_piece)
+) %>%
+  unnest(pred) %>%
+  ggplot(aes(x, y)) +
+  geom_point(data = sim_piece, alpha = .2) +
+  geom_line(aes(y = .fitted, color = factor(terms))) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Cubic spline",
+       x = "X",
+       y = "Y",
+       color = "Knots")
+```
+
+---
+
+# Spline basis representation
+
+* Regression splines as basis functions
+* Cubic spline with $K$ knots
+
+    $$y_i = \beta_0 + \beta_1 b_1 (x_i) + \beta_3 b_3 (x_i) + \cdots + \beta_{K + 3} b_{K + 3} (x_i) + \epsilon_i$$
+* Imposing constraints with truncated power basis
+
+    $$
+    h(x, \zeta) = (x - \zeta)_+^3 = 
+    \begin{cases} 
+      (x - \zeta)^3 & \text{if } x > \zeta \\
+      0 & \text{otherwise}
+    \end{cases}
+    $$
+
+* Cubic spline with $K$ knots requires
+    * Intercept
+    * $3 + K$ predictors
+
+    $$X, X^2, X^3, h(X, \zeta_1), h(X, \zeta_2), \ldots, h(X, \zeta_K)$$
+
+* Degrees of freedom
+
+---
+
+# Spline basis representation
+
+## $K = 4$
+
+```{r basis-spline-output}
+sim_piece %>%
+  select(x) %>%
+  bind_cols(splines = bs(sim_piece$x, df = 7) %>%
+              as_tibble)
+```
+
+---
+
+# Basis splines vs. natural splines
+
+* High variance at the outer range of the predictors
+
+```{r vote-age-basis-spline, dependson = "mhealth", results = "hide", fig.show = "asis"}
+# estimate model
+glm(vote96 ~ bs(age, df = 6), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  labs(title = "Predicted probability of voting",
+       subtitle = "Basis spline with 3 knots",
+       x = "Age",
+       y = "Predicted probability of voting")
+```
+
+---
+
+# Boundary constraints
+
+* Linear function at the boundaries
+* Natural spline
+
+```{r vote-age-natural-spline, dependson = "mhealth", results = "hide", fig.show = "asis"}
+# estimate basis spline model
+vote_age_basis <- glm(vote96 ~ bs(age, df = 6), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE)
+vote_age_natural <- glm(vote96 ~ ns(age, df = 6), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE)
+
+bind_rows(
+  Basis = vote_age_basis,
+  Natural = vote_age_natural,
+  .id = "model"
+) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals, color = model)) +
+  geom_line(aes(y = upper, color = model), linetype = 2) +
+  geom_line(aes(y = lower, color = model), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Predicted probability of voting",
+       x = "Age",
+       y = "Predicted probability of voting",
+       color = "Spline") +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Choosing the knots
+
+* Uniform placement of knots
+* Partition $X$ into $K$ uniform quantiles
+
+---
+
+# Choosing the knots
+
+```{r vote-spline, results = "hide", fig.show = "asis"}
+# estimate model
+glm(vote96 ~ ns(age, df = 8), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  geom_vline(xintercept = attr(bs(mh$age, df = 8), "knots"),
+             linetype = 2, color = "blue") +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  labs(title = "Predicted probability of voting",
+       subtitle = "Natural spline with 5 knots",
+       x = "Age",
+       y = "Predicted probability of voting")
+```
+
+---
+
+# Choosing the knots
+
+```{r vote-cv}
+# function to simplify things
+vote_spline <- function(splits, df = NULL){
+  # estimate the model on each fold
+  model <- glm(vote96 ~ ns(age, df = df),
+                data = analysis(splits))
+  
+  model_acc <- augment(model, newdata = assessment(splits)) %>%
+    accuracy(truth = factor(vote96), estimate = factor(round(.fitted)))
+  
+  mean(model_acc$.estimate)
+}
+
+tune_over_knots <- function(splits, knots){
+  vote_spline(splits, df = knots + 3)
+}
+
+# estimate CV error for knots in 0:25
+results <- vfold_cv(mh, v = 10)
+
+expand(results, id, knots = 1:25) %>%
+  left_join(results) %>%
+  mutate(acc = map2_dbl(splits, knots, tune_over_knots)) %>%
+  group_by(knots) %>%
+  summarize(acc = mean(acc)) %>%
+  mutate(err = 1 - acc) %>%
+  ggplot(aes(knots, err)) +
+  geom_point() +
+  geom_line() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Optimal number of knots for natural cubic spline regression",
+       x = "Knots",
+       y = "10-fold CV error")
+```
+
+```{r vote-optimal-mod, results = "hide", fig.show = "asis"}
+glm(vote96 ~ ns(age, df = 15), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals)) +
+  geom_line(aes(y = upper), linetype = 2) +
+  geom_line(aes(y = lower), linetype = 2) +
+  geom_hline(yintercept = 0, linetype = 1) +
+  geom_vline(xintercept = attr(bs(mh$age, df = 10), "knots"),
+             linetype = 2, color = "blue") +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  labs(title = "Predicted probability of voting",
+       subtitle = "Natural spline with 9 knots",
+       x = "Age",
+       y = "Predicted probability of voting")
+```
+
+---
+
+# Comparison to polynomial regression
+
+```{r vote-spline-poly, dependson = "mhealth", results = "hide", fig.show = "asis"}
+# estimate natural spline model with df = 15
+vote_age_spline <- glm(vote96 ~ ns(age, df = 15), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE)
+vote_age_poly <- glm(vote96 ~ poly(age, degree = 15), data = mh, family = binomial) %>%
+  cplot("age", what = "prediction", draw = FALSE)
+
+bind_rows(
+  `Natural cubic spline` = vote_age_spline,
+  `Polynomial` = vote_age_poly,
+  .id = "model"
+) %>%
+  ggplot(aes(x = xvals)) + 
+  geom_line(aes(y = yvals, color = model)) +
+  # geom_line(aes(y = upper, color = model), linetype = 2) +
+  # geom_line(aes(y = lower, color = model), linetype = 2) +
+  # geom_hline(yintercept = 0, linetype = 1) +
+  geom_rug(data = filter(mh, vote96 == 0), aes(age), alpha = .02, sides = "b") +
+  geom_rug(data = filter(mh, vote96 == 1), aes(age), alpha = .02, sides = "t") +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Predicted probability of voting",
+       x = "Age",
+       y = "Predicted probability of voting",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Goal of regression
+
+$$\min \left\{ \text{RSS} = \sum_{i=1}^n (y_i - g(x_i))^2 \right\}$$
+
+---
+
+# No constraints
+
+```{r sim-perfect-fit}
+sim_spline_data <- tibble(
+  x = runif(100, min = -1, max = 1),
+  y = poly(x, degree = 15, raw = TRUE) %>%
+    rowSums() + rnorm(100)
+)
+
+ggplot(sim_spline_data, aes(x, y)) +
+  geom_point() +
+  geom_line() +
+  labs(x = expression(X),
+       y = expression(Y))
+```
+
+---
+
+# Smoothing spline
+
+* Minimize
+
+    $$\sum_{i=1}^n (y_i - g(x_i))^2 + \lambda \int g''(t)^2 dt$$
+
+* "Loss + Penalty"
+* $g''(t)$
+* $\lambda \rightarrow \infty$
+
+---
+
+# Smoothing spline
+
+```{r sim-spline-compare, dependson = "sim-perfect-fit"}
+# smooth spline data points
+sim_smooth <- smooth.spline(sim_spline_data$x, sim_spline_data$y, df = 6) %>%
+  predict %>%
+  as_tibble
+
+ggplot(sim_spline_data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(aes(color = "Cubic spline"),
+              method = "lm", formula = y ~ bs(x, df = 6), se = FALSE) +
+  geom_smooth(aes(color = "Natural spline"),
+              method = "lm", formula = y ~ ns(x, df = 6), se = FALSE) +
+  geom_line(data = sim_smooth, aes(color = "Smoothing spline"), size = 1) +
+  scale_color_brewer(type = "qual") +
+  labs(x = expression(X),
+       y = expression(Y),
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Choosing the smoothing parameter $\lambda$
+
+* Degrees of freedom
+* Effective degrees of freedom
+    * $\lambda$ increases from $0$ to $\infty$
+    * Effective degrees of freedom decreases from $n$ to $2$
+
+---
+
+# Measuring effective $df$
+
+$$\hat{\mathbf{g}}_\lambda = \mathbf{S}_\lambda \mathbf{y}$$
+
+* $\hat{\mathbf{g}}_\lambda$
+
+    $$\sum_{i=1}^n (y_i - g(x_i))^2 + \lambda \int g''(t)^2 dt$$
+* $\mathbf{S}_\lambda$
+* Effective degrees of freedom
+
+    $$df_\lambda = \sum_{i=1}^n \{\mathbf{S}_\lambda \}_{ii}$$
+
+---
+
+# Tuning smoothing splines
+
+* Number and location of knots
+* Value for $\lambda$
+* LOOCV
+
+    $$\text{RSS}_{cv}(\lambda) = \sum_{i=1}^n (y_i - \hat{g}_\lambda^{(-i)} (x_i))^2 = \sum_{i=1}^n \left[ \frac{y_i - \hat{g}_\lambda (x_i)}{1 - \{ \mathbf{S}_\lambda \}_{ii}} \right]^2$$
+
+    * $\hat{g}_\lambda^{(-i)} (x_i)$
+    * $\hat{g}_\lambda (x_i)$
+
+---
+
+# Tuning smoothing splines
+
+```{r sim-smooth-spline-compare, dependson = "sim-perfect-fit"}
+list(
+  `50` = smooth.spline(sim_spline_data$x, sim_spline_data$y, df = 50),
+  `20` = smooth.spline(sim_spline_data$x, sim_spline_data$y, df = 20),
+  `2` = smooth.spline(sim_spline_data$x, sim_spline_data$y, df = 2),
+  `11` = smooth.spline(sim_spline_data$x, sim_spline_data$y)
+) %>%
+  map_df(predict, .id = "df") %>%
+  mutate(df = factor(df, levels = c(2, 11, 20, 50),
+                     labels = c("2", "11 (CV)", "20", "50"))) %>%
+  ggplot(aes(x, y)) +
+  geom_point(data = sim_spline_data, alpha = .2) +
+  geom_line(aes(color = df)) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  labs(x = expression(X),
+       y = expression(Y),
+       color = "Effective degrees of freedom") +
+  theme(legend.position = "bottom")
+```
+
