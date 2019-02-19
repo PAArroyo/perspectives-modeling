@@ -506,6 +506,282 @@ Log | 0 (sort of) | `\(\log(X)\)`
 # Tuning smoothing splines
 
 &lt;img src="non-linear-regression_files/figure-html/sim-smooth-spline-compare-1.png" width="864" /&gt;
+
+---
+
+# Kernel functions
+
+* Weighting function used for non-parametric estimation techniques
+* Non-negative real-valued integrable function `\(K\)`
+* Normalization
+
+    `$$\int_{-\infty}^{+\infty} K(u) du = 1$$`
+    
+* Symmetry
+
+    `$$K(-u) = K(u) \text{ for all values of } u$$`
+    
+---
+
+# Gaussian kernel
+
+`$$K(u) = \frac{1}{\sqrt{2 \pi}}e^{-\frac{1}{2} u^2}$$`
+
+&lt;img src="non-linear-regression_files/figure-html/gaussian-1.png" width="864" /&gt;
+
+---
+
+# Rectangular (uniform) kernel
+
+`$$K(u) = \frac{1}{2} \mathbf{1}_{\{ |u| \leq 1 \} }$$`
+
+&lt;img src="non-linear-regression_files/figure-html/uniform-1.png" width="864" /&gt;
+
+---
+
+# Triangular kernel
+
+`$$K(u) = (1 - |z|) \mathbf{1}_{\{ |u| \leq 1 \} }$$`
+
+&lt;img src="non-linear-regression_files/figure-html/triangular-1.png" width="864" /&gt;
+
+---
+
+# Tricube kernel
+
+`$$K(u) = \frac{70}{81} (1 - |u|^3)^3 \mathbf{1}_{\{ |u| \leq 1 \} }$$`
+
+&lt;img src="non-linear-regression_files/figure-html/tricube-1.png" width="864" /&gt;
+
+---
+
+# Epanechnikov kernel
+
+`$$K(u) = \frac{3}{4} (1 - u^2) \mathbf{1}_{\{ |u| \leq 1 \} }$$`
+
+&lt;img src="non-linear-regression_files/figure-html/epanechnikov-1.png" width="864" /&gt;
+
+---
+
+# Comparison of kernels
+
+&lt;img src="non-linear-regression_files/figure-html/kernels-1.png" width="864" /&gt;
+
+---
+
+# Kernel smoothing
+
+* Method for estimating the regression function `\(f(X)\)` over the domain `\(\Re^p\)`
+* Fit a different but simple model separately at each query point `\(x_0\)`
+    * Use only local observations
+    * Ensure estimated function `\(f(X)\)` is smooth
+* Weighting function `\(K_\lambda (x_o, x_i)\)`
+* Defining the neighborhood
+
+---
+
+# Connection to nearest neighbors
+
+`$$\hat{f}(x) = \text{Ave} (y_i | x_i \in N_k(x))$$`
+
+
+
+&lt;img src="non-linear-regression_files/figure-html/sim-naive-1.png" width="864" /&gt;
+
+---
+
+# Kernel smoothing
+
+### Nadaraya-Watson kernel-weighted average
+
+$$
+`\begin{align}
+\hat{f}(x_0) &amp;= \frac{\sum_{i=1}^N K_\lambda(x_0, x_i)y_i}{\sum_{i=1}^N K_\lambda (x_0, x_i)} \\
+K_\lambda(x_0, x_i) &amp;= D \left( \frac{| x - x_0 |}{\lambda} \right) \\
+D(t) &amp;= \begin{cases}
+\frac{3}{4} (1 - t^2) &amp; \text{if } |t| \leq 1 \\
+0 &amp; \text{otherwise}
+\end{cases}`
+\end{align}`
+$$
+
+---
+
+# Kernel smoothing
+
+&lt;img src="non-linear-regression_files/figure-html/sim-epanechnikov-1.png" width="864" /&gt;
+
+---
+
+# Kernel smoothing
+
+* Defining `\(\lambda\)`
+    * Constant
+    * Adaptive
+
+`$$K_\lambda(x_0, x_i) = D \left( \frac{| x - x_0 |}{h_\lambda (x_0)} \right)$$`
+
+---
+
+# Tuning parameters
+
+1. Choice of kernel function
+1. Bandwidth
+
+---
+
+# Infant mortality
+
+&lt;img src="non-linear-regression_files/figure-html/infant-1.png" width="864" /&gt;
+
+---
+
+# Infant mortality
+
+&lt;img src="non-linear-regression_files/figure-html/infant-kernels-1.png" width="864" /&gt;
+
+---
+
+# Infant mortality
+
+![](non-linear-regression_files/figure-html/infant-epan-1.gif)&lt;!-- --&gt;
+
+---
+
+# Infant mortality
+
+&lt;img src="non-linear-regression_files/figure-html/infant-epan-optimal-1.png" width="864" /&gt;
+
+---
+
+# Local regression
+
+* Biases in the boundaries of the domain of `\(X\)`
+* Biases in the interior of the domain of `\(X\)`
+* Kernel smoothing
+* Local linear regression
+
+---
+
+# Local linear regression
+
+* Fit a separate linear function at each target point `\(x_0\)` using only the nearby training observations
+* Builds regression model from localized subsets of data
+
+    `$$\min_{\alpha(x_0), \beta(x_0)} \sum_{i=1}^N K_\lambda (x_0, x_i) [y_i - \alpha(x_0) - \beta (x_0)x_i]^2$$`
+
+* `\(\hat{f}(x_0) = \hat{\alpha} + \hat{\beta}(x_0)x_0\)`
+* Repeat for varying `\(x_0\)`
+
+---
+
+# Local linear regression
+
+&lt;img src="non-linear-regression_files/figure-html/loess-1.png" width="864" /&gt;
+
+---
+
+# Local linear regression
+
+![](non-linear-regression_files/figure-html/loess_buildup-1.gif)&lt;!-- --&gt;
+
+---
+
+# Local linear regression
+
+![](non-linear-regression_files/figure-html/loess_span-1.gif)&lt;!-- --&gt;
+
+---
+
+# Local polynomial regression
+
+`$$\min_{\alpha(x_0), \beta_j(x_0), j = 1, \ldots, d} \sum_{i=1}^N K_\lambda (x_0, x_i) \left[y_i - \alpha(x_0) - \sum_{j=1}^d \beta_j (x_0)x_i^j \right]^2$$`
+
+* Bias-variance tradeoff
+
+---
+
+# Local polynomial regression
+
+&lt;img src="non-linear-regression_files/figure-html/loess-poly-1.png" width="864" /&gt;
+
+---
+
+# Higher dimensional local regression
+
+* Pairs of independent variables `\(X_1, X_2\)`
+    * Two-dimensional neighborhoods
+    * Bivariate linear regression models
+* `\(p &gt; 2\)`
+* `\(n &gt; 1000\)`
+
+---
+
+# Generalized additive models
+
+* Non-linear linear models with multiple predictors
+* Extend the linear model to allow non-linear functions of each predictor
+* Maintains additive assumption
+
+---
+
+# GAMs for regression problems
+
+`$$y_i = \beta_0 + \beta_{1} X_{i1} + \beta_{2} X_{i2} + \dots + \beta_{p} X_{ip} + \epsilon_i$$`
+
+`$$y_i = \beta_0 + \sum_{j = 1}^p f_j(x_{ij}) + \epsilon_i$$`
+
+`$$y_i = \beta_0 + f_1(x_{i1}) + \beta_{2} f_2(x_{i2}) + \dots + f_p(x_{ip}) + \epsilon_i$$`
+
+---
+
+# GAMs for regression models
+
+`$$\text{Biden} = \beta_0 + f_1(\text{Age}) + f_2(\text{Education}) + f_3(\text{Gender}) + \epsilon$$`
+
+* `\(f_1, f_2\)` - cubic spline with 2 knots
+* `\(f_3\)` - traditional dummy variable
+
+---
+
+# GAMs for regression models
+
+`$$\text{Biden} = \beta_0 + f_1(\text{Age}) + f_2(\text{Education}) + f_3(\text{Gender}) + \epsilon$$`
+
+
+
+&lt;img src="non-linear-regression_files/figure-html/biden-gam-1.png" width="864" /&gt;
+
+---
+
+# GAMs for regression models
+
+`$$\text{Biden} = \beta_0 + f_1(\text{Age}) + f_2(\text{Education}) + f_3(\text{Gender}) + \epsilon$$`
+
+* `\(f_1, f_2\)` - local regression functions
+* `\(f_3\)` - traditional dummy variable
+
+---
+
+# GAMs for regression models
+
+&lt;img src="non-linear-regression_files/figure-html/biden-gam-local-1.png" width="864" /&gt;
+
+---
+
+# GAMs for classification models
+
+&lt;img src="non-linear-regression_files/figure-html/titanic-gam-1.png" width="864" /&gt;
+
+---
+
+# Benefits and drawbacks to GAMs
+
+* Allow for non-linear `\(f_j\)` to each `\(X_j\)`
+* Potentially more accurate than purely linear model
+* Still additive
+    * Effects of each predictor are independent from one another
+    * Does not capture interactive effects
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="macros.js"></script>
