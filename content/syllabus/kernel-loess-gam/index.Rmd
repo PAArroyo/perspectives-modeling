@@ -47,10 +47,12 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Overview
 
-
-* Demonstrate regression and smoothing splines
-* Review local regression
-* Explain generalized additive models for regression and classification
+* Define kernel functions
+* Review one-dimensional kernel smoothers
+* Define and implement local regression
+* Identify methods for multivariate non-linear regression
+* Review generalized additive models (GAMs)
+* Introduce multivariate adaptive regression splines (MARS)
 
 ## Before class
 

@@ -55,14 +55,19 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <div id="TOC">
 <ul>
-<li><a href="#local-regression"><span class="toc-section-number">1</span> Local regression</a><ul>
-<li><a href="#algorithm-for-local-linear-regression"><span class="toc-section-number">1.1</span> Algorithm for local linear regression</a></li>
+<li><a href="#kernel-functions"><span class="toc-section-number">1</span> Kernel functions</a><ul>
+<li><a href="#examples-of-kernel-functions"><span class="toc-section-number">1.1</span> Examples of kernel functions</a></li>
 </ul></li>
-<li><a href="#generalized-additive-models"><span class="toc-section-number">2</span> Generalized additive models</a><ul>
-<li><a href="#gams-for-regression-problems"><span class="toc-section-number">2.1</span> GAMs for regression problems</a></li>
+<li><a href="#kernel-smoothing"><span class="toc-section-number">2</span> Kernel smoothing</a><ul>
+<li><a href="#tuning-parameters"><span class="toc-section-number">2.1</span> Tuning parameters</a></li>
 </ul></li>
-<li><a href="#session-info"><span class="toc-section-number">3</span> Session Info</a></li>
-<li><a href="#references"><span class="toc-section-number">4</span> References</a></li>
+<li><a href="#local-regression"><span class="toc-section-number">3</span> Local regression</a><ul>
+<li><a href="#local-linear-regression"><span class="toc-section-number">3.1</span> Local linear regression</a></li>
+<li><a href="#local-polynomial-regression"><span class="toc-section-number">3.2</span> Local polynomial regression</a></li>
+<li><a href="#higher-dimensional-local-regression"><span class="toc-section-number">3.3</span> Higher dimensional local regression</a></li>
+</ul></li>
+<li><a href="#session-info"><span class="toc-section-number">4</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">5</span> References</a></li>
 </ul>
 </div>
 
@@ -81,292 +86,301 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <span class="kw">set.seed</span>(<span class="dv">1234</span>)
 <span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
-<div id="local-regression" class="section level1">
-<h1><span class="header-section-number">1</span> Local regression</h1>
-<p><strong>Locally weighted scatterplot smoothing</strong> (local regression, LOWESS, or LOESS) fits a separate non-linear function at each target point <span class="math inline">\(x_0\)</span> using only the nearby training observations. This method estimates a regression line based on localized subsets of the data, building up the global function <span class="math inline">\(f\)</span> point-by-point.</p>
-<div id="algorithm-for-local-linear-regression" class="section level2">
-<h2><span class="header-section-number">1.1</span> Algorithm for local linear regression</h2>
+<div id="kernel-functions" class="section level1">
+<h1><span class="header-section-number">1</span> Kernel functions</h1>
+<p>A <strong>kernel</strong> is a weighting function used for non-parametric estimation techniques. Formally, it is a non-negative real-valued integrable function <span class="math inline">\(K\)</span>. For our purposes, we impose two additional requirements:</p>
+<ul>
+<li><p>Normalization</p>
+<p><span class="math display">\[\int_{-\infty}^{+\infty} K(u) du = 1\]</span></p>
+<ul>
+<li>This ensures when we apply the kernel function to non-parametric estimation, the result is a probability density function (PDF).</li>
+</ul></li>
+<li>Symmetry - <span class="math inline">\(K(-u) = K(u)\)</span> for all values of <span class="math inline">\(u\)</span>
+<ul>
+<li>Ensures the average of the resulting distribution is equal to that of the sample used.</li>
+</ul></li>
+</ul>
+<div id="examples-of-kernel-functions" class="section level2">
+<h2><span class="header-section-number">1.1</span> Examples of kernel functions</h2>
+<div id="gaussian-kernel" class="section level5">
+<h5><span class="header-section-number">1.1.0.0.1</span> Gaussian kernel</h5>
+<p><span class="math display">\[K(u) = \frac{1}{\sqrt{2 \pi}}e^{-\frac{1}{2} u^2}\]</span></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">1000</span>)
+
+<span class="kw">qplot</span>(x, <span class="dt">geom =</span> <span class="st">&quot;blank&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> dnorm) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Gaussian (normal) kernel&quot;</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="ot">NULL</span>)</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/gaussian-1.png" width="672" /></p>
+</div>
+<div id="rectangular-uniform-kernel" class="section level5">
+<h5><span class="header-section-number">1.1.0.0.2</span> Rectangular (uniform) kernel</h5>
+<p><span class="math display">\[K(u) = \frac{1}{2} \mathbf{1}_{\{ |u| \leq 1 \} }\]</span></p>
+<p>where <span class="math inline">\(\mathbf{1}_{\{ |z| \leq 1 \} }\)</span> is an indicator function that takes on the value of 1 if the condition is true (<span class="math inline">\(|z| \leq 1\)</span>) or 0 if the condition is false.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">runif</span>(<span class="dv">1000</span>, <span class="op">-</span><span class="fl">1.5</span>, <span class="fl">1.5</span>)
+x_lines &lt;-<span class="st"> </span><span class="kw">tribble</span>(
+  <span class="op">~</span>x, <span class="op">~</span>y, <span class="op">~</span>xend, <span class="op">~</span>yend,
+  <span class="op">-</span><span class="dv">1</span>, <span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>, .<span class="dv">5</span>,
+  <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>, .<span class="dv">5</span>
+)
+
+<span class="kw">qplot</span>(x, <span class="dt">geom =</span> <span class="st">&quot;blank&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> dunif, <span class="dt">args =</span> <span class="kw">list</span>(<span class="dt">min =</span> <span class="op">-</span><span class="dv">1</span>), <span class="dt">geom =</span> <span class="st">&quot;step&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="co"># geom_segment(data = x_lines, aes(x = x, y = y, xend = xend, yend = yend)) +</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Rectangular kernel&quot;</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="ot">NULL</span>)</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/uniform-1.png" width="672" /></p>
+</div>
+<div id="triangular-kernel" class="section level5">
+<h5><span class="header-section-number">1.1.0.0.3</span> Triangular kernel</h5>
+<p><span class="math display">\[K(u) = (1 - |z|) \mathbf{1}_{\{ |u| \leq 1 \} }\]</span></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">triangular &lt;-<span class="st"> </span><span class="cf">function</span>(x) {
+  (<span class="dv">1</span> <span class="op">-</span><span class="st"> </span><span class="kw">abs</span>(x)) <span class="op">*</span><span class="st"> </span><span class="kw">ifelse</span>(<span class="kw">abs</span>(x) <span class="op">&lt;=</span><span class="st"> </span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>)
+}
+
+<span class="kw">qplot</span>(x, <span class="dt">geom =</span> <span class="st">&quot;blank&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> triangular) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Triangular kernel&quot;</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="ot">NULL</span>)</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/triangular-1.png" width="672" /></p>
+</div>
+<div id="tricube-kernel" class="section level5">
+<h5><span class="header-section-number">1.1.0.0.4</span> Tricube kernel</h5>
+<p><span class="math display">\[K(u) = \frac{70}{81} (1 - |u|^3)^3 \mathbf{1}_{\{ |u| \leq 1 \} }\]</span></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">tricube &lt;-<span class="st"> </span><span class="cf">function</span>(x) {
+  (<span class="dv">70</span> <span class="op">/</span><span class="st"> </span><span class="dv">81</span>) <span class="op">*</span><span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span><span class="kw">abs</span>(x)<span class="op">^</span><span class="dv">3</span>)<span class="op">^</span><span class="dv">3</span> <span class="op">*</span><span class="st"> </span><span class="kw">ifelse</span>(<span class="kw">abs</span>(x) <span class="op">&lt;=</span><span class="st"> </span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>)
+}
+
+<span class="kw">qplot</span>(x, <span class="dt">geom =</span> <span class="st">&quot;blank&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> tricube) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Tricube kernel&quot;</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="ot">NULL</span>)</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/tricube-1.png" width="672" /></p>
+</div>
+<div id="epanechnikov-kernel" class="section level5">
+<h5><span class="header-section-number">1.1.0.0.5</span> Epanechnikov kernel</h5>
+<p><span class="math display">\[K(u) = \frac{3}{4} (1 - u^2) \mathbf{1}_{\{ |u| \leq 1 \} }\]</span></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">epanechnikov &lt;-<span class="st"> </span><span class="cf">function</span>(x) {
+  (<span class="dv">3</span> <span class="op">/</span><span class="st"> </span><span class="dv">4</span>) <span class="op">*</span><span class="st"> </span>(<span class="dv">1</span> <span class="op">-</span><span class="st"> </span>x<span class="op">^</span><span class="dv">2</span>) <span class="op">*</span><span class="st"> </span><span class="kw">ifelse</span>(<span class="kw">abs</span>(x) <span class="op">&lt;=</span><span class="st"> </span><span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>)
+}
+
+<span class="kw">qplot</span>(x, <span class="dt">geom =</span> <span class="st">&quot;blank&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> epanechnikov) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Epanechnikov kernel&quot;</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="ot">NULL</span>)</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/epanechnikov-1.png" width="672" /></p>
+</div>
+<div id="comparison-of-kernels" class="section level5">
+<h5><span class="header-section-number">1.1.0.0.6</span> Comparison of kernels</h5>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">qplot</span>(x, <span class="dt">geom =</span> <span class="st">&quot;blank&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Gaussian&quot;</span>), <span class="dt">fun =</span> dnorm) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Epanechnikov&quot;</span>), <span class="dt">fun =</span> epanechnikov) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Rectangular&quot;</span>), <span class="dt">fun =</span> dunif,
+                <span class="dt">args =</span> <span class="kw">list</span>(<span class="dt">min =</span> <span class="op">-</span><span class="dv">1</span>), <span class="dt">geom =</span> <span class="st">&quot;step&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Triangular&quot;</span>), <span class="dt">fun =</span> triangular) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Tricube&quot;</span>), <span class="dt">fun =</span> tricube) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="ot">NULL</span>,
+       <span class="dt">color =</span> <span class="ot">NULL</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="kw">c</span>(<span class="fl">0.04</span>, <span class="dv">1</span>),
+        <span class="dt">legend.justification =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">1</span>),
+        <span class="dt">legend.background =</span> <span class="kw">element_rect</span>(<span class="dt">fill =</span> <span class="st">&quot;white&quot;</span>))</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/kernels-1.png" width="672" /></p>
+</div>
+</div>
+</div>
+<div id="kernel-smoothing" class="section level1">
+<h1><span class="header-section-number">2</span> Kernel smoothing</h1>
+<p>Kernel smoothing is a method for estimating the regression function <span class="math inline">\(f(X)\)</span> over the domain <span class="math inline">\(\Re^p\)</span> by fitting a different but simple model separately at each query point <span class="math inline">\(x_0\)</span>. This is done by using only observations closed to the target point <span class="math inline">\(x_0\)</span> to fit the model, but also in a way such that the resulting estimated function <span class="math inline">\(f(X)\)</span> is <strong>smooth</strong> in <span class="math inline">\(\Re^p\)</span>. We use a weighting function, aka the <strong>kernel</strong> <span class="math inline">\(K_\lambda (x_o, x_i)\)</span>, to assign a weight to <span class="math inline">\(x_i\)</span> based on its distance from <span class="math inline">\(x_0\)</span>. The kernels are indexed by a parameter <span class="math inline">\(\lambda\)</span> which determines the the width of the local neighborhood used to include observations for each <span class="math inline">\(x_0\)</span>.</p>
+<p>Kernel smoothing is strongly related to <a href="/notes/nearest-neighbors/"><span class="math inline">\(k\)</span>-nearest neighbors</a>,</p>
+<p><span class="math display">\[\hat{f}(x) = \text{Ave} (y_i | x_i \in N_k(x))\]</span></p>
+<p>as an estimation of the regression function <span class="math inline">\({\mathrm{E}}(Y | X = x)\)</span>. <span class="math inline">\(N_k(x)\)</span> is the set of <span class="math inline">\(k\)</span> points nearest to <span class="math inline">\(x\)</span> in squared distance. Consider this method applied to some simulated data points:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">kernel_sim &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x =</span> <span class="kw">runif</span>(<span class="dv">100</span>),
+  <span class="dt">y =</span> <span class="kw">sin</span>(<span class="dv">4</span> <span class="op">*</span><span class="st"> </span>x) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">100</span>, <span class="dv">0</span>, <span class="dv">1</span><span class="op">/</span><span class="dv">3</span>)
+)
+
+kernel_test &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x =</span> <span class="kw">seq</span>(<span class="dt">from =</span> <span class="dv">0</span>, <span class="dt">to =</span> <span class="dv">1</span>, <span class="dt">by =</span> .<span class="dv">001</span>)
+)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">kernel_test &lt;-<span class="st"> </span>kernel_test <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y =</span> FNN<span class="op">::</span><span class="kw">knn.reg</span>(<span class="dt">train =</span> <span class="kw">select</span>(kernel_sim, x),
+                          <span class="dt">test =</span> kernel_test,
+                          <span class="dt">y =</span> kernel_sim<span class="op">$</span>y,
+                          <span class="dt">k =</span> <span class="dv">30</span>)<span class="op">$</span>pred)
+
+<span class="kw">ggplot</span>(kernel_sim, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">alpha =</span> .<span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> <span class="cf">function</span>(x) <span class="kw">sin</span>(<span class="dv">4</span> <span class="op">*</span><span class="st"> </span>x)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">data =</span> kernel_test, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;30-nearest neighbor kernel&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(x[<span class="dv">0</span>]),
+       <span class="dt">y =</span> <span class="ot">NULL</span>)</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/sim-naive-1.png" width="672" /></p>
+<p>The resulting line is bumpy, since the fit at each <span class="math inline">\(x_0\)</span> is an average of the local neighborhood and the resulting function <span class="math inline">\(\hat{f}(x)\)</span> is discontinuous in <span class="math inline">\(x\)</span>. The average changes in a discrete way, leading to the discontinuties.</p>
+<p>Kernel smoothing allows us to change the weights of each of the observations in the neighborhood: rather than weighting them equally, we assign weights based on the distance of <span class="math inline">\(x_i\)</span> from <span class="math inline">\(x_0\)</span>. A popular technique that implements this is called the <strong>Nadaraya-Watson kernel-weighted average</strong>:</p>
+<p><span class="math display">\[\hat{f}(x_0) = \frac{\sum_{i=1}^N K_\lambda(x_0, x_i)y_i}{\sum_{i=1}^N K_\lambda (x_0, x_i)}\]</span></p>
+<p><span class="math inline">\(K_\lambda(x_0, x_i)\)</span> is the <strong>Epanechnikov</strong> quadratic kernel (as seen earlier):</p>
+<p><span class="math display">\[K_\lambda(x_0, x_i) = D \left( \frac{| x - x_0 |}{\lambda} \right)\]</span></p>
+<p>with</p>
+<p><span class="math display">\[
+D(t) = \begin{cases}
+\frac{3}{4} (1 - t^2) &amp; \text{if } |t| \leq 1 \\
+0 &amp; \text{otherwise}
+\end{cases}
+\]</span></p>
+<p>Applied to the dataset, we get a smoothing line that looks like this:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(kernel_sim, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">alpha =</span> .<span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> <span class="cf">function</span>(x) <span class="kw">sin</span>(<span class="dv">4</span> <span class="op">*</span><span class="st"> </span>x)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">data =</span> <span class="kw">as_tibble</span>(<span class="kw">ksmooth</span>(kernel_sim<span class="op">$</span>x,
+                                     kernel_sim<span class="op">$</span>y,
+                                     <span class="dt">kernel =</span> <span class="st">&quot;normal&quot;</span>,
+                                     <span class="dt">bandwidth =</span> <span class="fl">0.2</span>,
+                                     <span class="dt">n.points =</span> <span class="dv">500</span>)),
+            <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Epanechnikov kernel&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(x[<span class="dv">0</span>]),
+       <span class="dt">y =</span> <span class="ot">NULL</span>)</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/sim-epanechnikov-1.png" width="672" /></p>
+<p>As observations move into the neighborhood, they are gradually upweighted based on the their distance to <span class="math inline">\(x_0\)</span> and the specific kernel function.</p>
+<p>Here, <span class="math inline">\(\lambda\)</span> is a constant value that defines the neighborhood - the interval is the same width regardless of <span class="math inline">\(x_0\)</span>. In <span class="math inline">\(k\)</span>-nearest neighbors, that interval changes width depending on the distance to the closest neighbors. To make it adaptive, we can reexpress <span class="math inline">\(K_\lambda(x_0, x_i)\)</span> as</p>
+<p><span class="math display">\[K_\lambda(x_0, x_i) = D \left( \frac{| x - x_0 |}{h_\lambda (x_0)} \right)\]</span></p>
+<p>For the Epanechnikov quadratic kernel, <span class="math inline">\(h_\lambda(x_0)\)</span> is a constant value. For other kernels, this value may itself be a function of <span class="math inline">\(x_0\)</span>.</p>
+<div id="tuning-parameters" class="section level2">
+<h2><span class="header-section-number">2.1</span> Tuning parameters</h2>
+<p>For kernel smoothing, there are two major considerations:</p>
 <ol style="list-style-type: decimal">
-<li>Gather the fraction <span class="math inline">\(s = \frac{k}{n}\)</span> of training points whose <span class="math inline">\(x_i\)</span> are closest to <span class="math inline">\(x_0\)</span>.</li>
-<li>Assign a weight <span class="math inline">\(K_{i0} = K(x_i, x_0)\)</span> to each point in the neighborhood, so that the point furthest from <span class="math inline">\(x_0\)</span> has a weight of 0, and the closest has the highest weight. All but these <span class="math inline">\(k\)</span> nearest neighbors get a weight of 0.</li>
-<li>Fit a <strong>weighted least squares regression</strong> of the <span class="math inline">\(y_i\)</span> on the <span class="math inline">\(x_i\)</span> using the aformentioned weights. Weighted least squares allows us to adjust the variance for each observation <span class="math inline">\(\sigma_i^2\)</span> by weights <span class="math inline">\(w_i\)</span>. This is useful in correcting for heteroscedasticity in OLS, and also allows us to estimate the local regression.</li>
-<li>The fitted value at <span class="math inline">\(x_0\)</span> is given by <span class="math inline">\(\hat{f}(x_0) = \hat{\beta}_0 + \hat{\beta}_1 x_0\)</span></li>
+<li>Choice of kernel function - which kernel should we use?</li>
+<li>Bandwidth - what should be the value for <span class="math inline">\(\lambda\)</span>?</li>
 </ol>
-<p>To obtain the local regression fit at a new value of <span class="math inline">\(x_0\)</span>, we have to perform this same procedure again adjusting the weights for the new region of data.</p>
-<p>Here is an example of a local linear regression on the <code>ethanol</code> dataset in the <code>lattice</code> package:</p>
-<p><img src="/notes/local-regression_files/figure-html/loess-1.png" width="672" /></p>
-<p>The LOESS is built up point-by-point:</p>
-<p><img src="/notes/local-regression_files/figure-html/loess_buildup-1.gif" /><!-- --></p>
-<p>One important argument you can control with LOESS is the <strong>span</strong>, or how smooth the LOESS function will become. A larger span will result in a smoother curve, but may not be as accurate.</p>
-<p><img src="/notes/local-regression_files/figure-html/loess_span-1.gif" /><!-- --></p>
-</div>
-</div>
-<div id="generalized-additive-models" class="section level1">
-<h1><span class="header-section-number">2</span> Generalized additive models</h1>
-<p>So far each of these nonlinear methods has been implemented for a single predictor <span class="math inline">\(X\)</span>. To generalize this approach to multiple predictors <span class="math inline">\(X_1, X_2, \dots, X_p\)</span>, we need to utilize a <strong>generalized additive model</strong> (GAM). GAMs extend the linear model by allowing non-linear functions of each of the variables, while also maintaining the <strong>additive assumption</strong> that each variable independently and additively shapes the response variable <span class="math inline">\(Y\)</span>. GAMs work for both quantitative and qualitative responses.</p>
-<div id="gams-for-regression-problems" class="section level2">
-<h2><span class="header-section-number">2.1</span> GAMs for regression problems</h2>
-<p>To extend the multiple linear regression model</p>
-<p><span class="math display">\[y_i = \beta_0 + \beta_{1} X_{i1} + \beta_{2} X_{i2} + \dots + \beta_{p} X_{ip} + \epsilon_i\]</span></p>
-<p>and allow for non-linear relationships between each predictor and the response variable, we replace each linear component <span class="math inline">\(\beta_{j} x_{ij}\)</span> with a smooth, non-linear function <span class="math inline">\(f_j(x_{ij})\)</span>:</p>
-<p><span class="math display">\[y_i = \beta_0 + \sum_{j = 1}^p f_j(x_{ij}) + \epsilon_i\]</span></p>
-<p><span class="math display">\[y_i = \beta_0 + f_1(x_{i1}) + \beta_{2} f_2(x_{i2}) + \dots + f_p(x_{ip}) + \epsilon_i\]</span></p>
-<p>As you can see, each <span class="math inline">\(f_j\)</span> provides an <strong>additive</strong> component to the overall model of <span class="math inline">\(y_i\)</span>. We estimate each <span class="math inline">\(f_j\)</span> then add together all of their contributions. Importantly, each functional component is estimated <strong>simultaneously</strong> so that it is truly still a multiple variable regression model. Let’s estimate a GAM for the Biden dataset using the model</p>
-<p><span class="math display">\[\text{Biden} = \beta_0 + f_1(\text{Age}) + f_2(\text{Education}) + f_3(\text{Gender}) + \epsilon\]</span></p>
-<p>Where <span class="math inline">\(f_1\)</span> and <span class="math inline">\(f_2\)</span> are cubic splines with 2 knots and <span class="math inline">\(f_3\)</span> generates a separate constant for males and females using traditional dummy variables.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get data</span>
-biden &lt;-<span class="st"> </span><span class="kw">read_csv</span>(<span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;biden.csv&quot;</span>))</code></pre></div>
+<p>Consider a truly one-dimensional problem. Here, we have a dataset of infant mortality per country.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">infant &lt;-<span class="st"> </span><span class="kw">read_csv</span>(<span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;infant.csv&quot;</span>)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="co"># remove non-countries</span>
+<span class="st">  </span><span class="kw">filter</span>(<span class="kw">is.na</span>(<span class="st">`</span><span class="dt">Value Footnotes</span><span class="st">`</span>) <span class="op">|</span><span class="st"> `</span><span class="dt">Value Footnotes</span><span class="st">`</span> <span class="op">!=</span><span class="st"> </span><span class="dv">1</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="st">`</span><span class="dt">Country or Area</span><span class="st">`</span>, Year, Value) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">rename</span>(<span class="dt">country =</span> <span class="st">`</span><span class="dt">Country or Area</span><span class="st">`</span>,
+         <span class="dt">year =</span> Year,
+         <span class="dt">mortal =</span> Value)</code></pre></div>
 <pre><code>## Parsed with column specification:
 ## cols(
-##   biden = col_double(),
-##   female = col_double(),
-##   age = col_double(),
-##   educ = col_double(),
-##   dem = col_double(),
-##   rep = col_double()
+##   `Country or Area` = col_character(),
+##   Subgroup = col_character(),
+##   Year = col_double(),
+##   Source = col_character(),
+##   Unit = col_character(),
+##   Value = col_double(),
+##   `Value Footnotes` = col_double()
 ## )</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate model for splines on age and education plus dichotomous female</span>
-biden_gam &lt;-<span class="st"> </span><span class="kw">gam</span>(biden <span class="op">~</span><span class="st"> </span><span class="kw">bs</span>(age, <span class="dt">df =</span> <span class="dv">5</span>) <span class="op">+</span><span class="st"> </span><span class="kw">bs</span>(educ, <span class="dt">df =</span> <span class="dv">5</span>) <span class="op">+</span><span class="st"> </span>female, <span class="dt">data =</span> biden)
-<span class="kw">summary</span>(biden_gam)</code></pre></div>
-<pre><code>## 
-## Call: gam(formula = biden ~ bs(age, df = 5) + bs(educ, df = 5) + female, 
-##     data = biden)
-## Deviance Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -67.4989 -13.5223   0.5484  17.9535  46.5817 
-## 
-## (Dispersion Parameter for gaussian family taken to be 532.4635)
-## 
-##     Null Deviance: 994143.5 on 1806 degrees of freedom
-## Residual Deviance: 955771.9 on 1795 degrees of freedom
-## AIC: 16485.47 
-## 
-## Number of Local Scoring Iterations: 2 
-## 
-## Anova for Parametric Effects
-##                    Df Sum Sq Mean Sq F value    Pr(&gt;F)    
-## bs(age, df = 5)     5   4038   807.5  1.5166    0.1814    
-## bs(educ, df = 5)    5  16660  3332.1  6.2579 9.174e-06 ***
-## female              1  17673 17673.4 33.1918 9.805e-09 ***
-## Residuals        1795 955772   532.5                      
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get graphs of each term</span>
-biden_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(biden_gam, <span class="dt">se =</span> <span class="ot">TRUE</span>, <span class="dt">rug =</span> <span class="ot">FALSE</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(infant, <span class="kw">aes</span>(mortal)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_histogram</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Infant mortality rate for 195 nations&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Infant mortality rate (per 1,000)&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Frequency&quot;</span>)</code></pre></div>
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<p><img src="/notes/local-regression_files/figure-html/infant-1.png" width="672" /></p>
+<p>Say we want to use kernel smoothing to visualize this distribution using a continuous, rather than a discrete, function. How does the choice of kernel function influence the appearance of the distribution?</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(infant, <span class="kw">aes</span>(mortal)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_density</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Gaussian&quot;</span>), <span class="dt">kernel =</span> <span class="st">&quot;gaussian&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_density</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Epanechnikov&quot;</span>), <span class="dt">kernel =</span> <span class="st">&quot;epanechnikov&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_density</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Rectangular&quot;</span>), <span class="dt">kernel =</span> <span class="st">&quot;rectangular&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_density</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Triangular&quot;</span>), <span class="dt">kernel =</span> <span class="st">&quot;triangular&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_density</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Tricube&quot;</span>), <span class="dt">kernel =</span> <span class="st">&quot;tricube&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Paired&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Density estimators of infant mortality rate for 195 nations&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Infant mortality rate (per 1,000)&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Density&quot;</span>,
+       <span class="dt">color =</span> <span class="st">&quot;Kernel&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="kw">c</span>(<span class="fl">0.96</span>, <span class="dv">1</span>),
+        <span class="dt">legend.justification =</span> <span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">1</span>),
+        <span class="dt">legend.background =</span> <span class="kw">element_rect</span>(<span class="dt">fill =</span> <span class="st">&quot;white&quot;</span>))</code></pre></div>
+<pre><code>## Warning: Computation failed in `stat_density()`:
+## &#39;arg&#39; should be one of &quot;gaussian&quot;, &quot;epanechnikov&quot;, &quot;rectangular&quot;, &quot;triangular&quot;, &quot;biweight&quot;, &quot;cosine&quot;, &quot;optcosine&quot;</code></pre>
+<p><img src="/notes/local-regression_files/figure-html/infant-kernels-1.png" width="672" /></p>
+<p>Clearly the selection of an appropriate kernel matters to this problem. Typically selected kernels are Epanechnikov, tricube, and Gaussian.</p>
+<p>Once you select a kernel, you also need to select <span class="math inline">\(\lambda\)</span>. Take the infant mortality data and the Epanechnikov kernel. How does varying <span class="math inline">\(\lambda\)</span> influence the resulting smoothing line?</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">kernel_bandwidth &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">bandwidth =</span> <span class="kw">seq</span>(<span class="dt">from =</span> <span class="dv">1</span>, <span class="dt">to =</span> <span class="dv">15</span>, <span class="dt">by =</span> .<span class="dv">1</span>)
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">model =</span> <span class="kw">map</span>(bandwidth, <span class="op">~</span><span class="st"> </span><span class="kw">density</span>(<span class="dt">x =</span> infant<span class="op">$</span>mortal, <span class="dt">bw =</span> .x, <span class="dt">kernel =</span> <span class="st">&quot;epanechnikov&quot;</span>)),
+         <span class="dt">pred =</span> <span class="kw">map</span>(model, <span class="op">~</span><span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> .x<span class="op">$</span>x,
+                                    <span class="dt">y =</span> .x<span class="op">$</span>y))) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">unnest</span>(pred) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> x, <span class="dt">y =</span> y, <span class="dt">group =</span> bandwidth)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Epanechnikov kernel&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Bandwidth = {closest_state}&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Infant mortality rate (per 1,000)&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Density&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">transition_states</span>(bandwidth,
+                    <span class="dt">transition_length =</span> .<span class="dv">05</span>,
+                    <span class="dt">state_length =</span> .<span class="dv">05</span>) <span class="op">+</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">ease_aes</span>(<span class="st">&quot;cubic-in-out&quot;</span>)
 
-## age
-<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(age, df = 5)</span><span class="st">`</span><span class="op">$</span>x,
-           <span class="dt">y =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(age, df = 5)</span><span class="st">`</span><span class="op">$</span>y,
-           <span class="dt">se.fit =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(age, df = 5)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="st">&quot;Cubic spline&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
-       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">1</span>](age)))</code></pre></div>
-<p><img src="/notes/local-regression_files/figure-html/biden-gam-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## education
-<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(educ, df = 5)</span><span class="st">`</span><span class="op">$</span>x,
-           <span class="dt">y =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(educ, df = 5)</span><span class="st">`</span><span class="op">$</span>y,
-           <span class="dt">se.fit =</span> biden_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(educ, df = 5)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="st">&quot;Cubic spline&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Education&quot;</span>,
-       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">2</span>](education)))</code></pre></div>
-<p><img src="/notes/local-regression_files/figure-html/biden-gam-2.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## gender
-<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_terms<span class="op">$</span>female<span class="op">$</span>x,
-           <span class="dt">y =</span> biden_gam_terms<span class="op">$</span>female<span class="op">$</span>y,
-           <span class="dt">se.fit =</span> biden_gam_terms<span class="op">$</span>female<span class="op">$</span>se.y) <span class="op">%&gt;%</span>
-<span class="st">  </span>unique <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">x =</span> <span class="kw">factor</span>(x, <span class="dt">levels =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">1</span>, <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;Male&quot;</span>, <span class="st">&quot;Female&quot;</span>))) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y, <span class="dt">ymin =</span> y_low, <span class="dt">ymax =</span> y_high)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_errorbar</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
-       <span class="dt">x =</span> <span class="ot">NULL</span>,
-       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">3</span>](gender)))</code></pre></div>
-<p><img src="/notes/local-regression_files/figure-html/biden-gam-3.png" width="672" /></p>
-<p>For age, there does not appear to be a substantial or significant relationship with Biden feeling thermometers after controlling for education and gender. The cubic spline is relatively flat and the 95% confidence interval is wide. For education, the effect appears substantial and statistically significant; as education increases, predicted Biden feeling thermometer ratings decrease until approximately 15 years of formal education, then increase again for those with college or post-graduate degrees. Finally, for gender the difference between males and females is substantial and statistically distinguishable from 0.</p>
-<p>Instead of cubic splines, we could use local regression. At this point we can no longer use OLS to fit the model, but instead uses a <strong>backfitting</strong> process to model each predictor simultaneously.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate model for splines on age and education plus dichotomous female</span>
-biden_gam_local &lt;-<span class="st"> </span><span class="kw">gam</span>(biden <span class="op">~</span><span class="st"> </span><span class="kw">lo</span>(age) <span class="op">+</span><span class="st"> </span><span class="kw">lo</span>(educ) <span class="op">+</span><span class="st"> </span>female, <span class="dt">data =</span> biden)
-<span class="kw">summary</span>(biden_gam_local)</code></pre></div>
-<pre><code>## 
-## Call: gam(formula = biden ~ lo(age) + lo(educ) + female, data = biden)
-## Deviance Residuals:
-##    Min     1Q Median     3Q    Max 
-## -66.66 -13.92   1.28  18.97  44.03 
-## 
-## (Dispersion Parameter for gaussian family taken to be 533.8858)
-## 
-##     Null Deviance: 994143.5 on 1806 degrees of freedom
-## Residual Deviance: 959708.2 on 1797.591 degrees of freedom
-## AIC: 16487.72 
-## 
-## Number of Local Scoring Iterations: 2 
-## 
-## Anova for Parametric Effects
-##               Df Sum Sq Mean Sq F value    Pr(&gt;F)    
-## lo(age)      1.0   1406  1406.4  2.6344    0.1047    
-## lo(educ)     1.0   8338  8337.7 15.6171 8.055e-05 ***
-## female       1.0  17750 17750.3 33.2474 9.532e-09 ***
-## Residuals 1797.6 959708   533.9                      
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Anova for Nonparametric Effects
-##             Npar Df Npar F    Pr(F)   
-## (Intercept)                           
-## lo(age)         2.4 0.8267 0.454360   
-## lo(educ)        3.1 3.8734 0.008521 **
-## female                                
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get graphs of each term</span>
-biden_gam_local_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(biden_gam_local, <span class="dt">se =</span> <span class="ot">TRUE</span>, <span class="dt">rug =</span> <span class="ot">FALSE</span>)
-
-## age
-<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(age)</span><span class="st">`</span><span class="op">$</span>x,
-           <span class="dt">y =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(age)</span><span class="st">`</span><span class="op">$</span>y,
-           <span class="dt">se.fit =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(age)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="st">&quot;Local regression&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
-       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">1</span>](age)))</code></pre></div>
-<p><img src="/notes/local-regression_files/figure-html/biden-gam-local-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## education
-<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(educ)</span><span class="st">`</span><span class="op">$</span>x,
-           <span class="dt">y =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(educ)</span><span class="st">`</span><span class="op">$</span>y,
-           <span class="dt">se.fit =</span> biden_gam_local_terms<span class="op">$</span><span class="st">`</span><span class="dt">lo(educ)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="st">&quot;Local regression&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Education&quot;</span>,
-       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">2</span>](education)))</code></pre></div>
-<p><img src="/notes/local-regression_files/figure-html/biden-gam-local-2.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## gender
-<span class="kw">tibble</span>(<span class="dt">x =</span> biden_gam_local_terms<span class="op">$</span>female<span class="op">$</span>x,
-           <span class="dt">y =</span> biden_gam_local_terms<span class="op">$</span>female<span class="op">$</span>y,
-           <span class="dt">se.fit =</span> biden_gam_local_terms<span class="op">$</span>female<span class="op">$</span>se.y) <span class="op">%&gt;%</span>
-<span class="st">  </span>unique <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">x =</span> <span class="kw">factor</span>(x, <span class="dt">levels =</span> <span class="dv">0</span><span class="op">:</span><span class="dv">1</span>, <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;Male&quot;</span>, <span class="st">&quot;Female&quot;</span>))) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y, <span class="dt">ymin =</span> y_low, <span class="dt">ymax =</span> y_high)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_errorbar</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Biden feeling thermometer&quot;</span>,
-       <span class="dt">x =</span> <span class="ot">NULL</span>,
-       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">3</span>](gender)))</code></pre></div>
-<p><img src="/notes/local-regression_files/figure-html/biden-gam-local-3.png" width="672" /></p>
-<p>The results are pretty similar to the cubic splines.</p>
-<p>We can also use GAMs for classification problems, like the Titanic example.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(titanic)
-
-<span class="co"># estimate model for splines on age and education plus dichotomous female</span>
-titanic_gam &lt;-<span class="st"> </span><span class="kw">gam</span>(Survived <span class="op">~</span><span class="st"> </span><span class="kw">bs</span>(Age, <span class="dt">df =</span> <span class="dv">5</span>) <span class="op">+</span><span class="st"> </span><span class="kw">bs</span>(Fare, <span class="dt">df =</span> <span class="dv">5</span>) <span class="op">+</span><span class="st"> </span>Sex, <span class="dt">data =</span> titanic_train,
-                   <span class="dt">family =</span> binomial)
-<span class="kw">summary</span>(titanic_gam)</code></pre></div>
-<pre><code>## 
-## Call: gam(formula = Survived ~ bs(Age, df = 5) + bs(Fare, df = 5) + 
-##     Sex, family = binomial, data = titanic_train)
-## Deviance Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -2.7426 -0.6055 -0.4912  0.7351  2.2300 
-## 
-## (Dispersion Parameter for binomial family taken to be 1)
-## 
-##     Null Deviance: 964.516 on 713 degrees of freedom
-## Residual Deviance: 684.4498 on 702 degrees of freedom
-## AIC: 708.4498 
-## 177 observations deleted due to missingness 
-## 
-## Number of Local Scoring Iterations: 9 
-## 
-## Anova for Parametric Effects
-##                   Df Sum Sq Mean Sq  F value    Pr(&gt;F)    
-## bs(Age, df = 5)    5   8.41   1.682   1.6035    0.1568    
-## bs(Fare, df = 5)   5  40.86   8.172   7.7905  3.79e-07 ***
-## Sex                1 141.62 141.617 135.0111 &lt; 2.2e-16 ***
-## Residuals        702 736.35   1.049                       
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get graphs of each term</span>
-titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(titanic_gam, <span class="dt">se =</span> <span class="ot">TRUE</span>, <span class="dt">rug =</span> <span class="ot">FALSE</span>)
-
-## age
-<span class="kw">tibble</span>(<span class="dt">x =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Age, df = 5)</span><span class="st">`</span><span class="op">$</span>x,
-           <span class="dt">y =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Age, df = 5)</span><span class="st">`</span><span class="op">$</span>y,
-           <span class="dt">se.fit =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Age, df = 5)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Titanic survival&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="st">&quot;Cubic spline&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Age&quot;</span>,
-       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">1</span>](age)))</code></pre></div>
-<p><img src="/notes/local-regression_files/figure-html/titanic-gam-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## fare
-<span class="kw">tibble</span>(<span class="dt">x =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Fare, df = 5)</span><span class="st">`</span><span class="op">$</span>x,
-           <span class="dt">y =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Fare, df = 5)</span><span class="st">`</span><span class="op">$</span>y,
-           <span class="dt">se.fit =</span> titanic_gam_terms<span class="op">$</span><span class="st">`</span><span class="dt">bs(Fare, df = 5)</span><span class="st">`</span><span class="op">$</span>se.y) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_low), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> y_high), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Titanic survival&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="st">&quot;Cubic spline&quot;</span>,
-       <span class="dt">x =</span> <span class="st">&quot;Fare&quot;</span>,
-       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">2</span>](fare)))</code></pre></div>
-<p><img src="/notes/local-regression_files/figure-html/titanic-gam-2.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## gender
-<span class="kw">tibble</span>(<span class="dt">x =</span> titanic_gam_terms<span class="op">$</span>Sex<span class="op">$</span>x,
-           <span class="dt">y =</span> titanic_gam_terms<span class="op">$</span>Sex<span class="op">$</span>y,
-           <span class="dt">se.fit =</span> titanic_gam_terms<span class="op">$</span>Sex<span class="op">$</span>se.y) <span class="op">%&gt;%</span>
-<span class="st">  </span>unique <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y_low =</span> y <span class="op">-</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">y_high =</span> y <span class="op">+</span><span class="st"> </span><span class="fl">1.96</span> <span class="op">*</span><span class="st"> </span>se.fit,
-         <span class="dt">x =</span> <span class="kw">factor</span>(x, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="st">&quot;male&quot;</span>, <span class="st">&quot;female&quot;</span>), <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;Male&quot;</span>, <span class="st">&quot;Female&quot;</span>))) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y, <span class="dt">ymin =</span> y_low, <span class="dt">ymax =</span> y_high)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_errorbar</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;GAM of Titanic survival&quot;</span>,
-       <span class="dt">x =</span> <span class="ot">NULL</span>,
-       <span class="dt">y =</span> <span class="kw">expression</span>(f[<span class="dv">3</span>](gender)))</code></pre></div>
-<p><img src="/notes/local-regression_files/figure-html/titanic-gam-3.png" width="672" /></p>
+<span class="kw">animate</span>(kernel_bandwidth, <span class="dt">nframes =</span> <span class="kw">length</span>(<span class="kw">seq</span>(<span class="dt">from =</span> <span class="dv">1</span>, <span class="dt">to =</span> <span class="dv">15</span>, <span class="dt">by =</span> .<span class="dv">1</span>)) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>)</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/infant-epan-1.gif" /><!-- --></p>
+<p>Fortunately their are methods for determining the optimal bandwidth. We won’t dig into them here,<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> but suffice to say most functions for kernel smoothers in Python and R automatically implement them.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(infant, <span class="kw">aes</span>(mortal)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_density</span>(<span class="dt">kernel =</span> <span class="st">&quot;epanechnikov&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Epanechnikov kernel function&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="kw">str_c</span>(<span class="st">&quot;Optimal bandwidth = &quot;</span>,
+                        <span class="kw">round</span>(<span class="kw">density</span>(<span class="dt">x =</span> infant<span class="op">$</span>mortal, <span class="dt">kernel =</span> <span class="st">&quot;epanechnikov&quot;</span>)<span class="op">$</span>bw,
+                              <span class="dt">digits =</span> <span class="dv">2</span>)),
+       <span class="dt">x =</span> <span class="st">&quot;Infant mortality rate (per 1,000)&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Density&quot;</span>)</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/infant-epan-optimal-1.png" width="672" /></p>
+</div>
+</div>
+<div id="local-regression" class="section level1">
+<h1><span class="header-section-number">3</span> Local regression</h1>
+<p>Smoothly varying locally weighted average with kernel weighting improves upon prior approaches, but still suffers from some drawbacks. Primarily, locally-weighted averages are biased on the boundaries of the domain because of the asymmetry of the kernel in that region. This bias can also appear in the interior of the domain if <span class="math inline">\(X\)</span> values are not equally spaced.</p>
+<div id="local-linear-regression" class="section level2">
+<h2><span class="header-section-number">3.1</span> Local linear regression</h2>
+<p>Instead of fitting a constant locally, we can fit a straight line. <strong>Locally weighted scatterplot smoothing</strong> (local regression, LOWESS, or LOESS) fits a separate linear function at each target point <span class="math inline">\(x_0\)</span> using only the nearby training observations. This method estimates a regression line based on localized subsets of the data, building up the global function <span class="math inline">\(f\)</span> point-by-point. It solves the weighted least squares problem at each target point <span class="math inline">\(x_0\)</span>:</p>
+<p><span class="math display">\[\min_{\alpha(x_0), \beta(x_0)} \sum_{i=1}^N K_\lambda (x_0, x_i) [y_i - \alpha(x_0) - \beta (x_0)x_i]^2\]</span></p>
+<p>The estimate is then <span class="math inline">\(\hat{f}(x_0) = \hat{\alpha} + \hat{\beta}(x_0)x_0\)</span>. Even though we fit an entire linear model to the data in the region, we only use it to evaluate the fit at the single point <span class="math inline">\(x_0\)</span>. We repeat this process for varying <span class="math inline">\(x_0\)</span> to build the full model.</p>
+<p>Here is an example of a local linear regression on the <code>ethanol</code> dataset in the <code>lattice</code> package:</p>
+<p><img src="/notes/local-regression_files/figure-html/loess-1.png" width="672" /></p>
+<p>The LOESS is built up point-by-point. Here, <span class="math inline">\(K_\lambda (x_0, x_i)\)</span> is a tricube kernel with a bandwidth (<span class="math inline">\(\lambda\)</span>) of .75.</p>
+<p><img src="/notes/local-regression_files/figure-html/loess_buildup-1.gif" /><!-- --></p>
+<p>One important argument you can control with LOESS is the bandwidth, as this dictates how smooth the LOESS function will become. A larger span will result in a smoother curve, but may not be as accurate.</p>
+<p><img src="/notes/local-regression_files/figure-html/loess_span-1.gif" /><!-- --></p>
+</div>
+<div id="local-polynomial-regression" class="section level2">
+<h2><span class="header-section-number">3.2</span> Local polynomial regression</h2>
+<p>We are not confined only to local linear fits. We can fit local polynomial fits for any degree <span class="math inline">\(d\)</span>:</p>
+<p><span class="math display">\[\min_{\alpha(x_0), \beta_j(x_0), j = 1, \ldots, d} \sum_{i=1}^N K_\lambda (x_0, x_i) \left[y_i - \alpha(x_0) - \sum_{j=1}^d \beta_j (x_0)x_i^j \right]^2\]</span></p>
+<p>Local polynomial regression tends to fit better (and be less biased) when there are regions of curvature in the true data generating process. Local linear regression will not capture this dynamic as well. The downside is that to decrease bias, local polynomial regression will also increase the variance of the estimates.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(ethanol, <span class="kw">aes</span>(E, NOx)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">alpha =</span> .<span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;loess&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>, <span class="dt">method.args =</span> <span class="kw">list</span>(<span class="dt">degree =</span> <span class="dv">0</span>),
+              <span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Zero-order&quot;</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;loess&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>, <span class="dt">method.args =</span> <span class="kw">list</span>(<span class="dt">degree =</span> <span class="dv">1</span>),
+              <span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;First-order&quot;</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;loess&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>, <span class="dt">method.args =</span> <span class="kw">list</span>(<span class="dt">degree =</span> <span class="dv">2</span>),
+              <span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Second-order&quot;</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">breaks =</span> <span class="kw">c</span>(<span class="st">&quot;Zero-order&quot;</span>, <span class="st">&quot;First-order&quot;</span>, <span class="st">&quot;Second-order&quot;</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Local linear regression&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Tricube kernel&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Equivalence ratio&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Concentration of nitrogen oxides in micrograms/J&quot;</span>,
+       <span class="dt">color =</span> <span class="st">&quot;Degree&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
+<p><img src="/notes/local-regression_files/figure-html/loess-poly-1.png" width="672" /></p>
+</div>
+<div id="higher-dimensional-local-regression" class="section level2">
+<h2><span class="header-section-number">3.3</span> Higher dimensional local regression</h2>
+<p>Local regression works well with a pair of independent variables <span class="math inline">\(X_1, X_2\)</span>, or <span class="math inline">\(p = 2\)</span>. The neighborhoods are simply two-dimensional with bivariate linear regression models. However, as with nearest neighbors methods, as <span class="math inline">\(p\)</span> increases the number of neighbor training observations decreases rapidly. Once the number of predictors exceeds 3 or 4, local regression is not advised. Likewise, if you have a large number of observations (say <span class="math inline">\(n &gt; 1000\)</span>), estimating all the local regression functions can become computationally intensive, if not infeasible.</p>
 </div>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
-<h1><span class="header-section-number">3</span> Session Info</h1>
+<h1><span class="header-section-number">4</span> Session Info</h1>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
@@ -378,7 +392,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-02-18                  
+##  date     2019-02-19                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package       * version    date       lib
@@ -394,6 +408,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  callr           3.1.1      2018-12-21 [2]
 ##  cellranger      1.1.0      2016-07-27 [2]
 ##  class           7.3-15     2019-01-01 [2]
+##  classInt        0.3-1      2018-12-18 [2]
 ##  cli             1.0.1      2018-09-25 [1]
 ##  codetools       0.2-16     2018-12-24 [2]
 ##  colorspace      1.4-0      2019-01-13 [2]
@@ -401,6 +416,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  crayon          1.3.4      2017-09-16 [2]
 ##  crosstalk       1.0.0      2016-12-21 [2]
 ##  data.table      1.12.0     2019-01-13 [2]
+##  DBI             1.0.0      2018-05-02 [2]
 ##  desc            1.2.0      2018-05-01 [2]
 ##  devtools        2.0.1      2018-10-26 [1]
 ##  dials         * 0.0.2      2018-12-09 [1]
@@ -408,8 +424,10 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  dplyr         * 0.7.8      2018-11-10 [1]
 ##  DT              0.5        2018-11-05 [2]
 ##  dygraphs        1.1.1.6    2018-07-11 [2]
+##  e1071           1.7-0.1    2019-01-21 [1]
 ##  evaluate        0.12       2018-10-09 [2]
 ##  farver          1.1.0      2018-11-20 [1]
+##  FNN             1.1.2.2    2018-12-10 [2]
 ##  forcats       * 0.3.0      2018-02-19 [2]
 ##  foreach       * 1.4.4      2017-12-12 [2]
 ##  fs              1.2.6      2018-08-23 [1]
@@ -418,6 +436,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  gganimate     * 1.0.0      2019-01-02 [1]
 ##  ggplot2       * 3.1.0      2018-10-25 [1]
 ##  ggridges        0.5.1      2018-09-27 [2]
+##  gifski          0.8.6      2018-09-28 [1]
 ##  glue            1.3.0      2018-07-17 [2]
 ##  gower           0.1.2      2017-02-23 [2]
 ##  gridExtra       2.3        2017-09-09 [2]
@@ -446,6 +465,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  lazyeval        0.2.1      2017-10-29 [2]
 ##  lme4            1.1-19     2018-11-10 [2]
 ##  loo             2.0.0      2018-04-11 [2]
+##  lpSolve         5.6.13     2015-09-19 [1]
 ##  lubridate       1.7.4      2018-04-11 [2]
 ##  magrittr        1.5        2014-11-22 [2]
 ##  margins       * 0.3.23     2018-05-22 [2]
@@ -469,6 +489,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  pkgconfig       2.0.2      2018-08-16 [2]
 ##  pkgload         1.0.2      2018-10-29 [1]
 ##  plyr            1.8.4      2016-06-08 [2]
+##  png             0.1-7      2013-12-03 [2]
 ##  prediction      0.3.6.1    2018-12-04 [2]
 ##  prettyunits     1.0.2      2015-07-13 [2]
 ##  pROC            1.13.0     2018-09-24 [1]
@@ -480,6 +501,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  purrr         * 0.3.0      2019-01-27 [2]
 ##  R6              2.3.0      2018-10-04 [1]
 ##  rcfss         * 0.1.5      2019-01-24 [1]
+##  RColorBrewer    1.1-2      2014-12-07 [2]
 ##  Rcpp            1.0.0      2018-11-07 [1]
 ##  readr         * 1.3.1      2018-12-21 [2]
 ##  readxl          1.2.0      2018-12-19 [2]
@@ -499,6 +521,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  rvest           0.3.2      2016-06-17 [2]
 ##  scales        * 1.0.0      2018-08-09 [1]
 ##  sessioninfo     1.1.1      2018-11-05 [1]
+##  sf              0.7-2      2018-12-20 [1]
 ##  shiny           1.2.0      2018-11-02 [2]
 ##  shinyjs         1.0        2018-01-08 [2]
 ##  shinystan       2.5.0      2018-05-01 [2]
@@ -521,7 +544,9 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  timeDate        3043.102   2018-02-21 [2]
 ##  titanic       * 0.1.0      2015-08-31 [2]
 ##  tokenizers      0.2.1      2018-03-29 [2]
+##  transformr      0.1.1      2018-12-09 [1]
 ##  tweenr          1.0.1      2018-12-14 [1]
+##  units           0.6-2      2018-12-05 [1]
 ##  usethis         1.4.0      2018-08-14 [1]
 ##  withr           2.1.2      2018-03-15 [2]
 ##  xfun            0.4        2018-10-23 [1]
@@ -545,12 +570,14 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.1)                      
 ##  CRAN (R 3.5.0)                      
@@ -558,6 +585,8 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -566,6 +595,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -592,6 +622,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -627,6 +658,7 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  local                               
@@ -636,16 +668,18 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -681,12 +715,14 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ## 
 ## [1] /Users/soltoffbc/Library/R/3.5/library
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
 </div>
 <div id="references" class="section level1 toc-ignore">
-<h1><span class="header-section-number">4</span> References</h1>
+<h1><span class="header-section-number">5</span> References</h1>
 <ul>
 <li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
 <li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
@@ -699,4 +735,10 @@ titanic_gam_terms &lt;-<span class="st"> </span><span class="kw">preplot</span>(
 <p>James, Gareth, Daniela Witten, Trevor Hastie, and Robert Tibshirani. 2013. <em>An Introduction to Statistical Learning</em>. Vol. 112. Springer. <a href="http://www-bcf.usc.edu/~gareth/ISL/" class="uri">http://www-bcf.usc.edu/~gareth/ISL/</a>.</p>
 </div>
 </div>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>See ESL ch 6.2.<a href="#fnref1">↩</a></p></li>
+</ol>
 </div>

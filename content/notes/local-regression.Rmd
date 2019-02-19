@@ -40,18 +40,299 @@ theme_set(theme_minimal())
 
 \newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
 
+# Kernel functions
+
+A **kernel** is a weighting function used for non-parametric estimation techniques. Formally, it is a non-negative real-valued integrable function $K$. For our purposes, we impose two additional requirements:
+
+* Normalization
+
+    $$\int_{-\infty}^{+\infty} K(u) du = 1$$
+    
+    * This ensures when we apply the kernel function to non-parametric estimation, the result is a probability density function (PDF).
+
+* Symmetry - $K(-u) = K(u)$ for all values of $u$
+    * Ensures the average of the resulting distribution is equal to that of the sample used.
+
+## Examples of kernel functions
+
+##### Gaussian kernel
+
+$$K(u) = \frac{1}{\sqrt{2 \pi}}e^{-\frac{1}{2} u^2}$$
+
+```{r gaussian}
+x <- rnorm(1000)
+
+qplot(x, geom = "blank") +
+  stat_function(fun = dnorm) +
+  labs(title = "Gaussian (normal) kernel",
+       x = NULL,
+       y = NULL)
+```
+
+##### Rectangular (uniform) kernel
+
+$$K(u) = \frac{1}{2} \mathbf{1}_{\{ |u| \leq 1 \} }$$
+
+where $\mathbf{1}_{\{ |z| \leq 1 \} }$ is an indicator function that takes on the value of 1 if the condition is true ($|z| \leq 1$) or 0 if the condition is false. 
+
+```{r uniform}
+x <- runif(1000, -1.5, 1.5)
+x_lines <- tribble(
+  ~x, ~y, ~xend, ~yend,
+  -1, 0, -1, .5,
+  1, 0, 1, .5
+)
+
+qplot(x, geom = "blank") +
+  stat_function(fun = dunif, args = list(min = -1), geom = "step") +
+  # geom_segment(data = x_lines, aes(x = x, y = y, xend = xend, yend = yend)) +
+  labs(title = "Rectangular kernel",
+       x = NULL,
+       y = NULL)
+```
+
+##### Triangular kernel
+
+$$K(u) = (1 - |z|) \mathbf{1}_{\{ |u| \leq 1 \} }$$
+
+```{r triangular}
+triangular <- function(x) {
+  (1 - abs(x)) * ifelse(abs(x) <= 1, 1, 0)
+}
+
+qplot(x, geom = "blank") +
+  stat_function(fun = triangular) +
+  labs(title = "Triangular kernel",
+       x = NULL,
+       y = NULL)
+```
+
+##### Tricube kernel
+
+$$K(u) = \frac{70}{81} (1 - |u|^3)^3 \mathbf{1}_{\{ |u| \leq 1 \} }$$
+
+```{r tricube}
+tricube <- function(x) {
+  (70 / 81) * (1 - abs(x)^3)^3 * ifelse(abs(x) <= 1, 1, 0)
+}
+
+qplot(x, geom = "blank") +
+  stat_function(fun = tricube) +
+  labs(title = "Tricube kernel",
+       x = NULL,
+       y = NULL)
+```
+
+##### Epanechnikov kernel
+
+$$K(u) = \frac{3}{4} (1 - u^2) \mathbf{1}_{\{ |u| \leq 1 \} }$$
+
+```{r epanechnikov}
+epanechnikov <- function(x) {
+  (3 / 4) * (1 - x^2) * ifelse(abs(x) <= 1, 1, 0)
+}
+
+qplot(x, geom = "blank") +
+  stat_function(fun = epanechnikov) +
+  labs(title = "Epanechnikov kernel",
+       x = NULL,
+       y = NULL)
+```
+
+##### Comparison of kernels
+
+```{r kernels}
+qplot(x, geom = "blank") +
+  stat_function(aes(color = "Gaussian"), fun = dnorm) +
+  stat_function(aes(color = "Epanechnikov"), fun = epanechnikov) +
+  stat_function(aes(color = "Rectangular"), fun = dunif,
+                args = list(min = -1), geom = "step") +
+  stat_function(aes(color = "Triangular"), fun = triangular) +
+  stat_function(aes(color = "Tricube"), fun = tricube) +
+  scale_color_brewer(type = "qual") +
+  labs(x = NULL,
+       y = NULL,
+       color = NULL) +
+  theme(legend.position = c(0.04, 1),
+        legend.justification = c(0, 1),
+        legend.background = element_rect(fill = "white"))
+```
+
+# Kernel smoothing
+
+Kernel smoothing is a method for estimating the regression function $f(X)$ over the domain $\Re^p$ by fitting a different but simple model separately at each query point $x_0$. This is done by using only observations closed to the target point $x_0$ to fit the model, but also in a way such that the resulting estimated function $f(X)$ is **smooth** in $\Re^p$. We use a weighting function, aka the **kernel** $K_\lambda (x_o, x_i)$, to assign a weight to $x_i$ based on its distance from $x_0$. The kernels are indexed by a parameter $\lambda$ which determines the the width of the local neighborhood used to include observations for each $x_0$.
+
+Kernel smoothing is strongly related to [$k$-nearest neighbors](/notes/nearest-neighbors/),
+
+$$\hat{f}(x) = \text{Ave} (y_i | x_i \in N_k(x))$$
+
+as an estimation of the regression function $\E(Y | X = x)$. $N_k(x)$ is the set of $k$ points nearest to $x$ in squared distance. Consider this method applied to some simulated data points:
+
+```{r kernel-sim}
+kernel_sim <- tibble(
+  x = runif(100),
+  y = sin(4 * x) + rnorm(100, 0, 1/3)
+)
+
+kernel_test <- tibble(
+  x = seq(from = 0, to = 1, by = .001)
+)
+```
+
+```{r sim-naive, dependson = "kernel-sim"}
+kernel_test <- kernel_test %>%
+  mutate(y = FNN::knn.reg(train = select(kernel_sim, x),
+                          test = kernel_test,
+                          y = kernel_sim$y,
+                          k = 30)$pred)
+
+ggplot(kernel_sim, aes(x, y)) +
+  geom_point(alpha = .2) +
+  stat_function(fun = function(x) sin(4 * x)) +
+  geom_line(data = kernel_test, color = "blue") +
+  labs(title = "30-nearest neighbor kernel",
+       x = expression(x[0]),
+       y = NULL)
+```
+
+The resulting line is bumpy, since the fit at each $x_0$ is an average of the local neighborhood and the resulting function $\hat{f}(x)$ is discontinuous in $x$. The average changes in a discrete way, leading to the discontinuties.
+
+Kernel smoothing allows us to change the weights of each of the observations in the neighborhood: rather than weighting them equally, we assign weights based on the distance of $x_i$ from $x_0$. A popular technique that implements this is called the **Nadaraya-Watson kernel-weighted average**:
+
+$$\hat{f}(x_0) = \frac{\sum_{i=1}^N K_\lambda(x_0, x_i)y_i}{\sum_{i=1}^N K_\lambda (x_0, x_i)}$$
+
+$K_\lambda(x_0, x_i)$ is the **Epanechnikov** quadratic kernel (as seen earlier):
+
+$$K_\lambda(x_0, x_i) = D \left( \frac{| x - x_0 |}{\lambda} \right)$$
+
+with
+
+$$
+D(t) = \begin{cases}
+\frac{3}{4} (1 - t^2) & \text{if } |t| \leq 1 \\
+0 & \text{otherwise}
+\end{cases}
+$$
+
+Applied to the dataset, we get a smoothing line that looks like this:
+
+```{r sim-epanechnikov, dependson = "kernel-sim"}
+ggplot(kernel_sim, aes(x, y)) +
+  geom_point(alpha = .2) +
+  stat_function(fun = function(x) sin(4 * x)) +
+  geom_line(data = as_tibble(ksmooth(kernel_sim$x,
+                                     kernel_sim$y,
+                                     kernel = "normal",
+                                     bandwidth = 0.2,
+                                     n.points = 500)),
+            color = "blue") +
+  labs(title = "Epanechnikov kernel",
+       x = expression(x[0]),
+       y = NULL)
+```
+
+As observations move into the neighborhood, they are gradually upweighted based on the their distance to $x_0$ and the specific kernel function.
+
+Here, $\lambda$ is a constant value that defines the neighborhood - the interval is the same width regardless of $x_0$. In $k$-nearest neighbors, that interval changes width depending on the distance to the closest neighbors. To make it adaptive, we can reexpress $K_\lambda(x_0, x_i)$ as
+
+$$K_\lambda(x_0, x_i) = D \left( \frac{| x - x_0 |}{h_\lambda (x_0)} \right)$$
+
+For the Epanechnikov quadratic kernel, $h_\lambda(x_0)$ is a constant value. For other kernels, this value may itself be a function of $x_0$.
+
+## Tuning parameters
+
+For kernel smoothing, there are two major considerations:
+
+1. Choice of kernel function - which kernel should we use?
+1. Bandwidth - what should be the value for $\lambda$?
+
+Consider a truly one-dimensional problem. Here, we have a dataset of infant mortality per country.
+
+```{r infant}
+infant <- read_csv(here("static", "data", "infant.csv")) %>%
+  # remove non-countries
+  filter(is.na(`Value Footnotes`) | `Value Footnotes` != 1) %>%
+  select(`Country or Area`, Year, Value) %>%
+  rename(country = `Country or Area`,
+         year = Year,
+         mortal = Value)
+
+ggplot(infant, aes(mortal)) +
+  geom_histogram() +
+  labs(title = "Infant mortality rate for 195 nations",
+       x = "Infant mortality rate (per 1,000)",
+       y = "Frequency")
+```
+
+Say we want to use kernel smoothing to visualize this distribution using a continuous, rather than a discrete, function. How does the choice of kernel function influence the appearance of the distribution?
+
+```{r infant-kernels, dependson = "infant"}
+ggplot(infant, aes(mortal)) +
+  geom_density(aes(color = "Gaussian"), kernel = "gaussian") +
+  geom_density(aes(color = "Epanechnikov"), kernel = "epanechnikov") +
+  geom_density(aes(color = "Rectangular"), kernel = "rectangular") +
+  geom_density(aes(color = "Triangular"), kernel = "triangular") +
+  geom_density(aes(color = "Tricube"), kernel = "tricube") +
+  scale_color_brewer(type = "qual", palette = "Paired") +
+  labs(title = "Density estimators of infant mortality rate for 195 nations",
+       x = "Infant mortality rate (per 1,000)",
+       y = "Density",
+       color = "Kernel") +
+  theme(legend.position = c(0.96, 1),
+        legend.justification = c(1, 1),
+        legend.background = element_rect(fill = "white"))
+```
+
+Clearly the selection of an appropriate kernel matters to this problem. Typically selected kernels are Epanechnikov, tricube, and Gaussian.
+
+Once you select a kernel, you also need to select $\lambda$. Take the infant mortality data and the Epanechnikov kernel. How does varying $\lambda$ influence the resulting smoothing line?
+
+```{r infant-epan, dependson = "infant"}
+kernel_bandwidth <- tibble(
+  bandwidth = seq(from = 1, to = 15, by = .1)
+) %>%
+  mutate(model = map(bandwidth, ~ density(x = infant$mortal, bw = .x, kernel = "epanechnikov")),
+         pred = map(model, ~ tibble(x = .x$x,
+                                    y = .x$y))) %>%
+  unnest(pred) %>%
+  ggplot(aes(x = x, y = y, group = bandwidth)) +
+  geom_line() +
+  labs(title = "Epanechnikov kernel",
+       subtitle = "Bandwidth = {closest_state}",
+       x = "Infant mortality rate (per 1,000)",
+       y = "Density") +
+  transition_states(bandwidth,
+                    transition_length = .05,
+                    state_length = .05) + 
+  ease_aes("cubic-in-out")
+
+animate(kernel_bandwidth, nframes = length(seq(from = 1, to = 15, by = .1)) + 1)
+```
+
+Fortunately their are methods for determining the optimal bandwidth. We won't dig into them here,^[See ESL ch 6.2.] but suffice to say most functions for kernel smoothers in Python and R automatically implement them.
+
+```{r infant-epan-optimal, dependson = "infant"}
+ggplot(infant, aes(mortal)) +
+  geom_density(kernel = "epanechnikov") +
+  labs(title = "Epanechnikov kernel function",
+       subtitle = str_c("Optimal bandwidth = ",
+                        round(density(x = infant$mortal, kernel = "epanechnikov")$bw,
+                              digits = 2)),
+       x = "Infant mortality rate (per 1,000)",
+       y = "Density")
+```
+
 # Local regression
 
-**Locally weighted scatterplot smoothing** (local regression, LOWESS, or LOESS) fits a separate non-linear function at each target point $x_0$ using only the nearby training observations. This method estimates a regression line based on localized subsets of the data, building up the global function $f$ point-by-point.
+Smoothly varying locally weighted average with kernel weighting improves upon prior approaches, but still suffers from some drawbacks. Primarily, locally-weighted averages are biased on the boundaries of the domain because of the asymmetry of the kernel in that region. This bias can also appear in the interior of the domain if $X$ values are not equally spaced.
 
-## Algorithm for local linear regression
+## Local linear regression
 
-1. Gather the fraction $s = \frac{k}{n}$ of training points whose $x_i$ are closest to $x_0$.
-1. Assign a weight $K_{i0} = K(x_i, x_0)$ to each point in the neighborhood, so that the point furthest from $x_0$ has a weight of 0, and the closest has the highest weight. All but these $k$ nearest neighbors get a weight of 0.
-1. Fit a **weighted least squares regression** of the $y_i$ on the $x_i$ using the aformentioned weights. Weighted least squares allows us to adjust the variance for each observation $\sigma_i^2$ by weights $w_i$. This is useful in correcting for heteroscedasticity in OLS, and also allows us to estimate the local regression.
-1. The fitted value at $x_0$ is given by $\hat{f}(x_0) = \hat{\beta}_0 + \hat{\beta}_1 x_0$
+Instead of fitting a constant locally, we can fit a straight line. **Locally weighted scatterplot smoothing** (local regression, LOWESS, or LOESS) fits a separate linear function at each target point $x_0$ using only the nearby training observations. This method estimates a regression line based on localized subsets of the data, building up the global function $f$ point-by-point. It solves the weighted least squares problem at each target point $x_0$:
 
-To obtain the local regression fit at a new value of $x_0$, we have to perform this same procedure again adjusting the weights for the new region of data.
+$$\min_{\alpha(x_0), \beta(x_0)} \sum_{i=1}^N K_\lambda (x_0, x_i) [y_i - \alpha(x_0) - \beta (x_0)x_i]^2$$
+
+The estimate is then $\hat{f}(x_0) = \hat{\alpha} + \hat{\beta}(x_0)x_0$. Even though we fit an entire linear model to the data in the region, we only use it to evaluate the fit at the single point $x_0$. We repeat this process for varying $x_0$ to build the full model.
 
 Here is an example of a local linear regression on the `ethanol` dataset in the `lattice` package:
 
@@ -65,11 +346,13 @@ fit <- augment(mod)
 ggplot(fit, aes(E, NOx)) +
   geom_point() +
   geom_line(aes(y = .fitted), color = "red") +
-  labs(x = "Equivalence ratio",
+  labs(title = "Local linear regression",
+       subtitle = "Tricube kernel",
+       x = "Equivalence ratio",
        y = "Concentration of nitrogen oxides in micrograms/J")
 ```
 
-The LOESS is built up point-by-point:
+The LOESS is built up point-by-point. Here, $K_\lambda (x_0, x_i)$ is a tricube kernel with a bandwidth ($\lambda$) of .75.
 
 ```{r loess_buildup, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE}
 dat <- ethanol %>%
@@ -86,15 +369,18 @@ ggplot(dat, aes(E, NOx)) +
   geom_vline(aes(xintercept = center), lty = 2) +
   geom_line(aes(y = .fitted), data = fit, color = "red") +
   labs(title = "Centered over {closest_state}",
+       subtitle = "Tricube kernel",
        x = "Equivalence ratio",
-       y = "Concentration of nitrogen oxides in micrograms/J") +
+       y = "Concentration of nitrogen oxides in micrograms/J",
+       alpha = "Weight") +
+  theme(legend.position = "bottom") +
   transition_states(center,
                     transition_length = 2,
                     state_length = 1) + 
   ease_aes("cubic-in-out")
 ```
 
-One important argument you can control with LOESS is the **span**, or how smooth the LOESS function will become. A larger span will result in a smoother curve, but may not be as accurate.
+One important argument you can control with LOESS is the bandwidth, as this dictates how smooth the LOESS function will become. A larger span will result in a smoother curve, but may not be as accurate.
 
 ```{r loess_span, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE}
 spans <- c(.25, .5, .75, 1)
@@ -131,205 +417,35 @@ ggplot(dat, aes(E, NOx)) +
   ease_aes("cubic-in-out")
 ```
 
-# Generalized additive models
+## Local polynomial regression
 
-So far each of these nonlinear methods has been implemented for a single predictor $X$. To generalize this approach to multiple predictors $X_1, X_2, \dots, X_p$, we need to utilize a **generalized additive model** (GAM). GAMs extend the linear model by allowing non-linear functions of each of the variables, while also maintaining the **additive assumption** that each variable independently and additively shapes the response variable $Y$. GAMs work for both quantitative and qualitative responses.
+We are not confined only to local linear fits. We can fit local polynomial fits for any degree $d$:
 
-## GAMs for regression problems
+$$\min_{\alpha(x_0), \beta_j(x_0), j = 1, \ldots, d} \sum_{i=1}^N K_\lambda (x_0, x_i) \left[y_i - \alpha(x_0) - \sum_{j=1}^d \beta_j (x_0)x_i^j \right]^2$$
 
-To extend the multiple linear regression model
+Local polynomial regression tends to fit better (and be less biased) when there are regions of curvature in the true data generating process. Local linear regression will not capture this dynamic as well. The downside is that to decrease bias, local polynomial regression will also increase the variance of the estimates.
 
-$$y_i = \beta_0 + \beta_{1} X_{i1} + \beta_{2} X_{i2} + \dots + \beta_{p} X_{ip} + \epsilon_i$$
-
-and allow for non-linear relationships between each predictor and the response variable, we replace each linear component $\beta_{j} x_{ij}$ with a smooth, non-linear function $f_j(x_{ij})$:
-
-$$y_i = \beta_0 + \sum_{j = 1}^p f_j(x_{ij}) + \epsilon_i$$
-
-$$y_i = \beta_0 + f_1(x_{i1}) + \beta_{2} f_2(x_{i2}) + \dots + f_p(x_{ip}) + \epsilon_i$$
-
-As you can see, each $f_j$ provides an **additive** component to the overall model of $y_i$. We estimate each $f_j$ then add together all of their contributions. Importantly, each functional component is estimated **simultaneously** so that it is truly still a multiple variable regression model. Let's estimate a GAM for the Biden dataset using the model
-
-$$\text{Biden} = \beta_0 + f_1(\text{Age}) + f_2(\text{Education}) + f_3(\text{Gender}) + \epsilon$$
-
-Where $f_1$ and $f_2$ are cubic splines with 2 knots and $f_3$ generates a separate constant for males and females using traditional dummy variables.
-
-```{r biden}
-# get data
-biden <- read_csv(here("static", "data", "biden.csv"))
+```{r loess-poly, dependson = "loess"}
+ggplot(ethanol, aes(E, NOx)) +
+  geom_point(alpha = .2) +
+  geom_smooth(method = "loess", se = FALSE, method.args = list(degree = 0),
+              aes(color = "Zero-order")) +
+  geom_smooth(method = "loess", se = FALSE, method.args = list(degree = 1),
+              aes(color = "First-order")) +
+  geom_smooth(method = "loess", se = FALSE, method.args = list(degree = 2),
+              aes(color = "Second-order")) +
+  scale_color_brewer(type = "qual", breaks = c("Zero-order", "First-order", "Second-order")) +
+  labs(title = "Local linear regression",
+       subtitle = "Tricube kernel",
+       x = "Equivalence ratio",
+       y = "Concentration of nitrogen oxides in micrograms/J",
+       color = "Degree") +
+  theme(legend.position = "bottom")
 ```
 
-```{r biden-gam}
-# estimate model for splines on age and education plus dichotomous female
-biden_gam <- gam(biden ~ bs(age, df = 5) + bs(educ, df = 5) + female, data = biden)
-summary(biden_gam)
+## Higher dimensional local regression
 
-# get graphs of each term
-biden_gam_terms <- preplot(biden_gam, se = TRUE, rug = FALSE)
-
-## age
-tibble(x = biden_gam_terms$`bs(age, df = 5)`$x,
-           y = biden_gam_terms$`bs(age, df = 5)`$y,
-           se.fit = biden_gam_terms$`bs(age, df = 5)`$se.y) %>%
-  mutate(y_low = y - 1.96 * se.fit,
-         y_high = y + 1.96 * se.fit) %>%
-  ggplot(aes(x, y)) +
-  geom_line() +
-  geom_line(aes(y = y_low), linetype = 2) +
-  geom_line(aes(y = y_high), linetype = 2) +
-  labs(title = "GAM of Biden feeling thermometer",
-       subtitle = "Cubic spline",
-       x = "Age",
-       y = expression(f[1](age)))
-
-## education
-tibble(x = biden_gam_terms$`bs(educ, df = 5)`$x,
-           y = biden_gam_terms$`bs(educ, df = 5)`$y,
-           se.fit = biden_gam_terms$`bs(educ, df = 5)`$se.y) %>%
-  mutate(y_low = y - 1.96 * se.fit,
-         y_high = y + 1.96 * se.fit) %>%
-  ggplot(aes(x, y)) +
-  geom_line() +
-  geom_line(aes(y = y_low), linetype = 2) +
-  geom_line(aes(y = y_high), linetype = 2) +
-  labs(title = "GAM of Biden feeling thermometer",
-       subtitle = "Cubic spline",
-       x = "Education",
-       y = expression(f[2](education)))
-
-## gender
-tibble(x = biden_gam_terms$female$x,
-           y = biden_gam_terms$female$y,
-           se.fit = biden_gam_terms$female$se.y) %>%
-  unique %>%
-  mutate(y_low = y - 1.96 * se.fit,
-         y_high = y + 1.96 * se.fit,
-         x = factor(x, levels = 0:1, labels = c("Male", "Female"))) %>%
-  ggplot(aes(x, y, ymin = y_low, ymax = y_high)) +
-  geom_errorbar() +
-  geom_point() +
-  labs(title = "GAM of Biden feeling thermometer",
-       x = NULL,
-       y = expression(f[3](gender)))
-```
-
-For age, there does not appear to be a substantial or significant relationship with Biden feeling thermometers after controlling for education and gender. The cubic spline is relatively flat and the 95% confidence interval is wide. For education, the effect appears substantial and statistically significant; as education increases, predicted Biden feeling thermometer ratings decrease until approximately 15 years of formal education, then increase again for those with college or post-graduate degrees. Finally, for gender the difference between males and females is substantial and statistically distinguishable from 0.
-
-Instead of cubic splines, we could use local regression. At this point we can no longer use OLS to fit the model, but instead uses a **backfitting** process to model each predictor simultaneously.
-
-```{r biden-gam-local}
-# estimate model for splines on age and education plus dichotomous female
-biden_gam_local <- gam(biden ~ lo(age) + lo(educ) + female, data = biden)
-summary(biden_gam_local)
-
-# get graphs of each term
-biden_gam_local_terms <- preplot(biden_gam_local, se = TRUE, rug = FALSE)
-
-## age
-tibble(x = biden_gam_local_terms$`lo(age)`$x,
-           y = biden_gam_local_terms$`lo(age)`$y,
-           se.fit = biden_gam_local_terms$`lo(age)`$se.y) %>%
-  mutate(y_low = y - 1.96 * se.fit,
-         y_high = y + 1.96 * se.fit) %>%
-  ggplot(aes(x, y)) +
-  geom_line() +
-  geom_line(aes(y = y_low), linetype = 2) +
-  geom_line(aes(y = y_high), linetype = 2) +
-  labs(title = "GAM of Biden feeling thermometer",
-       subtitle = "Local regression",
-       x = "Age",
-       y = expression(f[1](age)))
-
-## education
-tibble(x = biden_gam_local_terms$`lo(educ)`$x,
-           y = biden_gam_local_terms$`lo(educ)`$y,
-           se.fit = biden_gam_local_terms$`lo(educ)`$se.y) %>%
-  mutate(y_low = y - 1.96 * se.fit,
-         y_high = y + 1.96 * se.fit) %>%
-  ggplot(aes(x, y)) +
-  geom_line() +
-  geom_line(aes(y = y_low), linetype = 2) +
-  geom_line(aes(y = y_high), linetype = 2) +
-  labs(title = "GAM of Biden feeling thermometer",
-       subtitle = "Local regression",
-       x = "Education",
-       y = expression(f[2](education)))
-
-## gender
-tibble(x = biden_gam_local_terms$female$x,
-           y = biden_gam_local_terms$female$y,
-           se.fit = biden_gam_local_terms$female$se.y) %>%
-  unique %>%
-  mutate(y_low = y - 1.96 * se.fit,
-         y_high = y + 1.96 * se.fit,
-         x = factor(x, levels = 0:1, labels = c("Male", "Female"))) %>%
-  ggplot(aes(x, y, ymin = y_low, ymax = y_high)) +
-  geom_errorbar() +
-  geom_point() +
-  labs(title = "GAM of Biden feeling thermometer",
-       x = NULL,
-       y = expression(f[3](gender)))
-```
-
-The results are pretty similar to the cubic splines.
-
-We can also use GAMs for classification problems, like the Titanic example.
-
-```{r titanic-gam}
-library(titanic)
-
-# estimate model for splines on age and education plus dichotomous female
-titanic_gam <- gam(Survived ~ bs(Age, df = 5) + bs(Fare, df = 5) + Sex, data = titanic_train,
-                   family = binomial)
-summary(titanic_gam)
-
-# get graphs of each term
-titanic_gam_terms <- preplot(titanic_gam, se = TRUE, rug = FALSE)
-
-## age
-tibble(x = titanic_gam_terms$`bs(Age, df = 5)`$x,
-           y = titanic_gam_terms$`bs(Age, df = 5)`$y,
-           se.fit = titanic_gam_terms$`bs(Age, df = 5)`$se.y) %>%
-  mutate(y_low = y - 1.96 * se.fit,
-         y_high = y + 1.96 * se.fit) %>%
-  ggplot(aes(x, y)) +
-  geom_line() +
-  geom_line(aes(y = y_low), linetype = 2) +
-  geom_line(aes(y = y_high), linetype = 2) +
-  labs(title = "GAM of Titanic survival",
-       subtitle = "Cubic spline",
-       x = "Age",
-       y = expression(f[1](age)))
-
-## fare
-tibble(x = titanic_gam_terms$`bs(Fare, df = 5)`$x,
-           y = titanic_gam_terms$`bs(Fare, df = 5)`$y,
-           se.fit = titanic_gam_terms$`bs(Fare, df = 5)`$se.y) %>%
-  mutate(y_low = y - 1.96 * se.fit,
-         y_high = y + 1.96 * se.fit) %>%
-  ggplot(aes(x, y)) +
-  geom_line() +
-  geom_line(aes(y = y_low), linetype = 2) +
-  geom_line(aes(y = y_high), linetype = 2) +
-  labs(title = "GAM of Titanic survival",
-       subtitle = "Cubic spline",
-       x = "Fare",
-       y = expression(f[2](fare)))
-
-## gender
-tibble(x = titanic_gam_terms$Sex$x,
-           y = titanic_gam_terms$Sex$y,
-           se.fit = titanic_gam_terms$Sex$se.y) %>%
-  unique %>%
-  mutate(y_low = y - 1.96 * se.fit,
-         y_high = y + 1.96 * se.fit,
-         x = factor(x, levels = c("male", "female"), labels = c("Male", "Female"))) %>%
-  ggplot(aes(x, y, ymin = y_low, ymax = y_high)) +
-  geom_errorbar() +
-  geom_point() +
-  labs(title = "GAM of Titanic survival",
-       x = NULL,
-       y = expression(f[3](gender)))
-```
+Local regression works well with a pair of independent variables $X_1, X_2$, or $p = 2$. The neighborhoods are simply two-dimensional with bivariate linear regression models. However, as with nearest neighbors methods, as $p$ increases the number of neighbor training observations decreases rapidly. Once the number of predictors exceeds 3 or 4, local regression is not advised. Likewise, if you have a large number of observations (say $n > 1000$), estimating all the local regression functions can become computationally intensive, if not infeasible.
 
 # Session Info {.toc-ignore}
 

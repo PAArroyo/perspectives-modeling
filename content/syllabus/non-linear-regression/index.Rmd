@@ -54,7 +54,7 @@ knitr::opts_chunk$set(echo = FALSE)
 * Define basis functions
 * Explain regression splines
 * Distinguish between basis, natural, and smoothing splines
-* Define multivariate adaptive regression splines (MARS)
+* Define 
 
 ## Before class
 
