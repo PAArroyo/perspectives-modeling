@@ -24,11 +24,7 @@ knitr::opts_chunk$set(cache = TRUE)
 library(tidyverse)
 library(tidymodels)
 library(rcfss)
-library(titanic)
-library(knitr)
 library(splines)
-library(ISLR)
-library(lattice)
 library(gam)
 library(here)
 library(patchwork)
@@ -239,6 +235,13 @@ tibble(x = titanic_gam_terms$Sex$x,
        x = NULL,
        y = expression(f[3](gender)))
 ```
+
+## Benefits and drawbacks to GAMs
+
+* Allow for non-linear $f_j$ to each $X_j$
+* Potentially more accurate than purely linear model
+* Still additive - effects of each predictor are independent from one another
+* Still additive - does not capture interactive effects
 
 # Session Info {.toc-ignore}
 
