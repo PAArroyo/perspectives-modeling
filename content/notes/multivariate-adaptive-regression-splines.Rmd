@@ -1,0 +1,274 @@
+---
+title: Multivariate adaptive regression splines
+date: 2019-02-18T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Moving beyond linearity
+    weight: 5
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(tidymodels)
+library(rcfss)
+library(titanic)
+library(knitr)
+library(splines)
+library(ISLR)
+library(lattice)
+library(gam)
+library(here)
+library(patchwork)
+library(margins)
+library(earth)
+
+set.seed(1234)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+# Multivariate adaptive regression splines (MARS)
+
+MARS is an adaptive procedure for regression which generalizes many of the earlier approaches we saw such as [stepwise regression](http://uc-r.github.io/model_selection#stepwise) and [polynomial regression and step functions](/notes/global-methods/). It works well for high-dimensional data (i.e. lots of predictors) and can be performed efficiently with cross-validation techniques.
+
+## Basis functions
+
+MARS uses expansions in piecewise linear basis functions of the form $(x - t)_+$ and $(t - x)_+$. The $+$ means positive part, so
+
+$$
+(x - t)_+ = \begin{cases}
+x - t, & \text{if } x > t, \\
+0, & \text{otherwise}
+\end{cases}
+$$
+
+and
+
+$$
+(t - x)_+ = \begin{cases}
+t - x, & \text{if } x < t, \\
+0, & \text{otherwise}
+\end{cases}
+$$
+
+```{r mars-hinge}
+tibble(
+  x = c(0, 1)
+) %>%
+  ggplot(aes(x)) +
+  stat_function(aes(color = "xt"), fun = function(x) ifelse(x > .5, x - .5, 0)) +
+  stat_function(aes(color = "tx"), fun = function(x) ifelse(x < .5, .5 - x, 0),
+                linetype = 2) +
+  scale_color_brewer(type = "qual",
+                     labels = c(expression((t - x)["+"]), expression((x - t)["+"]))) +
+  labs(title = "MARS basis functions",
+       subtitle = expression(t == 0.5),
+       x = expression(x),
+       y = "Basis function",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+Each function is piecewise linear (also known as a linear spline), with a knot at the value $t$. This distinguishes MARS from traditional splines where the piecewise function is a cubic spline and constrained to be smooth at the knots.
+
+We call these two functions a **reflected pair**. The idea is to form reflected pairs for each input $X_j$ with knots at each observed value $x_{ij}$ of that input. The collection of basis functions is therefore
+
+$$C = \{ (X_j - t)_+, (t - X_j)_+ \}$$
+
+for
+
+$$
+\begin{align}
+t &\in \{ x_{1j}, x_{2j}, \ldots, x_{Nj} \} \\
+j &= 1, 2, \ldots, p
+\end{align}
+$$
+
+If all the input values are distinct, then there are $2Np$ basis functions altogether.
+
+## Model construction
+
+MARS uses a forward stepwise linear regression approach, but instead of using the original inputs we use functions from the set $C$ and their products. So the model takes on the form
+
+$$f(X) = \beta_0 + \sum_{m=1}^M \beta_m h_m (X)$$
+
+where each $h_m (X)$ is a function in $C$ or a product of two or more functions. Given a choice for $h_m$, the coefficients are estimated using standard linear regrewssion. We start with only the constant function $h_0 (X) = 1$ in the model, and all functions in $C$ are candidate functions. At each stage, we consider as a new basis function pair all products of a function $h_m$ in the model set $M$ with one of the reflected pairs in $C$. We add to the model $M$ the term of the form
+
+$$\hat{\beta}_{M+1} h_\lagr (X) \times (X_j - t)_+ + \hat{\beta}_{M + 2} h_\lagr (X) \times (t - X_j)_+, h_\lagr \in M$$
+
+that produces the largest decrease in training error, where $\hat{\beta}_{M+1}, \hat{\beta}_{M+2}$ are coefficients estimated by least squares. The winning products are added to the model and the process continues until the model set $M$ contains some preset maximum number of terms.
+
+At this point, we have a large model that overfits the training data, so we use a backward deletion process to remove terms that cause the smallest increase in residual squared error. This produces an estimated best model $\hat{f}_\lambda$ of each size (number of terms) $\lambda$. We use a generalized form of cross-validation to determine the optimal value for $\lambda$.
+
+## Application to Ames housing data
+
+```{r ames}
+ames_split <- initial_split(AmesHousing::make_ames(), prop = .7, strata = "Sale_Price")
+ames_train <- training(ames_split)
+ames_test  <- testing(ames_split)
+```
+
+```{r ames-base, dependson = "ames"}
+ames_base <- ggplot(ames_train, aes(Year_Built, Sale_Price)) +
+  geom_point(alpha = .05) +
+  scale_y_continuous(labels = scales::dollar)
+```
+
+```{r ames-poly-step, dependson = c("ames", "ames-base")}
+{
+  ames_base +
+    geom_smooth(method = "lm", se = FALSE) +
+    ggtitle("(A) Linear regression")
+  } + {
+    ames_base +
+      geom_smooth(method = "lm", formula = y ~ poly(x, degree = 2), se = FALSE) +
+      ggtitle("(B) Degree-2 polynomial regression")
+  } + {
+    ames_base +
+      geom_smooth(method = "lm", formula = y ~ poly(x, degree = 3), se = FALSE) +
+      ggtitle("(C) Degree-3 polynomial regression")
+  } + {
+    ames_base +
+      geom_smooth(method = "lm", formula = y ~ cut_interval(x, 3), se = FALSE) +
+      ggtitle("(D) Step function regression")
+  }
+```
+
+Consider now the MARS approach to this problem. Here we have a simple model `Sale_Price ~ Year_Built`. The MARS procedure first looks for the single point across the range of `Year_Built` values where two different linear relationships between `Sale_Price` and `Year_Built` achieve the smallest error. For a single knot, the hinge function results in the linear model:
+
+```{r ames-mars-knots, include = FALSE, dependson = c("ames", "ames-base")}
+# estimate the models
+set.seed(1234)
+year_built_k1 <- earth(
+  Sale_Price ~ Year_Built,
+  nk = 3,
+  pmethod = "none",
+  data = ames_train   
+)
+
+year_built_k2 <- earth(
+  Sale_Price ~ Year_Built,  
+  nk = 5,
+  pmethod = "none",
+  data = ames_train   
+)
+
+year_built_k3 <- earth(
+  Sale_Price ~ Year_Built,  
+  nk = 7,
+  pmethod = "none",
+  data = ames_train   
+)
+
+year_built_k4 <- earth(
+  Sale_Price ~ Year_Built,  
+  nk = 9,
+  pmethod = "none",
+  data = ames_train   
+)
+```
+
+```{r ames-mars-k1, include = FALSE, dependson = "ames-mars-knots"}
+k1_cuts <- year_built_k1$cuts
+k1_coefs <- year_built_k1$coefficients
+```
+
+$$
+\text{Sale_Price} = \begin{cases}
+`r format(k1_coefs[[1]], scientific = FALSE)` `r round(k1_coefs[[3]])` (`r k1_cuts[[3]]` - \text{Year_Built}) & \text{Year_Built} \leq `r k1_cuts[[3]]` \\
+`r format(k1_coefs[[1]], scientific = FALSE)` + `r round(k1_coefs[[2]])` (\text{Year_Built} - `r k1_cuts[[2]]`) & \text{Year_Built} > `r k1_cuts[[2]]`
+\end{cases}
+$$
+
+```{r ames-mars-k1-plot, echo = FALSE, dependson = "ames-mars-knots"}
+ames_base +
+  geom_line(data = prediction(year_built_k1), aes(y = fitted), size = 1, color = "blue") +
+  ggtitle("MARS: One knot")
+```
+
+Once the first knot has been found, the search continues for a second knot. This new model is:
+
+```{r ames-mars-k2, include = FALSE, dependson = "ames-mars-knots"}
+k2_cuts <- year_built_k2$cuts
+k2_coefs <- year_built_k2$coefficients
+```
+
+$$
+\text{Sale_Price} = \begin{cases}
+`r format(k2_coefs[[1]], scientific = FALSE)` `r round(k2_coefs[[3]])` (`r k2_cuts[[3]]` - \text{Year_Built}) & \text{Year_Built} \leq `r k2_cuts[[3]]` \\
+`r format(k2_coefs[[1]], scientific = FALSE)` + `r round(k2_coefs[[2]])` (\text{Year_Built} - `r k2_cuts[[2]]`) & `r k2_cuts[[2]]` < \text{Year_Built} \leq `r k2_cuts[[4]]` \\
+`r format(k2_coefs[[1]], scientific = FALSE)` + `r format(k2_coefs[[4]], scientific = FALSE)` (\text{Year_Built} - `r k2_cuts[[4]]`) & \text{Year_Built} > `r k2_cuts[[4]]`
+\end{cases}
+$$
+
+```{r ames-mars-k2-plot, echo = FALSE, dependson = "ames-mars-knots"}
+ames_base +
+  geom_line(data = prediction(year_built_k2), aes(y = fitted), size = 1, color = "blue") +
+  ggtitle("MARS: Two knots")
+```
+
+```{r ames-mars-plots, echo = FALSE, dependson = "ames-mars-knots"}
+{
+  ames_base +
+    geom_line(data = prediction(year_built_k1), aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(A) One knot")
+} + {
+  ames_base +
+    geom_line(data = prediction(year_built_k2), aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(B) Two knots")
+} + {
+  ames_base +
+    geom_line(data = prediction(year_built_k3), aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(C) Three knots")
+} + {
+  ames_base +
+    geom_line(data = prediction(year_built_k4), aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(4) Four knots")
+}
+```
+
+This procedure continues until many knots are found. The result is a highly non-linear pattern, but also a highly overfit model. Consider if we increase the number of knots to 9:
+
+```{r ames-mars-k9-plot, echo = FALSE}
+year_built_k9 <- earth(
+  Sale_Price ~ Year_Built,  
+  nk = 19,
+  pmethod = "none",
+  data = ames_train   
+)
+
+ames_base +
+  geom_line(data = prediction(year_built_k9), aes(y = fitted), size = 1, color = "blue") +
+  ggtitle("MARS: Nine knots")
+```
+
+As a result, after we fit all the hinge functions we remove terms that do not contribute significantly to predictive accuracy. That is, we remove terms which cause the smallest increase in RSS at each stage, producing an estimated best model $\hat{f}_\lambda$ of each size (number of terms) $\lambda$. This is a process called **pruning** and we use a form of cross-validation to determine the optimal number of knots.
+
+# Fitting a basic MARS model
+
+* For R, see [Multivariate Adaptive Regression Splines](http://uc-r.github.io/mars) and the `earth` package
+* For Python, see [`py-earth`](https://github.com/scikit-learn-contrib/py-earth)
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* @james2013introduction
+* @friedman2001elements

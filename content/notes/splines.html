@@ -67,13 +67,8 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#smoothing-splines"><span class="toc-section-number">3</span> Smoothing splines</a><ul>
 <li><a href="#choosing-the-smoothing-parameter-lambda"><span class="toc-section-number">3.1</span> Choosing the smoothing parameter <span class="math inline">\(\lambda\)</span></a></li>
 </ul></li>
-<li><a href="#multivariate-adaptive-regression-splines-mars"><span class="toc-section-number">4</span> Multivariate adaptive regression splines (MARS)</a><ul>
-<li><a href="#basis-functions-1"><span class="toc-section-number">4.1</span> Basis functions</a></li>
-<li><a href="#model-construction"><span class="toc-section-number">4.2</span> Model construction</a></li>
-<li><a href="#application-to-ames-housing-data"><span class="toc-section-number">4.3</span> Application to Ames housing data</a></li>
-</ul></li>
-<li><a href="#session-info"><span class="toc-section-number">5</span> Session Info</a></li>
-<li><a href="#references"><span class="toc-section-number">6</span> References</a></li>
+<li><a href="#session-info"><span class="toc-section-number">4</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">5</span> References</a></li>
 </ul>
 </div>
 
@@ -553,138 +548,8 @@ sim_smooth &lt;-<span class="st"> </span><span class="kw">smooth.spline</span>(s
 <p><img src="/notes/splines_files/figure-html/sim-smooth-spline-compare-1.png" width="672" /></p>
 </div>
 </div>
-<div id="multivariate-adaptive-regression-splines-mars" class="section level1">
-<h1><span class="header-section-number">4</span> Multivariate adaptive regression splines (MARS)</h1>
-<p>MARS is an adaptive procedure for regression which generalizes many of the earlier approaches we saw such as <a href="http://uc-r.github.io/model_selection#stepwise">stepwise regression</a> and <a href="/notes/global-methods/">polynomial regression and step functions</a>. It works well for high-dimensional data (i.e. lots of predictors) and can be performed efficiently with cross-validation techniques.</p>
-<div id="basis-functions-1" class="section level2">
-<h2><span class="header-section-number">4.1</span> Basis functions</h2>
-<p>MARS uses expansions in piecewise linear basis functions of the form <span class="math inline">\((x - t)_+\)</span> and <span class="math inline">\((t - x)_+\)</span>. The <span class="math inline">\(+\)</span> means positive part, so</p>
-<p><span class="math display">\[
-(x - t)_+ = \begin{cases}
-x - t, &amp; \text{if } x &gt; t, \\
-0, &amp; \text{otherwise}
-\end{cases}
-\]</span></p>
-<p>and</p>
-<p><span class="math display">\[
-(t - x)_+ = \begin{cases}
-t - x, &amp; \text{if } x &lt; t, \\
-0, &amp; \text{otherwise}
-\end{cases}
-\]</span></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(
-  <span class="dt">x =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)
-) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">stat_function</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;xt&quot;</span>), <span class="dt">fun =</span> <span class="cf">function</span>(x) <span class="kw">ifelse</span>(x <span class="op">&gt;</span><span class="st"> </span>.<span class="dv">5</span>, x <span class="op">-</span><span class="st"> </span>.<span class="dv">5</span>, <span class="dv">0</span>)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">stat_function</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;tx&quot;</span>), <span class="dt">fun =</span> <span class="cf">function</span>(x) <span class="kw">ifelse</span>(x <span class="op">&lt;</span><span class="st"> </span>.<span class="dv">5</span>, .<span class="dv">5</span> <span class="op">-</span><span class="st"> </span>x, <span class="dv">0</span>),
-                <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>,
-                     <span class="dt">labels =</span> <span class="kw">c</span>(<span class="kw">expression</span>((t <span class="op">-</span><span class="st"> </span>x)[<span class="st">&quot;+&quot;</span>]), <span class="kw">expression</span>((x <span class="op">-</span><span class="st"> </span>t)[<span class="st">&quot;+&quot;</span>]))) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;MARS basis functions&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="kw">expression</span>(t <span class="op">==</span><span class="st"> </span><span class="fl">0.5</span>),
-       <span class="dt">x =</span> <span class="kw">expression</span>(x),
-       <span class="dt">y =</span> <span class="st">&quot;Basis function&quot;</span>,
-       <span class="dt">color =</span> <span class="ot">NULL</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
-<p><img src="/notes/splines_files/figure-html/mars-hinge-1.png" width="672" /></p>
-<p>Each function is piecewise linear (also known as a linear spline), with a knot at the value <span class="math inline">\(t\)</span>. This distinguishes MARS from traditional splines where the piecewise function is a cubic spline and constrained to be smooth at the knots.</p>
-<p>We call these two functions a <strong>reflected pair</strong>. The idea is to form reflected pairs for each input <span class="math inline">\(X_j\)</span> with knots at each observed value <span class="math inline">\(x_{ij}\)</span> of that input. The collection of basis functions is therefore</p>
-<p><span class="math display">\[C = \{ (X_j - t)_+, (t - X_j)_+ \}\]</span></p>
-<p>for</p>
-<p><span class="math display">\[
-\begin{align}
-t &amp;\in \{ x_{1j}, x_{2j}, \ldots, x_{Nj} \} \\
-j &amp;= 1, 2, \ldots, p
-\end{align}
-\]</span></p>
-<p>If all the input values are distinct, then there are <span class="math inline">\(2Np\)</span> basis functions altogether.</p>
-</div>
-<div id="model-construction" class="section level2">
-<h2><span class="header-section-number">4.2</span> Model construction</h2>
-<p>MARS uses a forward stepwise linear regression approach, but instead of using the original inputs we use functions from the set <span class="math inline">\(C\)</span> and their products. So the model takes on the form</p>
-<p><span class="math display">\[f(X) = \beta_0 + \sum_{m=1}^M \beta_m h_m (X)\]</span></p>
-<p>where each <span class="math inline">\(h_m (X)\)</span> is a function in <span class="math inline">\(C\)</span> or a product of two or more functions. Given a choice for <span class="math inline">\(h_m\)</span>, the coefficients are estimated using standard linear regrewssion. We start with only the constant function <span class="math inline">\(h_0 (X) = 1\)</span> in the model, and all functions in <span class="math inline">\(C\)</span> are candidate functions. At each stage, we consider as a new basis function pair all products of a function <span class="math inline">\(h_m\)</span> in the model set <span class="math inline">\(M\)</span> with one of the reflected pairs in <span class="math inline">\(C\)</span>. We add to the model <span class="math inline">\(M\)</span> the term of the form</p>
-<p><span class="math display">\[\hat{\beta}_{M+1} h_{\mathcal{l}}(X) \times (X_j - t)_+ + \hat{\beta}_{M + 2} h_{\mathcal{l}}(X) \times (t - X_j)_+, h_{\mathcal{l}}\in M\]</span></p>
-<p>that produces the largest decrease in training error, where <span class="math inline">\(\hat{\beta}_{M+1}, \hat{\beta}_{M+2}\)</span> are coefficients estimated by least squares. The winning products are added to the model and the process continues until the model set <span class="math inline">\(M\)</span> contains some preset maximum number of terms.</p>
-<p>At this point, we have a large model that overfits the training data, so we use a backward deletion process to remove terms that cause the smallest increase in residual squared error. This produces an estimated best model <span class="math inline">\(\hat{f}_\lambda\)</span> of each size (number of terms) <span class="math inline">\(\lambda\)</span>. We use a generalized form of cross-validation to determine the optimal value for <span class="math inline">\(\lambda\)</span>.</p>
-</div>
-<div id="application-to-ames-housing-data" class="section level2">
-<h2><span class="header-section-number">4.3</span> Application to Ames housing data</h2>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ames_split &lt;-<span class="st"> </span><span class="kw">initial_split</span>(AmesHousing<span class="op">::</span><span class="kw">make_ames</span>(), <span class="dt">prop =</span> .<span class="dv">7</span>, <span class="dt">strata =</span> <span class="st">&quot;Sale_Price&quot;</span>)
-ames_train &lt;-<span class="st"> </span><span class="kw">training</span>(ames_split)
-ames_test  &lt;-<span class="st"> </span><span class="kw">testing</span>(ames_split)</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ames_base &lt;-<span class="st"> </span><span class="kw">ggplot</span>(ames_train, <span class="kw">aes</span>(Year_Built, Sale_Price)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">alpha =</span> .<span class="dv">1</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_y_continuous</span>(<span class="dt">labels =</span> scales<span class="op">::</span>dollar)</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">{
-  ames_base <span class="op">+</span>
-<span class="st">    </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
-<span class="st">    </span><span class="kw">ggtitle</span>(<span class="st">&quot;(A) Linear regression&quot;</span>)
-  } <span class="op">+</span><span class="st"> </span>{
-    ames_base <span class="op">+</span>
-<span class="st">      </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(x, <span class="dt">degree =</span> <span class="dv">2</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
-<span class="st">      </span><span class="kw">ggtitle</span>(<span class="st">&quot;(B) Degree-2 polynomial regression&quot;</span>)
-  } <span class="op">+</span><span class="st"> </span>{
-    ames_base <span class="op">+</span>
-<span class="st">      </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span><span class="kw">poly</span>(x, <span class="dt">degree =</span> <span class="dv">3</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
-<span class="st">      </span><span class="kw">ggtitle</span>(<span class="st">&quot;(C) Degree-3 polynomial regression&quot;</span>)
-  } <span class="op">+</span><span class="st"> </span>{
-    ames_base <span class="op">+</span>
-<span class="st">      </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">formula =</span> y <span class="op">~</span><span class="st"> </span><span class="kw">cut_interval</span>(x, <span class="dv">3</span>), <span class="dt">se =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
-<span class="st">      </span><span class="kw">ggtitle</span>(<span class="st">&quot;(D) Step function regression&quot;</span>)
-  }</code></pre></div>
-<p><img src="/notes/splines_files/figure-html/ames-poly-step-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">year_built_k1 &lt;-<span class="st"> </span><span class="kw">earth</span>(
-  Sale_Price <span class="op">~</span><span class="st"> </span>Year_Built,  
-  <span class="dt">minspan =</span> <span class="op">-</span><span class="dv">1</span>,
-  <span class="dt">data =</span> ames_train   
-) <span class="op">%&gt;%</span>
-<span class="st">  </span>prediction
-
-year_built_k2 &lt;-<span class="st"> </span><span class="kw">earth</span>(
-  Sale_Price <span class="op">~</span><span class="st"> </span>Year_Built,  
-  <span class="dt">minspan =</span> <span class="op">-</span><span class="dv">2</span>,
-  <span class="dt">data =</span> ames_train   
-) <span class="op">%&gt;%</span>
-<span class="st">  </span>prediction
-
-year_built_k3 &lt;-<span class="st"> </span><span class="kw">earth</span>(
-  Sale_Price <span class="op">~</span><span class="st"> </span>Year_Built,  
-  <span class="dt">minspan =</span> <span class="op">-</span><span class="dv">3</span>,
-  <span class="dt">data =</span> ames_train   
-) <span class="op">%&gt;%</span>
-<span class="st">  </span>prediction
-
-year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
-  Sale_Price <span class="op">~</span><span class="st"> </span>Year_Built,  
-  <span class="dt">minspan =</span> <span class="op">-</span><span class="dv">4</span>,
-  <span class="dt">data =</span> ames_train   
-) <span class="op">%&gt;%</span>
-<span class="st">  </span>prediction
-
-{
-  ames_base <span class="op">+</span>
-<span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> year_built_k1, <span class="kw">aes</span>(<span class="dt">y =</span> fitted), <span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
-<span class="st">    </span><span class="kw">ggtitle</span>(<span class="st">&quot;(A) One knot&quot;</span>)
-} <span class="op">+</span><span class="st"> </span>{
-  ames_base <span class="op">+</span>
-<span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> year_built_k2, <span class="kw">aes</span>(<span class="dt">y =</span> fitted), <span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
-<span class="st">    </span><span class="kw">ggtitle</span>(<span class="st">&quot;(B) Two knots&quot;</span>)
-} <span class="op">+</span><span class="st"> </span>{
-  ames_base <span class="op">+</span>
-<span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> year_built_k3, <span class="kw">aes</span>(<span class="dt">y =</span> fitted), <span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
-<span class="st">    </span><span class="kw">ggtitle</span>(<span class="st">&quot;(C) Three knots&quot;</span>)
-} <span class="op">+</span><span class="st"> </span>{
-  ames_base <span class="op">+</span>
-<span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> year_built_k4, <span class="kw">aes</span>(<span class="dt">y =</span> fitted), <span class="dt">size =</span> <span class="dv">1</span>, <span class="dt">color =</span> <span class="st">&quot;blue&quot;</span>) <span class="op">+</span>
-<span class="st">    </span><span class="kw">ggtitle</span>(<span class="st">&quot;(4) Four knots&quot;</span>)
-}</code></pre></div>
-<p><img src="/notes/splines_files/figure-html/ames-mars-knots-1.png" width="672" /></p>
-</div>
-</div>
 <div id="session-info" class="section level1 toc-ignore">
-<h1><span class="header-section-number">5</span> Session Info</h1>
+<h1><span class="header-section-number">4</span> Session Info</h1>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
@@ -696,7 +561,7 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-02-18                  
+##  date     2019-02-19                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package       * version    date       lib
@@ -705,7 +570,7 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ##  base64enc       0.1-3      2015-07-28 [2]
 ##  bayesplot       1.6.0      2018-08-02 [2]
 ##  bindr           0.1.1      2018-03-13 [2]
-##  bindrcpp      * 0.2.2      2018-03-29 [1]
+##  bindrcpp        0.2.2      2018-03-29 [1]
 ##  blogdown        0.10       2019-01-09 [1]
 ##  bookdown        0.9        2018-12-21 [1]
 ##  broom         * 0.5.1      2018-12-05 [2]
@@ -756,7 +621,6 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ##  janeaustenr     0.1.5      2017-06-10 [2]
 ##  jsonlite        1.6        2018-12-07 [2]
 ##  knitr         * 1.21       2018-12-10 [2]
-##  labeling        0.3        2014-08-23 [2]
 ##  later           0.7.5      2018-09-18 [2]
 ##  lattice       * 0.20-38    2018-11-04 [2]
 ##  lava            1.6.4      2018-11-25 [2]
@@ -798,7 +662,6 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ##  purrr         * 0.3.0      2019-01-27 [2]
 ##  R6              2.3.0      2018-10-04 [1]
 ##  rcfss         * 0.1.5      2019-01-24 [1]
-##  RColorBrewer    1.1-2      2014-12-07 [2]
 ##  Rcpp            1.0.0      2018-11-07 [1]
 ##  readr         * 1.3.1      2018-12-21 [2]
 ##  readxl          1.2.0      2018-12-19 [2]
@@ -908,7 +771,6 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.1)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -949,7 +811,6 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  local                               
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1006,7 +867,7 @@ year_built_k4 &lt;-<span class="st"> </span><span class="kw">earth</span>(
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
 </div>
 <div id="references" class="section level1 toc-ignore">
-<h1><span class="header-section-number">6</span> References</h1>
+<h1><span class="header-section-number">5</span> References</h1>
 <ul>
 <li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
 <li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
