@@ -67,6 +67,9 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::include_url("/slides/non-linear-regression.html", height = "505px")
 ```
 
+* [Global methods](/notes/global-methods/)
+* [Regression splines](/notes/splines/)
+
 ### Additional readings
 
 

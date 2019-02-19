@@ -63,8 +63,12 @@ knitr::opts_chunk$set(echo = FALSE)
 ## Slides and class materials
 
 ```{r slides}
-knitr::include_url("/slides/kernel-loess-gam.html", height = "505px")
+knitr::include_url("/slides/non-linear-regression.html", height = "505px")
 ```
+
+* [Local regression](/notes/local-regression/)
+* [Generalized additive models](/notes/generalized-additive-models)
+* [Multivariate adaptive regression splines (MARS)](/notes/multivariate-adaptive-regression-splines)
 
 ### Additional readings
 
