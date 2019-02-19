@@ -7,6 +7,7 @@
     <link href="libs/remark-css/default.css" rel="stylesheet" />
     <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
     <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+    <script src="libs/kePrint/kePrint.js"></script>
   </head>
   <body>
     <textarea id="source">
@@ -592,18 +593,17 @@ Log | 0 (sort of) | `\(\log(X)\)`
 
 # Kernel smoothing
 
-### Nadaraya-Watson kernel-weighted average
+* Nadaraya-Watson kernel-weighted average
 
-$$
-`\begin{align}
-\hat{f}(x_0) &amp;= \frac{\sum_{i=1}^N K_\lambda(x_0, x_i)y_i}{\sum_{i=1}^N K_\lambda (x_0, x_i)} \\
-K_\lambda(x_0, x_i) &amp;= D \left( \frac{| x - x_0 |}{\lambda} \right) \\
-D(t) &amp;= \begin{cases}
+`$$\hat{f}(x_0) = \frac{\sum_{i=1}^N K_\lambda(x_0, x_i)y_i}{\sum_{i=1}^N K_\lambda (x_0, x_i)}$$`
+
+`$$K_\lambda(x_0, x_i) = D \left( \frac{| x - x_0 |}{\lambda} \right)$$`
+
+
+`$$D(t) = \begin{cases}
 \frac{3}{4} (1 - t^2) &amp; \text{if } |t| \leq 1 \\
 0 &amp; \text{otherwise}
-\end{cases}`
-\end{align}`
-$$
+\end{cases}$$`
 
 ---
 
@@ -782,6 +782,295 @@ $$
 * Still additive
     * Effects of each predictor are independent from one another
     * Does not capture interactive effects
+
+---
+
+# Multivariate adaptive regression splines
+
+* Combines
+    * Stepwise regression
+    * Polynomial regression
+    * Step functions
+* Good for high-dimensional data
+* Efficient estimation with cross-validation
+
+---
+
+# Piecewise basis functions
+
+.pull-left[
+
+`$$(x - t)_+ = \begin{cases}
+x - t, &amp; \text{if } x &gt; t, \\
+0, &amp; \text{otherwise}
+\end{cases}$$`
+
+and
+
+`$$(t - x)_+ = \begin{cases}
+t - x, &amp; \text{if } x &lt; t, \\
+0, &amp; \text{otherwise}
+\end{cases}$$`
+
+]
+
+.pull-right[
+
+&lt;img src="non-linear-regression_files/figure-html/mars-hinge-1.png" width="432" /&gt;
+
+]
+
+---
+
+# MARS
+
+* Piecewise linear basis functions
+* Reflected pairs
+* Form pairs for each input `\(X_j\)` with knots at each observed value `\(x_{ij}\)`
+
+`$$\begin{align}
+C &amp;= \{ (X_j - t)_+, (t - X_j)_+ \} \\
+t &amp;\in \{ x_{1j}, x_{2j}, \ldots, x_{Nj} \} \\
+j &amp;= 1, 2, \ldots, p
+\end{align}$$`
+
+* `\(2Np\)` basis functions
+
+---
+
+# MARS model construction
+
+* Forward stepwise linear regression
+* Use functions from set `\(C\)` and their products
+
+    `$$f(X) = \beta_0 + \sum_{m=1}^M \beta_m h_m (X)$$`
+* Start with constant function `\(h_0 (X) = 1\)`
+* Test each basis function pair from `\(C\)`
+* Add to the model `\(M\)` the term of the form
+
+    `$$\hat{\beta}_{M+1} h_\lagr (X) \times (X_j - t)_+ + \hat{\beta}_{M + 2} h_\lagr (X) \times (t - X_j)_+, h_\lagr \in M$$`
+
+    that produces the largest decrease in training error
+* Estimated via least squares
+* Continue until model `\(M\)` contains some preset maximum number of terms
+* Prune model back
+
+---
+
+# Ames housing data
+
+
+
+
+
+&lt;img src="non-linear-regression_files/figure-html/ames-poly-step-1.png" width="864" /&gt;
+
+---
+
+# MARS for Ames
+
+
+
+
+
+`$$\text{Sale_Price} = \begin{cases}
+145088.1 -356 (1971 - \text{Year_Built}) &amp; \text{Year_Built} \leq 1971 \\
+145088.1 + 3088 (\text{Year_Built} - 1971) &amp; \text{Year_Built} &gt; 1971
+\end{cases}$$`
+
+&lt;img src="non-linear-regression_files/figure-html/ames-mars-k1-plot-1.png" width="864" /&gt;
+
+---
+
+# MARS for Ames
+
+
+
+`$$\text{Sale_Price} = \begin{cases}
+147285.2 -407 (1971 - \text{Year_Built}) &amp; \text{Year_Built} \leq 1971 \\
+147285.2 + 2726 (\text{Year_Built} - 1971) &amp; 1971 &lt; \text{Year_Built} \leq 2004 \\
+147285.2 + 8566.11 (\text{Year_Built} - 2004) &amp; \text{Year_Built} &gt; 2004
+\end{cases}$$`
+
+&lt;img src="non-linear-regression_files/figure-html/ames-mars-k2-plot-1.png" width="864" /&gt;
+
+---
+
+# MARS for Ames
+
+&lt;img src="non-linear-regression_files/figure-html/ames-mars-plots-1.png" width="864" /&gt;
+
+---
+
+# Fitting the full model
+
+
+```
+## Selected 34 of 39 terms, and 25 of 307 predictors
+## Termination condition: RSq changed by less than 0.001 at 39 terms
+## Importance: First_Flr_SF, Second_Flr_SF, Year_Built, ...
+## Number of terms at each degree of interaction: 1 33 (additive model)
+## GCV 539058657    RSS 1.036171e+12    GRSq 0.9142879    RSq 0.9197103
+```
+
+```
+##                              Sale_Price
+## (Intercept)                262160.96669
+## h(Gr_Liv_Area-2944)           -95.18430
+## h(Year_Built-2003)           2521.36354
+## h(2003-Year_Built)           -273.26088
+## h(Total_Bsmt_SF-2217)         -70.59361
+## h(2217-Total_Bsmt_SF)         -33.82657
+## h(1795-Bsmt_Unf_SF)            22.88060
+## Overall_QualExcellent       87926.04658
+## Overall_QualVery_Excellent 110552.06993
+## Overall_QualVery_Good       35416.02058
+```
+
+---
+
+# Model selection
+
+&lt;img src="non-linear-regression_files/figure-html/ames-mars-select-1.png" width="864" /&gt;
+
+---
+
+# Potential interactions
+
+* Interaction of hinge functions
+
+
+```
+##                                           Sale_Price
+## (Intercept)                             3.356495e+05
+## h(Gr_Liv_Area-2944)                     1.534509e+02
+## h(2944-Gr_Liv_Area)                    -4.637141e+01
+## h(Year_Built-2003)                      8.578523e+03
+## h(2003-Year_Built)                     -5.708871e+02
+## h(Total_Bsmt_SF-2217)                   5.914583e+01
+## h(2217-Total_Bsmt_SF)                  -4.856431e+01
+## Mas_Vnr_TypeStone*h(Gr_Liv_Area-2944)  -4.584539e+02
+## h(Year_Built-2003)*h(2944-Gr_Liv_Area) -3.572707e+00
+## h(2003-Year_Built)*h(2944-Gr_Liv_Area)  1.423427e-01
+```
+
+---
+
+# Tuning a MARS model
+
+* Degree of interactions
+* Number of retained terms
+* Grid search
+
+---
+
+# Tuning a MARs model
+
+&lt;img src="non-linear-regression_files/figure-html/ames-mars-grid-search-1.png" width="864" /&gt;
+
+---
+
+# Comparison to other models
+
+
+
+&lt;table class="table table-striped table-hover" style="margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt;   &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Min. &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 1st Qu. &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Median &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Mean &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; 3rd Qu. &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Max. &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; NA's &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Multiple_regression &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 18738.04 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 23221.23 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 29517.16 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 34136.78 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 47277.02 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 52421.60 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; PCR &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 27364.00 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 31158.35 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 35674.21 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 35822.05 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 37850.24 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 47404.56 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; PLS &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 20657.18 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 26678.58 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 28085.03 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 32335.96 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 35472.19 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 59351.24 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Elastic_net &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 20838.31 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 25029.10 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 27102.92 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 31705.14 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 35862.75 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 55692.10 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; MARS &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 22097.02 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 24011.23 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 25912.60 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 28520.63 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 33021.95 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 39698.78 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+
+# Feature importance
+
+
+
+&lt;img src="non-linear-regression_files/figure-html/ames-feature-imp-1.png" width="864" /&gt;
+
+---
+
+# Partial dependence
+
+&lt;img src="non-linear-regression_files/figure-html/ames-pdp-1.png" width="864" /&gt;
+
+---
+
+# MARS
+
+## Advantages
+
+* Accurate if local linear relationships are correct
+* Quick computation
+* Automated feature selection
+* Intuitive non-linear relationships
+
+## Distadvantages
+
+* Not accurate if local linear relationships are incorrect
+* Not as accurate as more advanced non-linear algorithms
+* Difficult to implement more advanced spline features
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="macros.js"></script>

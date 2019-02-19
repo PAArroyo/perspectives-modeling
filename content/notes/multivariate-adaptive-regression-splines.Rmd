@@ -106,7 +106,7 @@ MARS uses a forward stepwise linear regression approach, but instead of using th
 
 $$f(X) = \beta_0 + \sum_{m=1}^M \beta_m h_m (X)$$
 
-where each $h_m (X)$ is a function in $C$ or a product of two or more functions. Given a choice for $h_m$, the coefficients are estimated using standard linear regrewssion. We start with only the constant function $h_0 (X) = 1$ in the model, and all functions in $C$ are candidate functions. At each stage, we consider as a new basis function pair all products of a function $h_m$ in the model set $M$ with one of the reflected pairs in $C$. We add to the model $M$ the term of the form
+where each $h_m (X)$ is a function in $C$ or a product of two or more functions. Given a choice for $h_m$, the coefficients are estimated using standard linear regression. We start with only the constant function $h_0 (X) = 1$ in the model, and all functions in $C$ are candidate functions. At each stage, we consider as a new basis function pair all products of a function $h_m$ in the model set $M$ with one of the reflected pairs in $C$. We add to the model $M$ the term of the form
 
 $$\hat{\beta}_{M+1} h_\lagr (X) \times (X_j - t)_+ + \hat{\beta}_{M + 2} h_\lagr (X) \times (t - X_j)_+, h_\lagr \in M$$
 

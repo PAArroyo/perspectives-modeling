@@ -32,6 +32,8 @@ library(patchwork)
 library(margins)
 library(earth)
 library(gganimate)
+library(caret)
+library(iml)
 
 set.seed(1234)
 theme_set(theme_minimal(base_size = 16))
@@ -1218,18 +1220,17 @@ ggplot(kernel_sim, aes(x, y)) +
 
 # Kernel smoothing
 
-### Nadaraya-Watson kernel-weighted average
+* Nadaraya-Watson kernel-weighted average
 
-$$
-\begin{align}
-\hat{f}(x_0) &= \frac{\sum_{i=1}^N K_\lambda(x_0, x_i)y_i}{\sum_{i=1}^N K_\lambda (x_0, x_i)} \\
-K_\lambda(x_0, x_i) &= D \left( \frac{| x - x_0 |}{\lambda} \right) \\
-D(t) &= \begin{cases}
+$$\hat{f}(x_0) = \frac{\sum_{i=1}^N K_\lambda(x_0, x_i)y_i}{\sum_{i=1}^N K_\lambda (x_0, x_i)}$$
+
+$$K_\lambda(x_0, x_i) = D \left( \frac{| x - x_0 |}{\lambda} \right)$$
+
+
+$$D(t) = \begin{cases}
 \frac{3}{4} (1 - t^2) & \text{if } |t| \leq 1 \\
 0 & \text{otherwise}
-\end{cases}
-\end{align}
-$$
+\end{cases}$$
 
 ---
 
@@ -1729,3 +1730,435 @@ titanic_gam_terms <- preplot(titanic_gam, se = TRUE, rug = FALSE)
 * Still additive
     * Effects of each predictor are independent from one another
     * Does not capture interactive effects
+
+---
+
+# Multivariate adaptive regression splines
+
+* Combines
+    * Stepwise regression
+    * Polynomial regression
+    * Step functions
+* Good for high-dimensional data
+* Efficient estimation with cross-validation
+
+---
+
+# Piecewise basis functions
+
+.pull-left[
+
+$$(x - t)_+ = \begin{cases}
+x - t, & \text{if } x > t, \\
+0, & \text{otherwise}
+\end{cases}$$
+
+and
+
+$$(t - x)_+ = \begin{cases}
+t - x, & \text{if } x < t, \\
+0, & \text{otherwise}
+\end{cases}$$
+
+]
+
+.pull-right[
+
+```{r mars-hinge, fig.width = 6}
+tibble(
+  x = c(0, 1)
+) %>%
+  ggplot(aes(x)) +
+  stat_function(aes(color = "xt"), fun = function(x) ifelse(x > .5, x - .5, 0)) +
+  stat_function(aes(color = "tx"), fun = function(x) ifelse(x < .5, .5 - x, 0),
+                linetype = 2) +
+  scale_color_brewer(type = "qual",
+                     labels = c(expression((t - x)["+"]), expression((x - t)["+"]))) +
+  labs(title = "MARS basis functions",
+       subtitle = expression(t == 0.5),
+       x = expression(x),
+       y = "Basis function",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+]
+
+---
+
+# MARS
+
+* Piecewise linear basis functions
+* Reflected pairs
+* Form pairs for each input $X_j$ with knots at each observed value $x_{ij}$
+
+$$\begin{align}
+C &= \{ (X_j - t)_+, (t - X_j)_+ \} \\
+t &\in \{ x_{1j}, x_{2j}, \ldots, x_{Nj} \} \\
+j &= 1, 2, \ldots, p
+\end{align}$$
+
+* $2Np$ basis functions
+
+---
+
+# MARS model construction
+
+* Forward stepwise linear regression
+* Use functions from set $C$ and their products
+
+    $$f(X) = \beta_0 + \sum_{m=1}^M \beta_m h_m (X)$$
+* Start with constant function $h_0 (X) = 1$
+* Test each basis function pair from $C$
+* Add to the model $M$ the term of the form
+
+    $$\hat{\beta}_{M+1} h_\lagr (X) \times (X_j - t)_+ + \hat{\beta}_{M + 2} h_\lagr (X) \times (t - X_j)_+, h_\lagr \in M$$
+
+    that produces the largest decrease in training error
+* Estimated via least squares
+* Continue until model $M$ contains some preset maximum number of terms
+* Prune model back
+
+---
+
+# Ames housing data
+
+```{r ames}
+ames_split <- initial_split(AmesHousing::make_ames(), prop = .7, strata = "Sale_Price")
+ames_train <- training(ames_split)
+ames_test  <- testing(ames_split)
+```
+
+```{r ames-base, dependson = "ames"}
+ames_base <- ggplot(ames_train, aes(Year_Built, Sale_Price)) +
+  geom_point(alpha = .05) +
+  scale_y_continuous(labels = scales::dollar)
+```
+
+```{r ames-poly-step, dependson = c("ames", "ames-base")}
+{
+  ames_base +
+    geom_smooth(method = "lm", se = FALSE) +
+    ggtitle("(A) Linear regression")
+  } + {
+    ames_base +
+      geom_smooth(method = "lm", formula = y ~ poly(x, degree = 2), se = FALSE) +
+      ggtitle("(B) Degree-2 polynomial regression")
+  } + {
+    ames_base +
+      geom_smooth(method = "lm", formula = y ~ poly(x, degree = 3), se = FALSE) +
+      ggtitle("(C) Degree-3 polynomial regression")
+  } + {
+    ames_base +
+      geom_smooth(method = "lm", formula = y ~ cut_interval(x, 3), se = FALSE) +
+      ggtitle("(D) Step function regression")
+  }
+```
+
+---
+
+# MARS for Ames
+
+```{r ames-mars-knots, include = FALSE, dependson = c("ames", "ames-base")}
+# estimate the models
+set.seed(1234)
+year_built_k1 <- earth(
+  Sale_Price ~ Year_Built,
+  nk = 3,
+  pmethod = "none",
+  data = ames_train   
+)
+
+year_built_k2 <- earth(
+  Sale_Price ~ Year_Built,  
+  nk = 5,
+  pmethod = "none",
+  data = ames_train   
+)
+
+year_built_k3 <- earth(
+  Sale_Price ~ Year_Built,  
+  nk = 7,
+  pmethod = "none",
+  data = ames_train   
+)
+
+year_built_k4 <- earth(
+  Sale_Price ~ Year_Built,  
+  nk = 9,
+  pmethod = "none",
+  data = ames_train   
+)
+```
+
+```{r ames-mars-k1, include = FALSE, dependson = "ames-mars-knots"}
+k1_cuts <- year_built_k1$cuts
+k1_coefs <- year_built_k1$coefficients
+```
+
+$$\text{Sale_Price} = \begin{cases}
+`r format(k1_coefs[[1]], scientific = FALSE)` `r round(k1_coefs[[3]])` (`r k1_cuts[[3]]` - \text{Year_Built}) & \text{Year_Built} \leq `r k1_cuts[[3]]` \\
+`r format(k1_coefs[[1]], scientific = FALSE)` + `r round(k1_coefs[[2]])` (\text{Year_Built} - `r k1_cuts[[2]]`) & \text{Year_Built} > `r k1_cuts[[2]]`
+\end{cases}$$
+
+```{r ames-mars-k1-plot, echo = FALSE, dependson = "ames-mars-knots"}
+ames_base +
+  geom_line(data = prediction(year_built_k1), aes(y = fitted), size = 1, color = "blue") +
+  ggtitle("MARS: One knot")
+```
+
+---
+
+# MARS for Ames
+
+```{r ames-mars-k2, include = FALSE, dependson = "ames-mars-knots"}
+k2_cuts <- year_built_k2$cuts
+k2_coefs <- year_built_k2$coefficients
+```
+
+$$\text{Sale_Price} = \begin{cases}
+`r format(k2_coefs[[1]], scientific = FALSE)` `r round(k2_coefs[[3]])` (`r k2_cuts[[3]]` - \text{Year_Built}) & \text{Year_Built} \leq `r k2_cuts[[3]]` \\
+`r format(k2_coefs[[1]], scientific = FALSE)` + `r round(k2_coefs[[2]])` (\text{Year_Built} - `r k2_cuts[[2]]`) & `r k2_cuts[[2]]` < \text{Year_Built} \leq `r k2_cuts[[4]]` \\
+`r format(k2_coefs[[1]], scientific = FALSE)` + `r format(k2_coefs[[4]], scientific = FALSE)` (\text{Year_Built} - `r k2_cuts[[4]]`) & \text{Year_Built} > `r k2_cuts[[4]]`
+\end{cases}$$
+
+```{r ames-mars-k2-plot, echo = FALSE, dependson = "ames-mars-knots"}
+ames_base +
+  geom_line(data = prediction(year_built_k2), aes(y = fitted), size = 1, color = "blue") +
+  ggtitle("MARS: Two knots")
+```
+
+---
+
+# MARS for Ames
+
+```{r ames-mars-plots, echo = FALSE, dependson = "ames-mars-knots"}
+{
+  ames_base +
+    geom_line(data = prediction(year_built_k1), aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(A) One knot")
+} + {
+  ames_base +
+    geom_line(data = prediction(year_built_k2), aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(B) Two knots")
+} + {
+  ames_base +
+    geom_line(data = prediction(year_built_k3), aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(C) Three knots")
+} + {
+  ames_base +
+    geom_line(data = prediction(year_built_k4), aes(y = fitted), size = 1, color = "blue") +
+    ggtitle("(4) Four knots")
+}
+```
+
+---
+
+# Fitting the full model
+
+```{r ames-mars-full, dependson = "ames"}
+# Fit a basic MARS model
+mars1 <- earth(
+  Sale_Price ~ .,  
+  data = ames_train   
+)
+
+print(mars1)
+summary(mars1) %>%
+  .$coefficients %>%
+  head(10)
+```
+
+---
+
+# Model selection
+
+```{r ames-mars-select, dependson = "ames-mars-full"}
+plot(mars1, which = 1)
+```
+
+---
+
+# Potential interactions
+
+* Interaction of hinge functions
+
+```{r ames-mars-degree2, dependson = "ames"}
+# Fit a basic MARS model
+mars2 <- earth(
+  Sale_Price ~ .,  
+  data = ames_train,
+  degree = 2
+)
+
+# check out the first 10 coefficient terms
+summary(mars2) %>%
+  .$coefficients %>%
+  head(10)
+```
+
+---
+
+# Tuning a MARS model
+
+* Degree of interactions
+* Number of retained terms
+* Grid search
+
+---
+
+# Tuning a MARs model
+
+```{r ames-mars-grid-search, dependson = "ames"}
+# create a tuning grid
+hyper_grid <- expand.grid(
+  degree = 1:3, 
+  nprune = seq(2, 100, length.out = 10) %>% floor()
+  )
+
+# for reproducibiity
+set.seed(123)
+
+# cross validated model
+tuned_mars <- train(
+  x = subset(ames_train, select = -Sale_Price),
+  y = ames_train$Sale_Price,
+  method = "earth",
+  metric = "RMSE",
+  trControl = trainControl(method = "cv", number = 10),
+  tuneGrid = hyper_grid
+)
+
+# plot results
+ggplot(tuned_mars)
+```
+
+---
+
+# Comparison to other models
+
+```{r ames-mars-compare, dependson = "ames"}
+# multiple regression
+set.seed(123)
+cv_model1 <- train(
+  Sale_Price ~ ., 
+  data = ames_train, 
+  method = "lm",
+  metric = "RMSE",
+  trControl = trainControl(method = "cv", number = 10),
+  preProcess = c("zv", "center", "scale")
+  )
+
+# principal component regression
+set.seed(123)
+cv_model2 <- train(
+  Sale_Price ~ ., 
+  data = ames_train, 
+  method = "pcr",
+  trControl = trainControl(method = "cv", number = 10),
+  metric = "RMSE",
+  preProcess = c("zv", "center", "scale"),
+  tuneLength = 20
+  )
+
+# partial least squares regression
+set.seed(123)
+cv_model3 <- train(
+  Sale_Price ~ ., 
+  data = ames_train, 
+  method = "pls",
+  trControl = trainControl(method = "cv", number = 10),
+  metric = "RMSE",
+  preProcess = c("zv", "center", "scale"),
+  tuneLength = 20
+  )
+
+# regularized regression
+set.seed(123)
+cv_model4 <- train(
+  Sale_Price ~ ., 
+  data = ames_train,
+  method = "glmnet",
+  trControl = trainControl(method = "cv", number = 10),
+  metric = "RMSE",
+  preProcess = c("zv", "center", "scale"),
+  tuneLength = 10
+)
+```
+
+```{r ames-mars-compare-print, dependson = "ames-mars-compare"}
+# extract out of sample performance measures
+summary(resamples(list(
+  Multiple_regression = cv_model1, 
+  PCR = cv_model2, 
+  PLS = cv_model3,
+  Elastic_net = cv_model4,
+  MARS = tuned_mars
+  )))$statistics$RMSE %>%
+  knitr::kable(format = "html") %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+---
+
+# Feature importance
+
+```{r ames-iml-prep, dependson = "ames-mars-grid-search"}
+predictor_mars <- Predictor$new(
+  model = tuned_mars,
+  data = select(ames_train, -Sale_Price),
+  y = ames_train$Sale_Price
+)
+```
+
+```{r ames-feature-imp, dependson = "ames-iml-prep"}
+imp_mars <- FeatureImp$new(predictor_mars, loss = "mse")
+plot(imp_mars) +
+  ggtitle("MARS") +
+  theme_minimal(base_size = 12)
+```
+
+---
+
+# Partial dependence
+
+```{r ames-pdp, dependson = "ames-iml-prep"}
+mars_Gr_Liv_Area <- FeatureEffect$new(predictor_mars, "Gr_Liv_Area",
+                                      method = "pdp+ice",
+                                      center.at = min(ames_train$Gr_Liv_Area),
+                                      grid.size = 50)
+p1 <- plot(mars_Gr_Liv_Area)
+
+mars_Sale_Type <- FeatureEffect$new(predictor_mars, "Sale_Type",
+                                       method = "pdp+ice")
+p2 <- plot(mars_Sale_Type)
+
+mars_Overall_Qual <- FeatureEffect$new(predictor_mars, "Overall_Qual",
+                                       method = "pdp+ice")
+p3 <- plot(mars_Overall_Qual)
+
+mars_Year_Built <- FeatureEffect$new(predictor_mars, "Year_Built",
+                                      method = "pdp+ice",
+                                      center.at = min(ames_train$Year_Built),
+                                      grid.size = 50)
+p4 <- plot(mars_Year_Built)
+
+p1 + p2 + p3 + p4
+```
+
+---
+
+# MARS
+
+## Advantages
+
+* Accurate if local linear relationships are correct
+* Quick computation
+* Automated feature selection
+* Intuitive non-linear relationships
+
+## Distadvantages
+
+* Not accurate if local linear relationships are incorrect
+* Not as accurate as more advanced non-linear algorithms
+* Difficult to implement more advanced spline features
