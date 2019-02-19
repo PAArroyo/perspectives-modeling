@@ -33,6 +33,7 @@ library(gam)
 library(here)
 library(patchwork)
 library(margins)
+library(gganimate)
 
 set.seed(1234)
 theme_set(theme_minimal())
@@ -357,13 +358,13 @@ The LOESS is built up point-by-point. Here, $K_\lambda (x_0, x_i)$ is a tricube 
 ```{r loess_buildup, dependson="loess", echo = FALSE, warning = FALSE, message = FALSE}
 dat <- ethanol %>%
   crossing(center = unique(ethanol$E)) %>%
+  as_tibble %>%
+  group_by(center) %>%
   mutate(dist = abs(E - center)) %>%
   filter(rank(dist) / n() <= .75) %>%
   mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
 
-library(gganimate)
-
-ggplot(dat, aes(E, NOx)) +
+dat_build_up <- ggplot(dat, aes(E, NOx)) +
   geom_point(aes(alpha = weight)) +
   geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
   geom_vline(aes(xintercept = center), lty = 2) +
@@ -378,6 +379,8 @@ ggplot(dat, aes(E, NOx)) +
                     transition_length = 2,
                     state_length = 1) + 
   ease_aes("cubic-in-out")
+
+animate(dat_build_up, nframes = length(unique(ethanol$E)) * 2)
 ```
 
 One important argument you can control with LOESS is the bandwidth, as this dictates how smooth the LOESS function will become. A larger span will result in a smoother curve, but may not be as accurate.
@@ -393,13 +396,15 @@ fits <- data_frame(span = spans) %>%
 # calculate weights to reproduce this with local weighted fits
 dat <- ethanol %>%
   crossing(span = spans, center = unique(ethanol$E)) %>%
+  as_tibble %>%
+  group_by(span, center) %>%
   mutate(dist = abs(E - center)) %>%
   filter(rank(dist) / n() <= span) %>%
   mutate(weight = (1 - (dist / max(dist)) ^ 3) ^ 3)
 
 # create faceted plot with changing points, local linear fits, and vertical lines,
 # and constant hollow points and loess fit
-ggplot(dat, aes(E, NOx)) +
+dat_spans <- ggplot(dat, aes(E, NOx)) +
   geom_point(aes(alpha = weight)) +
   geom_smooth(aes(group = center, weight = weight), method = "lm", se = FALSE) +
   geom_vline(aes(xintercept = center), lty = 2) +
@@ -415,6 +420,8 @@ ggplot(dat, aes(E, NOx)) +
                     transition_length = 2,
                     state_length = 1) + 
   ease_aes("cubic-in-out")
+
+animate(dat_spans, nframes = length(unique(ethanol$E)) * 2)
 ```
 
 ## Local polynomial regression
