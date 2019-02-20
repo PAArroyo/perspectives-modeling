@@ -1323,6 +1323,7 @@ kernel_bandwidth <- tibble(
   unnest(pred) %>%
   ggplot(aes(x = x, y = y, group = bandwidth)) +
   geom_line() +
+  xlim(0, NA) +
   labs(title = "Epanechnikov kernel",
        subtitle = "Bandwidth = {closest_state}",
        x = "Infant mortality rate (per 1,000)",
@@ -1332,7 +1333,7 @@ kernel_bandwidth <- tibble(
                     state_length = .05) + 
   ease_aes("cubic-in-out")
 
-animate(kernel_bandwidth, nframes = length(seq(from = 1, to = 15, by = .1)) + 1)
+animate(kernel_bandwidth, nframes = length(seq(from = 1, to = 15, by = .1)) * 2)
 ```
 
 ---

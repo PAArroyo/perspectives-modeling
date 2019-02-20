@@ -298,6 +298,7 @@ kernel_bandwidth <- tibble(
   unnest(pred) %>%
   ggplot(aes(x = x, y = y, group = bandwidth)) +
   geom_line() +
+  xlim(0, NA) +
   labs(title = "Epanechnikov kernel",
        subtitle = "Bandwidth = {closest_state}",
        x = "Infant mortality rate (per 1,000)",
@@ -307,7 +308,7 @@ kernel_bandwidth <- tibble(
                     state_length = .05) + 
   ease_aes("cubic-in-out")
 
-animate(kernel_bandwidth, nframes = length(seq(from = 1, to = 15, by = .1)) + 1)
+animate(kernel_bandwidth, nframes = length(seq(from = 1, to = 15, by = .1)) * 2)
 ```
 
 Fortunately their are methods for determining the optimal bandwidth. We won't dig into them here,^[See ESL ch 6.2.] but suffice to say most functions for kernel smoothers in Python and R automatically implement them.

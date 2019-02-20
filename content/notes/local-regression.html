@@ -315,6 +315,7 @@ D(t) = \begin{cases}
 <span class="st">  </span><span class="kw">unnest</span>(pred) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> x, <span class="dt">y =</span> y, <span class="dt">group =</span> bandwidth)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">xlim</span>(<span class="dv">0</span>, <span class="ot">NA</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Epanechnikov kernel&quot;</span>,
        <span class="dt">subtitle =</span> <span class="st">&quot;Bandwidth = {closest_state}&quot;</span>,
        <span class="dt">x =</span> <span class="st">&quot;Infant mortality rate (per 1,000)&quot;</span>,
@@ -324,7 +325,472 @@ D(t) = \begin{cases}
                     <span class="dt">state_length =</span> .<span class="dv">05</span>) <span class="op">+</span><span class="st"> </span>
 <span class="st">  </span><span class="kw">ease_aes</span>(<span class="st">&quot;cubic-in-out&quot;</span>)
 
-<span class="kw">animate</span>(kernel_bandwidth, <span class="dt">nframes =</span> <span class="kw">length</span>(<span class="kw">seq</span>(<span class="dt">from =</span> <span class="dv">1</span>, <span class="dt">to =</span> <span class="dv">15</span>, <span class="dt">by =</span> .<span class="dv">1</span>)) <span class="op">+</span><span class="st"> </span><span class="dv">1</span>)</code></pre></div>
+<span class="kw">animate</span>(kernel_bandwidth, <span class="dt">nframes =</span> <span class="kw">length</span>(<span class="kw">seq</span>(<span class="dt">from =</span> <span class="dv">1</span>, <span class="dt">to =</span> <span class="dv">15</span>, <span class="dt">by =</span> .<span class="dv">1</span>)) <span class="op">*</span><span class="st"> </span><span class="dv">2</span>)</code></pre></div>
+<pre><code>## Warning: Removed 5 rows containing missing values (geom_path).
+
+## Warning: Removed 5 rows containing missing values (geom_path).
+
+## Warning: Removed 5 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 6 rows containing missing values (geom_path).
+
+## Warning: Removed 6 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 7 rows containing missing values (geom_path).
+
+## Warning: Removed 7 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 8 rows containing missing values (geom_path).
+
+## Warning: Removed 8 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 9 rows containing missing values (geom_path).
+
+## Warning: Removed 9 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 11 rows containing missing values (geom_path).
+
+## Warning: Removed 11 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 12 rows containing missing values (geom_path).
+
+## Warning: Removed 12 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 13 rows containing missing values (geom_path).
+
+## Warning: Removed 13 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 14 rows containing missing values (geom_path).
+
+## Warning: Removed 14 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 15 rows containing missing values (geom_path).
+
+## Warning: Removed 15 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 16 rows containing missing values (geom_path).
+
+## Warning: Removed 16 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 17 rows containing missing values (geom_path).
+
+## Warning: Removed 17 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 19 rows containing missing values (geom_path).
+
+## Warning: Removed 19 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 20 rows containing missing values (geom_path).
+
+## Warning: Removed 20 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 21 rows containing missing values (geom_path).
+
+## Warning: Removed 21 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 22 rows containing missing values (geom_path).
+
+## Warning: Removed 22 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 23 rows containing missing values (geom_path).
+
+## Warning: Removed 23 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 24 rows containing missing values (geom_path).
+
+## Warning: Removed 24 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 25 rows containing missing values (geom_path).
+
+## Warning: Removed 25 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 26 rows containing missing values (geom_path).
+
+## Warning: Removed 26 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 27 rows containing missing values (geom_path).
+
+## Warning: Removed 27 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 28 rows containing missing values (geom_path).
+
+## Warning: Removed 28 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 29 rows containing missing values (geom_path).
+
+## Warning: Removed 29 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 30 rows containing missing values (geom_path).
+
+## Warning: Removed 30 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 31 rows containing missing values (geom_path).
+
+## Warning: Removed 31 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 32 rows containing missing values (geom_path).
+
+## Warning: Removed 32 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 33 rows containing missing values (geom_path).
+
+## Warning: Removed 33 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 34 rows containing missing values (geom_path).
+
+## Warning: Removed 34 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 35 rows containing missing values (geom_path).
+
+## Warning: Removed 35 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 36 rows containing missing values (geom_path).
+
+## Warning: Removed 36 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 37 rows containing missing values (geom_path).
+
+## Warning: Removed 37 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 38 rows containing missing values (geom_path).
+
+## Warning: Removed 38 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 39 rows containing missing values (geom_path).
+
+## Warning: Removed 39 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 40 rows containing missing values (geom_path).
+
+## Warning: Removed 40 rows containing missing values (geom_path).
+
+## Warning: Removed 40 rows containing missing values (geom_path).
+
+## Warning: Removed 40 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 41 rows containing missing values (geom_path).
+
+## Warning: Removed 41 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 42 rows containing missing values (geom_path).
+
+## Warning: Removed 42 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 43 rows containing missing values (geom_path).
+
+## Warning: Removed 43 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 44 rows containing missing values (geom_path).
+
+## Warning: Removed 44 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 45 rows containing missing values (geom_path).
+
+## Warning: Removed 45 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 46 rows containing missing values (geom_path).
+
+## Warning: Removed 46 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 47 rows containing missing values (geom_path).
+
+## Warning: Removed 47 rows containing missing values (geom_path).
+
+## Warning: Removed 47 rows containing missing values (geom_path).
+
+## Warning: Removed 47 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 48 rows containing missing values (geom_path).
+
+## Warning: Removed 48 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 49 rows containing missing values (geom_path).
+
+## Warning: Removed 49 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 50 rows containing missing values (geom_path).
+
+## Warning: Removed 50 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 51 rows containing missing values (geom_path).
+
+## Warning: Removed 51 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 52 rows containing missing values (geom_path).
+
+## Warning: Removed 52 rows containing missing values (geom_path).
+
+## Warning: Removed 52 rows containing missing values (geom_path).
+
+## Warning: Removed 52 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 53 rows containing missing values (geom_path).
+
+## Warning: Removed 53 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 54 rows containing missing values (geom_path).
+
+## Warning: Removed 54 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 55 rows containing missing values (geom_path).
+
+## Warning: Removed 55 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 56 rows containing missing values (geom_path).
+
+## Warning: Removed 56 rows containing missing values (geom_path).
+
+## Warning: Removed 56 rows containing missing values (geom_path).
+
+## Warning: Removed 56 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 57 rows containing missing values (geom_path).
+
+## Warning: Removed 57 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 58 rows containing missing values (geom_path).
+
+## Warning: Removed 58 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 59 rows containing missing values (geom_path).
+
+## Warning: Removed 59 rows containing missing values (geom_path).
+
+## Warning: Removed 59 rows containing missing values (geom_path).
+
+## Warning: Removed 59 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 60 rows containing missing values (geom_path).
+
+## Warning: Removed 60 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 61 rows containing missing values (geom_path).
+
+## Warning: Removed 61 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 62 rows containing missing values (geom_path).
+
+## Warning: Removed 62 rows containing missing values (geom_path).
+
+## Warning: Removed 62 rows containing missing values (geom_path).
+
+## Warning: Removed 62 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 63 rows containing missing values (geom_path).
+
+## Warning: Removed 63 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 64 rows containing missing values (geom_path).
+
+## Warning: Removed 64 rows containing missing values (geom_path).
+
+## Warning: Removed 64 rows containing missing values (geom_path).
+
+## Warning: Removed 64 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 65 rows containing missing values (geom_path).
+
+## Warning: Removed 65 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 66 rows containing missing values (geom_path).
+
+## Warning: Removed 66 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 67 rows containing missing values (geom_path).
+
+## Warning: Removed 67 rows containing missing values (geom_path).
+
+## Warning: Removed 67 rows containing missing values (geom_path).
+
+## Warning: Removed 67 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 68 rows containing missing values (geom_path).
+
+## Warning: Removed 68 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 69 rows containing missing values (geom_path).
+
+## Warning: Removed 69 rows containing missing values (geom_path).
+
+## Warning: Removed 69 rows containing missing values (geom_path).
+
+## Warning: Removed 69 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 70 rows containing missing values (geom_path).
+
+## Warning: Removed 70 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 71 rows containing missing values (geom_path).
+
+## Warning: Removed 71 rows containing missing values (geom_path).
+
+## Warning: Removed 71 rows containing missing values (geom_path).
+
+## Warning: Removed 71 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 72 rows containing missing values (geom_path).
+
+## Warning: Removed 72 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 73 rows containing missing values (geom_path).
+
+## Warning: Removed 73 rows containing missing values (geom_path).
+
+## Warning: Removed 73 rows containing missing values (geom_path).
+
+## Warning: Removed 73 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 74 rows containing missing values (geom_path).
+
+## Warning: Removed 74 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 75 rows containing missing values (geom_path).
+
+## Warning: Removed 75 rows containing missing values (geom_path).
+
+## Warning: Removed 75 rows containing missing values (geom_path).
+
+## Warning: Removed 75 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 76 rows containing missing values (geom_path).
+
+## Warning: Removed 76 rows containing missing values (geom_path).
+
+## Warning: Removed 76 rows containing missing values (geom_path).
+
+## Warning: Removed 76 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 77 rows containing missing values (geom_path).
+
+## Warning: Removed 77 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 78 rows containing missing values (geom_path).
+
+## Warning: Removed 78 rows containing missing values (geom_path).
+
+## Warning: Removed 78 rows containing missing values (geom_path).
+
+## Warning: Removed 78 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 79 rows containing missing values (geom_path).
+
+## Warning: Removed 79 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 80 rows containing missing values (geom_path).
+
+## Warning: Removed 80 rows containing missing values (geom_path).
+
+## Warning: Removed 80 rows containing missing values (geom_path).
+
+## Warning: Removed 80 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 81 rows containing missing values (geom_path).
+
+## Warning: Removed 81 rows containing missing values (geom_path).
+
+## Warning: Removed 81 rows containing missing values (geom_path).
+
+## Warning: Removed 81 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 82 rows containing missing values (geom_path).
+
+## Warning: Removed 82 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 83 rows containing missing values (geom_path).
+
+## Warning: Removed 83 rows containing missing values (geom_path).
+
+## Warning: Removed 83 rows containing missing values (geom_path).
+
+## Warning: Removed 83 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 84 rows containing missing values (geom_path).
+
+## Warning: Removed 84 rows containing missing values (geom_path).
+
+## Warning: Removed 84 rows containing missing values (geom_path).
+
+## Warning: Removed 84 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 85 rows containing missing values (geom_path).
+
+## Warning: Removed 85 rows containing missing values (geom_path).
+
+## Warning: Removed 85 rows containing missing values (geom_path).
+
+## Warning: Removed 85 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 86 rows containing missing values (geom_path).
+
+## Warning: Removed 86 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 87 rows containing missing values (geom_path).
+
+## Warning: Removed 87 rows containing missing values (geom_path).
+
+## Warning: Removed 87 rows containing missing values (geom_path).
+
+## Warning: Removed 87 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 88 rows containing missing values (geom_path).
+
+## Warning: Removed 88 rows containing missing values (geom_path).
+
+## Warning: Removed 88 rows containing missing values (geom_path).
+
+## Warning: Removed 88 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 89 rows containing missing values (geom_path).
+
+## Warning: Removed 89 rows containing missing values (geom_path).
+
+## Warning: Removed 89 rows containing missing values (geom_path).
+
+## Warning: Removed 89 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 90 rows containing missing values (geom_path).
+
+## Warning: Removed 90 rows containing missing values (geom_path).
+
+## Warning: Removed 90 rows containing missing values (geom_path).
+
+## Warning: Removed 90 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 91 rows containing missing values (geom_path).
+
+## Warning: Removed 91 rows containing missing values (geom_path).
+
+## Warning: Removed 91 rows containing missing values (geom_path).
+
+## Warning: Removed 91 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 92 rows containing missing values (geom_path).
+
+## Warning: Removed 92 rows containing missing values (geom_path).
+
+## Warning: Removed 92 rows containing missing values (geom_path).
+
+## Warning: Removed 92 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 93 rows containing missing values (geom_path).
+
+## Warning: Removed 93 rows containing missing values (geom_path).
+
+## Warning: Removed 93 rows containing missing values (geom_path).
+
+## Warning: Removed 93 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 94 rows containing missing values (geom_path).
+
+## Warning: Removed 94 rows containing missing values (geom_path).
+
+## Warning: Removed 94 rows containing missing values (geom_path).
+
+## Warning: Removed 94 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 95 rows containing missing values (geom_path).
+
+## Warning: Removed 95 rows containing missing values (geom_path).
+
+## Warning: Removed 95 rows containing missing values (geom_path).
+
+## Warning: Removed 95 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 96 rows containing missing values (geom_path).
+
+## Warning: Removed 96 rows containing missing values (geom_path).
+
+## Warning: Removed 96 rows containing missing values (geom_path).
+
+## Warning: Removed 96 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 97 rows containing missing values (geom_path).
+
+## Warning: Removed 97 rows containing missing values (geom_path).
+
+## Warning: Removed 97 rows containing missing values (geom_path).
+
+## Warning: Removed 97 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 98 rows containing missing values (geom_path).
+
+## Warning: Removed 98 rows containing missing values (geom_path).
+
+## Warning: Removed 98 rows containing missing values (geom_path).
+
+## Warning: Removed 98 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 99 rows containing missing values (geom_path).
+
+## Warning: Removed 99 rows containing missing values (geom_path).
+
+## Warning: Removed 99 rows containing missing values (geom_path).
+
+## Warning: Removed 99 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 100 rows containing missing values (geom_path).
+
+## Warning: Removed 100 rows containing missing values (geom_path).
+
+## Warning: Removed 100 rows containing missing values (geom_path).
+
+## Warning: Removed 100 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 101 rows containing missing values (geom_path).
+
+## Warning: Removed 101 rows containing missing values (geom_path).
+
+## Warning: Removed 101 rows containing missing values (geom_path).
+
+## Warning: Removed 101 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 102 rows containing missing values (geom_path).
+
+## Warning: Removed 102 rows containing missing values (geom_path).
+
+## Warning: Removed 102 rows containing missing values (geom_path).
+
+## Warning: Removed 102 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 103 rows containing missing values (geom_path).
+
+## Warning: Removed 103 rows containing missing values (geom_path).
+
+## Warning: Removed 103 rows containing missing values (geom_path).
+
+## Warning: Removed 103 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 104 rows containing missing values (geom_path).
+
+## Warning: Removed 104 rows containing missing values (geom_path).
+
+## Warning: Removed 104 rows containing missing values (geom_path).
+
+## Warning: Removed 104 rows containing missing values (geom_path).
+
+## Warning: Removed 104 rows containing missing values (geom_path).
+
+## Warning: Removed 104 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 105 rows containing missing values (geom_path).
+
+## Warning: Removed 105 rows containing missing values (geom_path).
+
+## Warning: Removed 105 rows containing missing values (geom_path).
+
+## Warning: Removed 105 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 106 rows containing missing values (geom_path).
+
+## Warning: Removed 106 rows containing missing values (geom_path).
+
+## Warning: Removed 106 rows containing missing values (geom_path).
+
+## Warning: Removed 106 rows containing missing values (geom_path).</code></pre>
+<pre><code>## Warning: Removed 107 rows containing missing values (geom_path).
+
+## Warning: Removed 107 rows containing missing values (geom_path).</code></pre>
 <p><img src="/notes/local-regression_files/figure-html/infant-epan-1.gif" /><!-- --></p>
 <p>Fortunately their are methods for determining the optimal bandwidth. We won’t dig into them here,<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> but suffice to say most functions for kernel smoothers in Python and R automatically implement them.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(infant, <span class="kw">aes</span>(mortal)) <span class="op">+</span>
@@ -393,7 +859,7 @@ D(t) = \begin{cases}
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-02-19                  
+##  date     2019-02-20                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package       * version    date       lib
