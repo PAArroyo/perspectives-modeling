@@ -1,0 +1,117 @@
+---
+title: "Homework 07: Moving Beyond Linearity"
+date: 2019-02-19T13:30:00-06:00  # Schedule page publish date
+
+draft: false
+type: post
+
+output:
+  blogdown::html_page:
+    number_sections: false
+
+summary: "Implement methods for non-linear regression."
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#fork-the-hw07-repository">Fork the <code>hw07</code> repository</a></li>
+<li><a href="#submission-format">Submission format</a></li>
+<li><a href="#conceptual-exercises-3-points">Conceptual exercises (3 points)</a><ul>
+<li><a href="#backfitting-approach-for-gams">Backfitting approach for GAMs</a></li>
+<li><a href="#backfitting-with-large-p">Backfitting with large <span class="math inline">\(p\)</span></a></li>
+</ul></li>
+<li><a href="#application-exercises-7-points">Application exercises (7 points)</a><ul>
+<li><a href="#egalitarianism-and-income">Egalitarianism and income</a></li>
+<li><a href="#egalitarianism-and-everything">Egalitarianism and everything</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<p>Due by 11:59pm February 25th.</p>
+</div>
+<div id="fork-the-hw07-repository" class="section level1">
+<h1>Fork the <code>hw07</code> repository</h1>
+<p>Go <a href="https://github.com/css-model/hw07">here</a> to fork the repo for homework 07.</p>
+</div>
+<div id="submission-format" class="section level1">
+<h1>Submission format</h1>
+<p>For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). The document should be <strong>reproducible</strong>. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (<code>.ipynb</code>) or R Markdown (<code>.Rmd</code>) rendered as <code>pdf_document</code>.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+</div>
+<div id="conceptual-exercises-3-points" class="section level1">
+<h1>Conceptual exercises (3 points)</h1>
+<div id="backfitting-approach-for-gams" class="section level2">
+<h2>Backfitting approach for GAMs</h2>
+<p>Generalized additive models are generally fit using a backfitting approach. The idea behind backfitting is actually quite simple. We will now explore backfitting in the context of multiple linear regression.</p>
+<p>Suppose that we would like to perform multiple linear regression, but we do not have software to do so. Instead, we only have software to perform simple linear regression. Therefore, we take the following iterative approach: we repeatedly hold all but one coefficient fixed at its current value, and update only that coefficient estimate using a simple linear regression. The process is continued until <strong>convergence</strong> – that is, until the coefficient estimates stop changing.</p>
+<p>We now try this out on a toy example.</p>
+<ol style="list-style-type: lower-alpha">
+<li>Generate a response <span class="math inline">\(Y\)</span> and two predictors <span class="math inline">\(X_1, X_2\)</span> with <span class="math inline">\(n=100\)</span>.</li>
+<li>Initialize <span class="math inline">\(\hat{\beta}_1\)</span> to take on a value of your choice. It does not matter what value you choose.</li>
+<li><p>Keeping <span class="math inline">\(\hat{\beta}_1\)</span> fixed, fit the model</p>
+<span class="math display">\[Y - \hat{\beta}_1 X_1 = \beta_0 + \beta_2 X_2 + \epsilon\]</span></li>
+<li><p>Keeping <span class="math inline">\(\hat{\beta}_2\)</span> fixed, fit the model</p>
+<span class="math display">\[Y - \hat{\beta}_2 X_2 = \beta_0 + \beta_1 X_1 + \epsilon\]</span></li>
+<li>Write a <code>for</code> loop to repeat (c) and (d) <span class="math inline">\(1000\)</span> times. Report the estimates for <span class="math inline">\(\hat{\beta}_0, \hat{\beta}_1, \hat{\beta}_2\)</span> at each iteration of the <code>for</code> loop. Create a plot in which each of these values is displayed, with <span class="math inline">\(\hat{\beta}_0, \hat{\beta}_1, \hat{\beta}_2\)</span> each shown in a different color.</li>
+<li>Compare your answer in (e) to the results of simply performing multiple linear regression to predict <span class="math inline">\(Y\)</span> using <span class="math inline">\(X_1\)</span> and <span class="math inline">\(X_2\)</span>. Overlay those multiple linear regression coefficient estimates on the plot obtained in (e).</li>
+<li><p>On this data set, how many backfitting iterations were required in order to obtain a “good” approximation to the multiple regression coefficient estimates?</p></li>
+</ol>
+</div>
+<div id="backfitting-with-large-p" class="section level2">
+<h2>Backfitting with large <span class="math inline">\(p\)</span></h2>
+<p>This problem is a continuation of the previous exercise. In a toy example with <span class="math inline">\(p = 100\)</span> and <span class="math inline">\(n = 1000\)</span>, show that one can approximate the multiple linear regression coefficient estimates by repeatedly performing simple linear regression in a backfitting procedure. How many backfitting iterations are required in order to obtain a “good” approximation to the multiple regression coefficient estimates? Create a plot to justify your answer.</p>
+</div>
+</div>
+<div id="application-exercises-7-points" class="section level1">
+<h1>Application exercises (7 points)</h1>
+<p>The <a href="http://gss.norc.org/">General Social Survey</a> is a biannual survey of the American public.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
+<blockquote>
+<p><a href="http://gss.norc.org/About-The-GSS">The GSS gathers data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes. Hundreds of trends have been tracked since 1972. In addition, since the GSS adopted questions from earlier surveys, trends can be followed for up to 70 years. The GSS contains a standard core of demographic, behavioral, and attitudinal questions, plus topics of special interest. Among the topics covered are civil liberties, crime and violence, intergroup tolerance, morality, national spending priorities, psychological well-being, social mobility, and stress and traumatic events.</a></p>
+</blockquote>
+<p>In this problem set, you are going to predict individual feelings towards egalitarianism. Specifically, <code>egalit_scale</code> is an additive index constructed from a series of questions designed to measure how egalitarian individuals are – that is, the extend to which they think economic opportunities should be distributed more equally in society. The variable ranges from 1 (low egalitarianism) to 35 (high egalitarianism).</p>
+<p><code>gss_*.csv</code> contain a selection of variables from the 2012 GSS. Documentation for the other predictors (if the variable is not clearly coded) can be viewed <a href="https://gssdataexplorer.norc.org/variables/vfilter">here</a>. Some data pre-processing has been done in advance for you to ease your model fitting:</p>
+<ol style="list-style-type: decimal">
+<li>Missing values have been imputed.</li>
+</ol>
+<p>Your mission is to construct a series of statistical/machine learning models to accurately predict an individual’s egalitarianism.</p>
+<div id="egalitarianism-and-income" class="section level2">
+<h2>Egalitarianism and income</h2>
+<ol style="list-style-type: decimal">
+<li>Perform polynomial regression to predict <code>egalit_scale</code> using <code>income06</code>.<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> Use 10-fold cross-validation to select the optimal degree <span class="math inline">\(d\)</span> for the polynomial based on the MSE. Make a plot of the resulting polynomial fit to the data, and graph the average marginal effect (AME) of <code>income06</code> across its potential values. Provide a substantive interpretation of the results.</li>
+<li>Fit a step function to predict <code>egalit_scale</code> using <code>income06</code>, and perform 10-fold cross-validation to choose the optimal number of cuts. Make a plot of the fit obtained and interpret the results.</li>
+<li>Fit a natural regression spline to predict <code>egalit_scale</code> using <code>income06</code>. Use 10-fold cross-validation to select the optimal number of degrees of freedom, and present the results of the optimal model.</li>
+<li>Fit a local linear regression model to predict <code>egalit_scale</code> using <code>income06</code>. Use 10-fold cross-validation to select the optimal bandwidth. Interpret the results.</li>
+<li>Fit a local polynomial regression model to predict <code>egalit_scale</code> using <code>income06</code>. Use 10-fold cross-validation to select the optimal bandwidth. Interpret the results.</li>
+</ol>
+</div>
+<div id="egalitarianism-and-everything" class="section level2">
+<h2>Egalitarianism and everything</h2>
+<ol style="list-style-type: decimal">
+<li>Estimate the following models using all the available predictors:
+<ol style="list-style-type: lower-alpha">
+<li>Linear regression</li>
+<li>Elastic net regression</li>
+<li>Principal component regression</li>
+<li>Partial least squares regression</li>
+<li>Multivariate adaptive regression splines (MARS)</li>
+</ol>
+<ul>
+<li>Perform appropriate data pre-processing (e.g. standardization) and hyperparameter tuning (e.g. lambda for PCR/PLS, lambda and alpha for elastic net, degree of interactions and number of retained terms for MARS)</li>
+<li>Use 10-fold cross-validation for each model to estimate the model’s performance using MSE.</li>
+</ul></li>
+<li>Apply model interpretation methods to each model. That is, for each model (the final tuned version), generate permutation-based feature importance plots, PDPs/ICE plots for the five most important variables, and feature interaction plots. Interpret the results with written analysis.</li>
+<li>Take the optimal model, apply the test set to the model, and calculate the test set MSE. Does this model generalize well to the test set?</li>
+</ol>
+</div>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 😩<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Conducted by NORC at the University of Chicago.<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p><code>income06</code> has been converted into a continuous variable from its <a href="https://gssdataexplorer.norc.org/variables/117/vshow">original categorical encoding</a>.<a href="#fnref3">↩</a></p></li>
+</ol>
+</div>

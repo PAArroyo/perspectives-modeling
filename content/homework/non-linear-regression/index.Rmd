@@ -1,0 +1,89 @@
+---
+title: "Homework 07: Moving Beyond Linearity"
+date: 2019-02-19T13:30:00-06:00  # Schedule page publish date
+
+draft: false
+type: post
+
+output:
+  blogdown::html_page:
+    number_sections: false
+
+summary: "Implement methods for non-linear regression."
+---
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}}
+
+# Overview
+
+Due by 11:59pm February 25th.
+
+# Fork the `hw07` repository
+
+Go [here](https://github.com/css-model/hw07) to fork the repo for homework 07.
+
+# Submission format
+
+For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). The document should be **reproducible**. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (`.ipynb`) or R Markdown (`.Rmd`) rendered as `pdf_document`.^[`html_document` cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in `.md` documents `r emo::ji("sad")`]
+
+# Conceptual exercises (3 points)
+
+## Backfitting approach for GAMs
+
+Generalized additive models are generally fit using a backfitting approach. The idea behind backfitting is actually quite simple. We will now explore backfitting in the context of multiple linear regression.
+
+Suppose that we would like to perform multiple linear regression, but we do not have software to do so. Instead, we only have software to perform simple linear regression. Therefore, we take the following iterative approach: we repeatedly hold all but one coefficient fixed at its current value, and update only that coefficient estimate using a simple linear regression. The process is continued until **convergence** -- that is, until the coefficient estimates stop changing.
+
+We now try this out on a toy example.
+
+a. Generate a response $Y$ and two predictors $X_1, X_2$ with $n=100$.
+a. Initialize $\hat{\beta}_1$ to take on a value of your choice. It does not matter what value you choose.
+a. Keeping $\hat{\beta}_1$ fixed, fit the model
+
+    $$Y - \hat{\beta}_1 X_1 = \beta_0 + \beta_2 X_2 + \epsilon$$
+a. Keeping $\hat{\beta}_2$ fixed, fit the model
+    
+    $$Y - \hat{\beta}_2 X_2 = \beta_0 + \beta_1 X_1 + \epsilon$$
+a. Write a `for` loop to repeat (c) and (d) $1000$ times. Report the estimates for $\hat{\beta}_0, \hat{\beta}_1, \hat{\beta}_2$ at each iteration of the `for` loop. Create a plot in which each of these values is displayed, with $\hat{\beta}_0, \hat{\beta}_1, \hat{\beta}_2$ each shown in a different color.
+a. Compare your answer in (e) to the results of simply performing multiple linear regression to predict $Y$ using $X_1$ and $X_2$. Overlay those multiple linear regression coefficient estimates on the plot obtained in (e).
+a. On this data set, how many backfitting iterations were required in order to obtain a "good" approximation to the multiple regression coefficient estimates?
+
+## Backfitting with large $p$
+
+This problem is a continuation of the previous exercise. In a toy example with $p = 100$ and $n = 1000$, show that one can approximate the multiple linear regression coefficient estimates by repeatedly performing simple linear regression in a backfitting procedure. How many backfitting iterations are required in order to obtain a "good" approximation to the multiple regression coefficient estimates? Create a plot to justify your answer.
+
+# Application exercises (7 points)
+
+The [General Social Survey](http://gss.norc.org/) is a biannual survey of the American public.^[Conducted by NORC at the University of Chicago.]
+
+> [The GSS gathers data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes. Hundreds of trends have been tracked since 1972. In addition, since the GSS adopted questions from earlier surveys, trends can be followed for up to 70 years. The GSS contains a standard core of demographic, behavioral, and attitudinal questions, plus topics of special interest. Among the topics covered are civil liberties, crime and violence, intergroup tolerance, morality, national spending priorities, psychological well-being, social mobility, and stress and traumatic events.](http://gss.norc.org/About-The-GSS)
+
+In this problem set, you are going to predict individual feelings towards egalitarianism. Specifically, `egalit_scale` is an additive index constructed from a series of questions designed to measure how egalitarian individuals are -- that is, the extend to which they think economic opportunities should be distributed more equally in society. The variable ranges from 1 (low egalitarianism) to 35 (high egalitarianism).
+
+`gss_*.csv` contain a selection of variables from the 2012 GSS. Documentation for the other predictors (if the variable is not clearly coded) can be viewed [here](https://gssdataexplorer.norc.org/variables/vfilter). Some data pre-processing has been done in advance for you to ease your model fitting:
+
+1. Missing values have been imputed.
+
+Your mission is to construct a series of statistical/machine learning models to accurately predict an individual's egalitarianism.
+
+## Egalitarianism and income
+
+1. Perform polynomial regression to predict `egalit_scale` using `income06`.^[`income06` has been converted into a continuous variable from its [original categorical encoding](https://gssdataexplorer.norc.org/variables/117/vshow).] Use 10-fold cross-validation to select the optimal degree $d$ for the polynomial based on the MSE. Make a plot of the resulting polynomial fit to the data, and graph the average marginal effect (AME) of `income06` across its potential values. Provide a substantive interpretation of the results.
+1. Fit a step function to predict `egalit_scale` using `income06`, and perform 10-fold cross-validation to choose the optimal number of cuts. Make a plot of the fit obtained and interpret the results.
+1. Fit a natural regression spline to predict `egalit_scale` using `income06`. Use 10-fold cross-validation to select the optimal number of degrees of freedom, and present the results of the optimal model.
+1. Fit a local linear regression model to predict `egalit_scale` using `income06`. Use 10-fold cross-validation to select the optimal bandwidth. Interpret the results.
+1. Fit a local polynomial regression model to predict `egalit_scale` using `income06`. Use 10-fold cross-validation to select the optimal bandwidth. Interpret the results.
+
+## Egalitarianism and everything
+
+1. Estimate the following models using all the available predictors:
+    a. Linear regression
+    a. Elastic net regression
+    a. Principal component regression
+    a. Partial least squares regression
+    a. Multivariate adaptive regression splines (MARS)
+    * Perform appropriate data pre-processing (e.g. standardization) and hyperparameter tuning (e.g. lambda for PCR/PLS, lambda and alpha for elastic net, degree of interactions and number of retained terms for MARS)
+    * Use 10-fold cross-validation for each model to estimate the model's performance using MSE.
+1. Apply model interpretation methods to each model. That is, for each model (the final tuned version), generate permutation-based feature importance plots, PDPs/ICE plots for the five most important variables, and feature interaction plots. Interpret the results with written analysis.
+1. Take the optimal model, apply the test set to the model, and calculate the test set MSE. Does this model generalize well to the test set?
+
