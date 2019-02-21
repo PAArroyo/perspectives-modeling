@@ -1,0 +1,71 @@
+---
+title: "Decision Trees"
+date: 2019-02-21T13:30:00  # Schedule page publish date.
+draft: false
+type: "talk"
+
+output:
+  blogdown::html_page:
+    toc: false
+    number_sections: false
+
+# Talk start and end times.
+#   End time can optionally be hidden by prefixing the line with `#`.
+time_start: 2019-02-25T13:30:00
+time_end: 2019-02-25T15:00:00
+
+# Authors. Comma separated list, e.g. `["Bob Smith", "David Jones"]`.
+authors: []
+
+# Abstract and optional shortened version.
+abstract: ""
+abstract_short: "Definition of decision trees, the mechanics of constructing a tree, and applications to regression and classification."
+
+# Location of event.
+location: "Room 247, Saieh Hall for Economics, Chicago, IL"
+
+# Is this a selected talk? (true/false)
+selected: false
+
+# Tags (optional).
+#   Set `tags: []` for no tags, or use the form `tags: ["A Tag", "Another Tag"]` for one or more tags.
+tags: []
+
+# Links (optional).
+url_pdf: ""
+url_slides: ""
+url_video: ""
+url_code: ""
+
+# Does the content use math formatting?
+math: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Overview
+
+* Define a decision tree
+* Identify the steps to estimating a decision tree
+* Demonstrate how to estimate a decision tree for regression and classification problems
+* Assess aggregation methods for decision trees, including bagging and random forests
+
+## Before class
+
+* ISL ch 8.1-8.2.2
+* ESL ch 9.2, 8.7, 15
+
+## Slides and class materials
+
+```{r slides}
+knitr::include_url("/slides/decision-trees.html", height = "505px")
+```
+
+
+### Additional readings
+
+
+## What you need to do
+
