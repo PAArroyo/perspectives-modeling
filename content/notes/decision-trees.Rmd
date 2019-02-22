@@ -17,7 +17,7 @@ menu:
 
 ```{r setup, include = FALSE}
 # set default chunk options
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 ```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
@@ -47,18 +47,6 @@ theme_set(theme_minimal())
 
 \newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
 
-```{r err-rate-rf, include = FALSE}
-err.rate.rf <- function(model, data) {
-  data <- as_tibble(data)
-  response <- as.character(model$terms[[2]])
-  
-  pred <- predict(model, newdata = data, type = "response")
-  actual <- data[[response]]
-  
-  return(mean(pred != actual, na.rm = TRUE))
-}
-```
-
 # Decision trees
 
 ![](https://s-media-cache-ak0.pinimg.com/originals/7a/89/ff/7a89ff67b4ce34204c23135cbf35acfa.jpg)
@@ -69,9 +57,9 @@ err.rate.rf <- function(model, data) {
 
 **Decision trees** are intuitive concepts for making decisions. They are also useful methods for regression and classification. They work by splitting the observations into a number of regions, and predictions are made based on the mean or mode of the training observations in that region.
 
-## Regression trees
+# Regression trees
 
-### Single predictor
+## Single predictor
 
 Let's first consider a basic linear regression model of the relationship between horsepower and highway mileage from the `Auto` dataset.
 
@@ -336,7 +324,7 @@ mse_tree <- Auto %>%
 
 There are `r nrow(mod$frame)` nodes (internal and terminal) in this decision tree, with `r ceiling(length(mod$frame$yval) / 2)` different regions and `r ceiling(length(mod$frame$yval) / 2)` different predicted values depending on the observation's value for horsepower. Notice though that the step function actually looks similar to a quadratic smoothing line, matching our expectations of the relationship. In fact, compared to the linear model (`r mse_lm`) the decision tree generates a far lower training MSE (`r mse_tree`).^[Yes, we know [the pitfalls of using training MSE for model comparison](/notes/model-accuracy/#training-vs.test-error). It's just an example because we haven't split the data into a validation set.]
 
-### Multiple predictors
+## Multiple predictors
 
 With just a single predictor, the regions are a function of that one predictor. If we add a second predictor (say, vehicle weight), the regions become a function of **both** predictors and can be visualized as grids or boxes.
 
@@ -442,23 +430,33 @@ ggplot(Auto, aes(weight, horsepower)) +
   exit_fade()
 ```
 
-### Estimation procedure
+## Estimation procedure
 
 We have already identified that decision trees use stratification to divide the observations into $R_J$ regions. Like in linear regression, our goal is to minimize the residual sum of the squared errors (RSS), defined for a decision tree as:
 
 $$\sum_{j=1}^J \sum_{i \in R_j} (y_i - \hat{y}_{R_j})^2$$
 
-where $\hat{y}_{R_j}$ is the mean response for the observations in the $j$th region. In order to do this, decision trees implement a **recursive binary strategy**. The process begins at the top of the tree (**top-down**) and successively splits the data into a new region. This split generates two new branches in the tree. Rather than looking forward to select the optimal split among all future possibilities, this approach is **greedy** in that it selects the best split **at that particular step**. Given all the potential splits that could be performed on one of the predictors $X_1, X_2, \dots, X_p$ predictors, the algorithm assigns a cutpoint $s$ that splits the data in the manner that reduces the RSS by the largest amount. As the number of predictors $p$ and observations $N$ increases, the more potential cutpoints the algorithm must consider. However even with relatively large numbers of predictors and observations, the computational process is quite efficient.
+where $\hat{y}_{R_j}$ is the mean response for the observations in the $j$th region. In order to do this, decision trees implement a **recursive binary strategy**. The process begins at the top of the tree (**top-down**) and successively splits the data into a new region. This split generates two new branches in the tree. Rather than looking forward to select the optimal split among all future possibilities, this approach is **greedy** in that it selects the best split **at that particular step**. Given all the potential splits that could be performed on one of the predictors $X_1, X_2, \dots, X_p$ predictors, the algorithm assigns a cutpoint $s$ that splits the data in the manner that reduces the RSS by the largest amount.
 
-This process continues until some designated stopping criteria is reached, otherwise it could continue until each training observation is sorted into its own node (i.e. overfitting). For example, by default the `tree()` function in R (from the `tree` library) will not split a node if a resulting node would contain fewer than 10 training observations. Once this iterative process stops, we can generate predicted values for the response of a given test observation by calculating the mean of the training observations for the region in which the test observation belongs.
+$$\min \left\{ SSE = \sum_{i \in R_1} (y_i - \hat{y}_{R_1})^2 + \sum_{i \in R_2} (y_i - \hat{y}_{R_2})^2 \right\}$$
 
-### Pruning the tree
+As the number of predictors $p$ and observations $N$ increases, the more potential cutpoints the algorithm must consider. However even with relatively large numbers of predictors and observations, the computational process is quite efficient.
+
+This process continues until some designated stopping criteria is reached, otherwise it could continue until each training observation is sorted into its own node (i.e. overfitting). A reasonable value could be five or ten. Once this iterative process stops and we have created $R_1, R_2, \ldots, R_J$ regions, we can generate predicted values for the response of a given test observation by calculating the mean of the training observations for the region in which the test observation belongs.
+
+## Pruning the tree
 
 Notice that we stop splitting the tree in order to prevent overfitting. Even with the above process, decision trees are highly susceptible to overfitting due to its natural complexity. And if we simply set the stopping criteria at a higher level, we may miss crucial branches later on in the process. Instead we want a method that allows us to grow a large tree and preserve the most important branches or elements.
 
 ![](https://na.rdcpix.com/1162715347/e7baeacffee094b5d79c2ec1708c500ew-c0xd-w685_h860_q80.jpg)
 
-In essence, we want to **prune** the tree. **Cost complexity pruning** is one predominant method for achieving this goal. While I leave the mathematics of this operation to [ISL](https://link-springer-com.proxy.uchicago.edu/book/10.1007%2F978-1-4614-7138-7), cost complexity pruning uses a **tuning parameter** to selectively prune or snip branches that do not contribute significant predictive accuracy, resulting in a subtree generated from the full tree. Different tuning parameter values will lead to different trade-offs between model complexity and model accuracy, so we can use cost complexity pruning in conjunction with [$k$-fold cross-validation](/notes/cross-validation/#k-fold-cross-validation) to select a cost complexity parameter that optimally balances the trade-off for the specific dataset.
+Tree size can be though of as a **tuning parameter** that govern's the model's complexity. Pruning a tree is one method for creating an optimal tree size. **Cost complexity pruning** is the most common version of pruning. This requires growing a large tree $T_0$, stopping the growth process only when some minimum node size is reached (say 5). From here, we consider subtrees from the overall tree and compare their relative performance.
+
+Rather than comparing all possible subtrees, we use a cost complexity parameter $\alpha$ that penalizes the objective function for the number of terminal nodes of the tree $T$:
+
+$$\min \left\{ \sum_{m=1}^{|T|} \sum_{i: x_i \in R_m} (y_i - \hat{y}_{R_M})^2 + \alpha |T| \right\}$$
+
+For a given value of $\alpha$, we find the smallest pruned tree that has the lowest penalized error. $\alpha$ controls the trade-off between the subtree's complexity and its fit to the training data. It uses the same type of $L_1$ norm penalty as [lasso regression](/syllabus/selection-regulation/). Smaller penalties tend to produce more complex models, which results in larger trees. Whereas larger penalties result in much smaller trees. Therefore in order to achieve a larger tree, the reduction in SSE must be greater than the cost complexity penalty. We can use [$k$-fold cross-validation](/notes/cross-validation/#k-fold-cross-validation) to identify the optimal $\alpha$, and therefore the optimal subtree.
 
 For example, here is the full tree grown for the `horsepower + weight` decision tree:
 
@@ -563,7 +561,7 @@ ptree +
   plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
-## Classification trees
+# Classification trees
 
 A **classification tree** is similar to a regression tree, except that the response variable is qualitative. In making predictions, we would predict for a test set observation the most commonly occurring class value in the given region. However we will also consider the **class proportions**, or the proportion of training observations in the region $R_j$ that fall into a given class.
 
@@ -692,7 +690,7 @@ titanic %>%
 
 For males between 13 and 24.75 years old, the decision tree prediction achieves higher node purity - it more accurately predicts all of the training observations as dead. If we had a test observation for a 16-year-old male, we'd be more confident in our prediction than if we had terminated the node at $\text{age} < 13$. While this does not improve our error rate (we would have made the same prediction regardless), it does improve our Gini index and cross-entropy which are the measures used to grow the tree.
 
-## Trees vs. regression
+# Trees vs. regression
 
 Linear regression and decision trees utilize entirely different functional forms. Linear regression assumes linear and additive relationships between predictors and the response:
 
@@ -704,7 +702,7 @@ $$f(X) = \sum_{m = 1}^M c_m \cdot 1_{X \in R_m}$$
 
 If the relationship between the predictor(s) and the response are truly linear and additive, then linear regression will likely perform better than a decision tree. If the relationship is highly complex and non-linear, then decision trees may be the better option. Using resampling methods such as cross-validation can help you to decide the appropriate statistical learning method.
 
-## Benefits/drawbacks to decision trees
+# Benefits/drawbacks to decision trees
 
 Decision trees are an entirely different method of estimating functional forms as compared to linear regression. There are some benefits to trees:
 
@@ -739,8 +737,10 @@ However there are also drawbacks to trees:
       geom_histogram() +
       geom_vline(xintercept = mean(auto_val_mse$.estimate))
     ```
-
-The distribution of test MSEs is quite large for each of the splits, indicating substantial variance in our estimate of the test MSE. Fortunately, there is an easy way to improve on these poor predictions: by aggregating many decision trees and averaging across them, we can substantially improve performance.
+    
+    The distribution of test MSEs is quite large for each of the splits, indicating substantial variance in our estimate of the test MSE.
+    
+This illustrates the most important characteristic of decision trees: they are a **low-bias**, **high-variance** modeling strategy.
 
 # Session Info {.toc-ignore}
 

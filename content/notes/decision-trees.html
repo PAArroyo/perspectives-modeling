@@ -15,84 +15,24 @@ menu:
     weight: 1
 ---
 
-<style type="text/css">
-div.sourceCode { overflow-x: auto; }
-table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
-  margin: 0; padding: 0; vertical-align: baseline; border: none; }
-table.sourceCode { width: 100%; line-height: 100%; }
-td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
-td.sourceCode { padding-left: 5px; }
-code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code > span.dt { color: #902000; } /* DataType */
-code > span.dv { color: #40a070; } /* DecVal */
-code > span.bn { color: #40a070; } /* BaseN */
-code > span.fl { color: #40a070; } /* Float */
-code > span.ch { color: #4070a0; } /* Char */
-code > span.st { color: #4070a0; } /* String */
-code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code > span.ot { color: #007020; } /* Other */
-code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code > span.fu { color: #06287e; } /* Function */
-code > span.er { color: #ff0000; font-weight: bold; } /* Error */
-code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-code > span.cn { color: #880000; } /* Constant */
-code > span.sc { color: #4070a0; } /* SpecialChar */
-code > span.vs { color: #4070a0; } /* VerbatimString */
-code > span.ss { color: #bb6688; } /* SpecialString */
-code > span.im { } /* Import */
-code > span.va { color: #19177c; } /* Variable */
-code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code > span.op { color: #666666; } /* Operator */
-code > span.bu { } /* BuiltIn */
-code > span.ex { } /* Extension */
-code > span.pp { color: #bc7a00; } /* Preprocessor */
-code > span.at { color: #7d9029; } /* Attribute */
-code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-</style>
 
 <div id="TOC">
 <ul>
-<li><a href="#decision-trees"><span class="toc-section-number">1</span> Decision trees</a><ul>
-<li><a href="#regression-trees"><span class="toc-section-number">1.1</span> Regression trees</a><ul>
-<li><a href="#single-predictor"><span class="toc-section-number">1.1.1</span> Single predictor</a></li>
-<li><a href="#multiple-predictors"><span class="toc-section-number">1.1.2</span> Multiple predictors</a></li>
-<li><a href="#estimation-procedure"><span class="toc-section-number">1.1.3</span> Estimation procedure</a></li>
-<li><a href="#pruning-the-tree"><span class="toc-section-number">1.1.4</span> Pruning the tree</a></li>
+<li><a href="#decision-trees"><span class="toc-section-number">1</span> Decision trees</a></li>
+<li><a href="#regression-trees"><span class="toc-section-number">2</span> Regression trees</a><ul>
+<li><a href="#single-predictor"><span class="toc-section-number">2.1</span> Single predictor</a></li>
+<li><a href="#multiple-predictors"><span class="toc-section-number">2.2</span> Multiple predictors</a></li>
+<li><a href="#estimation-procedure"><span class="toc-section-number">2.3</span> Estimation procedure</a></li>
+<li><a href="#pruning-the-tree"><span class="toc-section-number">2.4</span> Pruning the tree</a></li>
 </ul></li>
-<li><a href="#classification-trees"><span class="toc-section-number">1.2</span> Classification trees</a></li>
-<li><a href="#trees-vs.regression"><span class="toc-section-number">1.3</span> Trees vs. regression</a></li>
-<li><a href="#benefitsdrawbacks-to-decision-trees"><span class="toc-section-number">1.4</span> Benefits/drawbacks to decision trees</a></li>
-</ul></li>
-<li><a href="#session-info"><span class="toc-section-number">2</span> Session Info</a></li>
-<li><a href="#references"><span class="toc-section-number">3</span> References</a></li>
+<li><a href="#classification-trees"><span class="toc-section-number">3</span> Classification trees</a></li>
+<li><a href="#trees-vs.regression"><span class="toc-section-number">4</span> Trees vs. regression</a></li>
+<li><a href="#benefitsdrawbacks-to-decision-trees"><span class="toc-section-number">5</span> Benefits/drawbacks to decision trees</a></li>
+<li><a href="#session-info"><span class="toc-section-number">6</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">7</span> References</a></li>
 </ul>
 </div>
 
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse)
-<span class="kw">library</span>(tidymodels)
-<span class="kw">library</span>(modelr)
-<span class="kw">library</span>(tree)
-<span class="kw">library</span>(randomForest)
-<span class="kw">library</span>(stringr)
-<span class="kw">library</span>(ISLR)
-<span class="kw">library</span>(patchwork)
-<span class="kw">library</span>(titanic)
-<span class="kw">library</span>(rcfss)
-<span class="kw">library</span>(pROC)
-<span class="kw">library</span>(gbm)
-<span class="kw">library</span>(gganimate)
-<span class="kw">library</span>(magrittr)
-
-<span class="co"># to get the tree graphs with the labels and values, use the forked</span>
-<span class="co"># version of ggdendro</span>
-<span class="co"># devtools::install_github(&quot;bensoltoff/ggdendro&quot;)</span>
-<span class="kw">library</span>(ggdendro)
-
-<span class="kw">set.seed</span>(<span class="dv">1234</span>)
-<span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
 <div id="decision-trees" class="section level1">
 <h1><span class="header-section-number">1</span> Decision trees</h1>
 <div class="figure">
@@ -108,10 +48,11 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 </div>
 <p><strong>Decision trees</strong> are intuitive concepts for making decisions. They are also useful methods for regression and classification. They work by splitting the observations into a number of regions, and predictions are made based on the mean or mode of the training observations in that region.</p>
-<div id="regression-trees" class="section level2">
-<h2><span class="header-section-number">1.1</span> Regression trees</h2>
-<div id="single-predictor" class="section level3">
-<h3><span class="header-section-number">1.1.1</span> Single predictor</h3>
+</div>
+<div id="regression-trees" class="section level1">
+<h1><span class="header-section-number">2</span> Regression trees</h1>
+<div id="single-predictor" class="section level2">
+<h2><span class="header-section-number">2.1</span> Single predictor</h2>
 <p>Let’s first consider a basic linear regression model of the relationship between horsepower and highway mileage from the <code>Auto</code> dataset.</p>
 <p><img src="/notes/decision-trees_files/figure-html/auto-lm-1.png" width="672" /></p>
 <p>As we recall, a strictly linear model is a poor fit for the data since the relationship actually appears to be quadratic. But unless we <a href="/notes/global-methods/">relax our linear assumption</a>, this is the best OLS model we can estimate.</p>
@@ -121,8 +62,6 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li>For every observation in region <span class="math inline">\(R_j\)</span>, we make the same prediction which is the mean of the response variable <span class="math inline">\(Y\)</span> for all observations in <span class="math inline">\(R_j\)</span>.</li>
 </ol>
 <p>This process is iterative: during the first iteration, we segment the predictor space <span class="math inline">\(X\)</span> into two regions <span class="math inline">\(R_1, R_2\)</span>. In the context of a decision tree with a single predictor, that process results in decision trees like the following:</p>
-<pre><code>## Warning: `data_frame()` is deprecated, use `tibble()`.
-## This warning is displayed once per session.</code></pre>
 <p><img src="/notes/decision-trees_files/figure-html/auto-tree2-1.png" width="672" /></p>
 <p>On the left is the decision tree after the first iteration, and on the right is the decision tree estimation of the relationship between horsepower and highway mileage. The tree consists of three different components:</p>
 <ul>
@@ -146,11 +85,9 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p><img src="/notes/decision-trees_files/figure-html/auto-treeall-1.png" width="672" /></p>
 <p>There are 77 nodes (internal and terminal) in this decision tree, with 39 different regions and 39 different predicted values depending on the observation’s value for horsepower. Notice though that the step function actually looks similar to a quadratic smoothing line, matching our expectations of the relationship. In fact, compared to the linear model (23.9436629) the decision tree generates a far lower training MSE (14.4980387).<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
 </div>
-<div id="multiple-predictors" class="section level3">
-<h3><span class="header-section-number">1.1.2</span> Multiple predictors</h3>
+<div id="multiple-predictors" class="section level2">
+<h2><span class="header-section-number">2.2</span> Multiple predictors</h2>
 <p>With just a single predictor, the regions are a function of that one predictor. If we add a second predictor (say, vehicle weight), the regions become a function of <strong>both</strong> predictors and can be visualized as grids or boxes.</p>
-<pre><code>## Warning: `data_frame()` is deprecated, use `tibble()`.
-## This warning is displayed once per session.</code></pre>
 <p><img src="/notes/decision-trees_files/figure-html/auto-tree-weight-1.png" width="672" /></p>
 <ul>
 <li>If weight <span class="math inline">\(&gt;2764.5\)</span>, then the model estimates highway mileage to be approximately 17.7691542.</li>
@@ -164,34 +101,36 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p><img src="/notes/decision-trees_files/figure-html/auto-tree-weight-i-tree-1.gif" /><!-- --></p>
 <p><img src="/notes/decision-trees_files/figure-html/auto-tree-weight-i-feat-space-1.gif" /><!-- --></p>
 </div>
-<div id="estimation-procedure" class="section level3">
-<h3><span class="header-section-number">1.1.3</span> Estimation procedure</h3>
+<div id="estimation-procedure" class="section level2">
+<h2><span class="header-section-number">2.3</span> Estimation procedure</h2>
 <p>We have already identified that decision trees use stratification to divide the observations into <span class="math inline">\(R_J\)</span> regions. Like in linear regression, our goal is to minimize the residual sum of the squared errors (RSS), defined for a decision tree as:</p>
 <p><span class="math display">\[\sum_{j=1}^J \sum_{i \in R_j} (y_i - \hat{y}_{R_j})^2\]</span></p>
-<p>where <span class="math inline">\(\hat{y}_{R_j}\)</span> is the mean response for the observations in the <span class="math inline">\(j\)</span>th region. In order to do this, decision trees implement a <strong>recursive binary strategy</strong>. The process begins at the top of the tree (<strong>top-down</strong>) and successively splits the data into a new region. This split generates two new branches in the tree. Rather than looking forward to select the optimal split among all future possibilities, this approach is <strong>greedy</strong> in that it selects the best split <strong>at that particular step</strong>. Given all the potential splits that could be performed on one of the predictors <span class="math inline">\(X_1, X_2, \dots, X_p\)</span> predictors, the algorithm assigns a cutpoint <span class="math inline">\(s\)</span> that splits the data in the manner that reduces the RSS by the largest amount. As the number of predictors <span class="math inline">\(p\)</span> and observations <span class="math inline">\(N\)</span> increases, the more potential cutpoints the algorithm must consider. However even with relatively large numbers of predictors and observations, the computational process is quite efficient.</p>
-<p>This process continues until some designated stopping criteria is reached, otherwise it could continue until each training observation is sorted into its own node (i.e. overfitting). For example, by default the <code>tree()</code> function in R (from the <code>tree</code> library) will not split a node if a resulting node would contain fewer than 10 training observations. Once this iterative process stops, we can generate predicted values for the response of a given test observation by calculating the mean of the training observations for the region in which the test observation belongs.</p>
+<p>where <span class="math inline">\(\hat{y}_{R_j}\)</span> is the mean response for the observations in the <span class="math inline">\(j\)</span>th region. In order to do this, decision trees implement a <strong>recursive binary strategy</strong>. The process begins at the top of the tree (<strong>top-down</strong>) and successively splits the data into a new region. This split generates two new branches in the tree. Rather than looking forward to select the optimal split among all future possibilities, this approach is <strong>greedy</strong> in that it selects the best split <strong>at that particular step</strong>. Given all the potential splits that could be performed on one of the predictors <span class="math inline">\(X_1, X_2, \dots, X_p\)</span> predictors, the algorithm assigns a cutpoint <span class="math inline">\(s\)</span> that splits the data in the manner that reduces the RSS by the largest amount.</p>
+<p><span class="math display">\[\min \left\{ SSE = \sum_{i \in R_1} (y_i - \hat{y}_{R_1})^2 + \sum_{i \in R_2} (y_i - \hat{y}_{R_2})^2 \right\}\]</span></p>
+<p>As the number of predictors <span class="math inline">\(p\)</span> and observations <span class="math inline">\(N\)</span> increases, the more potential cutpoints the algorithm must consider. However even with relatively large numbers of predictors and observations, the computational process is quite efficient.</p>
+<p>This process continues until some designated stopping criteria is reached, otherwise it could continue until each training observation is sorted into its own node (i.e. overfitting). A reasonable value could be five or ten. Once this iterative process stops and we have created <span class="math inline">\(R_1, R_2, \ldots, R_J\)</span> regions, we can generate predicted values for the response of a given test observation by calculating the mean of the training observations for the region in which the test observation belongs.</p>
 </div>
-<div id="pruning-the-tree" class="section level3">
-<h3><span class="header-section-number">1.1.4</span> Pruning the tree</h3>
+<div id="pruning-the-tree" class="section level2">
+<h2><span class="header-section-number">2.4</span> Pruning the tree</h2>
 <p>Notice that we stop splitting the tree in order to prevent overfitting. Even with the above process, decision trees are highly susceptible to overfitting due to its natural complexity. And if we simply set the stopping criteria at a higher level, we may miss crucial branches later on in the process. Instead we want a method that allows us to grow a large tree and preserve the most important branches or elements.</p>
 <div class="figure">
 <img src="https://na.rdcpix.com/1162715347/e7baeacffee094b5d79c2ec1708c500ew-c0xd-w685_h860_q80.jpg" />
 
 </div>
-<p>In essence, we want to <strong>prune</strong> the tree. <strong>Cost complexity pruning</strong> is one predominant method for achieving this goal. While I leave the mathematics of this operation to <a href="https://link-springer-com.proxy.uchicago.edu/book/10.1007%2F978-1-4614-7138-7">ISL</a>, cost complexity pruning uses a <strong>tuning parameter</strong> to selectively prune or snip branches that do not contribute significant predictive accuracy, resulting in a subtree generated from the full tree. Different tuning parameter values will lead to different trade-offs between model complexity and model accuracy, so we can use cost complexity pruning in conjunction with <a href="/notes/cross-validation/#k-fold-cross-validation"><span class="math inline">\(k\)</span>-fold cross-validation</a> to select a cost complexity parameter that optimally balances the trade-off for the specific dataset.</p>
+<p>Tree size can be though of as a <strong>tuning parameter</strong> that govern’s the model’s complexity. Pruning a tree is one method for creating an optimal tree size. <strong>Cost complexity pruning</strong> is the most common version of pruning. This requires growing a large tree <span class="math inline">\(T_0\)</span>, stopping the growth process only when some minimum node size is reached (say 5). From here, we consider subtrees from the overall tree and compare their relative performance.</p>
+<p>Rather than comparing all possible subtrees, we use a cost complexity parameter <span class="math inline">\(\alpha\)</span> that penalizes the objective function for the number of terminal nodes of the tree <span class="math inline">\(T\)</span>:</p>
+<p><span class="math display">\[\min \left\{ \sum_{m=1}^{|T|} \sum_{i: x_i \in R_m} (y_i - \hat{y}_{R_M})^2 + \alpha |T| \right\}\]</span></p>
+<p>For a given value of <span class="math inline">\(\alpha\)</span>, we find the smallest pruned tree that has the lowest penalized error. <span class="math inline">\(\alpha\)</span> controls the trade-off between the subtree’s complexity and its fit to the training data. It uses the same type of <span class="math inline">\(L_1\)</span> norm penalty as <a href="/syllabus/selection-regulation/">lasso regression</a>. Smaller penalties tend to produce more complex models, which results in larger trees. Whereas larger penalties result in much smaller trees. Therefore in order to achieve a larger tree, the reduction in SSE must be greater than the cost complexity penalty. We can use <a href="/notes/cross-validation/#k-fold-cross-validation"><span class="math inline">\(k\)</span>-fold cross-validation</a> to identify the optimal <span class="math inline">\(\alpha\)</span>, and therefore the optimal subtree.</p>
 <p>For example, here is the full tree grown for the <code>horsepower + weight</code> decision tree:</p>
 <p><img src="/notes/decision-trees_files/figure-html/auto-tree-default-1.png" width="672" /></p>
 <p>Let’s use <span class="math inline">\(10\)</span>-fold CV to select the optimal tree size:</p>
-<pre><code>## Joining, by = &quot;id&quot;</code></pre>
-<pre><code>## Warning: Column `id` joining factor and character vector, coercing into
-## character vector</code></pre>
 <p><img src="/notes/decision-trees_files/figure-html/auto-tree-default-prune-1.png" width="672" /></p>
 <p>The minimum cross-validated test MSE is for 6 terminal nodes. Here’s what that tree looks like:</p>
 <p><img src="/notes/decision-trees_files/figure-html/auto-tree-best-1.png" width="672" /></p>
 </div>
 </div>
-<div id="classification-trees" class="section level2">
-<h2><span class="header-section-number">1.2</span> Classification trees</h2>
+<div id="classification-trees" class="section level1">
+<h1><span class="header-section-number">3</span> Classification trees</h1>
 <p>A <strong>classification tree</strong> is similar to a regression tree, except that the response variable is qualitative. In making predictions, we would predict for a test set observation the most commonly occurring class value in the given region. However we will also consider the <strong>class proportions</strong>, or the proportion of training observations in the region <span class="math inline">\(R_j\)</span> that fall into a given class.</p>
 <p>Rather than using RSS to grow the tree, we have three options for minimizing error. An obvious choice might be the <strong>classification error rate</strong>, or the proportion of training observations in a given region that do not belong to the most common class:</p>
 <p><span class="math display">\[E = 1 - \max_{k}(\hat{p}_{mk})\]</span></p>
@@ -206,30 +145,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p><img src="/notes/decision-trees_files/figure-html/titanic_tree-1.png" width="672" /></p>
 <p><img src="/notes/decision-trees_files/figure-html/titanic-tree-prune-1.png" width="672" /></p>
 <p>Here I select 7 as the optimal number of nodes.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mod &lt;-<span class="st"> </span><span class="kw">prune.tree</span>(titanic_tree, <span class="dt">best =</span> titanic_cv_prune<span class="op">$</span>k[[<span class="kw">which.max</span>(titanic_cv_prune<span class="op">$</span>.estimate)]])
-
-tree_data &lt;-<span class="st"> </span><span class="kw">dendro_data</span>(mod)
-<span class="kw">ggplot</span>(<span class="kw">segment</span>(tree_data)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_segment</span>(<span class="kw">aes</span>(<span class="dt">x =</span> x, <span class="dt">y =</span> y, <span class="dt">xend =</span> xend, <span class="dt">yend =</span> yend), 
-               <span class="dt">alpha =</span> <span class="fl">0.5</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_text</span>(<span class="dt">data =</span> <span class="kw">label</span>(tree_data), 
-            <span class="kw">aes</span>(<span class="dt">x =</span> x, <span class="dt">y =</span> y, <span class="dt">label =</span> label_full), <span class="dt">vjust =</span> <span class="op">-</span><span class="fl">0.5</span>, <span class="dt">size =</span> <span class="dv">3</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_text</span>(<span class="dt">data =</span> <span class="kw">leaf_label</span>(tree_data), 
-            <span class="kw">aes</span>(<span class="dt">x =</span> x, <span class="dt">y =</span> y, <span class="dt">label =</span> label), <span class="dt">vjust =</span> <span class="fl">0.5</span>, <span class="dt">size =</span> <span class="dv">3</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">theme_dendro</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Titanic survival tree&quot;</span>,
-       <span class="dt">subtitle =</span> <span class="st">&quot;Age + Gender&quot;</span>)</code></pre></div>
 <p><img src="/notes/decision-trees_files/figure-html/titanic-tree-best-1.png" width="672" /></p>
 <p>Notice that some branches split and lead to the same outcome. For instance, the bottom-left branch assigns males with an age less than 13 but both greater than and less than <span class="math inline">\(24.75\)</span> to <code>Died</code>. This is because splitting the node leads to increased <strong>node purity</strong> where we are even more confident in our predictions. Think about it. Here are the outcomes in the training observations for males older than 13 years old:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_m13 &lt;-<span class="st"> </span>titanic <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">filter</span>(Female <span class="op">==</span><span class="st"> &quot;male&quot;</span>, Age <span class="op">&gt;=</span><span class="st"> </span><span class="dv">13</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">count</span>(Survived)
-
-knitr<span class="op">::</span><span class="kw">kable</span>(titanic_m13,
-             <span class="dt">caption =</span> <span class="st">&quot;Males older than or equal to 13 on the Titanic&quot;</span>,
-             <span class="dt">col.names =</span> <span class="kw">c</span>(<span class="st">&quot;Outcome&quot;</span>, <span class="st">&quot;Number of training observations&quot;</span>))</code></pre></div>
 <table>
-<caption><span id="tab:titanic-m-13">Table 1.1: </span>Males older than or equal to 13 on the Titanic</caption>
+<caption><span id="tab:titanic-m-13">Table 3.1: </span>Males older than or equal to 13 on the Titanic</caption>
 <thead>
 <tr class="header">
 <th align="left">Outcome</th>
@@ -248,12 +167,6 @@ knitr<span class="op">::</span><span class="kw">kable</span>(titanic_m13,
 </tbody>
 </table>
 <p>We would predict for all of these observations that the individual died, being incorrect 72 times. What happens if we split this subset even further?</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">filter</span>(Female <span class="op">==</span><span class="st"> &quot;male&quot;</span>, Age <span class="op">&gt;=</span><span class="st"> </span><span class="dv">13</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">age25 =</span> Age <span class="op">&lt;</span><span class="st"> </span><span class="fl">24.75</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">count</span>(age25, Survived) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">complete</span>(age25, Survived, <span class="dt">fill =</span> <span class="kw">list</span>(<span class="dt">n =</span> <span class="dv">0</span>)) <span class="op">%&gt;%</span>
-<span class="st">  </span>knitr<span class="op">::</span><span class="kw">kable</span>(<span class="dt">col.names =</span> <span class="kw">c</span>(<span class="st">&quot;Less than 24.75 years old&quot;</span>, <span class="st">&quot;Outcome&quot;</span>, <span class="st">&quot;Number of training observations&quot;</span>))</code></pre></div>
 <table>
 <thead>
 <tr class="header">
@@ -287,16 +200,16 @@ knitr<span class="op">::</span><span class="kw">kable</span>(titanic_m13,
 </table>
 <p>For males between 13 and 24.75 years old, the decision tree prediction achieves higher node purity - it more accurately predicts all of the training observations as dead. If we had a test observation for a 16-year-old male, we’d be more confident in our prediction than if we had terminated the node at <span class="math inline">\(\text{age} &lt; 13\)</span>. While this does not improve our error rate (we would have made the same prediction regardless), it does improve our Gini index and cross-entropy which are the measures used to grow the tree.</p>
 </div>
-<div id="trees-vs.regression" class="section level2">
-<h2><span class="header-section-number">1.3</span> Trees vs. regression</h2>
+<div id="trees-vs.regression" class="section level1">
+<h1><span class="header-section-number">4</span> Trees vs. regression</h1>
 <p>Linear regression and decision trees utilize entirely different functional forms. Linear regression assumes linear and additive relationships between predictors and the response:</p>
 <p><span class="math display">\[f(X) = \beta_0 + \sum_{j = 1}^p X_j \beta_j\]</span></p>
 <p>Whereas decision trees assume the observations can be partitioned into the feature space:</p>
 <p><span class="math display">\[f(X) = \sum_{m = 1}^M c_m \cdot 1_{X \in R_m}\]</span></p>
 <p>If the relationship between the predictor(s) and the response are truly linear and additive, then linear regression will likely perform better than a decision tree. If the relationship is highly complex and non-linear, then decision trees may be the better option. Using resampling methods such as cross-validation can help you to decide the appropriate statistical learning method.</p>
 </div>
-<div id="benefitsdrawbacks-to-decision-trees" class="section level2">
-<h2><span class="header-section-number">1.4</span> Benefits/drawbacks to decision trees</h2>
+<div id="benefitsdrawbacks-to-decision-trees" class="section level1">
+<h1><span class="header-section-number">5</span> Benefits/drawbacks to decision trees</h1>
 <p>Decision trees are an entirely different method of estimating functional forms as compared to linear regression. There are some benefits to trees:</p>
 <ul>
 <li>They are easy to explain. Most people, even if they lack statistical training, can understand decision trees.</li>
@@ -307,14 +220,13 @@ knitr<span class="op">::</span><span class="kw">kable</span>(titanic_m13,
 <ul>
 <li>Their accuracy rates are generally lower than other regression and classification approaches.</li>
 <li><p>Trees can be non-robust. That is, a small change in the data or inclusion/exclusion of a handful of observations can dramatically alter the final estimated tree. For example, let’s estimate a decision tree for the highway mileage example (<span class="math inline">\(N = 392\)</span>) by splitting the data into a training/test set (70/30%) and estimating the test MSE, and repeat this process 1000 times using random combinations of training/test sets:</p>
-<p><img src="/notes/decision-trees_files/figure-html/auto-tree-val-1.png" width="672" /></p></li>
+<p><img src="/notes/decision-trees_files/figure-html/auto-tree-val-1.png" width="672" /></p>
+<p>The distribution of test MSEs is quite large for each of the splits, indicating substantial variance in our estimate of the test MSE.</p></li>
 </ul>
-<p>The distribution of test MSEs is quite large for each of the splits, indicating substantial variance in our estimate of the test MSE. Fortunately, there is an easy way to improve on these poor predictions: by aggregating many decision trees and averaging across them, we can substantially improve performance.</p>
-</div>
+<p>This illustrates the most important characteristic of decision trees: they are a <strong>low-bias</strong>, <strong>high-variance</strong> modeling strategy.</p>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
-<h1><span class="header-section-number">2</span> Session Info</h1>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
+<h1><span class="header-section-number">6</span> Session Info</h1>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
 ##  version  R version 3.5.2 (2018-12-20)
@@ -623,7 +535,7 @@ knitr<span class="op">::</span><span class="kw">kable</span>(titanic_m13,
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
 </div>
 <div id="references" class="section level1 toc-ignore">
-<h1><span class="header-section-number">3</span> References</h1>
+<h1><span class="header-section-number">7</span> References</h1>
 <ul>
 <li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
 <li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
