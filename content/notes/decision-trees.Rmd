@@ -28,12 +28,13 @@ library(tree)
 library(randomForest)
 library(stringr)
 library(ISLR)
-library(gridExtra)
-library(grid)
+library(patchwork)
 library(titanic)
 library(rcfss)
 library(pROC)
 library(gbm)
+library(gganimate)
+library(magrittr)
 
 # to get the tree graphs with the labels and values, use the forked
 # version of ggdendro
@@ -42,17 +43,11 @@ library(ggdendro)
 
 set.seed(1234)
 theme_set(theme_minimal())
-
-# old version of mse
-mse <- function (model, data){
-  x <- modelr:::residuals(model, data)
-  mean(x ^ 2, na.rm = TRUE)
-}
 ```
 
 \newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
 
-```{r err-rate-rf}
+```{r err-rate-rf, include = FALSE}
 err.rate.rf <- function(model, data) {
   data <- as_tibble(data)
   response <- as.character(model$terms[[2]])
@@ -80,34 +75,16 @@ err.rate.rf <- function(model, data) {
 
 Let's first consider a basic linear regression model of the relationship between horsepower and highway mileage from the `Auto` dataset.
 
-```{r auto-lm}
-# add 95% confidence intervals to fitted values from augment()
-add_ci <- function(df_augment) {
-  df_augment %>%
-    mutate(.fitted.low = .fitted - 1.96 * .se.fit,
-           .fitted.high = .fitted + 1.96 * .se.fit)
-}
-
-# draw 95% confidence interval plot using results of add_ci()
-plot_ci <- function(df_ci, x){
-  ggplot(df_ci, aes_string(x, ".fitted")) +
-  geom_line() +
-  geom_line(aes(y = .fitted.low), linetype = 2) +
-  geom_line(aes(y = .fitted.high), linetype = 2)
-}
-
-auto_lm <- glm(mpg ~ horsepower, data = Auto)
-
-augment(auto_lm, newdata = data_grid(Auto, horsepower)) %>%
-  add_ci() %>%
-  plot_ci("horsepower") +
+```{r auto-lm, echo = FALSE}
+ggplot(Auto, aes(horsepower, mpg)) +
   geom_point(data = Auto, aes(y = mpg), alpha = .2) +
+  geom_smooth(method = "lm") +
   labs(title = "Linear model of highway mileage",
        x = "Horsepower",
        y = "Highway mileage")
 ```
 
-As we recall, a strictly linear model is a poor fit for the data since the relationship actually appears to be quadratic. But unless we [relax our linear assumption](persp007_nonlinear.html), this is the best OLS model we can estimate.
+As we recall, a strictly linear model is a poor fit for the data since the relationship actually appears to be quadratic. But unless we [relax our linear assumption](/notes/global-methods/), this is the best OLS model we can estimate.
 
 Let's compare this instead to a decision tree using horsepower to predict highway mileage. Decision trees work through a process of **stratification**:
 
@@ -116,7 +93,7 @@ Let's compare this instead to a decision tree using horsepower to predict highwa
 
 This process is iterative: during the first iteration, we segment the predictor space $X$ into two regions $R_1, R_2$. In the context of a decision tree with a single predictor, that process results in decision trees like the following:
 
-```{r part-tree-data}
+```{r part-tree-data, include = FALSE}
 # hackish function to get line segment coordinates for ggplot
 partition.tree.data <- function (tree, label = "yval", add = FALSE, ordvars, ...) 
 {
@@ -188,7 +165,7 @@ partition.tree.data <- function (tree, label = "yval", add = FALSE, ordvars, ...
       # plot(x, y, ylab = yvar, xlab = var, type = "s", ylim = ylim,
       #      xaxs = "i", ...)
     }
-    data_frame(x = x, y = y)
+    tibble(x = x, y = y)
   }
   else {
     if (!missing(ordvars)) {
@@ -215,11 +192,11 @@ partition.tree.data <- function (tree, label = "yval", add = FALSE, ordvars, ...
     xx <- matrix(xy$xcoord, nrow = 4L)
     yy <- matrix(xy$ycoord, nrow = 2L)
 
-    return(list(data_frame(xmin = xx[1L,],
+    return(list(tibble(xmin = xx[1L,],
                            ymin = xx[2L,],
                            xmax = xx[3L,],
                            ymax = xx[4L,]),
-                data_frame(x = yy[1L,],
+                tibble(x = yy[1L,],
                            y = yy[2L,],
                            label = lab)))
     # if (!add) 
@@ -231,7 +208,7 @@ partition.tree.data <- function (tree, label = "yval", add = FALSE, ordvars, ...
 }
 ```
 
-```{r auto-tree2}
+```{r auto-tree2, echo = FALSE}
 # estimate model
 auto_tree <- tree(mpg ~ horsepower, data = Auto,
      control = tree.control(nobs = nrow(Auto),
@@ -261,9 +238,9 @@ preg <- ggplot(Auto, aes(horsepower, mpg)) +
   theme(panel.border = element_rect(fill = NA, size = 1))
 
 # display plots side by side
-grid.arrange(ptree, preg, ncol = 2,
-             top = textGrob(str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)),
-                            gp = gpar(fontsize = 20)))
+ptree +
+  preg +
+  plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
 On the left is the decision tree after the first iteration, and on the right is the decision tree estimation of the relationship between horsepower and highway mileage. The tree consists of three different components:
@@ -272,11 +249,11 @@ On the left is the decision tree after the first iteration, and on the right is 
 * Splits occur at **internal nodes**
 * The segments connecting each node are called **branches**
 
-This model has two terminal nodes (`r mod$frame$yval[[2]]` and `r mod$frame$yval[[3]]`), one internal node (horsepower $`r mod$frame$splits[1,1]`$), and two branches. For observations with horsepower $`r mod$frame$splits[1,1]`$, the model estimates highway mileage of `r mod$frame$yval[[2]]`. For observations with horsepower $`r mod$frame$splits[1,2]`$, the model estimates highway mileage of `r mod$frame$yval[[3]]`. The resulting relationship "curve" (see right) looks like a step function. Each segment of the function is the `mean()` of the observations inside that region.
+This model has two terminal nodes (`r mod$frame$yval[[2]]` and `r mod$frame$yval[[3]]`), one internal node (horsepower $`r mod$frame$splits[1,1]`$), and two branches. For observations with horsepower $`r mod$frame$splits[1,1]`$, the model estimates highway mileage of `r mod$frame$yval[[2]]`. For observations with horsepower $`r mod$frame$splits[1,2]`$, the model estimates highway mileage of `r mod$frame$yval[[3]]`. The resulting relationship "curve" (see right) looks like a step function. Each segment of the function is the mean of the observations inside that region.
 
 If we proceed to the next iteration, the decision tree segments $R_1$ further.
 
-```{r auto-tree3}
+```{r auto-tree3, echo = FALSE}
 mod <- prune.tree(auto_tree, best = 3)
 
 # plot tree
@@ -301,9 +278,9 @@ preg <- ggplot(Auto, aes(horsepower, mpg)) +
   theme(panel.border = element_rect(fill = NA, size = 1))
 
 # display plots side by side
-grid.arrange(ptree, preg, ncol = 2,
-             top = textGrob(str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)),
-                            gp = gpar(fontsize = 20)))
+ptree +
+  preg +
+  plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
 Now there are three terminal nodes (`r mod$frame$yval[3:5]`), two internal nodes (horsepower $`r mod$frame$splits[1,1]`$ and horsepower $`r mod$frame$splits[2,1]`$), and three branches. Interpreting the decision tree is still relatively intuitive:
@@ -315,7 +292,7 @@ Now there are three terminal nodes (`r mod$frame$yval[3:5]`), two internal nodes
 
 If we continued the iterative process many many times, we'd get a decision tree that looks like this:
 
-```{r auto-treeall}
+```{r auto-treeall, echo = FALSE, message = FALSE}
 mod <- auto_tree
 
 # plot tree
@@ -340,18 +317,30 @@ preg <- ggplot(Auto, aes(horsepower, mpg)) +
   theme(panel.border = element_rect(fill = NA, size = 1))
 
 # display plots side by side
-grid.arrange(ptree, preg, ncol = 2,
-             top = textGrob(str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)),
-                            gp = gpar(fontsize = 20)))
+ptree +
+  preg +
+  plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
-There are `r nrow(mod$frame)` nodes (internal and terminal) in this decision tree, with `r ceiling(length(mod$frame$yval) / 2)` different regions and `r ceiling(length(mod$frame$yval) / 2)` different predicted values depending on the observation's value for horsepower. Notice though that the step function actually looks similar to a quadratic smoothing line, matching our expectations of the relationship. In fact, compared to the linear model (`r mse(auto_lm, Auto)`) the decision tree generates a far lower training MSE (`r mse(auto_tree, Auto)`).^[Yes, we know [the pitfalls of using training MSE for model comparison](persp006_resampling.html#training_vs_test_data). It's just an example because we haven't split the data into a validation set.]
+```{r auto-treeall-mse, dependson = "auto-tree2", include = FALSE}
+mse_lm <- glm(mpg ~ horsepower, data = Auto) %>%
+  augment() %>%
+  mse(truth = mpg, estimate = .fitted) %$%
+  .estimate[[1]]
+
+mse_tree <- Auto %>%
+  mutate(.fitted = predict(auto_tree)) %>%
+  mse(truth = mpg, estimate = .fitted) %$%
+  .estimate[[1]]
+```
+
+There are `r nrow(mod$frame)` nodes (internal and terminal) in this decision tree, with `r ceiling(length(mod$frame$yval) / 2)` different regions and `r ceiling(length(mod$frame$yval) / 2)` different predicted values depending on the observation's value for horsepower. Notice though that the step function actually looks similar to a quadratic smoothing line, matching our expectations of the relationship. In fact, compared to the linear model (`r mse_lm`) the decision tree generates a far lower training MSE (`r mse_tree`).^[Yes, we know [the pitfalls of using training MSE for model comparison](/notes/model-accuracy/#training-vs.test-error). It's just an example because we haven't split the data into a validation set.]
 
 ### Multiple predictors
 
 With just a single predictor, the regions are a function of that one predictor. If we add a second predictor (say, vehicle weight), the regions become a function of **both** predictors and can be visualized as grids or boxes.
 
-```{r auto-tree-weight}
+```{r auto-tree-weight, echo = FALSE}
 auto_tree <- tree(mpg ~ horsepower + weight, data = Auto,
      control = tree.control(nobs = nrow(Auto),
                             mindev = 0))
@@ -382,9 +371,9 @@ preg <- ggplot(Auto, aes(weight, horsepower)) +
   theme(panel.border = element_rect(fill = NA, size = 1))
 
 # display plots side by side
-grid.arrange(ptree, preg, ncol = 2,
-             top = textGrob(str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)),
-                            gp = gpar(fontsize = 20)))
+ptree +
+  preg +
+  plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
 * If weight $`r mod$frame$splits[1,2]`$, then the model estimates highway mileage to be approximately `r mod$frame$yval[5]`.
@@ -394,38 +383,63 @@ grid.arrange(ptree, preg, ncol = 2,
 
 We can continue to build the tree up by adding additional nodes:
 
-```{r auto-tree-weight-i}
-for(i in c(4:10, 20, 50)){
-  mod <- prune.tree(auto_tree, best = i)
-  
-  # plot tree
-  tree_data <- dendro_data(mod)
-  ptree <- ggplot(segment(tree_data)) +
-    geom_segment(aes(x = x, y = y, xend = xend, yend = yend), 
-                 alpha = 0.5) +
-    geom_text(data = label(tree_data), 
+```{r auto-tree-weight-i-tree, echo = FALSE, warning = FALSE}
+tree_mods <- tibble(
+  n_nodes = seq(from = 3, to = 30)
+) %>%
+  mutate(mod = map(n_nodes, ~ prune.tree(auto_tree, best = .x)),
+         tree_data = map(mod, dendro_data),
+         segment = map(tree_data, segment),
+         label = map(tree_data, label),
+         leaf_label = map(tree_data, leaf_label),
+         tree_data = map(mod, partition.tree.data),
+         tree_data1 = map(tree_data, ~ .x[[1]]),
+         tree_data2 = map(tree_data, ~ .x[[2]]))
+
+# plot the tree
+## extract all the necessary elements
+tree_segments <- unnest(tree_mods, segment)
+tree_labels <- unnest(tree_mods, label)
+tree_leaf_labels <- unnest(tree_mods, leaf_label)
+
+ggplot(tree_segments, aes(group = n_nodes)) +
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend), 
+               alpha = 0.5) +
+  geom_text(data = tree_labels, 
             aes(x = x, y = y, label = label_full), vjust = -0.5, size = 3) +
-    geom_text(data = leaf_label(tree_data), 
-              aes(x = x, y = y, label = label), vjust = 0.5, size = 3) +
-    theme_dendro()
-  
-  # plot region space
-  preg <- ggplot(Auto, aes(weight, horsepower)) +
-    geom_point(alpha = .2) +
-    geom_segment(data = partition.tree.data(mod)[[1]],
-                 aes(x = xmin, xend = xmax, y = ymin, yend = ymax)) +
-    geom_text(data = partition.tree.data(mod)[[2]],
-              aes(x = x, y = y, label = label)) +
-    coord_cartesian(xlim = c(min(Auto$weight), max(Auto$weight)),
-                    ylim = c(min(Auto$horsepower), max(Auto$horsepower)),
-                    expand = FALSE) +
-    theme(panel.border = element_rect(fill = NA, size = 1))
-  
-  # display plots side by side
-  grid.arrange(ptree, preg, ncol = 2,
-               top = textGrob(str_c("Terminal Nodes = ", i),
-                              gp = gpar(fontsize = 20))) 
-}
+  geom_text(data = tree_leaf_labels, 
+            aes(x = x, y = y, label = label), vjust = 0.5, size = 3) +
+  ggtitle("Terminal nodes = {previous_state}") +
+  theme_dendro() +
+  transition_states(n_nodes,
+                    transition_length = .05,
+                    state_length = .2) +
+  enter_fade() +
+  exit_fade()
+```
+
+```{r auto-tree-weight-i-feat-space, dependson = "auto-tree-weight-i-tree", echo = FALSE, warning = FALSE}
+# plot the feature space
+## extract all the necessary elements
+tree_data1 <- unnest(tree_mods, tree_data1)
+tree_data2 <- unnest(tree_mods, tree_data2)
+
+ggplot(Auto, aes(weight, horsepower)) +
+  geom_point(alpha = .2) +
+  geom_segment(data = tree_data1,
+               aes(x = xmin, xend = xmax, y = ymin, yend = ymax, group = n_nodes)) +
+  geom_text(data = tree_data2,
+            aes(x = x, y = y, label = label, group = n_nodes)) +
+  coord_cartesian(xlim = c(min(Auto$weight), max(Auto$weight)),
+                  ylim = c(min(Auto$horsepower), max(Auto$horsepower)),
+                  expand = FALSE) +
+  theme(panel.border = element_rect(fill = NA, size = 1)) +
+  ggtitle("Terminal nodes = {previous_state}") +
+  transition_states(n_nodes,
+                    transition_length = .05,
+                    state_length = .2) +
+  enter_fade() +
+  exit_fade()
 ```
 
 ### Estimation procedure
@@ -442,13 +456,13 @@ This process continues until some designated stopping criteria is reached, other
 
 Notice that we stop splitting the tree in order to prevent overfitting. Even with the above process, decision trees are highly susceptible to overfitting due to its natural complexity. And if we simply set the stopping criteria at a higher level, we may miss crucial branches later on in the process. Instead we want a method that allows us to grow a large tree and preserve the most important branches or elements.
 
-![](https://growingtogether.areavoices.com/files/2015/11/pruning.jpg)
+![](https://na.rdcpix.com/1162715347/e7baeacffee094b5d79c2ec1708c500ew-c0xd-w685_h860_q80.jpg)
 
-In essence, we want to **prune** the tree. **Cost complexity pruning** is one predominant method for achieving this goal. While I leave the mathematics of this operation to [ISL](https://link-springer-com.proxy.uchicago.edu/book/10.1007%2F978-1-4614-7138-7), cost complexity pruning uses a **tuning parameter** to selectively prune or snip branches that do not contribute significant predictive accuracy, resulting in a subtree generated from the full tree. Different tuning parameter values will lead to different trade-offs between model complexity and model accuracy, so we can use function such as `prune.tree()` in conjunction with [$k$-fold cross-validation](persp006_resampling.html#k-fold_cross-validation) to select a cost complexity parameter that optimally balances the trade-off for the specific dataset.^[Alternatively, you specify the total number of terminal nodes to keep in the model and select that value to optimally balance the trade-off between complexity and accuracy.]
+In essence, we want to **prune** the tree. **Cost complexity pruning** is one predominant method for achieving this goal. While I leave the mathematics of this operation to [ISL](https://link-springer-com.proxy.uchicago.edu/book/10.1007%2F978-1-4614-7138-7), cost complexity pruning uses a **tuning parameter** to selectively prune or snip branches that do not contribute significant predictive accuracy, resulting in a subtree generated from the full tree. Different tuning parameter values will lead to different trade-offs between model complexity and model accuracy, so we can use cost complexity pruning in conjunction with [$k$-fold cross-validation](/notes/cross-validation/#k-fold-cross-validation) to select a cost complexity parameter that optimally balances the trade-off for the specific dataset.
 
 For example, here is the full tree grown for the `horsepower + weight` decision tree:
 
-```{r auto-tree-default}
+```{r auto-tree-default, echo = FALSE}
 auto_tree <- tree(mpg ~ horsepower + weight, data = Auto,
      control = tree.control(nobs = nrow(Auto),
                             mindev = 0))
@@ -478,46 +492,47 @@ preg <- ggplot(Auto, aes(weight, horsepower)) +
   theme(panel.border = element_rect(fill = NA, size = 1))
 
 # display plots side by side
-grid.arrange(ptree, preg, ncol = 2,
-             top = textGrob(str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)),
-                            gp = gpar(fontsize = 20)))
+ptree +
+  preg +
+  plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
 Let's use $10$-fold CV to select the optimal tree size:
 
-```{r auto-tree-default-prune}
+```{r auto-tree-default-prune, echo = FALSE}
 # generate 10-fold CV trees
-auto_cv <- crossv_kfold(Auto, k = 10) %>%
-  mutate(tree = map(train, ~ tree(mpg ~ horsepower + weight, data = .,
-     control = tree.control(nobs = nrow(Auto),
-                            mindev = 0))))
+auto_cv <- vfold_cv(Auto, v = 10) %>%
+  mutate(tree = map(splits, ~ tree(mpg ~ horsepower + weight, data = analysis(.x),
+                                  control = tree.control(nobs = nrow(Auto),
+                                                         mindev = 0))))
 
 # calculate each possible prune result for each fold
-auto_cv <- expand.grid(auto_cv$.id, 2:10) %>%
+auto_cv_prune <- expand.grid(auto_cv$id, 2:30) %>%
   as_tibble() %>%
   mutate(Var2 = as.numeric(Var2)) %>%
-  rename(.id = Var1,
+  rename(id = Var1,
          k = Var2) %>%
   left_join(auto_cv) %>%
   mutate(prune = map2(tree, k, ~ prune.tree(.x, best = .y)),
-         mse = map2_dbl(prune, test, mse))
-
-auto_cv %>%
-  select(k, mse) %>%
+         estimate = map2(prune, splits, ~ predict(.x, newdata = assessment(.y))),
+         truth = map(splits, ~ assessment(.x)$mpg)) %>%
+  unnest(estimate, truth) %>%
   group_by(k) %>%
-  summarize(test_mse = mean(mse),
-            sd = sd(mse, na.rm = TRUE)) %>%
-  ggplot(aes(k, test_mse)) +
+  mse(truth = truth, estimate = estimate)
+
+ggplot(auto_cv_prune, aes(k, .estimate)) +
   geom_point() +
   geom_line() +
+  geom_vline(xintercept = auto_cv_prune$k[[which.min(auto_cv_prune$.estimate)]],
+             linetype = 2) +
   labs(x = "Number of terminal nodes",
-       y = "Test MSE")
+       y = "10-fold CV MSE")
 ```
 
-The minimum cross-validated test MSE is for 7 terminal nodes. Here's what that tree looks like:
+The minimum cross-validated test MSE is for `r auto_cv_prune$k[[which.min(auto_cv_prune$.estimate)]]` terminal nodes. Here's what that tree looks like:
 
-```{r auto-tree-7}
-mod <- prune.tree(auto_tree, best = 7)
+```{r auto-tree-best, dependson = "auto-tree-default-prune", echo = FALSE}
+mod <- prune.tree(auto_tree, best = auto_cv_prune$k[[which.min(auto_cv_prune$.estimate)]])
 
 # plot tree
 tree_data <- dendro_data(mod)
@@ -543,9 +558,9 @@ preg <- ggplot(Auto, aes(weight, horsepower)) +
   theme(panel.border = element_rect(fill = NA, size = 1))
 
 # display plots side by side
-grid.arrange(ptree, preg, ncol = 2,
-             top = textGrob(str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)),
-                            gp = gpar(fontsize = 20)))
+ptree +
+  preg +
+  plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
 ## Classification trees
@@ -562,17 +577,17 @@ In practice, two other methods grow better and more accurate trees. The **Gini i
 
 $$G = \sum_{k = 1}^k \hat{p}_{mk} (1 - \hat{p}_{mk})$$
 
-and is a measure of node **purity**. The higher the proportion of observations belonging to a single class, the closer this value will be to 0.
+and is a measure of node **purity** (i.e. the total amount of variance across the $K$ classes). The higher the proportion of observations belonging to a single class, the closer this value will be to 0.
 
 The alternative is **cross-entropy**:
 
 $$D = - \sum_{k = 1}^K \hat{p}_{mk} \log(\hat{p}_{mk})$$
 
-As more observations are closer to or near 0 or 1, cross-entropy will shrink towards zero. So for classification trees, each split can be evaluated using one of these criteria, though again it is typically the Gini index or cross-entropy.^[`tree()` uses the Gini index for classification trees.]
+As more observations are closer to or near 0 or 1, cross-entropy will shrink towards zero. So for classification trees, each split can be evaluated using one of these criteria, though again it is typically the Gini index or cross-entropy.
 
 Let's return to our running Titanic example. I want to predict who lives and who dies during this event. Instead of using [logistic regression](persp004_logistic_regression.html), I'm going to calculate a decision tree based on a passenger's age and gender. Here's what that decision tree looks like:
 
-```{r titanic_tree}
+```{r titanic_tree, echo = FALSE}
 titanic <- titanic_train %>%
   as_tibble() %>%
   mutate(Survived = factor(Survived, levels = 0:1, labels = c("Died", "Survived")),
@@ -599,53 +614,45 @@ ggplot(segment(tree_data)) +
        subtitle = "Age + Gender")
 ```
 
-```{r titanic-tree-prune, dependson="titanic-tree"}
-err.rate.tree <- function(model, data) {
-  data <- as_tibble(data)
-  response <- as.character(model$terms[[2]])
-  
-  pred <- predict(model, newdata = data, type = "class")
-  actual <- data[[response]]
-  
-  return(mean(pred != actual, na.rm = TRUE))
-}
-
+```{r titanic-tree-prune, dependson="titanic-tree", echo = FALSE, warning = FALSE, message = FALSE}
+set.seed(11)
 # generate 10-fold CV trees
 titanic_cv <- titanic %>%
-  na.omit() %>%
-  crossv_kfold(k = 10) %>%
-  mutate(tree = map(train, ~ tree(Survived ~ Age + Female, data = .,
-     control = tree.control(nobs = nrow(titanic),
-                            mindev = .001))))
+  na.omit(Survived, Age, Female) %>%
+  vfold_cv(v = 10) %>%
+  mutate(tree = map(splits, ~ tree(Survived ~ Age + Female, data = analysis(.x),
+                                   control = tree.control(nobs = nrow(titanic),
+                                                          mindev = .001))))
 
 # calculate each possible prune result for each fold
-titanic_cv <- expand.grid(titanic_cv$.id,
-                          seq(from = 2, to = ceiling(length(mod$frame$yval) / 2))) %>%
+titanic_cv_prune <- expand.grid(titanic_cv$id, 2:30) %>%
   as_tibble() %>%
   mutate(Var2 = as.numeric(Var2)) %>%
-  rename(.id = Var1,
+  rename(id = Var1,
          k = Var2) %>%
   left_join(titanic_cv) %>%
-  mutate(prune = map2(tree, k, ~ prune.misclass(.x, best = .y)),
-         mse = map2_dbl(prune, test, err.rate.tree))
-
-titanic_cv %>%
+  mutate(prune = map2(tree, k, ~ prune.tree(.x, best = .y)),
+         estimate = map2(prune, splits, ~ predict(.x, newdata = assessment(.y))[,2]),
+         truth = map(splits, ~ assessment(.x)$Survived)) %>%
+  unnest(estimate, truth) %>%
   group_by(k) %>%
-  summarize(test_mse = mean(mse),
-            sd = sd(mse, na.rm = TRUE)) %>%
-  ggplot(aes(k, test_mse)) +
+  accuracy(truth = truth, estimate = factor(round(estimate), levels = 0:1, labels = c("Died", "Survived")))
+
+ggplot(titanic_cv_prune, aes(k, 1 - .estimate)) +
   geom_point() +
   geom_line() +
+  geom_vline(xintercept = titanic_cv_prune$k[[which.max(titanic_cv_prune$.estimate)]],
+             linetype = 2) +
   labs(title = "Titanic survival tree",
        subtitle = "Age + Gender",
        x = "Number of terminal nodes",
-       y = "Test error rate")
+       y = "10-fold CV error rate")
 ```
 
-Here I select 6 as the optimal number of nodes.
+Here I select `r titanic_cv_prune$k[[which.max(titanic_cv_prune$.estimate)]]` as the optimal number of nodes.
 
-```{r titanic-tree-6, dependson="titanic-tree"}
-mod <- prune.tree(titanic_tree, best = 6)
+```{r titanic-tree-best, dependson="titanic-tree-prune"}
+mod <- prune.tree(titanic_tree, best = titanic_cv_prune$k[[which.max(titanic_cv_prune$.estimate)]])
 
 tree_data <- dendro_data(mod)
 ggplot(segment(tree_data)) +
@@ -710,26 +717,27 @@ However there are also drawbacks to trees:
 * Their accuracy rates are generally lower than other regression and classification approaches.
 * Trees can be non-robust. That is, a small change in the data or inclusion/exclusion of a handful of observations can dramatically alter the final estimated tree. For example, let's estimate a decision tree for the highway mileage example ($N = `r nrow(Auto)`$) by splitting the data into a training/test set (70/30%) and estimating the test MSE, and repeat this process 1000 times using random combinations of training/test sets:
 
-    ```{r auto-tree-val}
+    ```{r auto-tree-val, echo = FALSE, message = FALSE}
     auto_val_test <- function(){
       # split data
-      auto_split <- resample_partition(Auto, p = c(test = 0.3, train = 0.7))
+      auto_split <- initial_split(Auto, prop = 0.7)
       
       # estimate model
-      val <- tree(mpg ~ horsepower + weight, data = auto_split$train)
+      val <- tree(mpg ~ horsepower + weight, data = analysis(auto_split))
       
       # estimate test mse
-      mse(val, auto_split$test)
+      assessment(auto_split) %>%
+        mutate(estimate = predict(val, newdata = assessment(auto_split))) %>%
+        mse(truth = mpg, estimate = estimate)
     }
     
-    # repeat the procedure 100 times
-    val_mse <- data_frame(id = 1:1000,
-                          mse = map_dbl(id, ~ auto_val_test()))
+    # repeat the procedure 1000 times
+    auto_val_mse <- rerun(.n = 1000, auto_val_test()) %>%
+      bind_rows
     
-    # distribution of the mse
-    ggplot(val_mse, aes(mse)) +
+    ggplot(auto_val_mse, aes(.estimate)) +
       geom_histogram() +
-      geom_vline(xintercept = mean(val_mse$mse))
+      geom_vline(xintercept = mean(auto_val_mse$.estimate))
     ```
 
 The distribution of test MSEs is quite large for each of the splits, indicating substantial variance in our estimate of the test MSE. Fortunately, there is an easy way to improve on these poor predictions: by aggregating many decision trees and averaging across them, we can substantially improve performance.
@@ -756,7 +764,7 @@ Fortunately using a bagged approach also allows us to avoid using any type of re
 
 ```{r boot-prop}
 # generate sample index
-samp <- data_frame(x = seq.int(1000))
+samp <- tibble(x = seq.int(1000))
 
 # generate bootstrap sample and count proportion of observations in each draw
 prop_drawn <- bootstrap(samp, n = nrow(samp)) %>%
@@ -816,7 +824,7 @@ For our Titanic bagged model with all available predictors, we estimate an OOB e
 Interpreting a bagged model is much more difficult than interpreting a single decision tree. Because each tree is unique, we cannot plot an "average" of the trees like we might with a bootstrapped linear model. The most common method of interpretation (beyond prediction accuracy) is **variable importance**, or attempting to assess how important each variable is to the model. In regression trees, for each predictor we calculate the total amount of reduction in the RSS attributable to splits caused by the predictor, averaged over the $B$ trees. For classification trees, we do the same thing using average reduction in the Gini index.
 
 ```{r titanic-varimp}
-data_frame(var = rownames(importance(titanic_bag)),
+tibble(var = rownames(importance(titanic_bag)),
            MeanDecreaseGini = importance(titanic_bag)[,1]) %>%
   mutate(var = fct_reorder(var, MeanDecreaseGini, fun = median)) %>%
   ggplot(aes(var, MeanDecreaseGini)) +
@@ -864,9 +872,9 @@ seq.int(titanic_rf$ntree) %>%
   knitr::kable(caption = "Variable used to generate the first split in each tree",
                col.names = c("Variable used to split", "Number of training observations"))
 
-data_frame(var = rownames(importance(titanic_rf)),
+tibble(var = rownames(importance(titanic_rf)),
            `Random forest` = importance(titanic_rf)[,1]) %>%
-  left_join(data_frame(var = rownames(importance(titanic_rf)),
+  left_join(tibble(var = rownames(importance(titanic_rf)),
            Bagging = importance(titanic_bag)[,1])) %>%
   mutate(var = fct_reorder(var, Bagging, fun = median)) %>%
   gather(model, gini, -var) %>%
@@ -915,7 +923,7 @@ titanic_models <- list("bagging" = randomForest(Survived ~ ., data = titanic_spl
                                                data = as_tibble(titanic_split$train),
                                                n.trees = 10000, interaction.depth = 4))
 
-boost_test_err <- data_frame(bagging = predict(titanic_models$bagging,
+boost_test_err <- tibble(bagging = predict(titanic_models$bagging,
                                                newdata = as_tibble(titanic_split$test),
                                                predict.all = TRUE)[[2]] %>%
                                apply(2, function(x) x != as_tibble(titanic_split$test)$Survived) %>%
@@ -967,7 +975,7 @@ boost_test_err %>%
 Using bagging or random forest methods, the models quickly converge on a test classification error rate. This helps to demonstrate that for bagging and random forests, you do not need a particularly large $B$ to build a good model. For boosting, additional trees are necessary for the error rate to begin converging and stabilizing around a single value. We can use the `gbm.perf()` function to help determine the optimal number of boosting iterations based on either OOB, test set, or CV estimates of the error rate/MSE:
 
 ```{r titanic-boost-opt}
-data_frame(depth = c(1, 2, 4),
+tibble(depth = c(1, 2, 4),
            model = titanic_models[c("boosting_depth1", "boosting_depth2", "boosting_depth4")],
            optimal = map_dbl(model, gbm.perf, plot.it = FALSE)) %>%
   select(-model) %>%
