@@ -1,5 +1,5 @@
 ---
-title: Bagging, random forests, boosting
+title: Boosting
 date: 2019-02-25T13:30:00-06:00  # Schedule page publish date.
     
 draft: false
@@ -117,7 +117,7 @@ prop_drawn &lt;-<span class="st"> </span><span class="kw">bootstrap</span>(samp,
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">alpha =</span> .<span class="dv">05</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="st">&quot;b-th bootstrap sample &quot;</span>,
        <span class="dt">y =</span> <span class="st">&quot;Proportion i-th observation in samples 1:b&quot;</span>)</code></pre></div>
-<p><img src="/notes/tree-aggregation_files/figure-html/boot-prop-1.png" width="672" /></p>
+<p><img src="/notes/boosting_files/figure-html/boot-prop-1.png" width="672" /></p>
 <p>Because of this, we can calculate the <strong>out-of-bag error estimate</strong>, or the average error estimate for out-of-bag observations. First we generate bagged predictions for each observation <span class="math inline">\(i\)</span> using only its OOB estimates, then we average across all <span class="math inline">\(i\)</span> observations to get the OOB error estimate. This is a valid estimate of the test error rate/MSE because it only uses observations that were not part of the training observations for a given bag <span class="math inline">\(b\)</span>. This is far more computationally advantageous than calculating a cross-validated error rate for a bagged model. Consider the following example predicting survival on the Titanic using all available predictors in the dataset:<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic &lt;-<span class="st"> </span>titanic_train <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">as_tibble</span>() <span class="op">%&gt;%</span>
@@ -157,7 +157,7 @@ prop_drawn &lt;-<span class="st"> </span><span class="kw">bootstrap</span>(samp,
                               <span class="dt">mtry =</span> <span class="dv">7</span>, <span class="dt">ntree =</span> <span class="dv">500</span>)
 })</code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.261   0.001   0.263</code></pre>
+##   0.272   0.003   0.278</code></pre>
 </div>
 <div id="estimation-time-for-10-fold-cv-error-rate" class="section level5">
 <h5><span class="header-section-number">1.1.0.0.2</span> Estimation time for <span class="math inline">\(10\)</span>-fold CV error rate</h5>
@@ -169,7 +169,7 @@ prop_drawn &lt;-<span class="st"> </span><span class="kw">bootstrap</span>(samp,
 <span class="st">    </span><span class="kw">summarize</span>(<span class="kw">mean</span>(test.err))
 })</code></pre></div>
 <pre><code>##    user  system elapsed 
-##   2.501   0.132   2.658</code></pre>
+##   2.508   0.127   2.656</code></pre>
 <p>For our Titanic bagged model with all available predictors, we estimate an OOB error rate of <span class="math inline">\(20.3081232\%\)</span>. Likewise, we obtain a <a href="persp004_logistic_regression.html#confusion_matrix">confusion matrix</a> to identify our error rate for each class.</p>
 </div>
 </div>
@@ -187,7 +187,7 @@ prop_drawn &lt;-<span class="st"> </span><span class="kw">bootstrap</span>(samp,
        <span class="dt">x =</span> <span class="ot">NULL</span>,
        <span class="dt">y =</span> <span class="st">&quot;Average decrease in the Gini Index&quot;</span>)</code></pre></div>
 <pre><code>## Warning: Some components of ... were not used: fun</code></pre>
-<p><img src="/notes/tree-aggregation_files/figure-html/titanic-varimp-1.png" width="672" /></p>
+<p><img src="/notes/boosting_files/figure-html/titanic-varimp-1.png" width="672" /></p>
 <p>For classification trees, larger values are better. So for the Titanic bagged model, gender, age, and fare are the most important predictors, whereas number of siblings/parents aboard and the port of departure are relatively unimportant.</p>
 </div>
 </div>
