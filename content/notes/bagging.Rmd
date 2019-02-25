@@ -1,5 +1,5 @@
 ---
-title: Boosting
+title: Bagging
 date: 2019-02-25T13:30:00-06:00  # Schedule page publish date.
     
 draft: false
@@ -23,41 +23,16 @@ knitr::opts_chunk$set(cache = TRUE)
 ```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
 library(tidyverse)
 library(tidymodels)
-library(modelr)
 library(tree)
 library(randomForest)
-library(stringr)
-library(ISLR)
 library(patchwork)
 library(titanic)
-library(rcfss)
-library(pROC)
-library(gbm)
-library(gganimate)
-library(magrittr)
-
-# to get the tree graphs with the labels and values, use the forked
-# version of ggdendro
-# devtools::install_github("bensoltoff/ggdendro")
-library(ggdendro)
 
 set.seed(1234)
 theme_set(theme_minimal())
 ```
 
 \newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
-
-```{r err-rate-rf, include = FALSE}
-err.rate.rf <- function(model, data) {
-  data <- as_tibble(data)
-  response <- as.character(model$terms[[2]])
-  
-  pred <- predict(model, newdata = data, type = "response")
-  actual <- data[[response]]
-  
-  return(mean(pred != actual, na.rm = TRUE))
-}
-```
 
 # Bagging
 
@@ -84,19 +59,20 @@ Fortunately using a bagged approach also allows us to avoid using any type of re
 samp <- tibble(x = seq.int(1000))
 
 # generate bootstrap sample and count proportion of observations in each draw
-prop_drawn <- bootstrap(samp, n = nrow(samp)) %>%
-  mutate(strap = map(strap, as_tibble)) %>%
+prop_drawn <- bootstraps(samp, times = nrow(samp)) %>%
+  mutate(strap = map(splits, analysis)) %>%
   unnest(strap) %>%
   mutate(drawn = TRUE) %>%
-  complete(.id, x, fill = list(drawn = FALSE)) %>%
+  complete(id, x, fill = list(drawn = FALSE)) %>%
   distinct %>%
   group_by(x) %>%
   mutate(n_drawn = cumsum(drawn),
-         .id = as.numeric(.id),
-         n_prop = n_drawn / .id)
+         id = parse_number(id),
+         n_prop = n_drawn / id)
 
-ggplot(prop_drawn, aes(.id, n_prop, group = x)) +
+ggplot(prop_drawn, aes(id, n_prop, group = x)) +
   geom_line(alpha = .05) +
+  scale_y_continuous(labels = scales::percent) +
   labs(x = "b-th bootstrap sample ",
        y = "Proportion i-th observation in samples 1:b")
 ```
@@ -133,15 +109,20 @@ system.time({
 
 ```{r titanic-bag-cv-time}
 system.time({
-  crossv_kfold(titanic_rf_data, k = 10) %>%
-    mutate(model = map(train, ~ randomForest(Survived ~ ., data = .,
-                              mtry = 7, ntree = 500)),
-           test.err = map2_dbl(model, test, err.rate.rf)) %>%
-    summarize(mean(test.err))
+  vfold_cv(titanic_rf_data, v = 10) %>%
+    mutate(model = map(splits, ~ randomForest(x = select(analysis(.x), -Survived),
+                                              y = analysis(.x)$Survived,
+                                              mtry = 7, ntree = 500)),
+           estimate = map2(model, splits, ~predict(.x, newdata = assessment(.y))),
+           truth = map(splits, ~ assessment(.x)$Survived)) %>%
+    unnest(truth, estimate) %>%
+    group_by(id) %>%
+    accuracy(truth = truth, estimate = estimate) %>%
+    summarize(mean(.estimate))
 })
 ```
 
-For our Titanic bagged model with all available predictors, we estimate an OOB error rate of $`r tail(titanic_bag$err.rate[,1], n = 1) * 100`\%$. Likewise, we obtain a [confusion matrix](persp004_logistic_regression.html#confusion_matrix) to identify our error rate for each class.
+For our Titanic bagged model with all available predictors, we estimate an OOB error rate of $`r tail(titanic_bag$err.rate[,1], n = 1) * 100`\%$. Likewise, we obtain a [confusion matrix](/notes/logistic-regression/#confusion-matrix) to identify our error rate for each class.
 
 ## Variable importance measures
 
