@@ -436,7 +436,7 @@ We have already identified that decision trees use stratification to divide the 
 
 $$\sum_{j=1}^J \sum_{i \in R_j} (y_i - \hat{y}_{R_j})^2$$
 
-where $\hat{y}_{R_j}$ is the mean response for the observations in the $j$th region. In order to do this, decision trees implement a **recursive binary strategy**. The process begins at the top of the tree (**top-down**) and successively splits the data into a new region. This split generates two new branches in the tree. Rather than looking forward to select the optimal split among all future possibilities, this approach is **greedy** in that it selects the best split **at that particular step**. Given all the potential splits that could be performed on one of the predictors $X_1, X_2, \dots, X_p$ predictors, the algorithm assigns a cutpoint $s$ that splits the data in the manner that reduces the RSS by the largest amount.
+where $\hat{y}_{R_j}$ is the mean response for the observations in the $j$th region. In order to do this, decision trees implement a **recursive binary strategy**, also known as **classification and regression trees** (CART). The process begins at the top of the tree (**top-down**) and successively splits the data into a new region. This split generates two new branches in the tree. Rather than looking forward to select the optimal split among all future possibilities, this approach is **greedy** in that it selects the best split **at that particular step**. Given all the potential splits that could be performed on one of the predictors $X_1, X_2, \dots, X_p$ predictors, the algorithm assigns a cutpoint $s$ that splits the data in the manner that reduces the RSS by the largest amount.
 
 $$\min \left\{ SSE = \sum_{i \in R_1} (y_i - \hat{y}_{R_1})^2 + \sum_{i \in R_2} (y_i - \hat{y}_{R_2})^2 \right\}$$
 
@@ -702,6 +702,37 @@ $$f(X) = \sum_{m = 1}^M c_m \cdot 1_{X \in R_m}$$
 
 If the relationship between the predictor(s) and the response are truly linear and additive, then linear regression will likely perform better than a decision tree. If the relationship is highly complex and non-linear, then decision trees may be the better option. Using resampling methods such as cross-validation can help you to decide the appropriate statistical learning method.
 
+# Other things of note with decision trees
+
+## Categorical predictors
+
+When splitting a predictor with $q$ unordered values, there are $2^{q - 1} - 1$ possible partitions of the $q$ values into two groups. Figuring out the optimal partition when $q$ is large could be prohibitively difficult. If $q$ were a binary outcome, it would be much simpler.
+
+Unlike with regression-based models, we do not have to perform one-hot encoding of categorical variables prior to estimating decision trees. The decision tree procedure instead orders the predictor classes according to the proportion falling into outcome class 1. Then we split the predictor as if it were an ordered predictor. In fact, this turns out to be the optimal split.
+
+> Note that this procedure only works for binary outcomes of interest. If this is a regression tree or classification tree with more than two possible outcomes, this procedure does not work.
+
+## Missing values
+
+If observations have missing values, with regression models we have two main options:
+
+1. Discard the observation (listwise deletion)
+1. Impute (fill in) the missing value
+
+Decision trees offer two additional procedures.
+
+1. For categorical variables, create a new category for missing values. That is, treat missing values as if they are another unique category.
+1. Construct **surrogate variables**. When we split a node, only use observations for which the predictor is not missing. Then for any future nodes further down, form a list of surrogate predictors and split points. The first surrogate is the predictor and corresponding split point that best mimics the training data achieved by the primary split. The second surrogate is the predictor and corresponding split point that does second best, and so on. When sending observations down the tree either in the training phase or during prediction, use the surrogate splits in order, if the primary splitting predictor is missing.
+
+## Connection to MARS
+
+While [MARS](/notes/multivariate-adaptive-regression-splines/) and decision trees may seem quite different, they are actually strongly related to one another. Take the MARS procedure and make two modifications:
+
+* Replace the piecewise linear basis functions with step functions $I(x - t > 0)$ and $I(x - t \leq 0)$
+* When a model term is involved in a multiplication by a candidate term, it gets replaced by the interaction and is not available for further interactions
+
+With these changes, the MARS forward procedure is the same as the CART tree-growing algorithm.
+
 # Benefits/drawbacks to decision trees
 
 Decision trees are an entirely different method of estimating functional forms as compared to linear regression. There are some benefits to trees:
@@ -712,6 +743,7 @@ Decision trees are an entirely different method of estimating functional forms a
 
 However there are also drawbacks to trees:
 
+* They cannot accurately capture additive structures. That is, if the relationship between $X_1, X_2$ and $Y$ is additive, a tree grown through binary splits is unlikely to detect this relationship since it would have to perform virtually identical splits down separate branches of the tree.
 * Their accuracy rates are generally lower than other regression and classification approaches.
 * Trees can be non-robust. That is, a small change in the data or inclusion/exclusion of a handful of observations can dramatically alter the final estimated tree. For example, let's estimate a decision tree for the highway mileage example ($N = `r nrow(Auto)`$) by splitting the data into a training/test set (70/30%) and estimating the test MSE, and repeat this process 1000 times using random combinations of training/test sets:
 

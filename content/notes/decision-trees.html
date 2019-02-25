@@ -27,9 +27,14 @@ menu:
 </ul></li>
 <li><a href="#classification-trees"><span class="toc-section-number">3</span> Classification trees</a></li>
 <li><a href="#trees-vs.regression"><span class="toc-section-number">4</span> Trees vs. regression</a></li>
-<li><a href="#benefitsdrawbacks-to-decision-trees"><span class="toc-section-number">5</span> Benefits/drawbacks to decision trees</a></li>
-<li><a href="#session-info"><span class="toc-section-number">6</span> Session Info</a></li>
-<li><a href="#references"><span class="toc-section-number">7</span> References</a></li>
+<li><a href="#other-things-of-note-with-decision-trees"><span class="toc-section-number">5</span> Other things of note with decision trees</a><ul>
+<li><a href="#categorical-predictors"><span class="toc-section-number">5.1</span> Categorical predictors</a></li>
+<li><a href="#missing-values"><span class="toc-section-number">5.2</span> Missing values</a></li>
+<li><a href="#connection-to-mars"><span class="toc-section-number">5.3</span> Connection to MARS</a></li>
+</ul></li>
+<li><a href="#benefitsdrawbacks-to-decision-trees"><span class="toc-section-number">6</span> Benefits/drawbacks to decision trees</a></li>
+<li><a href="#session-info"><span class="toc-section-number">7</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">8</span> References</a></li>
 </ul>
 </div>
 
@@ -105,7 +110,7 @@ menu:
 <h2><span class="header-section-number">2.3</span> Estimation procedure</h2>
 <p>We have already identified that decision trees use stratification to divide the observations into <span class="math inline">\(R_J\)</span> regions. Like in linear regression, our goal is to minimize the residual sum of the squared errors (RSS), defined for a decision tree as:</p>
 <p><span class="math display">\[\sum_{j=1}^J \sum_{i \in R_j} (y_i - \hat{y}_{R_j})^2\]</span></p>
-<p>where <span class="math inline">\(\hat{y}_{R_j}\)</span> is the mean response for the observations in the <span class="math inline">\(j\)</span>th region. In order to do this, decision trees implement a <strong>recursive binary strategy</strong>. The process begins at the top of the tree (<strong>top-down</strong>) and successively splits the data into a new region. This split generates two new branches in the tree. Rather than looking forward to select the optimal split among all future possibilities, this approach is <strong>greedy</strong> in that it selects the best split <strong>at that particular step</strong>. Given all the potential splits that could be performed on one of the predictors <span class="math inline">\(X_1, X_2, \dots, X_p\)</span> predictors, the algorithm assigns a cutpoint <span class="math inline">\(s\)</span> that splits the data in the manner that reduces the RSS by the largest amount.</p>
+<p>where <span class="math inline">\(\hat{y}_{R_j}\)</span> is the mean response for the observations in the <span class="math inline">\(j\)</span>th region. In order to do this, decision trees implement a <strong>recursive binary strategy</strong>, also known as <strong>classification and regression trees</strong> (CART). The process begins at the top of the tree (<strong>top-down</strong>) and successively splits the data into a new region. This split generates two new branches in the tree. Rather than looking forward to select the optimal split among all future possibilities, this approach is <strong>greedy</strong> in that it selects the best split <strong>at that particular step</strong>. Given all the potential splits that could be performed on one of the predictors <span class="math inline">\(X_1, X_2, \dots, X_p\)</span> predictors, the algorithm assigns a cutpoint <span class="math inline">\(s\)</span> that splits the data in the manner that reduces the RSS by the largest amount.</p>
 <p><span class="math display">\[\min \left\{ SSE = \sum_{i \in R_1} (y_i - \hat{y}_{R_1})^2 + \sum_{i \in R_2} (y_i - \hat{y}_{R_2})^2 \right\}\]</span></p>
 <p>As the number of predictors <span class="math inline">\(p\)</span> and observations <span class="math inline">\(N\)</span> increases, the more potential cutpoints the algorithm must consider. However even with relatively large numbers of predictors and observations, the computational process is quite efficient.</p>
 <p>This process continues until some designated stopping criteria is reached, otherwise it could continue until each training observation is sorted into its own node (i.e. overfitting). A reasonable value could be five or ten. Once this iterative process stops and we have created <span class="math inline">\(R_1, R_2, \ldots, R_J\)</span> regions, we can generate predicted values for the response of a given test observation by calculating the mean of the training observations for the region in which the test observation belongs.</p>
@@ -208,8 +213,41 @@ menu:
 <p><span class="math display">\[f(X) = \sum_{m = 1}^M c_m \cdot 1_{X \in R_m}\]</span></p>
 <p>If the relationship between the predictor(s) and the response are truly linear and additive, then linear regression will likely perform better than a decision tree. If the relationship is highly complex and non-linear, then decision trees may be the better option. Using resampling methods such as cross-validation can help you to decide the appropriate statistical learning method.</p>
 </div>
+<div id="other-things-of-note-with-decision-trees" class="section level1">
+<h1><span class="header-section-number">5</span> Other things of note with decision trees</h1>
+<div id="categorical-predictors" class="section level2">
+<h2><span class="header-section-number">5.1</span> Categorical predictors</h2>
+<p>When splitting a predictor with <span class="math inline">\(q\)</span> unordered values, there are <span class="math inline">\(2^{q - 1} - 1\)</span> possible partitions of the <span class="math inline">\(q\)</span> values into two groups. Figuring out the optimal partition when <span class="math inline">\(q\)</span> is large could be prohibitively difficult. If <span class="math inline">\(q\)</span> were a binary outcome, it would be much simpler.</p>
+<p>Unlike with regression-based models, we do not have to perform one-hot encoding of categorical variables prior to estimating decision trees. The decision tree procedure instead orders the predictor classes according to the proportion falling into outcome class 1. Then we split the predictor as if it were an ordered predictor. In fact, this turns out to be the optimal split.</p>
+<blockquote>
+<p>Note that this procedure only works for binary outcomes of interest. If this is a regression tree or classification tree with more than two possible outcomes, this procedure does not work.</p>
+</blockquote>
+</div>
+<div id="missing-values" class="section level2">
+<h2><span class="header-section-number">5.2</span> Missing values</h2>
+<p>If observations have missing values, with regression models we have two main options:</p>
+<ol style="list-style-type: decimal">
+<li>Discard the observation (listwise deletion)</li>
+<li>Impute (fill in) the missing value</li>
+</ol>
+<p>Decision trees offer two additional procedures.</p>
+<ol style="list-style-type: decimal">
+<li>For categorical variables, create a new category for missing values. That is, treat missing values as if they are another unique category.</li>
+<li>Construct <strong>surrogate variables</strong>. When we split a node, only use observations for which the predictor is not missing. Then for any future nodes further down, form a list of surrogate predictors and split points. The first surrogate is the predictor and corresponding split point that best mimics the training data achieved by the primary split. The second surrogate is the predictor and corresponding split point that does second best, and so on. When sending observations down the tree either in the training phase or during prediction, use the surrogate splits in order, if the primary splitting predictor is missing.</li>
+</ol>
+</div>
+<div id="connection-to-mars" class="section level2">
+<h2><span class="header-section-number">5.3</span> Connection to MARS</h2>
+<p>While <a href="/notes/multivariate-adaptive-regression-splines/">MARS</a> and decision trees may seem quite different, they are actually strongly related to one another. Take the MARS procedure and make two modifications:</p>
+<ul>
+<li>Replace the piecewise linear basis functions with step functions <span class="math inline">\(I(x - t &gt; 0)\)</span> and <span class="math inline">\(I(x - t \leq 0)\)</span></li>
+<li>When a model term is involved in a multiplication by a candidate term, it gets replaced by the interaction and is not available for further interactions</li>
+</ul>
+<p>With these changes, the MARS forward procedure is the same as the CART tree-growing algorithm.</p>
+</div>
+</div>
 <div id="benefitsdrawbacks-to-decision-trees" class="section level1">
-<h1><span class="header-section-number">5</span> Benefits/drawbacks to decision trees</h1>
+<h1><span class="header-section-number">6</span> Benefits/drawbacks to decision trees</h1>
 <p>Decision trees are an entirely different method of estimating functional forms as compared to linear regression. There are some benefits to trees:</p>
 <ul>
 <li>They are easy to explain. Most people, even if they lack statistical training, can understand decision trees.</li>
@@ -218,6 +256,7 @@ menu:
 </ul>
 <p>However there are also drawbacks to trees:</p>
 <ul>
+<li>They cannot accurately capture additive structures. That is, if the relationship between <span class="math inline">\(X_1, X_2\)</span> and <span class="math inline">\(Y\)</span> is additive, a tree grown through binary splits is unlikely to detect this relationship since it would have to perform virtually identical splits down separate branches of the tree.</li>
 <li>Their accuracy rates are generally lower than other regression and classification approaches.</li>
 <li><p>Trees can be non-robust. That is, a small change in the data or inclusion/exclusion of a handful of observations can dramatically alter the final estimated tree. For example, let’s estimate a decision tree for the highway mileage example (<span class="math inline">\(N = 392\)</span>) by splitting the data into a training/test set (70/30%) and estimating the test MSE, and repeat this process 1000 times using random combinations of training/test sets:</p>
 <p><img src="/notes/decision-trees_files/figure-html/auto-tree-val-1.png" width="672" /></p>
@@ -226,18 +265,18 @@ menu:
 <p>This illustrates the most important characteristic of decision trees: they are a <strong>low-bias</strong>, <strong>high-variance</strong> modeling strategy.</p>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
-<h1><span class="header-section-number">6</span> Session Info</h1>
+<h1><span class="header-section-number">7</span> Session Info</h1>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
 ##  version  R version 3.5.2 (2018-12-20)
-##  os       macOS Mojave 10.14.2        
+##  os       macOS Mojave 10.14.3        
 ##  system   x86_64, darwin15.6.0        
 ##  ui       X11                         
 ##  language (EN)                        
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-02-22                  
+##  date     2019-02-25                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package       * version    date       lib
@@ -535,7 +574,7 @@ menu:
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
 </div>
 <div id="references" class="section level1 toc-ignore">
-<h1><span class="header-section-number">7</span> References</h1>
+<h1><span class="header-section-number">8</span> References</h1>
 <ul>
 <li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
 <li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>

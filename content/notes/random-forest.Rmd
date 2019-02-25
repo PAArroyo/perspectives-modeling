@@ -1,0 +1,233 @@
+---
+title: Random forests, boosting
+date: 2019-02-27T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Tree-based inference
+    weight: 3
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(tidymodels)
+library(modelr)
+library(tree)
+library(randomForest)
+library(stringr)
+library(ISLR)
+library(patchwork)
+library(titanic)
+library(rcfss)
+library(pROC)
+library(gbm)
+library(gganimate)
+library(magrittr)
+
+# to get the tree graphs with the labels and values, use the forked
+# version of ggdendro
+# devtools::install_github("bensoltoff/ggdendro")
+library(ggdendro)
+
+set.seed(1234)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+```{r err-rate-rf, include = FALSE}
+err.rate.rf <- function(model, data) {
+  data <- as_tibble(data)
+  response <- as.character(model$terms[[2]])
+  
+  pred <- predict(model, newdata = data, type = "response")
+  actual <- data[[response]]
+  
+  return(mean(pred != actual, na.rm = TRUE))
+}
+```
+
+# Random forests
+
+**Random forests** improve upon bagging by decorrelating the individual trees. The problem with bagging is that if there is a single dominant predictor in the dataset, most trees will use the same predictor for the first split and ensure correlation and similarity among the trees. Remember that the goal of bagging is to reduce the variance of our estimates of the response variable $Y$. But averaging across a set of correlated trees will not substantially reduce variance, at least not as much as if the trees were uncorrelated.
+
+To resolve this problem, when splitting a tree random forests will only consider a random sample $m$ of the total possible predictors $p$. That is, it intentionally ignores a random set of variables. Every time a new split is considered, a new random sample $m$ is drawn. The main question then becomes how to select the size of $m$. ISL recommends $m = \sqrt{p}$. By default, the `randomForest` package uses $m = \sqrt{p}$ for classification trees and $m = \frac{p}{3}$ for regression trees.
+
+Let's compare the results of the bagged Titanic model to the same model, only this time employing the random forest method:
+
+##### Bagged model
+
+```{r titanic}
+titanic <- titanic_train %>%
+  as_tibble() %>%
+  mutate(Survived = factor(Survived, levels = 0:1, labels = c("Died", "Survived")),
+         Female = factor(Sex, levels = c("male", "female")))
+```
+
+```{r titanic-bag-oob, dependson = "titanic"}
+titanic_rf_data <- titanic %>%
+    select(-Name, -Ticket, -Cabin, -Sex, -PassengerId) %>%
+    mutate_each(funs(as.factor(.)), Pclass, Embarked) %>%
+    na.omit
+
+(titanic_bag <- randomForest(Survived ~ ., data = titanic_rf_data,
+                             mtry = 7, ntree = 500))
+```
+
+```{r titanic-bag-reprint}
+titanic_bag
+```
+
+```{r titanic-bag-first-split}
+seq.int(titanic_bag$ntree) %>%
+  map_df(~ getTree(titanic_bag, k = ., labelVar = TRUE)[1,]) %>%
+  count(`split var`) %>%
+  knitr::kable(caption = "Variable used to generate the first split in each tree",
+               col.names = c("Variable used to split", "Number of training observations"))
+```
+
+##### Random forest model
+
+```{r titanic-rf}
+(titanic_rf <- randomForest(Survived ~ ., data = titanic_rf_data,
+                            ntree = 500))
+
+seq.int(titanic_rf$ntree) %>%
+  map_df(~ getTree(titanic_rf, k = ., labelVar = TRUE)[1,]) %>%
+  count(`split var`) %>%
+  knitr::kable(caption = "Variable used to generate the first split in each tree",
+               col.names = c("Variable used to split", "Number of training observations"))
+
+tibble(var = rownames(importance(titanic_rf)),
+           `Random forest` = importance(titanic_rf)[,1]) %>%
+  left_join(tibble(var = rownames(importance(titanic_rf)),
+           Bagging = importance(titanic_bag)[,1])) %>%
+  mutate(var = fct_reorder(var, Bagging, fun = median)) %>%
+  gather(model, gini, -var) %>%
+  ggplot(aes(var, gini, color = model)) +
+  geom_point() +
+  coord_flip() +
+  labs(title = "Predicting survival on the Titanic",
+       x = NULL,
+       y = "Average decrease in the Gini Index",
+       color = "Method")
+```
+
+The OOB error rate is a couple points smaller on the random forest model, and in the random forest model gender is no longer exclusively used to generate the first split for each tree. We can also observe that the average decrease in the Gini index associated with each variable is generally smaller using the random forest method compared to bagging - this is because of the variable restriction imposed when considering splits.
+
+# Boosting
+
+**Boosting** is another approach to improve upon the result of a single decision tree. Instead of creating multiple independent decision trees through a bootstrapping process, boosting grows trees **sequentially**, using information from the previously grown trees. Rather than fitting a model to the response variable $Y$, we fit a large number of decision trees $\hat{f}^1, \dots, \hat{f}^B$ to the current **residuals**. Each time a new decision tree is estimated, the residuals are updated combining the results of all previous decision trees in preparation for fitting the next tree.
+
+Rather than learning hard and fast like in bagging and random forests, boosting **learns slowly** over time as new trees are added. Because boosting is additive and slow, we can estimate fairly small trees and still gain considerable predictive power.
+
+Boosting is a general process that can be used for other statistical learning methods. The three main tuning parameters when boosting are:
+
+1. The **number of trees** $B$. If $B$ is too large, boosting can overfit. Typically we would use cross-validation to select $B$.
+1. The **shrinkage parameter** $\lambda$, which is a small positive number (i.e. $.01$ or $.001$). This controls the rate at which boosting learns. As $\lambda$ gets smaller, $B$ generally must increase.
+1. The **number of $d$ split in each tree**. Surprisingly, $d=1$ actually works well which is essentially an additive model (each tree is a **stump** with a single predictor), though larger values of $d$ are also common.
+
+Let's evaluate all the approaches we've seen so far using the Titanic model.
+
+```{r titanic-compare-all}
+titanic_split <- resample_partition(titanic_rf_data, p = c("test" = .3,
+                                                           "train" = .7))
+
+titanic_models <- list("bagging" = randomForest(Survived ~ ., data = titanic_split$train,
+                                                mtry = 7, ntree = 10000),
+                       "rf_mtry2" = randomForest(Survived ~ ., data = titanic_split$train,
+                                                 mtry = 2, ntree = 10000),
+                       "rf_mtry4" = randomForest(Survived ~ ., data = titanic_split$train,
+                                                 mtry = 4, ntree = 10000),
+                       "boosting_depth1" = gbm(as.numeric(Survived) - 1 ~ .,
+                                               data = as_tibble(titanic_split$train),
+                                               n.trees = 10000, interaction.depth = 1),
+                       "boosting_depth2" = gbm(as.numeric(Survived) - 1 ~ .,
+                                               data = as_tibble(titanic_split$train),
+                                               n.trees = 10000, interaction.depth = 2),
+                       "boosting_depth4" = gbm(as.numeric(Survived) - 1 ~ .,
+                                               data = as_tibble(titanic_split$train),
+                                               n.trees = 10000, interaction.depth = 4))
+
+boost_test_err <- tibble(bagging = predict(titanic_models$bagging,
+                                               newdata = as_tibble(titanic_split$test),
+                                               predict.all = TRUE)[[2]] %>%
+                               apply(2, function(x) x != as_tibble(titanic_split$test)$Survived) %>%
+                               apply(2, mean),
+                             rf_mtry2 = predict(titanic_models$rf_mtry2,
+                                                newdata = as_tibble(titanic_split$test),
+                                                predict.all = TRUE)[[2]] %>%
+                               apply(2, function(x) x != as_tibble(titanic_split$test)$Survived) %>%
+                               apply(2, mean),
+                             rf_mtry4 = predict(titanic_models$rf_mtry4,
+                                                newdata = as_tibble(titanic_split$test),
+                                                predict.all = TRUE)[[2]] %>%
+                               apply(2, function(x) x != as_tibble(titanic_split$test)$Survived) %>%
+                               apply(2, mean),
+                             boosting_depth1 = predict(titanic_models$boosting_depth1,
+                                                       newdata = as_tibble(titanic_split$test),
+                                                       n.trees = 1:10000) %>%
+                               apply(2, function(x) round(x) == as.numeric(as_tibble(titanic_split$test)$Survived) - 1) %>%
+                               apply(2, mean),
+                             boosting_depth2 = predict(titanic_models$boosting_depth2,
+                                                       newdata = as_tibble(titanic_split$test),
+                                                       n.trees = 1:10000) %>%
+                               apply(2, function(x) round(x) == as.numeric(as_tibble(titanic_split$test)$Survived) - 1) %>%
+                               apply(2, mean),
+                             boosting_depth4 = predict(titanic_models$boosting_depth4,
+                                                       newdata = as_tibble(titanic_split$test),
+                                                       n.trees = 1:10000) %>%
+                               apply(2, function(x) round(x) == as.numeric(as_tibble(titanic_split$test)$Survived) - 1) %>%
+                               apply(2, mean))
+
+boost_test_err %>%
+  mutate(id = row_number()) %>%
+  mutate_each(funs(cummean(.)), bagging:rf_mtry4) %>%
+  gather(model, err, -id) %>%
+  mutate(model = factor(model, levels = names(titanic_models),
+                        labels = c("Bagging", "Random forest: m = \\sqrt(p)",
+                                   "Random forest: m = 4",
+                                   "Boosting: depth = 1",
+                                   "Boosting: depth = 2",
+                                   "Boosting: depth = 4"))) %>%
+  ggplot(aes(id, err, color = model)) +
+  geom_line() +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  labs(x = "Number of trees",
+       y = "Test classification error",
+       color = "Model")
+```
+
+Using bagging or random forest methods, the models quickly converge on a test classification error rate. This helps to demonstrate that for bagging and random forests, you do not need a particularly large $B$ to build a good model. For boosting, additional trees are necessary for the error rate to begin converging and stabilizing around a single value. We can use the `gbm.perf()` function to help determine the optimal number of boosting iterations based on either OOB, test set, or CV estimates of the error rate/MSE:
+
+```{r titanic-boost-opt}
+tibble(depth = c(1, 2, 4),
+           model = titanic_models[c("boosting_depth1", "boosting_depth2", "boosting_depth4")],
+           optimal = map_dbl(model, gbm.perf, plot.it = FALSE)) %>%
+  select(-model) %>%
+  knitr::kable(caption = "Optimal number of boosting iterations",
+               col.names = c("Depth", "Optimal number of iterations"))
+  
+```
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* @james2013introduction
+* @friedman2001elements
