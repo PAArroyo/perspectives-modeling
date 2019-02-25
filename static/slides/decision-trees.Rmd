@@ -36,6 +36,7 @@ library(rpart)       # performing regression trees
 library(rpart.plot)  # plotting regression trees
 library(ipred)       # bagging
 library(caret)       # bagging
+library(iml)
 
 # to get the tree graphs with the labels and values, use the forked
 # version of ggdendro
@@ -968,6 +969,247 @@ optimal_tree <- rpart(
 pred <- predict(optimal_tree, newdata = ames_test)
 RMSE(pred = pred, obs = ames_test$Sale_Price)
 ```
+
+---
+
+# Bagging
+
+* High variance estimates and consistency
+* Low variance estimates and consistency
+* Bootstrap aggregating (bagging)
+
+---
+
+# Bootstrap
+
+* Repeatedly sample with replacement from a sample
+* Estimate a parameter from each bootstrap sample
+* Average accross all the bootstrap samples
+* Reduces the variance $\sigma^2$
+--
+
+* Estimate $\hat{f}^1(x), \hat{f}^2(x), \dots, \hat{f}^B(x)$ using $B$ separate training sets
+
+    $$\hat{f}_{\text{avg}}(x) = \frac{1}{B} \sum_{b = 1}^B \hat{f}^b(x)$$
+
+    $$\hat{f}_{\text{bag}}(x) = \frac{1}{B} \sum_{b = 1}^B \hat{f}^b(x)$$
+    
+* Trees grown without pruning
+* Assigning predictions
+
+---
+
+# Out-of-bag observations
+
+```{r boot-prop}
+# generate sample index
+samp <- tibble(x = seq.int(1000))
+
+# generate bootstrap sample and count proportion of observations in each draw
+prop_drawn <- bootstraps(samp, times = nrow(samp)) %>%
+  mutate(strap = map(splits, analysis)) %>%
+  unnest(strap) %>%
+  mutate(drawn = TRUE) %>%
+  complete(id, x, fill = list(drawn = FALSE)) %>%
+  distinct %>%
+  group_by(x) %>%
+  mutate(n_drawn = cumsum(drawn),
+         id = parse_number(id),
+         n_prop = n_drawn / id)
+
+ggplot(prop_drawn, aes(id, n_prop, group = x)) +
+  geom_line(alpha = .05) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "b-th bootstrap sample ",
+       y = "Proportion i-th observation in samples 1:b")
+```
+
+---
+
+# Out-of-bag error estimate
+
+* Generate bagged predictions for each observation $i$ using only its OOB estimates
+* Average across all $i$ observations
+* Valid estimate of the test error
+
+---
+
+# Out-of-bag error estimate
+
+```{r titanic}
+titanic <- titanic_train %>%
+  as_tibble() %>%
+  mutate(Survived = factor(Survived, levels = 0:1, labels = c("Died", "Survived")),
+         Female = factor(Sex, levels = c("male", "female")))
+```
+
+```{r titanic-bag-oob, dependson = "titanic"}
+titanic_rf_data <- titanic %>%
+    select(-Name, -Ticket, -Cabin, -Sex, -PassengerId) %>%
+    mutate_each(list(~ as.factor(.)), Pclass, Embarked) %>%
+    na.omit
+
+(titanic_bag <- randomForest(Survived ~ ., data = titanic_rf_data,
+                             mtry = 7, ntree = 500))
+```
+
+---
+
+# Out-of-bag error estimate
+
+## Estimation time for OOB error rate
+
+```{r titanic-bag-oob-time}
+system.time({
+  randomForest(Survived ~ ., data = titanic_rf_data,
+                              mtry = 7, ntree = 500)
+})
+```
+
+## Estimation time for $10$-fold CV error rate
+
+```{r titanic-bag-cv-time}
+system.time({
+  vfold_cv(titanic_rf_data, v = 10) %>%
+    mutate(model = map(splits, ~ randomForest(x = select(analysis(.x), -Survived),
+                                              y = analysis(.x)$Survived,
+                                              mtry = 7, ntree = 500)),
+           estimate = map2(model, splits, ~predict(.x, newdata = assessment(.y))),
+           truth = map(splits, ~ assessment(.x)$Survived)) %>%
+    unnest(truth, estimate) %>%
+    group_by(id) %>%
+    accuracy(truth = truth, estimate = estimate) %>%
+    summarize(mean(.estimate))
+})
+```
+
+---
+
+# Ames housing model
+
+```{r ames-bag, dependson = "ames"}
+# make bootstrapping reproducible
+set.seed(123)
+
+# train bagged model
+bagged_m1 <- bagging(
+  formula = Sale_Price ~ .,
+  data    = ames_train,
+  coob    = TRUE
+)
+
+bagged_m1
+```
+
+---
+
+# Optimal number of trees
+
+```{r ames-bag-ntrees, dependson = "ames"}
+# assess 10-50 bagged trees
+ntree <- 10:50
+
+# create empty vector to store OOB RMSE values
+rmse <- vector(mode = "numeric", length = length(ntree))
+
+for (i in seq_along(ntree)) {
+  # reproducibility
+  set.seed(123)
+  
+  # perform bagged model
+  model <- bagging(
+    formula = Sale_Price ~ .,
+    data    = ames_train,
+    coob    = TRUE,
+    nbagg   = ntree[i]
+  )
+  # get OOB error
+  rmse[i] <- model$err
+}
+
+tibble(
+  ntree = ntree,
+  rmse = rmse
+) %>%
+  ggplot(aes(ntree, rmse)) +
+  geom_line() +
+  geom_vline(xintercept = 25, linetype = 2) +
+  scale_y_continuous(labels = scales::dollar) +
+  labs(x = "Number of trees",
+       y = "RMSE")
+```
+
+---
+
+# Feature importance
+
+```{r ames-bag-caret, dependson = "ames"}
+# Specify 10-fold cross validation
+ctrl <- trainControl(method = "cv",  number = 10) 
+
+# CV bagged model
+bagged_cv <- train(
+  Sale_Price ~ .,
+  data = ames_train,
+  method = "treebag",
+  trControl = ctrl
+  )
+```
+
+```{r ames-bag-predictor, dependson = "ames-bag-caret"}
+predictor_bag <- Predictor$new(
+  model = bagged_cv,
+  data = select(ames_train, - Sale_Price),
+  y = ames_train$Sale_Price
+)
+```
+
+```{r ames-bag-feat-imp, dependson = "ames-bag-predictor"}
+feat_imp_bag <- FeatureImp$new(predictor_bag, loss = "mse")
+```
+
+```{r ames-bag-feat-imp-plot, dependson = "ames-bag-feat-imp", fig.asp = .7}
+plot(feat_imp_bag) +
+  ggtitle("Bagging") +
+  theme_minimal(base_size = 10)
+```
+---
+
+# Partial dependence plots
+
+```{r ames-bag-pdp, dependson = "ames-bag-predictor"}
+pdp_Gr_Liv_Area <- FeatureEffect$new(predictor_bag,
+                                     "Gr_Liv_Area",
+                                     method = "pdp+ice",
+                                     center.at = min(ames_train$Gr_Liv_Area),
+                                     grid.size = 50)
+pdp_Year_Built <- FeatureEffect$new(predictor_bag,
+                                    "Year_Built",
+                                    method = "pdp+ice",
+                                    center.at = min(ames_train$Year_Built),
+                                    grid.size = 50)
+pdp_Exter_Qual <- FeatureEffect$new(predictor_bag,
+                                    "Exter_Qual",
+                                    method = "pdp+ice")
+
+p1 <- plot(pdp_Gr_Liv_Area) +
+  theme_minimal(base_size = 12)
+p2 <- plot(pdp_Year_Built) +
+  theme_minimal(base_size = 12)
+p3 <- plot(pdp_Exter_Qual) +
+  theme_minimal(base_size = 12)
+
+p1 + p2 + p3
+```
+
+
+
+
+
+
+
+
+
 
 
 

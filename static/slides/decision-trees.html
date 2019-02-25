@@ -414,6 +414,127 @@ class: center, middle, inverse, title-slide
 ```
 ## [1] 39145.39
 ```
+
+---
+
+# Bagging
+
+* High variance estimates and consistency
+* Low variance estimates and consistency
+* Bootstrap aggregating (bagging)
+
+---
+
+# Bootstrap
+
+* Repeatedly sample with replacement from a sample
+* Estimate a parameter from each bootstrap sample
+* Average accross all the bootstrap samples
+* Reduces the variance `\(\sigma^2\)`
+--
+
+* Estimate `\(\hat{f}^1(x), \hat{f}^2(x), \dots, \hat{f}^B(x)\)` using `\(B\)` separate training sets
+
+    `$$\hat{f}_{\text{avg}}(x) = \frac{1}{B} \sum_{b = 1}^B \hat{f}^b(x)$$`
+
+    `$$\hat{f}_{\text{bag}}(x) = \frac{1}{B} \sum_{b = 1}^B \hat{f}^b(x)$$`
+    
+* Trees grown without pruning
+* Assigning predictions
+
+---
+
+# Out-of-bag observations
+
+&lt;img src="decision-trees_files/figure-html/boot-prop-1.png" width="864" /&gt;
+
+---
+
+# Out-of-bag error estimate
+
+* Generate bagged predictions for each observation `\(i\)` using only its OOB estimates
+* Average across all `\(i\)` observations
+* Valid estimate of the test error
+
+---
+
+# Out-of-bag error estimate
+
+
+
+
+```
+## 
+## Call:
+##  randomForest(formula = Survived ~ ., data = titanic_rf_data,      mtry = 7, ntree = 500) 
+##                Type of random forest: classification
+##                      Number of trees: 500
+## No. of variables tried at each split: 7
+## 
+##         OOB estimate of  error rate: 19.89%
+## Confusion matrix:
+##          Died Survived class.error
+## Died      361       63   0.1485849
+## Survived   79      211   0.2724138
+```
+
+---
+
+# Out-of-bag error estimate
+
+## Estimation time for OOB error rate
+
+
+```
+##    user  system elapsed 
+##   0.262   0.002   0.265
+```
+
+## Estimation time for `\(10\)`-fold CV error rate
+
+
+```
+##    user  system elapsed 
+##   2.464   0.111   2.579
+```
+
+---
+
+# Ames housing model
+
+
+```
+## 
+## Bagging regression trees with 25 bootstrap replications 
+## 
+## Call: bagging.data.frame(formula = Sale_Price ~ ., data = ames_train, 
+##     coob = TRUE)
+## 
+## Out-of-bag estimate of root mean squared error:  36543.37
+```
+
+---
+
+# Optimal number of trees
+
+&lt;img src="decision-trees_files/figure-html/ames-bag-ntrees-1.png" width="864" /&gt;
+
+---
+
+# Feature importance
+
+
+
+
+
+
+
+&lt;img src="decision-trees_files/figure-html/ames-bag-feat-imp-plot-1.png" width="864" /&gt;
+---
+
+# Partial dependence plots
+
+&lt;img src="decision-trees_files/figure-html/ames-bag-pdp-1.png" width="864" /&gt;
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="macros.js"></script>
