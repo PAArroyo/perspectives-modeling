@@ -1,26 +1,23 @@
 ---
-title: Decision trees
-date: 2019-02-25T13:30:00-06:00  # Schedule page publish date.
-    
-draft: false
-type: docs
-
-bibliography: [../../static/bib/sources.bib]
-csl: [../../static/bib/apa.csl]
-link-citations: true
-
-menu:
-  notes:
-    parent: Tree-based inference
-    weight: 1
+title: "Decision trees"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
 ---
 
-```{r setup, include = FALSE}
-# set default chunk options
-knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE)
-```
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2, fig.width = 12)
 
-```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
 library(tidyverse)
 library(tidymodels)
 library(modelr)
@@ -35,6 +32,10 @@ library(pROC)
 library(gbm)
 library(gganimate)
 library(magrittr)
+library(rpart)       # performing regression trees
+library(rpart.plot)  # plotting regression trees
+library(ipred)       # bagging
+library(caret)       # bagging
 
 # to get the tree graphs with the labels and values, use the forked
 # version of ggdendro
@@ -42,26 +43,53 @@ library(magrittr)
 library(ggdendro)
 
 set.seed(1234)
-theme_set(theme_minimal())
+theme_set(theme_minimal(base_size = 16))
 ```
 
-\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
 
 # Decision trees
 
-![](https://s-media-cache-ak0.pinimg.com/originals/7a/89/ff/7a89ff67b4ce34204c23135cbf35acfa.jpg)
+.center[
+
+![:scale 75%](https://s-media-cache-ak0.pinimg.com/originals/7a/89/ff/7a89ff67b4ce34204c23135cbf35acfa.jpg)
+
+]
+
+
+---
+
+# Decision trees
+
+.center[
 
 ![](https://eight2late.files.wordpress.com/2016/02/7214525854_733237dd83_z1.jpg?w=700)
 
-![](https://s-media-cache-ak0.pinimg.com/564x/0b/87/df/0b87df1a54474716384f8ec94b52eab9.jpg)
+]
 
-**Decision trees** are intuitive concepts for making decisions. They are also useful methods for regression and classification. They work by splitting the observations into a number of regions, and predictions are made based on the mean or mode of the training observations in that region.
+---
 
-# Regression trees
+# Decision trees
 
-## Single predictor
+.center[
 
-Let's first consider a basic linear regression model of the relationship between horsepower and highway mileage from the `Auto` dataset.
+![:scale 38%](https://s-media-cache-ak0.pinimg.com/564x/0b/87/df/0b87df1a54474716384f8ec94b52eab9.jpg)
+
+]
+
+---
+
+# Decision trees
+
+* Regression and classification
+* Split observations into regions of feature space
+* Predictions based on the mean or mode of the training observations in that region
+
+---
+
+# Single predictor
 
 ```{r auto-lm, echo = FALSE}
 ggplot(Auto, aes(horsepower, mpg)) +
@@ -72,14 +100,18 @@ ggplot(Auto, aes(horsepower, mpg)) +
        y = "Highway mileage")
 ```
 
-As we recall, a strictly linear model is a poor fit for the data since the relationship actually appears to be quadratic. But unless we [relax our linear assumption](/notes/global-methods/), this is the best OLS model we can estimate.
+---
 
-Let's compare this instead to a decision tree using horsepower to predict highway mileage. Decision trees work through a process of **stratification**:
+# Stratification
 
 1. Divide the predictor space ($X_1, X_2, \dots, X_p$) into $J$ distinct and non-overlapping regions $R_1, R_2, \dots, R_J$.
-1. For every observation in region $R_j$, we make the same prediction which is the mean of the response variable $Y$ for all observations in $R_j$.
+1. For every observation in region $R_j$, make the same prediction which is the mean of the response variable $Y$ for all observations in $R_j$
 
-This process is iterative: during the first iteration, we segment the predictor space $X$ into two regions $R_1, R_2$. In the context of a decision tree with a single predictor, that process results in decision trees like the following:
+* Iterative process
+
+---
+
+# Stratification
 
 ```{r part-tree-data, include = FALSE}
 # hackish function to get line segment coordinates for ggplot
@@ -196,7 +228,7 @@ partition.tree.data <- function (tree, label = "yval", add = FALSE, ordvars, ...
 }
 ```
 
-```{r auto-tree2, echo = FALSE}
+```{r auto-tree2, echo = FALSE, fig.height = 6}
 # estimate model
 auto_tree <- tree(mpg ~ horsepower, data = Auto,
      control = tree.control(nobs = nrow(Auto),
@@ -231,15 +263,13 @@ ptree +
   plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
-On the left is the decision tree after the first iteration, and on the right is the decision tree estimation of the relationship between horsepower and highway mileage. The tree consists of three different components:
+* Terminal node/leaf
+* Internal node
+* Branch
 
-* Each outcome is a **terminal node** or a **leaf**
-* Splits occur at **internal nodes**
-* The segments connecting each node are called **branches**
+---
 
-This model has two terminal nodes (`r mod$frame$yval[[2]]` and `r mod$frame$yval[[3]]`), one internal node (horsepower $`r mod$frame$splits[1,1]`$), and two branches. For observations with horsepower $`r mod$frame$splits[1,1]`$, the model estimates highway mileage of `r mod$frame$yval[[2]]`. For observations with horsepower $`r mod$frame$splits[1,2]`$, the model estimates highway mileage of `r mod$frame$yval[[3]]`. The resulting relationship "curve" (see right) looks like a step function. Each segment of the function is the mean of the observations inside that region.
-
-If we proceed to the next iteration, the decision tree segments $R_1$ further.
+# Stratification
 
 ```{r auto-tree3, echo = FALSE}
 mod <- prune.tree(auto_tree, best = 3)
@@ -271,14 +301,9 @@ ptree +
   plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
-Now there are three terminal nodes (`r mod$frame$yval[3:5]`), two internal nodes (horsepower $`r mod$frame$splits[1,1]`$ and horsepower $`r mod$frame$splits[2,1]`$), and three branches. Interpreting the decision tree is still relatively intuitive:
+---
 
-* If horsepower $`r mod$frame$splits[1,2]`$, then the model estimates highway mileage to be `r mod$frame$yval[5]`.
-* If horsepower $`r mod$frame$splits[1,1]`$, then we proceed down the left branch to the next internal node.
-    * If horsepower $`r mod$frame$splits[2,1]`$, then the model estimates highway mileage to be `r mod$frame$yval[3]`.
-    * If horsepower $`r mod$frame$splits[2,2]`$, then the model estimates highway mileage to be `r mod$frame$yval[4]`.
-
-If we continued the iterative process many many times, we'd get a decision tree that looks like this:
+# Stratification
 
 ```{r auto-treeall, echo = FALSE, message = FALSE}
 mod <- auto_tree
@@ -322,11 +347,9 @@ mse_tree <- Auto %>%
   .estimate[[1]]
 ```
 
-There are `r nrow(mod$frame)` nodes (internal and terminal) in this decision tree, with `r ceiling(length(mod$frame$yval) / 2)` different regions and `r ceiling(length(mod$frame$yval) / 2)` different predicted values depending on the observation's value for horsepower. Notice though that the step function actually looks similar to a quadratic smoothing line, matching our expectations of the relationship. In fact, compared to the linear model (`r mse_lm`) the decision tree generates a far lower training MSE (`r mse_tree`).^[Yes, we know [the pitfalls of using training MSE for model comparison](/notes/model-accuracy/#training-vs.test-error). It's just an example because we haven't split the data into a validation set.]
+---
 
-## Multiple predictors
-
-With just a single predictor, the regions are a function of that one predictor. If we add a second predictor (say, vehicle weight), the regions become a function of **both** predictors and can be visualized as grids or boxes.
+# Multiple predictors
 
 ```{r auto-tree-weight, echo = FALSE}
 auto_tree <- tree(mpg ~ horsepower + weight, data = Auto,
@@ -364,14 +387,13 @@ ptree +
   plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
-* If weight $`r mod$frame$splits[1,2]`$, then the model estimates highway mileage to be approximately `r mod$frame$yval[5]`.
-* If weight $`r mod$frame$splits[1,1]`$, then we proceed down the left branch to the next internal node.
-    * If horsepower $`r mod$frame$splits[2,1]`$, then the model estimates highway mileage to be `r mod$frame$yval[3]`.
-    * If horsepower $`r mod$frame$splits[2,2]`$, then the model estimates highway mileage to be `r mod$frame$yval[4]`.
+---
 
-We can continue to build the tree up by adding additional nodes:
+# Stratification
 
-```{r auto-tree-weight-i-tree, echo = FALSE, warning = FALSE}
+.pull-left[
+
+```{r auto-tree-weight-i-tree, echo = FALSE, warning = FALSE, fig.height = 7, fig.width = 6}
 tree_mods <- tibble(
   n_nodes = seq(from = 3, to = 30)
 ) %>%
@@ -406,7 +428,11 @@ ggplot(tree_segments, aes(group = n_nodes)) +
   exit_fade()
 ```
 
-```{r auto-tree-weight-i-feat-space, dependson = "auto-tree-weight-i-tree", echo = FALSE, warning = FALSE}
+]
+
+.pull-right[
+
+```{r auto-tree-weight-i-feat-space, dependson = "auto-tree-weight-i-tree", echo = FALSE, warning = FALSE, fig.height = 7, fig.width = 6}
 # plot the feature space
 ## extract all the necessary elements
 tree_data1 <- unnest(tree_mods, tree_data1)
@@ -430,35 +456,52 @@ ggplot(Auto, aes(weight, horsepower)) +
   exit_fade()
 ```
 
-## Estimation procedure
+]
 
-We have already identified that decision trees use stratification to divide the observations into $R_J$ regions. Like in linear regression, our goal is to minimize the residual sum of the squared errors (RSS), defined for a decision tree as:
+---
 
-$$\sum_{j=1}^J \sum_{i \in R_j} (y_i - \hat{y}_{R_j})^2$$
+# Estimation procedure
 
-where $\hat{y}_{R_j}$ is the mean response for the observations in the $j$th region. In order to do this, decision trees implement a **recursive binary strategy**, also known as **classification and regression trees** (CART). The process begins at the top of the tree (**top-down**) and successively splits the data into a new region. This split generates two new branches in the tree. Rather than looking forward to select the optimal split among all future possibilities, this approach is **greedy** in that it selects the best split **at that particular step**. Given all the potential splits that could be performed on one of the predictors $X_1, X_2, \dots, X_p$ predictors, the algorithm assigns a cutpoint $s$ that splits the data in the manner that reduces the RSS by the largest amount.
+$$\min \left\{ \sum_{j=1}^J \sum_{i \in R_j} (y_i - \hat{y}_{R_j})^2 \right\}$$
+
+* Classification and regression trees (CART)
+* Recursive binary strategy
+* Top-down approach
+* Greedy partitioning
+
+$$R_1(j, s) = \{ X | X_j < s \} \, \text{and} \, R_2(j,s) = \{X | X_j \geq s \}$$
 
 $$\min \left\{ SSE = \sum_{i \in R_1} (y_i - \hat{y}_{R_1})^2 + \sum_{i \in R_2} (y_i - \hat{y}_{R_2})^2 \right\}$$
 
-As the number of predictors $p$ and observations $N$ increases, the more potential cutpoints the algorithm must consider. However even with relatively large numbers of predictors and observations, the computational process is quite efficient.
+* Proceed until stopping criteria reached
+* Generating predictions
 
-This process continues until some designated stopping criteria is reached, otherwise it could continue until each training observation is sorted into its own node (i.e. overfitting). A reasonable value could be five or ten. Once this iterative process stops and we have created $R_1, R_2, \ldots, R_J$ regions, we can generate predicted values for the response of a given test observation by calculating the mean of the training observations for the region in which the test observation belongs.
+---
 
-## Pruning the tree
+# Pruning the tree
 
-Notice that we stop splitting the tree in order to prevent overfitting. Even with the above process, decision trees are highly susceptible to overfitting due to its natural complexity. And if we simply set the stopping criteria at a higher level, we may miss crucial branches later on in the process. Instead we want a method that allows us to grow a large tree and preserve the most important branches or elements.
+.center[
 
 ![](https://na.rdcpix.com/1162715347/e7baeacffee094b5d79c2ec1708c500ew-c0xd-w685_h860_q80.jpg)
 
-Tree size can be though of as a **tuning parameter** that govern's the model's complexity. Pruning a tree is one method for creating an optimal tree size. **Cost complexity pruning** is the most common version of pruning. This requires growing a large tree $T_0$, stopping the growth process only when some minimum node size is reached (say 5). From here, we consider subtrees from the overall tree and compare their relative performance.
+]
 
-Rather than comparing all possible subtrees, we use a cost complexity parameter $\alpha$ that penalizes the objective function for the number of terminal nodes of the tree $T$:
+---
+
+# Pruning the tree
+
+* Tree size = tuning parameter
+* Cost complexity pruning
+    * Grow a large tree $T_0$
+    * Select an optimal subtree
 
 $$\min \left\{ \sum_{m=1}^{|T|} \sum_{i: x_i \in R_m} (y_i - \hat{y}_{R_M})^2 + \alpha |T| \right\}$$
 
-For a given value of $\alpha$, we find the smallest pruned tree that has the lowest penalized error. $\alpha$ controls the trade-off between the subtree's complexity and its fit to the training data. It uses the same type of $L_1$ norm penalty as [lasso regression](/syllabus/selection-regulation/). Smaller penalties tend to produce more complex models, which results in larger trees. Whereas larger penalties result in much smaller trees. Therefore in order to achieve a larger tree, the reduction in SSE must be greater than the cost complexity penalty. We can use [$k$-fold cross-validation](/notes/cross-validation/#k-fold-cross-validation) to identify the optimal $\alpha$, and therefore the optimal subtree.
+* $L_1$ norm penalty
 
-For example, here is the full tree grown for the `horsepower + weight` decision tree:
+---
+
+# `horsepower + weight`
 
 ```{r auto-tree-default, echo = FALSE}
 auto_tree <- tree(mpg ~ horsepower + weight, data = Auto,
@@ -495,7 +538,9 @@ ptree +
   plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
-Let's use $10$-fold CV to select the optimal tree size:
+---
+
+# `horsepower + weight`
 
 ```{r auto-tree-default-prune, echo = FALSE}
 # generate 10-fold CV trees
@@ -527,7 +572,9 @@ ggplot(auto_cv_prune, aes(k, .estimate)) +
        y = "10-fold CV MSE")
 ```
 
-The minimum cross-validated test MSE is for `r auto_cv_prune$k[[which.min(auto_cv_prune$.estimate)]]` terminal nodes. Here's what that tree looks like:
+---
+
+# `horsepower + weight`
 
 ```{r auto-tree-best, dependson = "auto-tree-default-prune", echo = FALSE}
 mod <- prune.tree(auto_tree, best = auto_cv_prune$k[[which.min(auto_cv_prune$.estimate)]])
@@ -561,29 +608,34 @@ ptree +
   plot_annotation(title = str_c("Terminal Nodes = ", ceiling(length(mod$frame$yval) / 2)))
 ```
 
+---
+
 # Classification trees
 
-A **classification tree** is similar to a regression tree, except that the response variable is qualitative. In making predictions, we would predict for a test set observation the most commonly occurring class value in the given region. However we will also consider the **class proportions**, or the proportion of training observations in the region $R_j$ that fall into a given class.
+* Same thing, different outcome
+* Predictions
+* Class proportions
+* Cost functions
 
-Rather than using RSS to grow the tree, we have three options for minimizing error. An obvious choice might be the **classification error rate**, or the proportion of training observations in a given region that do not belong to the most common class:
+---
 
-$$E = 1 - \max_{k}(\hat{p}_{mk})$$
+# Cost functions
 
-where $\hat{p}_{mk}$ is the proportion of training observations in region $m$ that do not belong to the most common class $k$.
+* Classification error rate
 
-In practice, two other methods grow better and more accurate trees. The **Gini index** is defined as:
+    $$E = 1 - \max_{k}(\hat{p}_{mk})$$
 
-$$G = \sum_{k = 1}^k \hat{p}_{mk} (1 - \hat{p}_{mk})$$
+* Gini index
 
-and is a measure of node **purity** (i.e. the total amount of variance across the $K$ classes). The higher the proportion of observations belonging to a single class, the closer this value will be to 0.
+    $$G = \sum_{k = 1}^k \hat{p}_{mk} (1 - \hat{p}_{mk})$$
 
-The alternative is **cross-entropy**:
+* Cross-entropy
 
-$$D = - \sum_{k = 1}^K \hat{p}_{mk} \log(\hat{p}_{mk})$$
+    $$D = - \sum_{k = 1}^K \hat{p}_{mk} \log(\hat{p}_{mk})$$
 
-As more observations are closer to or near 0 or 1, cross-entropy will shrink towards zero. So for classification trees, each split can be evaluated using one of these criteria, though again it is typically the Gini index or cross-entropy.
+---
 
-Let's return to our running Titanic example. I want to predict who lives and who dies during this event. Instead of using [logistic regression](/notes/logistic-regression/), I'm going to calculate a decision tree based on a passenger's age and gender. Here's what that decision tree looks like:
+# Titanic example
 
 ```{r titanic_tree, echo = FALSE}
 titanic <- titanic_train %>%
@@ -611,6 +663,10 @@ ggplot(segment(tree_data)) +
   labs(title = "Titanic survival tree",
        subtitle = "Age + Gender")
 ```
+
+---
+
+# Titanic example
 
 ```{r titanic-tree-prune, dependson="titanic-tree", echo = FALSE, warning = FALSE, message = FALSE}
 set.seed(11)
@@ -647,7 +703,9 @@ ggplot(titanic_cv_prune, aes(k, 1 - .estimate)) +
        y = "10-fold CV error rate")
 ```
 
-Here I select `r titanic_cv_prune$k[[which.max(titanic_cv_prune$.estimate)]]` as the optimal number of nodes.
+---
+
+# Titanic example
 
 ```{r titanic-tree-best, dependson="titanic-tree-prune"}
 mod <- prune.tree(titanic_tree, best = titanic_cv_prune$k[[which.max(titanic_cv_prune$.estimate)]])
@@ -665,7 +723,11 @@ ggplot(segment(tree_data)) +
        subtitle = "Age + Gender")
 ```
 
-Notice that some branches split and lead to the same outcome. For instance, the bottom-left branch assigns males with an age less than 13 but both greater than and less than $24.75$ to `Died`. This is because splitting the node leads to increased **node purity** where we are even more confident in our predictions. Think about it. Here are the outcomes in the training observations for males older than 13 years old:
+---
+
+# Node purity
+
+## Males older than or equal to 13 on the Titanic
 
 ```{r titanic-m-13}
 titanic_m13 <- titanic %>%
@@ -673,11 +735,13 @@ titanic_m13 <- titanic %>%
   count(Survived)
 
 knitr::kable(titanic_m13,
-             caption = "Males older than or equal to 13 on the Titanic",
+             format = "html",
              col.names = c("Outcome", "Number of training observations"))
 ```
 
-We would predict for all of these observations that the individual died, being incorrect `r titanic_m13$n[[2]]` times. What happens if we split this subset even further?
+--
+
+## Males older than or equal to 13 on the Titanic
 
 ```{r titanic-m-13-split}
 titanic %>%
@@ -685,104 +749,226 @@ titanic %>%
   mutate(age25 = Age < 24.75) %>%
   count(age25, Survived) %>%
   complete(age25, Survived, fill = list(n = 0)) %>%
-  knitr::kable(col.names = c("Less than 24.75 years old", "Outcome", "Number of training observations"))
+  knitr::kable(format = "html",
+               col.names = c("Less than 24.75 years old", "Outcome",
+                             "Number of training observations"))
 ```
 
-For males between 13 and 24.75 years old, the decision tree prediction achieves higher node purity - it more accurately predicts all of the training observations as dead. If we had a test observation for a 16-year-old male, we'd be more confident in our prediction than if we had terminated the node at $\text{age} < 13$. While this does not improve our error rate (we would have made the same prediction regardless), it does improve our Gini index and cross-entropy which are the measures used to grow the tree.
+---
 
 # Trees vs. regression
 
-Linear regression and decision trees utilize entirely different functional forms. Linear regression assumes linear and additive relationships between predictors and the response:
+* Linear regression
 
-$$f(X) = \beta_0 + \sum_{j = 1}^p X_j \beta_j$$
+    $$f(X) = \beta_0 + \sum_{j = 1}^p X_j \beta_j$$
 
-Whereas decision trees assume the observations can be partitioned into the feature space:
+* Decision trees
 
-$$f(X) = \sum_{m = 1}^M c_m \cdot 1_{X \in R_m}$$
+    $$f(X) = \sum_{m = 1}^M c_m \cdot 1_{X \in R_m}$$
 
-If the relationship between the predictor(s) and the response are truly linear and additive, then linear regression will likely perform better than a decision tree. If the relationship is highly complex and non-linear, then decision trees may be the better option. Using resampling methods such as cross-validation can help you to decide the appropriate statistical learning method.
+---
 
-# Other things of note with decision trees
+# Categorical predictors
 
-## Categorical predictors
+* Splitting categorical predictors
+* $q$ unordered values
+    * $2^{q - 1} - 1$ possible partitions
+* No one-hot encoding
 
-When splitting a predictor with $q$ unordered values, there are $2^{q - 1} - 1$ possible partitions of the $q$ values into two groups. Figuring out the optimal partition when $q$ is large could be prohibitively difficult. If $q$ were a binary outcome, it would be much simpler.
+--
 
-Unlike with regression-based models, we do not have to perform one-hot encoding of categorical variables prior to estimating decision trees. The decision tree procedure instead orders the predictor classes according to the proportion falling into outcome class 1. Then we split the predictor as if it were an ordered predictor. In fact, this turns out to be the optimal split.
+* Order the predictor classes according to the proportion falling into outcome class 1
+* Split the predictor as if it were an ordered predictor
+* Only works for binary classification
 
-> Note that this procedure only works for binary outcomes of interest. If this is a regression tree or classification tree with more than two possible outcomes, this procedure does not work.
+---
 
-## Missing values
+# Missing values
 
-If observations have missing values, with regression models we have two main options:
+* With regression models
+    1. Discard the observation
+    1. Impute the missing value
+* With decision trees
+    1. Treat missing values as if they are another unique category
+    1. Construct surrogate variables
 
-1. Discard the observation (listwise deletion)
-1. Impute (fill in) the missing value
+---
 
-Decision trees offer two additional procedures.
+# Connection to MARS
 
-1. For categorical variables, create a new category for missing values. That is, treat missing values as if they are another unique category.
-1. Construct **surrogate variables**. When we split a node, only use observations for which the predictor is not missing. Then for any future nodes further down, form a list of surrogate predictors and split points. The first surrogate is the predictor and corresponding split point that best mimics the training data achieved by the primary split. The second surrogate is the predictor and corresponding split point that does second best, and so on. When sending observations down the tree either in the training phase or during prediction, use the surrogate splits in order, if the primary splitting predictor is missing.
-
-## Connection to MARS
-
-While [MARS](/notes/multivariate-adaptive-regression-splines/) and decision trees may seem quite different, they are actually strongly related to one another. Take the MARS procedure and make two modifications:
-
+* Modification of MARS procedure
 * Replace the piecewise linear basis functions with step functions $I(x - t > 0)$ and $I(x - t \leq 0)$
 * When a model term is involved in a multiplication by a candidate term, it gets replaced by the interaction and is not available for further interactions
 
-With these changes, the MARS forward procedure is the same as the CART tree-growing algorithm.
+---
 
-# Benefits/drawbacks to decision trees
+# Decision trees
 
-Decision trees are an entirely different method of estimating functional forms as compared to linear regression. There are some benefits to trees:
+## Benefits
 
-* They are easy to explain. Most people, even if they lack statistical training, can understand decision trees.
-* They are easily presented as visualizations, and pretty interpretable.
-* Qualitative predictors are easily handled without the need to create a long series of dummy variables.
+* Easy to explain
+* Easy to visualize
+* Adept handling of categorical predictors
 
-However there are also drawbacks to trees:
+## Drawbacks
 
-* They cannot accurately capture additive structures. That is, if the relationship between $X_1, X_2$ and $Y$ is additive, a tree grown through binary splits is unlikely to detect this relationship since it would have to perform virtually identical splits down separate branches of the tree.
-* Their accuracy rates are generally lower than other regression and classification approaches.
-* Trees can be non-robust. That is, a small change in the data or inclusion/exclusion of a handful of observations can dramatically alter the final estimated tree. For example, let's estimate a decision tree for the highway mileage example ($N = `r nrow(Auto)`$) by splitting the data into a training/test set (70/30%) and estimating the test MSE, and repeat this process 1000 times using random combinations of training/test sets:
+* Cannot accurately capture additive structures
+* Lower accuracy rates
+* Low-bias, but high-variance
 
-    ```{r auto-tree-val, echo = FALSE, message = FALSE}
-    auto_val_test <- function(){
-      # split data
-      auto_split <- initial_split(Auto, prop = 0.7)
-      
-      # estimate model
-      val <- tree(mpg ~ horsepower + weight, data = analysis(auto_split))
-      
-      # estimate test mse
-      assessment(auto_split) %>%
-        mutate(estimate = predict(val, newdata = assessment(auto_split))) %>%
-        mse(truth = mpg, estimate = estimate)
-    }
-    
-    # repeat the procedure 1000 times
-    auto_val_mse <- rerun(.n = 1000, auto_val_test()) %>%
-      bind_rows
-    
-    ggplot(auto_val_mse, aes(.estimate)) +
-      geom_histogram() +
-      geom_vline(xintercept = mean(auto_val_mse$.estimate)) +
-      labs(title = "1000 random training/validation set partitions",
-           x = "Validation set MSE",
-           y = "Frequency count")
-    ```
-    
-    The distribution of test MSEs is quite large for each of the splits, indicating substantial variance in our estimate of the test MSE.
-    
-This illustrates the most important characteristic of decision trees: they are a **low-bias**, **high-variance** modeling strategy.
+---
 
-# Session Info {.toc-ignore}
+# Decision trees
 
-```{r child = here::here("R", "_session-info.Rmd")}
+```{r auto-tree-val, echo = FALSE, message = FALSE}
+auto_val_test <- function(){
+  # split data
+  auto_split <- initial_split(Auto, prop = 0.7)
+  
+  # estimate model
+  val <- tree(mpg ~ horsepower + weight, data = analysis(auto_split))
+  
+  # estimate test mse
+  assessment(auto_split) %>%
+    mutate(estimate = predict(val, newdata = assessment(auto_split))) %>%
+    mse(truth = mpg, estimate = estimate)
+}
+
+# repeat the procedure 1000 times
+auto_val_mse <- rerun(.n = 1000, auto_val_test()) %>%
+  bind_rows
+
+ggplot(auto_val_mse, aes(.estimate)) +
+  geom_histogram() +
+  geom_vline(xintercept = mean(auto_val_mse$.estimate)) +
+  labs(title = "1000 random training/validation set partitions",
+       x = "Validation set MSE",
+       y = "Frequency count")
 ```
 
-# References {.toc-ignore}
+---
 
-* @james2013introduction
-* @friedman2001elements
+# House sale price
+
+```{r ames, include = FALSE}
+# Create training (70%) and test (30%) sets for the AmesHousing::make_ames() data.
+# Use set.seed for reproducibility
+
+set.seed(123)
+ames_split <- initial_split(AmesHousing::make_ames(), prop = .7)
+ames_train <- training(ames_split)
+ames_test  <- testing(ames_split)
+```
+
+```{r ames-basic, dependson = "ames"}
+m1 <- rpart(
+  formula = Sale_Price ~ .,
+  data    = ames_train,
+  method  = "anova"
+  )
+
+rpart.plot(m1)
+```
+
+---
+
+# Tuning the number of nodes
+
+```{r ames-tree-tune, dependson = "ames-basic"}
+plotcp(m1)
+```
+
+---
+
+# House sale price
+
+```{r ames-tree-tune-full, dependson = "ames-basic"}
+m2 <- rpart(
+    formula = Sale_Price ~ .,
+    data    = ames_train,
+    method  = "anova", 
+    control = list(cp = 0, xval = 10)
+)
+
+plotcp(m2)
+abline(v = 12, lty = "dashed")
+```
+
+---
+
+# Other tuning parameters
+
+* Cost complexity
+* Minimum number of data points to attempt a split
+* Maximum number of internal nodes
+
+---
+
+# Other tuning parameters
+
+```{r hypergrid}
+hyper_grid <- expand.grid(
+  minsplit = seq(5, 20, 1),
+  maxdepth = seq(8, 15, 1)
+)
+```
+
+```{r ames-tuning-grid, dependson = c("ames", "hypergrid")}
+models <- list()
+
+for (i in 1:nrow(hyper_grid)) {
+  # get minsplit, maxdepth values at row i
+  minsplit <- hyper_grid$minsplit[i]
+  maxdepth <- hyper_grid$maxdepth[i]
+  
+  # train a model and store in the list
+  models[[i]] <- rpart(
+    formula = Sale_Price ~ .,
+    data    = ames_train,
+    method  = "anova",
+    control = list(minsplit = minsplit, maxdepth = maxdepth)
+  )
+}
+```
+
+```{r ames-tuning-extract-errors, dependson = "ames-tuning-grid"}
+# function to get optimal cp
+get_cp <- function(x) {
+  min    <- which.min(x$cptable[, "xerror"])
+  cp <- x$cptable[min, "CP"] 
+}
+
+# function to get minimum error
+get_min_error <- function(x) {
+  min    <- which.min(x$cptable[, "xerror"])
+  xerror <- x$cptable[min, "xerror"] 
+}
+
+hyper_grid %>%
+  mutate(
+    cp    = purrr::map_dbl(models, get_cp),
+    error = purrr::map_dbl(models, get_min_error)
+    ) %>%
+  arrange(error) %>%
+  top_n(-10, wt = error)
+```
+
+--
+
+## Test RMSE
+
+```{r ames-tree-optimal, dependson = "ames"}
+optimal_tree <- rpart(
+    formula = Sale_Price ~ .,
+    data    = ames_train,
+    method  = "anova",
+    control = list(minsplit = 11, maxdepth = 8, cp = 0.01)
+    )
+
+pred <- predict(optimal_tree, newdata = ames_test)
+RMSE(pred = pred, obs = ames_test$Sale_Price)
+```
+
+
+
+

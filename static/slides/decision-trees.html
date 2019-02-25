@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Decision trees</title>
+    <meta charset="utf-8">
+    <meta name="author" content="MACS 30100   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Decision trees
+### <a href="https://model.uchicago.edu">MACS 30100</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Decision trees
+
+.center[
+
+![:scale 75%](https://s-media-cache-ak0.pinimg.com/originals/7a/89/ff/7a89ff67b4ce34204c23135cbf35acfa.jpg)
+
+]
+
+
+---
+
+# Decision trees
+
+.center[
+
+![](https://eight2late.files.wordpress.com/2016/02/7214525854_733237dd83_z1.jpg?w=700)
+
+]
+
+---
+
+# Decision trees
+
+.center[
+
+![:scale 38%](https://s-media-cache-ak0.pinimg.com/564x/0b/87/df/0b87df1a54474716384f8ec94b52eab9.jpg)
+
+]
+
+---
+
+# Decision trees
+
+* Regression and classification
+* Split observations into regions of feature space
+* Predictions based on the mean or mode of the training observations in that region
+
+---
+
+# Single predictor
+
+&lt;img src="decision-trees_files/figure-html/auto-lm-1.png" width="864" /&gt;
+
+---
+
+# Stratification
+
+1. Divide the predictor space ($X_1, X_2, \dots, X_p$) into `\(J\)` distinct and non-overlapping regions `\(R_1, R_2, \dots, R_J\)`.
+1. For every observation in region `\(R_j\)`, make the same prediction which is the mean of the response variable `\(Y\)` for all observations in `\(R_j\)`
+
+* Iterative process
+
+---
+
+# Stratification
+
+
+
+&lt;img src="decision-trees_files/figure-html/auto-tree2-1.png" width="864" /&gt;
+
+* Terminal node/leaf
+* Internal node
+* Branch
+
+---
+
+# Stratification
+
+&lt;img src="decision-trees_files/figure-html/auto-tree3-1.png" width="864" /&gt;
+
+---
+
+# Stratification
+
+&lt;img src="decision-trees_files/figure-html/auto-treeall-1.png" width="864" /&gt;
+
+
+
+---
+
+# Multiple predictors
+
+&lt;img src="decision-trees_files/figure-html/auto-tree-weight-1.png" width="864" /&gt;
+
+---
+
+# Stratification
+
+.pull-left[
+
+![](decision-trees_files/figure-html/auto-tree-weight-i-tree-1.gif)&lt;!-- --&gt;
+
+]
+
+.pull-right[
+
+![](decision-trees_files/figure-html/auto-tree-weight-i-feat-space-1.gif)&lt;!-- --&gt;
+
+]
+
+---
+
+# Estimation procedure
+
+`$$\min \left\{ \sum_{j=1}^J \sum_{i \in R_j} (y_i - \hat{y}_{R_j})^2 \right\}$$`
+
+* Classification and regression trees (CART)
+* Recursive binary strategy
+* Top-down approach
+* Greedy partitioning
+
+`$$R_1(j, s) = \{ X | X_j &lt; s \} \, \text{and} \, R_2(j,s) = \{X | X_j \geq s \}$$`
+
+`$$\min \left\{ SSE = \sum_{i \in R_1} (y_i - \hat{y}_{R_1})^2 + \sum_{i \in R_2} (y_i - \hat{y}_{R_2})^2 \right\}$$`
+
+* Proceed until stopping criteria reached
+* Generating predictions
+
+---
+
+# Pruning the tree
+
+.center[
+
+![](https://na.rdcpix.com/1162715347/e7baeacffee094b5d79c2ec1708c500ew-c0xd-w685_h860_q80.jpg)
+
+]
+
+---
+
+# Pruning the tree
+
+* Tree size = tuning parameter
+* Cost complexity pruning
+    * Grow a large tree `\(T_0\)`
+    * Select an optimal subtree
+
+`$$\min \left\{ \sum_{m=1}^{|T|} \sum_{i: x_i \in R_m} (y_i - \hat{y}_{R_M})^2 + \alpha |T| \right\}$$`
+
+* `\(L_1\)` norm penalty
+
+---
+
+# `horsepower + weight`
+
+&lt;img src="decision-trees_files/figure-html/auto-tree-default-1.png" width="864" /&gt;
+
+---
+
+# `horsepower + weight`
+
+&lt;img src="decision-trees_files/figure-html/auto-tree-default-prune-1.png" width="864" /&gt;
+
+---
+
+# `horsepower + weight`
+
+&lt;img src="decision-trees_files/figure-html/auto-tree-best-1.png" width="864" /&gt;
+
+---
+
+# Classification trees
+
+* Same thing, different outcome
+* Predictions
+* Class proportions
+* Cost functions
+
+---
+
+# Cost functions
+
+* Classification error rate
+
+    `$$E = 1 - \max_{k}(\hat{p}_{mk})$$`
+
+* Gini index
+
+    `$$G = \sum_{k = 1}^k \hat{p}_{mk} (1 - \hat{p}_{mk})$$`
+
+* Cross-entropy
+
+    `$$D = - \sum_{k = 1}^K \hat{p}_{mk} \log(\hat{p}_{mk})$$`
+
+---
+
+# Titanic example
+
+&lt;img src="decision-trees_files/figure-html/titanic_tree-1.png" width="864" /&gt;
+
+---
+
+# Titanic example
+
+&lt;img src="decision-trees_files/figure-html/titanic-tree-prune-1.png" width="864" /&gt;
+
+---
+
+# Titanic example
+
+&lt;img src="decision-trees_files/figure-html/titanic-tree-best-1.png" width="864" /&gt;
+
+---
+
+# Node purity
+
+## Males older than or equal to 13 on the Titanic
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Outcome &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Number of training observations &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Died &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 344 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Survived &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 72 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+--
+
+## Males older than or equal to 13 on the Titanic
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Less than 24.75 years old &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Outcome &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Number of training observations &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; FALSE &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Died &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 232 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; FALSE &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Survived &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 60 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; TRUE &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Died &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 112 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; TRUE &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Survived &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 12 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+
+# Trees vs. regression
+
+* Linear regression
+
+    `$$f(X) = \beta_0 + \sum_{j = 1}^p X_j \beta_j$$`
+
+* Decision trees
+
+    `$$f(X) = \sum_{m = 1}^M c_m \cdot 1_{X \in R_m}$$`
+
+---
+
+# Categorical predictors
+
+* Splitting categorical predictors
+* `\(q\)` unordered values
+    * `\(2^{q - 1} - 1\)` possible partitions
+* No one-hot encoding
+
+--
+
+* Order the predictor classes according to the proportion falling into outcome class 1
+* Split the predictor as if it were an ordered predictor
+* Only works for binary classification
+
+---
+
+# Missing values
+
+* With regression models
+    1. Discard the observation
+    1. Impute the missing value
+* With decision trees
+    1. Treat missing values as if they are another unique category
+    1. Construct surrogate variables
+
+---
+
+# Connection to MARS
+
+* Modification of MARS procedure
+* Replace the piecewise linear basis functions with step functions `\(I(x - t &gt; 0)\)` and `\(I(x - t \leq 0)\)`
+* When a model term is involved in a multiplication by a candidate term, it gets replaced by the interaction and is not available for further interactions
+
+---
+
+# Decision trees
+
+## Benefits
+
+* Easy to explain
+* Easy to visualize
+* Adept handling of categorical predictors
+
+## Drawbacks
+
+* Cannot accurately capture additive structures
+* Lower accuracy rates
+* Low-bias, but high-variance
+
+---
+
+# Decision trees
+
+&lt;img src="decision-trees_files/figure-html/auto-tree-val-1.png" width="864" /&gt;
+
+---
+
+# House sale price
+
+
+
+&lt;img src="decision-trees_files/figure-html/ames-basic-1.png" width="864" /&gt;
+
+---
+
+# Tuning the number of nodes
+
+&lt;img src="decision-trees_files/figure-html/ames-tree-tune-1.png" width="864" /&gt;
+
+---
+
+# House sale price
+
+&lt;img src="decision-trees_files/figure-html/ames-tree-tune-full-1.png" width="864" /&gt;
+
+---
+
+# Other tuning parameters
+
+* Cost complexity
+* Minimum number of data points to attempt a split
+* Maximum number of internal nodes
+
+---
+
+# Other tuning parameters
+
+
+
+
+
+
+```
+##    minsplit maxdepth        cp     error
+## 1         6       13 0.0108982 0.2421256
+## 2         7        8 0.0100000 0.2453631
+## 3        13       10 0.0100000 0.2454067
+## 4         9       13 0.0100000 0.2459588
+## 5        20        9 0.0100000 0.2460173
+## 6         9       15 0.0100000 0.2471461
+## 7         5       12 0.0100000 0.2479008
+## 8         5        8 0.0100000 0.2480154
+## 9        17       15 0.0108982 0.2485334
+## 10       12       10 0.0108982 0.2486264
+```
+
+--
+
+## Test RMSE
+
+
+```
+## [1] 39145.39
+```
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
