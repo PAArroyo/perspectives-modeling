@@ -63,9 +63,12 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::include_url("/slides/decision-trees.html", height = "505px")
 ```
 
+* [Decision trees](/notes/decision-trees/)
+* [Bagging](/notes/bagging/)
 
 ### Additional readings
 
+* [Regression trees](http://uc-r.github.io/regression_trees)
 
 ## What you need to do
 
