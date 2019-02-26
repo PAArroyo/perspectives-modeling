@@ -1,0 +1,393 @@
+---
+title: "Random Forests/Boosting"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2, fig.width = 12)
+
+library(tidyverse)
+library(tidymodels)
+library(randomForest)
+library(patchwork)
+library(rcfss)
+library(rpart)
+library(rpart.plot)
+library(ranger)
+library(iml)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 16))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+# Limitations of bagging
+
+```{r mpg-bag-trees, dependson = "ames"}
+# generate bootstrapped samples
+bag_trees <- bootstraps(ISLR::Auto, times = 6) %>%
+  mutate(tree = map(splits, ~ rpart(mpg ~ .,
+                                    data = analysis(.x) %>%
+                                      select(-name),
+                                    method = "anova",
+                                    model = TRUE)))
+
+par(mfrow = c(2, 3))
+for(i in 1:nrow(bag_trees)) {
+  rpart.plot(bag_trees$tree[[i]],
+             main = str_c("Decision Tree", i, sep = " "))
+}
+```
+
+---
+
+# Limitations of bagging
+
+* Grow deep trees
+* Randomization component
+* Lack of independence
+
+---
+
+# Limitations of bagging
+
+* Independently and identically distributed (i.i.d.) random variables
+
+    $$\Var(\hat{Y}) = \frac{1}{B} \sigma^2$$
+
+* Identically distributed (i.d.) random variables
+
+    $$\Var(\hat{Y}) = \rho \sigma^2 + \frac{1 - \rho}{B} \sigma^2$$
+
+* Limit on variance reduction
+
+---
+
+# Random forests
+
+* Minimize correlation between the trees
+* Random forests
+
+1. Bootstrap sampling
+1. Split-variable randomization
+    * $m = p$
+    * $m \leq p$
+    * Regression: $\frac{p}{3}$
+    * Classification: $\sqrt{p}$
+    * Tuning parameter
+
+---
+
+# Random forest
+
+1. For $b=1$ to $B$:
+    1. Draw a bootstrap sample $\mathbf{Z}^*$ of size $N$ from the training data
+    1. Grow a decision tree $T_b$ to the bootstrapped data, by recursively repeating the following steps for each terminal node of the tree until the minimum node size $n_\text{min}$ is reached:
+        1. Select $m$ variables at random from the $p$ predictors
+        1. Pick the best variable/split-point among the $m$
+        1. Split the node into two child nodes
+1. Output the ensemble of trees $\{ T_b \}_1^B$
+
+* Making predictions
+* Out-of-bag estimates
+* Model interpretation
+
+---
+
+# Default parameters
+
+```{r ames}
+# Create training (70%) and test (30%) sets for the AmesHousing::make_ames() data.
+# Use set.seed for reproducibility
+
+set.seed(123)
+ames_split <- initial_split(AmesHousing::make_ames(), prop = .7)
+ames_train <- training(ames_split)
+ames_test  <- testing(ames_split)
+```
+
+```{r ames-rf, dependson = "ames"}
+# for reproduciblity
+set.seed(123)
+
+# default RF model
+m1 <- randomForest(
+  formula = Sale_Price ~ .,
+  data    = ames_train
+)
+
+m1
+```
+
+---
+
+# Number of trees
+
+```{r ames-rf-plot, dependson = "ames-rf"}
+tibble(
+  mse = m1$mse
+) %>%
+  mutate(
+    ntrees = row_number()
+  ) %>%
+  ggplot(aes(ntrees, mse)) +
+  geom_line() +
+  geom_vline(xintercept = which.min(m1$mse), linetype = 2) +
+  labs(x = "Number of trees grown",
+       y = "OOB MSE")
+```
+
+---
+
+# OOB vs. validation set
+
+```{r ames-rf-oob-val, dependson = "ames-rf"}
+# create training and validation data 
+set.seed(123)
+valid_split <- initial_split(ames_train, .8)
+
+# training data
+ames_train_v2 <- analysis(valid_split)
+
+# validation data
+ames_valid <- assessment(valid_split)
+x_test <- select(ames_valid, -Sale_Price)
+y_test <- ames_valid$Sale_Price
+
+rf_oob_comp <- randomForest(
+  formula = Sale_Price ~ .,
+  data = ames_train_v2,
+  xtest = x_test,
+  ytest = y_test
+)
+```
+
+```{r ames-rf-oob-val-plot, dependson = "ames-rf-oob-val"}
+# extract OOB & validation errors
+oob <- sqrt(rf_oob_comp$mse)
+validation <- sqrt(rf_oob_comp$test$mse)
+
+# compare error rates
+tibble(
+  `Out of Bag Error` = oob,
+  `Test error` = validation
+) %>%
+  mutate(ntrees = row_number()) %>%
+  gather(Metric, RMSE, -ntrees) %>%
+  ggplot(aes(ntrees, RMSE, color = Metric)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_brewer(type = "qual") +
+  xlab("Number of trees")
+```
+
+---
+
+# Tuning parameter options
+
+* Number of trees
+* Number of variables to randomly sample at each split
+* Sample size for each sample
+* Minimum number of observations within the terminal nodes
+* Maximum number of terminal nodes
+
+---
+
+# Tuning parameter options
+
+```{r ames-hypergrid}
+# hyperparameter grid search
+hyper_grid <- expand.grid(
+  mtry = seq(20, 30, by = 2),
+  node_size = seq(3, 9, by = 2),
+  sampe_size = c(.55, .632, .70, .80),
+  OOB_RMSE = 0
+)
+
+# total number of combinations
+nrow(hyper_grid)
+```
+
+```{r ames-rf-tune, dependson = "ames"}
+for(i in 1:nrow(hyper_grid)) {
+  # train model
+  model <- ranger(
+    formula = Sale_Price ~ ., 
+    data = ames_train, 
+    num.trees = 500,
+    mtry = hyper_grid$mtry[i],
+    min.node.size = hyper_grid$node_size[i],
+    sample.fraction = hyper_grid$sampe_size[i],
+    seed = 123
+  )
+  
+  # add OOB error to grid
+  hyper_grid$OOB_RMSE[i] <- sqrt(model$prediction.error)
+}
+```
+
+```{r ames-rf-tune-results, dependson = "ames-rf-tune"}
+hyper_grid <- hyper_grid %>% 
+  arrange(OOB_RMSE)
+hyper_grid %>%
+  head(10)
+```
+
+---
+
+# Final model performance
+
+```{r ames-rf-tune-final, dependson = "ames-rf-tune-results"}
+OOB_RMSE <- vector(mode = "numeric", length = 100)
+
+set.seed(123)
+for(i in seq_along(OOB_RMSE)) {
+  optimal_ranger <- ranger(
+    formula = Sale_Price ~ ., 
+    data = ames_train, 
+    num.trees = 500,
+    mtry = hyper_grid$mtry[[1]],
+    min.node.size = hyper_grid$node_size[[1]],
+    sample.fraction = hyper_grid$sampe_size[[1]]
+  )
+  
+  OOB_RMSE[i] <- sqrt(optimal_ranger$prediction.error)
+}
+```
+
+```{r ames-rf-tune-final-plot, dependson = "ames-rf-tune-final"}
+tibble(RMSE = OOB_RMSE) %>%
+  ggplot(aes(RMSE)) +
+  geom_histogram() +
+  scale_x_continuous(labels = scales::dollar) +
+  labs(title = "Distribution of OOB RMSE",
+       subtitle = "Repeats = 100",
+       x = "OOB RMSE",
+       y = "Frequency")
+```
+
+---
+
+# Feature importance
+
+```{r ames-rf-predictor, dependson = "ames-rf-tune-final"}
+pred_ranger <- function(model, newdata){
+  results <- predict(model, newdata)
+  return(results$prediction)
+}
+
+predictor_rf <- Predictor$new(
+  model = optimal_ranger,
+  data = select(ames_train, - Sale_Price),
+  y = ames_train$Sale_Price,
+  predict.fun = pred_ranger
+)
+```
+
+```{r iml-parallel-begin, cache = FALSE}
+library(doParallel)
+
+cl <- makePSOCKcluster(3)
+registerDoParallel(cl)
+```
+
+```{r ames-rf-feat-imp, dependson = "ames-rf-predictor"}
+feat_imp_rf <- FeatureImp$new(predictor_rf, loss = "mse", parallel = TRUE)
+```
+
+```{r ames-rf-feat-imp-plot, dependson = "ames-rf-feat-imp", fig.asp = .7}
+plot(feat_imp_rf) +
+  ggtitle("Random forest") +
+  theme_minimal(base_size = 8)
+```
+
+---
+
+# Partial dependence
+
+```{r ames-rf-pdp, dependson = "ames-rf-predictor"}
+pdp_Overall_Qual <- FeatureEffect$new(predictor_rf,
+                                      "Overall_Qual",
+                                      method = "pdp+ice")
+pdp_Gr_Liv_Area <- FeatureEffect$new(predictor_rf,
+                                     "Gr_Liv_Area",
+                                     method = "pdp+ice",
+                                     center.at = min(ames_train$Gr_Liv_Area),
+                                     grid.size = 50)
+pdp_Year_Built <- FeatureEffect$new(predictor_rf,
+                                    "Year_Built",
+                                    method = "pdp+ice",
+                                    center.at = min(ames_train$Year_Built),
+                                    grid.size = 50)
+
+p1 <- plot(pdp_Overall_Qual)
+p2 <- plot(pdp_Gr_Liv_Area)
+p3 <- plot(pdp_Year_Built)
+
+p1 + p2 + p3
+```
+
+```{r iml-parallel-end, cache = FALSE}
+stopCluster(cl)
+```
+
+---
+
+# Comparison to bagging
+
+```{r bag-compare, dependson = "ames"}
+bag_oob <- randomForest(
+  formula = Sale_Price ~ .,
+  data = ames_train,
+  num.trees = 500,
+  mtry = ncol(ames_train) - 1,
+  nodesize = hyper_grid$node_size[[1]],
+  replace = FALSE,
+  sampsize = ceiling(hyper_grid$sampe_size[[1]] * nrow(ames_train))
+)
+```
+
+```{r rf-compare, dependson = "ames-rf-tune-results"}
+rf_oob <- randomForest(
+  formula = Sale_Price ~ .,
+  data = ames_train,
+  num.trees = 500,
+  mtry = hyper_grid$mtry[[1]],
+  nodesize = hyper_grid$node_size[[1]],
+  replace = FALSE,
+  sampsize = ceiling(hyper_grid$sampe_size[[1]] * nrow(ames_train))
+)
+```
+
+```{r rf-bag-compare, dependson = c("bag-compare", "rf-compare")}
+tibble(
+  Bagging = sqrt(bag_oob$mse),
+  `Random Forest` = sqrt(rf_oob$mse)
+) %>%
+  mutate(ntrees = row_number()) %>%
+  gather(Metric, RMSE, -ntrees) %>%
+  ggplot(aes(ntrees, RMSE, color = Metric)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_brewer(type = "qual") +
+  xlab("Number of trees")
+```
+
+
+
+

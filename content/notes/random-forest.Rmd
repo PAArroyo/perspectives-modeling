@@ -75,7 +75,7 @@ To achieve better variance reduction, we need to minimize the correlation betwee
 
 1. Bootstrap sampling - like bagging, random forests generate $B$ bootstrap resampled data sets, which makes them different and somewhat decorrelated
 1. Split-variable randomization - each time a split is to be performed, rather than considering all possible variables on which to perform a split, the search for the split variable is limited to a random subset of $m \leq p$ variables.
-    * For regression trees, the default value for $m$ is $\frac{m}{3}$ and the minimum node size is five.
+    * For regression trees, the default value for $m$ is $\frac{p}{3}$ and the minimum node size is five.
     * For classification trees, the default value for $m$ is $\sqrt{p}$ and the minimum node size is one.
     * Note these are only default values - $m$ and the minimum node size are tuning parameters in the model and can be tuned to the specific dataset.
     * When $m = p$, the random forests are equivalent to bagging.
@@ -194,7 +194,7 @@ The most common tuning parameters for random forest models are:
 
 * Number of trees - we want enough trees to stabilize our estimates of the error, but using too many trees is computationally inefficient
 * Number of variables to randomly sample at each split - if $m=p$, the model equates to bagging. If $m=1$, the split variable is completely random. A common approach starts with 5 values evenly spaced across the range from $2$ to $p$
-* Sample size for each bootstrapped sample - if we sample with replacement, our sample size is $N$. Instead, we could sample **without replacement** and only sample a fraction of the original sample. Decreasing the sample size can reduce training time but increase the bias of our estimates. Increasing the sample size can increase performance but at the risk of overfitting since it introduces more variance.
+* Sample size for each sample - if we sample with replacement (bootstrap), our sample size is $N$. Instead, we could sample **without replacement** and only sample a fraction of the original sample. Decreasing the sample size can reduce training time but increase the bias of our estimates. Increasing the sample size can increase performance but at the risk of overfitting since it introduces more variance.
 * Minimum number of observations within the terminal nodes - this controls the complexity of the trees. Small node size allows for deeper, more complex trees (lower bias, higher variance), whereas larger node results in shallower trees (higher bias, lower variance).
 * Maximum number of terminal nodes - another method for controling the complexity of the tree. More nodes leads to deeper trees, fewer nodes leads to shallower trees
 
