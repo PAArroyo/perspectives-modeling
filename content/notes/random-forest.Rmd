@@ -328,16 +328,6 @@ p1 + p2 + p3 +
   plot_layout(ncol = 1)
 ```
 
-## Feature interaction
-
-```{r ames-rf-int, dependson = "ames-rf-predictor", eval = FALSE}
-int_rf <- Interaction$new(predictor_rf, parallel = TRUE)
-```
-
-```{r ames-rf-int-plot, dependson = "ames-rf-int", eval = FALSE}
-plot(int_rf)
-```
-
 ```{r iml-parallel-end, cache = FALSE}
 stopCluster(cl)
 ```

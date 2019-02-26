@@ -64,7 +64,6 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#interpreting-a-random-forest"><span class="toc-section-number">4</span> Interpreting a random forest</a><ul>
 <li><a href="#feature-importance"><span class="toc-section-number">4.1</span> Feature importance</a></li>
 <li><a href="#partial-dependence"><span class="toc-section-number">4.2</span> Partial dependence</a></li>
-<li><a href="#feature-interaction"><span class="toc-section-number">4.3</span> Feature interaction</a></li>
 </ul></li>
 <li><a href="#comparison-to-bagging"><span class="toc-section-number">5</span> Comparison to bagging</a></li>
 <li><a href="#session-info"><span class="toc-section-number">6</span> Session Info</a></li>
@@ -359,11 +358,6 @@ p3 &lt;-<span class="st"> </span><span class="kw">plot</span>(pdp_Year_Built)
 p1 <span class="op">+</span><span class="st"> </span>p2 <span class="op">+</span><span class="st"> </span>p3 <span class="op">+</span>
 <span class="st">  </span><span class="kw">plot_layout</span>(<span class="dt">ncol =</span> <span class="dv">1</span>)</code></pre></div>
 <p><img src="/notes/random-forest_files/figure-html/ames-rf-pdp-1.png" width="672" /></p>
-</div>
-<div id="feature-interaction" class="section level2">
-<h2><span class="header-section-number">4.3</span> Feature interaction</h2>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">int_rf &lt;-<span class="st"> </span>Interaction<span class="op">$</span><span class="kw">new</span>(predictor_rf, <span class="dt">parallel =</span> <span class="ot">TRUE</span>)</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(int_rf)</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">stopCluster</span>(cl)</code></pre></div>
 </div>
 </div>
