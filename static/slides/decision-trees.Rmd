@@ -105,7 +105,7 @@ ggplot(Auto, aes(horsepower, mpg)) +
 
 # Stratification
 
-1. Divide the predictor space ($X_1, X_2, \dots, X_p$) into $J$ distinct and non-overlapping regions $R_1, R_2, \dots, R_J$.
+1. Divide the predictor space $X_1, X_2, \dots, X_p$ into $J$ distinct and non-overlapping regions $R_1, R_2, \dots, R_J$.
 1. For every observation in region $R_j$, make the same prediction which is the mean of the response variable $Y$ for all observations in $R_j$
 
 * Iterative process
@@ -1173,6 +1173,7 @@ plot(feat_imp_bag) +
   ggtitle("Bagging") +
   theme_minimal(base_size = 10)
 ```
+
 ---
 
 # Partial dependence plots

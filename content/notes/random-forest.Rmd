@@ -1,5 +1,5 @@
 ---
-title: Random forests, boosting
+title: Random forests
 date: 2019-02-27T13:30:00-06:00  # Schedule page publish date.
     
 draft: false
@@ -23,23 +23,13 @@ knitr::opts_chunk$set(cache = TRUE)
 ```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
 library(tidyverse)
 library(tidymodels)
-library(modelr)
-library(tree)
 library(randomForest)
-library(stringr)
-library(ISLR)
 library(patchwork)
-library(titanic)
 library(rcfss)
-library(pROC)
-library(gbm)
-library(gganimate)
-library(magrittr)
-
-# to get the tree graphs with the labels and values, use the forked
-# version of ggdendro
-# devtools::install_github("bensoltoff/ggdendro")
-library(ggdendro)
+library(rpart)
+library(rpart.plot)
+library(ranger)
+library(iml)
 
 set.seed(1234)
 theme_set(theme_minimal())
@@ -47,180 +37,352 @@ theme_set(theme_minimal())
 
 \newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
 
-```{r err-rate-rf, include = FALSE}
-err.rate.rf <- function(model, data) {
-  data <- as_tibble(data)
-  response <- as.character(model$terms[[2]])
-  
-  pred <- predict(model, newdata = data, type = "response")
-  actual <- data[[response]]
-  
-  return(mean(pred != actual, na.rm = TRUE))
+# Limitations of bagging tree aggregation
+
+The problem with [bagging](/notes/bagging/) is that if there is a single dominant predictor in the dataset, most trees will use the same predictor for the first split and ensure correlation and similarity among the trees. Consider a set of six decision trees grown using the `ISLR::Auto` dataset to predict fuel efficiency (`mpg`), where each decision tree is constructed from a bootstrapped sample:
+
+```{r mpg-bag-trees, dependson = "ames"}
+# generate bootstrapped samples
+bag_trees <- bootstraps(ISLR::Auto, times = 6) %>%
+  mutate(tree = map(splits, ~ rpart(mpg ~ .,
+                                    data = analysis(.x) %>%
+                                      select(-name),
+                                    method = "anova",
+                                    model = TRUE)))
+
+par(mfrow = c(2, 3))
+for(i in 1:nrow(bag_trees)) {
+  rpart.plot(bag_trees$tree[[i]],
+             main = str_c("Decision Tree", i, sep = " "))
 }
 ```
 
+Almost every tree splits on the same initial predictor (`displacement`). The resulting downstream branches also appear quite similar across trees. Because bagged trees are grown sufficiently deep without pruning, they will have low bias. The tree aggregation introduces a random component into the tree-building process (i.e. bootstrap sampling) which reduces the variance compared to a single tree's prediction, but each tree is not independent from each other: all of the trees are grown from essentially the same underlying data structure using the same growth and pruning algorithms. We should expect the individual trees to look similar to one another.
+
+This means the predictions from each $B$ bootstrap sample are **identically distributed** (**i.d.**) random variables, each with variance $\sigma^2$. If they were independent from one another (**independently and identically distributed** or **i.i.d.**), the variance of their average over $B$ random variables would simply be
+
+$$\frac{1}{B} \sigma^2$$
+
+However the variance for an average of i.d. variables with positive pairwise correlation $\rho$ is
+
+$$\rho \sigma^2 + \frac{1 - \rho}{B} \sigma^2$$
+
+As $B$ increases, the second term shrinks towards zero, but the first always remains. Therefore the size of the correlation of pairs of bagged trees limits the benefits of averaging. While bagging reduces the variance of our estimates, we will always be constrained by $\rho \sigma^2$.
+
 # Random forests
 
-**Random forests** improve upon bagging by decorrelating the individual trees. The problem with bagging is that if there is a single dominant predictor in the dataset, most trees will use the same predictor for the first split and ensure correlation and similarity among the trees. Remember that the goal of bagging is to reduce the variance of our estimates of the response variable $Y$. But averaging across a set of correlated trees will not substantially reduce variance, at least not as much as if the trees were uncorrelated.
+To achieve better variance reduction, we need to minimize the correlation between the trees. If we can make the predictions from the $B$ samples i.i.d., then their average prediction will have smaller variance compared to bagging. That is, we need more randomness in the tree-growing process. **Random forests** do this in two ways:
 
-To resolve this problem, when splitting a tree random forests will only consider a random sample $m$ of the total possible predictors $p$. That is, it intentionally ignores a random set of variables. Every time a new split is considered, a new random sample $m$ is drawn. The main question then becomes how to select the size of $m$. ISL recommends $m = \sqrt{p}$. By default, the `randomForest` package uses $m = \sqrt{p}$ for classification trees and $m = \frac{p}{3}$ for regression trees.
+1. Bootstrap sampling - like bagging, random forests generate $B$ bootstrap resampled data sets, which makes them different and somewhat decorrelated
+1. Split-variable randomization - each time a split is to be performed, rather than considering all possible variables on which to perform a split, the search for the split variable is limited to a random subset of $m \leq p$ variables.
+    * For regression trees, the default value for $m$ is $\frac{m}{3}$ and the minimum node size is five.
+    * For classification trees, the default value for $m$ is $\sqrt{p}$ and the minimum node size is one.
+    * Note these are only default values - $m$ and the minimum node size are tuning parameters in the model and can be tuned to the specific dataset.
+    * When $m = p$, the random forests are equivalent to bagging.
 
-Let's compare the results of the bagged Titanic model to the same model, only this time employing the random forest method:
+The basic algorithm for a random forest is:
 
-##### Bagged model
+1. For $b=1$ to $B$:
+    a. Draw a bootstrap sample $\mathbf{Z}^*$ of size $N$ from the training data
+    a. Grow a decision tree $T_b$ to the bootstrapped data, by recursively repeating the following steps for each terminal node of the tree until the minimum node size $n_\text{min}$ is reached:
+        a. Select $m$ variables at random from the $p$ predictors
+        a. Pick the best variable/split-point among the $m$
+        a. Split the node into two child nodes
+1. Output the ensemble of trees $\{ T_b \}_1^B$
 
-```{r titanic}
-titanic <- titanic_train %>%
-  as_tibble() %>%
-  mutate(Survived = factor(Survived, levels = 0:1, labels = c("Died", "Survived")),
-         Female = factor(Sex, levels = c("male", "female")))
+To make a prediction at a new point $x$:
+
+* Regression - take the average prediction of all the decision trees
+* Classification - take the most commonly predicted class of all the decision trees
+
+Because random forests are another tree-aggregation method, we can still use [out-of-bag estimates](/notes/bagging/#out-of-bag-estimates) to estimate the error rate of the model. Likewise, we can use measures of [feature importance, partial dependence plots, and feature interactions](/notes/global-interpretation/) to substantively interpret how different predictors are associated with the outcome of interest.
+
+# Tuning a random forest
+
+## Default values
+
+Random forests are convenient because they do not require much tuning to achieve optimal results. Even using default hyperparameter settings, models can perform fairly well. Let's use a random forest model to predict house sale price in the Ames housing data set. Here I don't modify any of the default values for the `randomForest()` function.
+
+```{r ames}
+# Create training (70%) and test (30%) sets for the AmesHousing::make_ames() data.
+# Use set.seed for reproducibility
+
+set.seed(123)
+ames_split <- initial_split(AmesHousing::make_ames(), prop = .7)
+ames_train <- training(ames_split)
+ames_test  <- testing(ames_split)
 ```
 
-```{r titanic-bag-oob, dependson = "titanic"}
-titanic_rf_data <- titanic %>%
-    select(-Name, -Ticket, -Cabin, -Sex, -PassengerId) %>%
-    mutate_each(funs(as.factor(.)), Pclass, Embarked) %>%
-    na.omit
+```{r ames-rf, dependson = "ames"}
+# for reproduciblity
+set.seed(123)
 
-(titanic_bag <- randomForest(Survived ~ ., data = titanic_rf_data,
-                             mtry = 7, ntree = 500))
+# default RF model
+m1 <- randomForest(
+  formula = Sale_Price ~ .,
+  data    = ames_train
+)
+
+m1
 ```
 
-```{r titanic-bag-reprint}
-titanic_bag
-```
+We can first consider how many trees we needed to grow to minimize our test error.
 
-```{r titanic-bag-first-split}
-seq.int(titanic_bag$ntree) %>%
-  map_df(~ getTree(titanic_bag, k = ., labelVar = TRUE)[1,]) %>%
-  count(`split var`) %>%
-  knitr::kable(caption = "Variable used to generate the first split in each tree",
-               col.names = c("Variable used to split", "Number of training observations"))
-```
-
-##### Random forest model
-
-```{r titanic-rf}
-(titanic_rf <- randomForest(Survived ~ ., data = titanic_rf_data,
-                            ntree = 500))
-
-seq.int(titanic_rf$ntree) %>%
-  map_df(~ getTree(titanic_rf, k = ., labelVar = TRUE)[1,]) %>%
-  count(`split var`) %>%
-  knitr::kable(caption = "Variable used to generate the first split in each tree",
-               col.names = c("Variable used to split", "Number of training observations"))
-
-tibble(var = rownames(importance(titanic_rf)),
-           `Random forest` = importance(titanic_rf)[,1]) %>%
-  left_join(tibble(var = rownames(importance(titanic_rf)),
-           Bagging = importance(titanic_bag)[,1])) %>%
-  mutate(var = fct_reorder(var, Bagging, fun = median)) %>%
-  gather(model, gini, -var) %>%
-  ggplot(aes(var, gini, color = model)) +
-  geom_point() +
-  coord_flip() +
-  labs(title = "Predicting survival on the Titanic",
-       x = NULL,
-       y = "Average decrease in the Gini Index",
-       color = "Method")
-```
-
-The OOB error rate is a couple points smaller on the random forest model, and in the random forest model gender is no longer exclusively used to generate the first split for each tree. We can also observe that the average decrease in the Gini index associated with each variable is generally smaller using the random forest method compared to bagging - this is because of the variable restriction imposed when considering splits.
-
-# Boosting
-
-**Boosting** is another approach to improve upon the result of a single decision tree. Instead of creating multiple independent decision trees through a bootstrapping process, boosting grows trees **sequentially**, using information from the previously grown trees. Rather than fitting a model to the response variable $Y$, we fit a large number of decision trees $\hat{f}^1, \dots, \hat{f}^B$ to the current **residuals**. Each time a new decision tree is estimated, the residuals are updated combining the results of all previous decision trees in preparation for fitting the next tree.
-
-Rather than learning hard and fast like in bagging and random forests, boosting **learns slowly** over time as new trees are added. Because boosting is additive and slow, we can estimate fairly small trees and still gain considerable predictive power.
-
-Boosting is a general process that can be used for other statistical learning methods. The three main tuning parameters when boosting are:
-
-1. The **number of trees** $B$. If $B$ is too large, boosting can overfit. Typically we would use cross-validation to select $B$.
-1. The **shrinkage parameter** $\lambda$, which is a small positive number (i.e. $.01$ or $.001$). This controls the rate at which boosting learns. As $\lambda$ gets smaller, $B$ generally must increase.
-1. The **number of $d$ split in each tree**. Surprisingly, $d=1$ actually works well which is essentially an additive model (each tree is a **stump** with a single predictor), though larger values of $d$ are also common.
-
-Let's evaluate all the approaches we've seen so far using the Titanic model.
-
-```{r titanic-compare-all}
-titanic_split <- resample_partition(titanic_rf_data, p = c("test" = .3,
-                                                           "train" = .7))
-
-titanic_models <- list("bagging" = randomForest(Survived ~ ., data = titanic_split$train,
-                                                mtry = 7, ntree = 10000),
-                       "rf_mtry2" = randomForest(Survived ~ ., data = titanic_split$train,
-                                                 mtry = 2, ntree = 10000),
-                       "rf_mtry4" = randomForest(Survived ~ ., data = titanic_split$train,
-                                                 mtry = 4, ntree = 10000),
-                       "boosting_depth1" = gbm(as.numeric(Survived) - 1 ~ .,
-                                               data = as_tibble(titanic_split$train),
-                                               n.trees = 10000, interaction.depth = 1),
-                       "boosting_depth2" = gbm(as.numeric(Survived) - 1 ~ .,
-                                               data = as_tibble(titanic_split$train),
-                                               n.trees = 10000, interaction.depth = 2),
-                       "boosting_depth4" = gbm(as.numeric(Survived) - 1 ~ .,
-                                               data = as_tibble(titanic_split$train),
-                                               n.trees = 10000, interaction.depth = 4))
-
-boost_test_err <- tibble(bagging = predict(titanic_models$bagging,
-                                               newdata = as_tibble(titanic_split$test),
-                                               predict.all = TRUE)[[2]] %>%
-                               apply(2, function(x) x != as_tibble(titanic_split$test)$Survived) %>%
-                               apply(2, mean),
-                             rf_mtry2 = predict(titanic_models$rf_mtry2,
-                                                newdata = as_tibble(titanic_split$test),
-                                                predict.all = TRUE)[[2]] %>%
-                               apply(2, function(x) x != as_tibble(titanic_split$test)$Survived) %>%
-                               apply(2, mean),
-                             rf_mtry4 = predict(titanic_models$rf_mtry4,
-                                                newdata = as_tibble(titanic_split$test),
-                                                predict.all = TRUE)[[2]] %>%
-                               apply(2, function(x) x != as_tibble(titanic_split$test)$Survived) %>%
-                               apply(2, mean),
-                             boosting_depth1 = predict(titanic_models$boosting_depth1,
-                                                       newdata = as_tibble(titanic_split$test),
-                                                       n.trees = 1:10000) %>%
-                               apply(2, function(x) round(x) == as.numeric(as_tibble(titanic_split$test)$Survived) - 1) %>%
-                               apply(2, mean),
-                             boosting_depth2 = predict(titanic_models$boosting_depth2,
-                                                       newdata = as_tibble(titanic_split$test),
-                                                       n.trees = 1:10000) %>%
-                               apply(2, function(x) round(x) == as.numeric(as_tibble(titanic_split$test)$Survived) - 1) %>%
-                               apply(2, mean),
-                             boosting_depth4 = predict(titanic_models$boosting_depth4,
-                                                       newdata = as_tibble(titanic_split$test),
-                                                       n.trees = 1:10000) %>%
-                               apply(2, function(x) round(x) == as.numeric(as_tibble(titanic_split$test)$Survived) - 1) %>%
-                               apply(2, mean))
-
-boost_test_err %>%
-  mutate(id = row_number()) %>%
-  mutate_each(funs(cummean(.)), bagging:rf_mtry4) %>%
-  gather(model, err, -id) %>%
-  mutate(model = factor(model, levels = names(titanic_models),
-                        labels = c("Bagging", "Random forest: m = \\sqrt(p)",
-                                   "Random forest: m = 4",
-                                   "Boosting: depth = 1",
-                                   "Boosting: depth = 2",
-                                   "Boosting: depth = 4"))) %>%
-  ggplot(aes(id, err, color = model)) +
+```{r ames-rf-plot, dependson = "ames-rf"}
+tibble(
+  mse = m1$mse
+) %>%
+  mutate(
+    ntrees = row_number()
+  ) %>%
+  ggplot(aes(ntrees, mse)) +
   geom_line() +
-  scale_color_brewer(type = "qual", palette = "Dark2") +
-  labs(x = "Number of trees",
-       y = "Test classification error",
-       color = "Model")
+  geom_vline(xintercept = which.min(m1$mse), linetype = 2) +
+  labs(x = "Number of trees grown",
+       y = "OOB MSE")
 ```
 
-Using bagging or random forest methods, the models quickly converge on a test classification error rate. This helps to demonstrate that for bagging and random forests, you do not need a particularly large $B$ to build a good model. For boosting, additional trees are necessary for the error rate to begin converging and stabilizing around a single value. We can use the `gbm.perf()` function to help determine the optimal number of boosting iterations based on either OOB, test set, or CV estimates of the error rate/MSE:
+As the number of trees grown increases, OOB MSE decreases rapidly until about 50 then slows down. The optimal random forest with these hyperparameter settings only requires `r which.min(m1$mse)` trees.
 
-```{r titanic-boost-opt}
-tibble(depth = c(1, 2, 4),
-           model = titanic_models[c("boosting_depth1", "boosting_depth2", "boosting_depth4")],
-           optimal = map_dbl(model, gbm.perf, plot.it = FALSE)) %>%
-  select(-model) %>%
-  knitr::kable(caption = "Optimal number of boosting iterations",
-               col.names = c("Depth", "Optimal number of iterations"))
+How does the OOB estimate compare to an actual validation set estimate?
+
+```{r ames-rf-oob-val, dependson = "ames-rf"}
+# create training and validation data 
+set.seed(123)
+valid_split <- initial_split(ames_train, .8)
+
+# training data
+ames_train_v2 <- analysis(valid_split)
+
+# validation data
+ames_valid <- assessment(valid_split)
+x_test <- select(ames_valid, -Sale_Price)
+y_test <- ames_valid$Sale_Price
+
+rf_oob_comp <- randomForest(
+  formula = Sale_Price ~ .,
+  data = ames_train_v2,
+  xtest = x_test,
+  ytest = y_test
+)
+```
+
+```{r ames-rf-oob-val-plot, dependson = "ames-rf-oob-val"}
+# extract OOB & validation errors
+oob <- sqrt(rf_oob_comp$mse)
+validation <- sqrt(rf_oob_comp$test$mse)
+
+# compare error rates
+tibble(
+  `Out of Bag Error` = oob,
+  `Test error` = validation
+) %>%
+  mutate(ntrees = row_number()) %>%
+  gather(Metric, RMSE, -ntrees) %>%
+  ggplot(aes(ntrees, RMSE, color = Metric)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_brewer(type = "qual") +
+  xlab("Number of trees")
+```
+
+While they are not precisely the same value, they definitely have similar trends. With an RMSE of less than \$30K, this model performs better than a fully tuned bagging model or even a regularized regression model (i.e. elastic net).
+
+## Tuning parameter options
+
+The most common tuning parameters for random forest models are:
+
+* Number of trees - we want enough trees to stabilize our estimates of the error, but using too many trees is computationally inefficient
+* Number of variables to randomly sample at each split - if $m=p$, the model equates to bagging. If $m=1$, the split variable is completely random. A common approach starts with 5 values evenly spaced across the range from $2$ to $p$
+* Sample size for each bootstrapped sample - if we sample with replacement, our sample size is $N$. Instead, we could sample **without replacement** and only sample a fraction of the original sample. Decreasing the sample size can reduce training time but increase the bias of our estimates. Increasing the sample size can increase performance but at the risk of overfitting since it introduces more variance.
+* Minimum number of observations within the terminal nodes - this controls the complexity of the trees. Small node size allows for deeper, more complex trees (lower bias, higher variance), whereas larger node results in shallower trees (higher bias, lower variance).
+* Maximum number of terminal nodes - another method for controling the complexity of the tree. More nodes leads to deeper trees, fewer nodes leads to shallower trees
+
+We can perform a grid search over several hyperparameters, but if you do this make sure to choose an efficient function that implements a random forest model. Otherwise if each random forest takes a minute to grow, hyperparameter tuning over dozens of combinations of hyperparameters will take close to an hour. In R, the `ranger` package implements an efficient random forest algorithm.
+
+```{r ames-hypergrid}
+# hyperparameter grid search
+hyper_grid <- expand.grid(
+  mtry = seq(20, 30, by = 2),
+  node_size = seq(3, 9, by = 2),
+  sampe_size = c(.55, .632, .70, .80),
+  OOB_RMSE = 0
+)
+
+# total number of combinations
+nrow(hyper_grid)
+```
+
+```{r ames-rf-tune, dependson = "ames"}
+for(i in 1:nrow(hyper_grid)) {
+  # train model
+  model <- ranger(
+    formula = Sale_Price ~ ., 
+    data = ames_train, 
+    num.trees = 500,
+    mtry = hyper_grid$mtry[i],
+    min.node.size = hyper_grid$node_size[i],
+    sample.fraction = hyper_grid$sampe_size[i],
+    seed = 123
+  )
   
+  # add OOB error to grid
+  hyper_grid$OOB_RMSE[i] <- sqrt(model$prediction.error)
+}
 ```
+
+```{r ames-rf-tune-results, dependson = "ames-rf-tune"}
+hyper_grid <- hyper_grid %>% 
+  arrange(OOB_RMSE)
+hyper_grid %>%
+  head(10)
+```
+
+These results indicate the best random forest model uses $m=`r hyper_grid$mtry[[1]]`$, terminal node size of `r hyper_grid$node_size[[1]]` observations, and a sample size of `r hyper_grid$sampe_size[[1]]`. Let's repeat this model to get a better expectation of our error rate.
+
+```{r ames-rf-tune-final, dependson = "ames-rf-tune-results"}
+OOB_RMSE <- vector(mode = "numeric", length = 100)
+
+set.seed(123)
+for(i in seq_along(OOB_RMSE)) {
+  optimal_ranger <- ranger(
+    formula = Sale_Price ~ ., 
+    data = ames_train, 
+    num.trees = 500,
+    mtry = hyper_grid$mtry[[1]],
+    min.node.size = hyper_grid$node_size[[1]],
+    sample.fraction = hyper_grid$sampe_size[[1]]
+  )
+  
+  OOB_RMSE[i] <- sqrt(optimal_ranger$prediction.error)
+}
+```
+
+```{r ames-rf-tune-final-plot, dependson = "ames-rf-tune-final"}
+tibble(RMSE = OOB_RMSE) %>%
+  ggplot(aes(RMSE)) +
+  geom_histogram() +
+  scale_x_continuous(labels = scales::dollar) +
+  labs(title = "Distribution of OOB RMSE",
+       subtitle = "Repeats = 100",
+       x = "OOB RMSE",
+       y = "Frequency")
+```
+
+# Interpreting a random forest
+
+## Feature importance
+
+```{r ames-rf-predictor, dependson = "ames-rf-tune-final"}
+pred_ranger <- function(model, newdata){
+  results <- predict(model, newdata)
+  return(results$prediction)
+}
+
+predictor_rf <- Predictor$new(
+  model = optimal_ranger,
+  data = select(ames_train, - Sale_Price),
+  y = ames_train$Sale_Price,
+  predict.fun = pred_ranger
+)
+```
+
+```{r iml-parallel-begin, cache = FALSE}
+library(doParallel)
+
+cl <- makePSOCKcluster(3)
+registerDoParallel(cl)
+```
+
+```{r ames-rf-feat-imp, dependson = "ames-rf-predictor"}
+feat_imp_rf <- FeatureImp$new(predictor_rf, loss = "mse", parallel = TRUE)
+```
+
+```{r ames-rf-feat-imp-plot, dependson = "ames-rf-feat-imp", fig.asp = 1.4}
+plot(feat_imp_rf) +
+  ggtitle("Random forest")
+```
+
+## Partial dependence
+
+```{r ames-rf-pdp, dependson = "ames-rf-predictor", fig.asp = 1}
+pdp_Overall_Qual <- FeatureEffect$new(predictor_rf,
+                                      "Overall_Qual",
+                                      method = "pdp+ice")
+pdp_Gr_Liv_Area <- FeatureEffect$new(predictor_rf,
+                                     "Gr_Liv_Area",
+                                     method = "pdp+ice",
+                                     center.at = min(ames_train$Gr_Liv_Area),
+                                     grid.size = 50)
+pdp_Year_Built <- FeatureEffect$new(predictor_rf,
+                                    "Year_Built",
+                                    method = "pdp+ice",
+                                    center.at = min(ames_train$Year_Built),
+                                    grid.size = 50)
+
+p1 <- plot(pdp_Overall_Qual)
+p2 <- plot(pdp_Gr_Liv_Area)
+p3 <- plot(pdp_Year_Built)
+
+p1 + p2 + p3 +
+  plot_layout(ncol = 1)
+```
+
+## Feature interaction
+
+```{r ames-rf-int, dependson = "ames-rf-predictor", eval = FALSE}
+int_rf <- Interaction$new(predictor_rf, parallel = TRUE)
+```
+
+```{r ames-rf-int-plot, dependson = "ames-rf-int", eval = FALSE}
+plot(int_rf)
+```
+
+```{r iml-parallel-end, cache = FALSE}
+stopCluster(cl)
+```
+
+# Comparison to bagging
+
+```{r bag-compare, dependson = "ames"}
+bag_oob <- randomForest(
+  formula = Sale_Price ~ .,
+  data = ames_train,
+  num.trees = 500,
+  mtry = ncol(ames_train) - 1,
+  nodesize = hyper_grid$node_size[[1]],
+  replace = FALSE,
+  sampsize = ceiling(hyper_grid$sampe_size[[1]] * nrow(ames_train))
+)
+```
+
+```{r rf-compare, dependson = "ames-rf-tune-results"}
+rf_oob <- randomForest(
+  formula = Sale_Price ~ .,
+  data = ames_train,
+  num.trees = 500,
+  mtry = hyper_grid$mtry[[1]],
+  nodesize = hyper_grid$node_size[[1]],
+  replace = FALSE,
+  sampsize = ceiling(hyper_grid$sampe_size[[1]] * nrow(ames_train))
+)
+```
+
+```{r rf-bag-compare, dependson = c("bag-compare", "rf-compare")}
+tibble(
+  Bagging = sqrt(bag_oob$mse),
+  `Random Forest` = sqrt(rf_oob$mse)
+) %>%
+  mutate(ntrees = row_number()) %>%
+  gather(Metric, RMSE, -ntrees) %>%
+  ggplot(aes(ntrees, RMSE, color = Metric)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_brewer(type = "qual") +
+  xlab("Number of trees")
+```
+
+Holding the tuning parameters constant, random forest leads to a lower test error compared to the equivalent bagging model.
 
 # Session Info {.toc-ignore}
 
