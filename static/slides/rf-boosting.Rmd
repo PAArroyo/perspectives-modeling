@@ -27,6 +27,7 @@ library(rpart)
 library(rpart.plot)
 library(ranger)
 library(iml)
+library(xgboost)
 
 set.seed(1234)
 theme_set(theme_minimal(base_size = 16))
@@ -342,10 +343,6 @@ p3 <- plot(pdp_Year_Built)
 p1 + p2 + p3
 ```
 
-```{r iml-parallel-end, cache = FALSE}
-stopCluster(cl)
-```
-
 ---
 
 # Comparison to bagging
@@ -388,6 +385,432 @@ tibble(
   xlab("Number of trees")
 ```
 
+---
 
+# Types of predictive models
 
+* Strong vs. weak models
+* Single predictive model
+* Ensemble model
+    * Parallel construction
+    * Sequential construction
 
+---
+
+# Sequential ensemble construction
+
+![](https://littleml.files.wordpress.com/2017/03/boosted-trees-process.png)
+
+---
+
+# Why train weak models?
+
+* Speed
+* Accuracy improvement
+* Slow learning
+* Avoids overfitting
+
+---
+
+# Sequential training using errors
+
+1. Fit a decision tree to the data: $F_1(x) = y$
+1. Fit the next decision tree to the residuals of the previous: $h_1(x) = y - F_1(x)$
+1. Add this new tree to the algorithm: $F_2(x) = F_1(x) + h_1(x)$
+1. Fit the next decision tree to the residuals of $F_2$: $h_2(x) = y - F_2(x)$
+1. Add this new tree to the algorithm: $F_3(x) = F_2(x) + h_1(x)$
+1. Continue this process until some mechanism (i.e. cross validation) says to stop
+
+* Stagewise additive model
+
+    $$f(x) =  \sum^B_{b=1}f^b(x)$$
+
+---
+
+# Sequential training using errors
+
+```{r seq-learn}
+# source: https://github.com/bgreenwell/MLDay18/blob/master/code/rpartBoost.R
+rpartBoost <- function(X, y, data, num_trees = 100, learn_rate = 0.1, 
+                       tree_depth = 6, verbose = FALSE) {
+  require(rpart)
+  G_b_hat <- matrix(0, nrow = length(y), ncol = num_trees + 1)
+  r <- y
+  for (tree in seq_len(num_trees)) {
+    if (verbose) {
+      message("iter ", tree, " of ", num_trees)
+    }
+    g_b_tilde <- rpart(r ~ X, control = list(cp = 0, maxdepth = tree_depth))
+    g_b_hat <- learn_rate * predict(g_b_tilde)
+    G_b_hat[, tree + 1] <- G_b_hat[, tree] + matrix(g_b_hat)
+    r <- r - g_b_hat
+  }
+  colnames(G_b_hat) <- paste0("tree_", c(0, seq_len(num_trees)))
+  G_b_hat
+}
+
+# Simulate some sine wave data
+set.seed(101)
+x <- seq(from = 0, to = 2 * pi, length = 500)
+y <- sin(x) + rnorm(length(x), sd = 0.3)
+sim_data <- tibble(
+  x = x,
+  y = y
+)
+
+# gradient boosted decision trees
+bst <- rpartBoost(X = x, y = y, num_trees = 200, learn_rate = 0.1, 
+                  tree_depth = 3)
+
+# Plot iterations
+bst_gather <- bst %>%
+  as_tibble %>%
+  bind_cols(sim_data) %>%
+  mutate(id = row_number()) %>%
+  gather(tree, pred, -id, -x, -y) %>%
+  mutate(tree = parse_number(tree))
+
+library(gganimate)
+
+sin_gif <- ggplot(sim_data, aes(x, y)) +
+  geom_point(alpha = 0.2) +
+  stat_function(aes(color = "True function"), fun = sin, size = 1) +
+  geom_line(data = bst_gather,
+            aes(x,
+                pred,
+                color = "Boosted prediction",
+                group = tree),
+            size = 1) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Number of trees = {current_frame}",
+       x = expression(X),
+       y = expression(Y),
+       color = NULL) +
+  theme(legend.position = "bottom") +
+  transition_manual(tree)
+
+animate(sin_gif, fps = 3, end_pause = 20)
+```
+
+---
+
+# Gradient descent
+
+* Loss functions
+    * MSE
+    * MAE
+    * Deviance
+    * All differentiable
+* How to minimize the loss function
+* Gradient boosting
+
+---
+
+# Gradient descent
+
+.center[
+
+![:scale 80%](https://www.oreilly.com/library/view/hands-on-machine-learning/9781491962282/assets/mlst_0402.png)
+
+]
+
+* Iteratively tweak estimated parameters
+* Steepest slope
+* Gradient
+
+---
+
+# Learning rate comparisons
+
+.pull-left[
+
+##### Too small
+
+![[Geron, 2017](https://learning.oreilly.com/library/view/hands-on-machine-learning/9781491962282/)](https://www.oreilly.com/library/view/hands-on-machine-learning/9781491962282/assets/mlst_0403.png)
+
+]
+
+--
+
+.pull-right[
+
+##### Too large
+
+![[Geron, 2017](https://learning.oreilly.com/library/view/hands-on-machine-learning/9781491962282/)](https://www.oreilly.com/library/view/hands-on-machine-learning/9781491962282/assets/mlst_0404.png)
+
+]
+
+---
+
+# Global/local minima
+
+![[Geron, 2017](https://learning.oreilly.com/library/view/hands-on-machine-learning/9781491962282/)](https://www.oreilly.com/library/view/hands-on-machine-learning/9781491962282/assets/mlst_0405.png)
+
+* MSE - globally convex
+
+---
+
+# Tuning gradient boosting
+
+* Number of trees
+* Depth of trees
+* Learning rate
+* `xgboost`
+* Rescaling variables
+
+---
+
+# `xgboost` model
+
+```{r ames-prep, dependson = "ames"}
+# create recipe for one-hot-encoding
+ames_rec <- recipe(Sale_Price ~ ., data = ames_train) %>%
+  step_scale(all_numeric(), -all_outcomes()) %>%
+  step_dummy(all_nominal())
+
+# train the recipe
+trained_rec <- prep(ames_rec, training = ames_train)
+
+# generate train/test sets
+train_data <- bake(trained_rec, new_data = ames_train)
+test_data <- bake(trained_rec, new_data = ames_test)
+
+# separate into features and response
+features_train <- select(train_data, -Sale_Price) %>%
+  as.matrix
+response_train <- train_data$Sale_Price
+
+features_test <- select(test_data, -Sale_Price) %>%
+  as.matrix
+response_test <- test_data$Sale_Price
+```
+
+* Learning rate: 0.3
+* Tree depth: 6
+* Minimum node size: 1
+
+```{r ames-xgb, dependson = "ames-prep"}
+# reproducibility
+set.seed(123)
+
+xgb.fit1 <- xgb.cv(
+  data = features_train,
+  label = response_train,
+  nrounds = 1000,
+  nfold = 5,
+  objective = "reg:linear",  # for regression models
+  verbose = 0               # silent,
+)
+```
+
+---
+
+# `xgboost` model
+
+```{r ames-xgb-err, dependson = "ames-xgb"}
+# plot error vs number trees
+ggplot(xgb.fit1$evaluation_log) +
+  geom_line(aes(iter, train_rmse_mean, color = "Training set")) +
+  geom_line(aes(iter, test_rmse_mean, color = "Validation set")) +
+  geom_vline(aes(xintercept = which.min(xgb.fit1$evaluation_log$train_rmse_mean),
+                 color = "Training set"), linetype = 2, show.legend = FALSE) +
+  geom_vline(aes(xintercept = which.min(xgb.fit1$evaluation_log$test_rmse_mean),
+                 color = "Validation set"), linetype = 2, show.legend = FALSE) +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Training vs. validation error",
+       x = "Iteration",
+       y = "5-fold CV RMSE",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Early stopping
+
+```{r ames-xgb-stop, dependson = "ames-prep"}
+# reproducibility
+set.seed(123)
+
+xgb.fit2 <- xgb.cv(
+  data = features_train,
+  label = response_train,
+  nrounds = 1000,
+  nfold = 5,
+  objective = "reg:linear",  # for regression models
+  verbose = 0,               # silent,
+  early_stopping_rounds = 10 # stop if no improvement for 10 consecutive trees
+)
+
+# plot error vs number trees
+ggplot(xgb.fit2$evaluation_log) +
+  geom_line(aes(iter, train_rmse_mean, color = "Training set")) +
+  geom_line(aes(iter, test_rmse_mean, color = "Validation set")) +
+  geom_vline(aes(xintercept = which.min(xgb.fit2$evaluation_log$train_rmse_mean),
+                 color = "Training set"), linetype = 2, show.legend = FALSE) +
+  geom_vline(aes(xintercept = which.min(xgb.fit2$evaluation_log$test_rmse_mean),
+                 color = "Validation set"), linetype = 2, show.legend = FALSE) +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Training vs. validation error",
+       x = "Iteration",
+       y = "5-fold CV RMSE",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```
+
+---
+
+# Stochastic gradient descent
+
+.pull-left[
+
+### Batch gradient descent
+
+* Calculate gradient using all observations simultaneously
+* Terribly slow for large data sets
+
+]
+
+--
+
+.pull-right[
+
+### Stochastic gradient descent
+
+* Random subsampling
+* Use only one/small number of observations at a time
+    
+![[Geron, 2017](https://learning.oreilly.com/library/view/hands-on-machine-learning/9781491962282/)](https://www.oreilly.com/library/view/hands-on-machine-learning/9781491962282/assets/mlst_0408.png)
+
+]
+
+---
+
+# Stochastic `xgboost`
+
+```{r ames-xgb-stochastic, dependson = "ames"}
+# reproducibility
+set.seed(123)
+
+# train model
+xgb_sto_8 <- xgb.cv(
+  params = list(
+    subsample = .8
+  ),
+  data = features_train,
+  label = response_train,
+  nrounds = 1000,
+  nfold = 5,
+  objective = "reg:linear",  # for regression models
+  verbose = 0,               # silent,
+  early_stopping_rounds = 10 # stop if no improvement for 10 consecutive trees
+)
+
+xgb_sto_6 <- xgb.cv(
+  params = list(
+    subsample = .6
+  ),
+  data = features_train,
+  label = response_train,
+  nrounds = 1000,
+  nfold = 5,
+  objective = "reg:linear",  # for regression models
+  verbose = 0,               # silent,
+  early_stopping_rounds = 10 # stop if no improvement for 10 consecutive trees
+)
+
+xgb_sto_4 <- xgb.cv(
+  params = list(
+    subsample = .4
+  ),
+  data = features_train,
+  label = response_train,
+  nrounds = 1000,
+  nfold = 5,
+  objective = "reg:linear",  # for regression models
+  verbose = 0,               # silent,
+  early_stopping_rounds = 10 # stop if no improvement for 10 consecutive trees
+)
+
+xgb_sto_2 <- xgb.cv(
+  params = list(
+    subsample = .2
+  ),
+  data = features_train,
+  label = response_train,
+  nrounds = 1000,
+  nfold = 5,
+  objective = "reg:linear",  # for regression models
+  verbose = 0,               # silent,
+  early_stopping_rounds = 10 # stop if no improvement for 10 consecutive trees
+)
+
+bind_rows(
+  Batch = xgb.fit2$evaluation_log,
+  `Stochastic (.8)` = xgb_sto_8$evaluation_log,
+  `Stochastic (.6)` = xgb_sto_6$evaluation_log,
+  `Stochastic (.4)` = xgb_sto_4$evaluation_log,
+  `Stochastic (.2)` = xgb_sto_2$evaluation_log,
+  .id = "id"
+) %>%
+  mutate(id = factor(id)) %>%
+  ggplot(aes(iter, test_rmse_mean, color = id)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::dollar) +
+  coord_cartesian(ylim = c(27000, 40000)) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  labs(title = "Comparison of gradient descent methods",
+       x = "Iteration",
+       y = "5-fold CV RMSE",
+       color = NULL)
+```
+
+---
+
+# Feature importance
+
+```{r ames-xgb-predictor, dependson = "ames-xgb-stop"}
+library(caret)
+
+xgb_final <- train(
+  x = features_train,
+  y = response_train,
+  trControl = trainControl(
+    method = "none",
+    verboseIter = FALSE, # no training log
+    allowParallel = TRUE # FALSE for reproducible results 
+  ),
+  tuneGrid = expand.grid(
+    nrounds = xgb.fit2$best_iteration,
+    max_depth = 6,
+    eta = 0.3,
+    gamma = 0,
+    colsample_bytree = 1,
+    min_child_weight = 1,
+    subsample = 1
+  ),
+  method = "xgbTree"
+)
+
+predictor_xgb <- Predictor$new(
+  model = xgb_final,
+  data = train_data,
+  y = "Sale_Price"
+)
+```
+
+```{r ames-xgb-feat-imp, dependson = "ames-xgb-predictor"}
+feat_imp_xgb <- FeatureImp$new(predictor_xgb, loss = "mse", parallel = TRUE)
+```
+
+```{r ames-xgb-feat-imp-plot, dependson = "ames-xgb-feat-imp", fig.asp = 3}
+plot(feat_imp_xgb) +
+  ggtitle("GBM") +
+  theme_minimal(base_size = 8)
+```
+
+```{r iml-parallel-end, cache = FALSE}
+stopCluster(cl)
+```

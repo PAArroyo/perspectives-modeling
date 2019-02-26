@@ -176,8 +176,6 @@ class: center, middle, inverse, title-slide
 
 &lt;img src="rf-boosting_files/figure-html/ames-rf-pdp-1.png" width="864" /&gt;
 
-
-
 ---
 
 # Comparison to bagging
@@ -187,6 +185,184 @@ class: center, middle, inverse, title-slide
 
 
 &lt;img src="rf-boosting_files/figure-html/rf-bag-compare-1.png" width="864" /&gt;
+
+---
+
+# Types of predictive models
+
+* Strong vs. weak models
+* Single predictive model
+* Ensemble model
+    * Parallel construction
+    * Sequential construction
+
+---
+
+# Sequential ensemble construction
+
+![](https://littleml.files.wordpress.com/2017/03/boosted-trees-process.png)
+
+---
+
+# Why train weak models?
+
+* Speed
+* Accuracy improvement
+* Slow learning
+* Avoids overfitting
+
+---
+
+# Sequential training using errors
+
+1. Fit a decision tree to the data: `\(F_1(x) = y\)`
+1. Fit the next decision tree to the residuals of the previous: `\(h_1(x) = y - F_1(x)\)`
+1. Add this new tree to the algorithm: `\(F_2(x) = F_1(x) + h_1(x)\)`
+1. Fit the next decision tree to the residuals of `\(F_2\)`: `\(h_2(x) = y - F_2(x)\)`
+1. Add this new tree to the algorithm: `\(F_3(x) = F_2(x) + h_1(x)\)`
+1. Continue this process until some mechanism (i.e. cross validation) says to stop
+
+* Stagewise additive model
+
+    `$$f(x) =  \sum^B_{b=1}f^b(x)$$`
+
+---
+
+# Sequential training using errors
+
+![](rf-boosting_files/figure-html/seq-learn-1.gif)&lt;!-- --&gt;
+
+---
+
+# Gradient descent
+
+* Loss functions
+    * MSE
+    * MAE
+    * Deviance
+    * All differentiable
+* How to minimize the loss function
+* Gradient boosting
+
+---
+
+# Gradient descent
+
+.center[
+
+![:scale 80%](https://www.oreilly.com/library/view/hands-on-machine-learning/9781491962282/assets/mlst_0402.png)
+
+]
+
+* Iteratively tweak estimated parameters
+* Steepest slope
+* Gradient
+
+---
+
+# Learning rate comparisons
+
+.pull-left[
+
+##### Too small
+
+![[Geron, 2017](https://learning.oreilly.com/library/view/hands-on-machine-learning/9781491962282/)](https://www.oreilly.com/library/view/hands-on-machine-learning/9781491962282/assets/mlst_0403.png)
+
+]
+
+--
+
+.pull-right[
+
+##### Too large
+
+![[Geron, 2017](https://learning.oreilly.com/library/view/hands-on-machine-learning/9781491962282/)](https://www.oreilly.com/library/view/hands-on-machine-learning/9781491962282/assets/mlst_0404.png)
+
+]
+
+---
+
+# Global/local minima
+
+![[Geron, 2017](https://learning.oreilly.com/library/view/hands-on-machine-learning/9781491962282/)](https://www.oreilly.com/library/view/hands-on-machine-learning/9781491962282/assets/mlst_0405.png)
+
+* MSE - globally convex
+
+---
+
+# Tuning gradient boosting
+
+* Number of trees
+* Depth of trees
+* Learning rate
+* `xgboost`
+* Rescaling variables
+
+---
+
+# `xgboost` model
+
+
+
+* Learning rate: 0.3
+* Tree depth: 6
+* Minimum node size: 1
+
+
+
+---
+
+# `xgboost` model
+
+&lt;img src="rf-boosting_files/figure-html/ames-xgb-err-1.png" width="864" /&gt;
+
+---
+
+# Early stopping
+
+&lt;img src="rf-boosting_files/figure-html/ames-xgb-stop-1.png" width="864" /&gt;
+
+---
+
+# Stochastic gradient descent
+
+.pull-left[
+
+### Batch gradient descent
+
+* Calculate gradient using all observations simultaneously
+* Terribly slow for large data sets
+
+]
+
+--
+
+.pull-right[
+
+### Stochastic gradient descent
+
+* Random subsampling
+* Use only one/small number of observations at a time
+    
+![[Geron, 2017](https://learning.oreilly.com/library/view/hands-on-machine-learning/9781491962282/)](https://www.oreilly.com/library/view/hands-on-machine-learning/9781491962282/assets/mlst_0408.png)
+
+]
+
+---
+
+# Stochastic `xgboost`
+
+&lt;img src="rf-boosting_files/figure-html/ames-xgb-stochastic-1.png" width="864" /&gt;
+
+---
+
+# Feature importance
+
+
+
+
+
+&lt;img src="rf-boosting_files/figure-html/ames-xgb-feat-imp-plot-1.png" width="864" /&gt;
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="macros.js"></script>
