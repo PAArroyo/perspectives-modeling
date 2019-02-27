@@ -1,0 +1,144 @@
+---
+title: "Homework 08: Tree-Based Inference"
+date: 2019-02-27T13:30:00-06:00  # Schedule page publish date
+
+draft: false
+type: post
+
+output:
+  blogdown::html_page:
+    number_sections: false
+
+summary: "Implement methods for non-linear regression."
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#fork-the-hw08-repository">Fork the <code>hw08</code> repository</a></li>
+<li><a href="#submission-format">Submission format</a></li>
+<li><a href="#conceptual-exercises-4-points">Conceptual exercises (4 points)</a><ul>
+<li><a href="#cost-functions-for-classification-trees">Cost functions for classification trees</a></li>
+<li><a href="#predictions-from-tree-aggregation-methods">Predictions from tree-aggregation methods</a></li>
+<li><a href="#standardization-using-xgboost">Standardization using <code>xgboost</code></a></li>
+</ul></li>
+<li><a href="#predicting-attitudes-towards-racist-college-professors-6-points">Predicting attitudes towards racist college professors (6 points)</a><ul>
+<li><a href="#estimate-statistical-models">Estimate statistical models</a></li>
+<li><a href="#evaluate-statistical-models">Evaluate statistical models</a></li>
+<li><a href="#interpret-the-best-model">Interpret the best model</a></li>
+<li><a href="#evaluate-the-best-model">Evaluate the best model</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<p>Due by 11:59pm March 4th.</p>
+</div>
+<div id="fork-the-hw08-repository" class="section level1">
+<h1>Fork the <code>hw08</code> repository</h1>
+<p>Go <a href="https://github.com/css-model/hw08">here</a> to fork the repo for homework 08.</p>
+</div>
+<div id="submission-format" class="section level1">
+<h1>Submission format</h1>
+<p>For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). The document should be <strong>reproducible</strong>. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (<code>.ipynb</code>) or R Markdown (<code>.Rmd</code>) rendered as <code>pdf_document</code>.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+</div>
+<div id="conceptual-exercises-4-points" class="section level1">
+<h1>Conceptual exercises (4 points)</h1>
+<div id="cost-functions-for-classification-trees" class="section level2">
+<h2>Cost functions for classification trees</h2>
+<p>Consider the Gini index, classification error, and cross-entropy in a simple classification setting with two classes.</p>
+<ol style="list-style-type: decimal">
+<li>Create a single plot in Python or R that displays each of these quantities as a function of <span class="math inline">\(\hat{p}_{m1}\)</span>. The <span class="math inline">\(x\)</span>-axis should display <span class="math inline">\(\hat{p}_{m1}\)</span>, ranging from 0 to 1, and the <span class="math inline">\(y\)</span>-axis should display the value of the Gini index, classification error, and cross-entropy.</li>
+<li>Of these three possible cost functions, which would be best to use when growing a decision tree? Which would be best to use when pruning a decision tree? Why?</li>
+</ol>
+</div>
+<div id="predictions-from-tree-aggregation-methods" class="section level2">
+<h2>Predictions from tree-aggregation methods</h2>
+<p>Suppose we produce ten bootstrapped samples from a data set containing red and green classes. We then apply a classification tree to each of the bootstrapped samples and, for a specific value of <span class="math inline">\(X\)</span>, produce 10 estimates of <span class="math inline">\(\Pr(\text{Class is Red} | X)\)</span>:</p>
+<p><span class="math display">\[0.1, 0.15, 0.2, 0.2, 0.55, 0.6, 0.6, 0.65, 0.7, 0.75\]</span></p>
+<p>There are two common ways to combine these results together into a single class prediction. One is the majority vote approach, and the second is to classify based on the average probability.</p>
+<ol style="list-style-type: decimal">
+<li>What is the final classification under the majority vote approach?</li>
+<li>What is the final classification based on the average probability?</li>
+<li>What is <span class="math inline">\(\Pr(\text{Class is Red} | X)\)</span>? That is, what is the probability this specific observation is “Red” given the 10 classification trees? Compare the result if you calculate the probability using the voting proportions from the majority vote approach versus averaging each of the individual classification tree predicted probabilities. Which approach is correct?</li>
+</ol>
+</div>
+<div id="standardization-using-xgboost" class="section level2">
+<h2>Standardization using <code>xgboost</code></h2>
+<p>Evaluate the performance of <code>xgboost</code> using <code>gss_train.csv</code>, predicting <code>egalit_scale</code> as a function of all the other covariates. Estimate two separate models with 1000 trees using 5-fold cross-validation (leave all other hyperparameter settings at their default values):</p>
+<ol style="list-style-type: decimal">
+<li>One with unstandardized predictors</li>
+<li>One with standardized predictors</li>
+</ol>
+<p>Record the time it takes your computer to estimate each model and compare the performance of each model based on the CV MSE.</p>
+<ol style="list-style-type: decimal">
+<li>Do the models perform substantially differently in terms of error? Why or why not?</li>
+<li>Do the models perform substantially differently in terms of computational efficiency? Why or why not?</li>
+</ol>
+</div>
+</div>
+<div id="predicting-attitudes-towards-racist-college-professors-6-points" class="section level1">
+<h1>Predicting attitudes towards racist college professors (6 points)</h1>
+<p>The <a href="http://gss.norc.org/">General Social Survey</a> is a biannual survey of the American public.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
+<blockquote>
+<p><a href="http://gss.norc.org/About-The-GSS">The GSS gathers data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes. Hundreds of trends have been tracked since 1972. In addition, since the GSS adopted questions from earlier surveys, trends can be followed for up to 70 years. The GSS contains a standard core of demographic, behavioral, and attitudinal questions, plus topics of special interest. Among the topics covered are civil liberties, crime and violence, intergroup tolerance, morality, national spending priorities, psychological well-being, social mobility, and stress and traumatic events.</a></p>
+</blockquote>
+<p>In this problem set, you are going to predict attitudes towards racist college professors. Specifically, each respondent was asked “Should a person who believes that Blacks are genetically inferior be allowed to teach in a college or university?” Given the kerfuffle over Richard J. Herrnstein and Charles Murray’s <a href="https://en.wikipedia.org/wiki/The_Bell_Curve"><em>The Bell Curve</em></a> and the ostracization of Nobel Prize laureate <a href="https://en.wikipedia.org/wiki/James_Watson">James Watson</a> over his controversial views on race and intelligence, this analysis will provide further insight into the public debate over this issue.</p>
+<p><code>gss_*.csv</code> contain a selection of variables from the 2012 GSS. The outcome of interest <code>colrac</code> is a binary variable coded as either <code>ALLOWED</code> or <code>NOT ALLOWED</code>. Documentation for the other predictors (if the variable is not clearly coded) can be viewed <a href="https://gssdataexplorer.norc.org/variables/vfilter">here</a>. Some data pre-processing has been done in advance for you to ease your model fitting:</p>
+<ol style="list-style-type: decimal">
+<li>Missing values have been imputed.</li>
+<li>Categorical variables with low-frequency classes had those classes collapsed into an “other” category.</li>
+<li>Nominal variables with more than two classes have been converted to dummy variables.</li>
+<li>Remaining categorical variables have been converted to integer values, stripping their original labels.</li>
+</ol>
+<p>Your mission is to construct a series of statistical/machine learning models to accurately predict an individual’s attitude towards permitting individuals who view blacks to be racially inferior to teach in a college classroom. The learning objectives of this exercise are:</p>
+<ol style="list-style-type: decimal">
+<li>Implement statistical learning methods, including tree-based methods</li>
+<li>Conduct hyperparameter tuning</li>
+<li>Substantively interpret non-linear/non-regression models</li>
+</ol>
+<div id="estimate-statistical-models" class="section level2">
+<h2>Estimate statistical models</h2>
+<p>Estimate statistical models using:</p>
+<ul>
+<li>Logistic regression</li>
+<li>Naive Bayes</li>
+<li><span class="math inline">\(K\)</span>-nearest neighbors</li>
+<li>Ridge regression</li>
+<li>Lasso regression</li>
+<li>Elastic net</li>
+<li>MARS</li>
+<li>Decision tree</li>
+<li>Bagging</li>
+<li>Random forest</li>
+<li>Boosting</li>
+</ul>
+<p>Tune the relevant hyperparameters for each model as necessary. Only use the tuned model with the best performance for the remaining exercises. <strong>Be sure to leave sufficient time for hyperparameter tuning.</strong> Grid searches can be computationally taxing and take quite a while, especially for tree-aggregation methods.</p>
+</div>
+<div id="evaluate-statistical-models" class="section level2">
+<h2>Evaluate statistical models</h2>
+<p>Compare each model’s performance based on</p>
+<ul>
+<li><span class="math inline">\(5\)</span>-fold cross-validated error rate</li>
+<li>ROC/AUC</li>
+<li>Which is the best model? Defend your choice.</li>
+</ul>
+</div>
+<div id="interpret-the-best-model" class="section level2">
+<h2>Interpret the best model</h2>
+<p>Provide a substantive interpretation of the best model, using feature importance, PDPs/ICE, and local explanations (LIME). This should include (at minimum) 3-5 graphs, plus written analysis.</p>
+</div>
+<div id="evaluate-the-best-model" class="section level2">
+<h2>Evaluate the best model</h2>
+<p>Evaluate the final model’s performance on the test set using the classification error rate and ROC/AUC. Does the model generalize to this test set?</p>
+</div>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 😞<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Conducted by NORC at the University of Chicago.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>
