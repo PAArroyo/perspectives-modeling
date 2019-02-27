@@ -878,3 +878,17 @@ bind_rows(
        y = "5-fold CV RMSE",
        color = NULL)
 ```
+
+---
+
+# Hyperparameter tuning
+
+* Grid search
+    * Exhaustive
+    * Random
+    * Parallelize your functions
+* Targeted search
+    * Bayesian optimization
+    * Sequential model-based optimization
+* `scikit-learn`
+* `caret`/`mlr`
