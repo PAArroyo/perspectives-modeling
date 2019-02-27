@@ -556,7 +556,6 @@ animate(sin_gif, fps = 3, end_pause = 20)
 * Depth of trees
 * Learning rate
 * `xgboost`
-* Rescaling variables
 
 ---
 
@@ -813,4 +812,69 @@ plot(feat_imp_xgb) +
 
 ```{r iml-parallel-end, cache = FALSE}
 stopCluster(cl)
+```
+
+---
+
+# Comparison of untuned models
+
+```{r bag-final, dependson = "ames-rf-tune-results"}
+bag_cv <- vfold_cv(ames_train, v = 5) %>%
+  mutate(model = map(splits, ~ randomForest(
+    formula = Sale_Price ~ .,
+    data = analysis(.x),
+    xtest = select(assessment(.x), -Sale_Price),
+    ytest = assessment(.x)$Sale_Price,
+    num.trees = 500,
+    mtry = ncol(assessment(.x)) - 1
+  )),
+  mse = map(model, ~ .x$test$mse)
+  ) %>%
+  unnest(mse) %>%
+  group_by(id) %>%
+  mutate(rmse = sqrt(mse),
+         iter = row_number()) %>%
+  group_by(iter) %>%
+  summarize(rmse = mean(rmse))
+```
+
+```{r rf-final, dependson = "ames-rf-tune-results"}
+rf_cv <- vfold_cv(ames_train, v = 5) %>%
+  mutate(model = map(splits, ~ randomForest(
+    formula = Sale_Price ~ .,
+    data = analysis(.x),
+    xtest = select(assessment(.x), -Sale_Price),
+    ytest = assessment(.x)$Sale_Price,
+    num.trees = 500
+  )),
+  mse = map(model, ~ .x$test$mse)
+  ) %>%
+  unnest(mse) %>%
+  group_by(id) %>%
+  mutate(rmse = sqrt(mse),
+         iter = row_number()) %>%
+  group_by(iter) %>%
+  summarize(rmse = mean(rmse))
+```
+
+```{r all-final, dependson = c("bag-final", "rf-final", "ames-xgb")}
+bind_rows(
+  Bagging = bag_cv,
+  `Random Forest` = rf_cv,
+  .id = "model"
+) %>%
+  rename(test_rmse_mean = rmse) %>%
+  bind_rows(
+    xgb.fit2$evaluation_log %>%
+      mutate(model = "Boosting")) %>%
+  mutate(model = factor(model)) %>%
+  ggplot(aes(iter, test_rmse_mean, color = model)) +
+  geom_line() +
+  scale_y_continuous(labels = scales::dollar) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  coord_cartesian(ylim = c(25000, 40000)) +
+  labs(title = "Comparison of tree-aggregation methods",
+       x = "Iteration",
+       y = "5-fold CV RMSE",
+       color = NULL)
 ```
