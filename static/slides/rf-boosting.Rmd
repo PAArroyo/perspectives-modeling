@@ -415,15 +415,17 @@ tibble(
 # Sequential training using errors
 
 1. Fit a decision tree to the data: $F_1(x) = y$
-1. Fit the next decision tree to the residuals of the previous: $h_1(x) = y - F_1(x)$
-1. Add this new tree to the algorithm: $F_2(x) = F_1(x) + h_1(x)$
-1. Fit the next decision tree to the residuals of $F_2$: $h_2(x) = y - F_2(x)$
-1. Add this new tree to the algorithm: $F_3(x) = F_2(x) + h_1(x)$
+1. Fit the next decision tree to the residuals of the previous: $h_1(x) = y - \lambda F_1(x)$
+1. Add this new tree to the algorithm: $F_2(x) = F_1(x) + \lambda h_1(x)$
+1. Fit the next decision tree to the residuals of $F_2$: $h_2(x) = y - \lambda F_2(x)$
+1. Add this new tree to the algorithm: $F_3(x) = F_2(x) + \lambda h_1(x)$
 1. Continue this process until some mechanism (i.e. cross validation) says to stop
 
 * Stagewise additive model
 
-    $$f(x) =  \sum^B_{b=1}f^b(x)$$
+    $$f(x) =  \sum^B_{b=1} \lambda f^b(x)$$
+    
+* Learning parameter $\lambda$
 
 ---
 
@@ -491,6 +493,17 @@ sin_gif <- ggplot(sim_data, aes(x, y)) +
 
 animate(sin_gif, fps = 3, end_pause = 20)
 ```
+
+---
+
+# Boosting
+
+* Bagging
+    * Combine low bias, high variance models
+* Random forest
+    * Combine low-ish bias, less high variance models
+* Boosting
+    * Combine high bias, low variance models
 
 ---
 
