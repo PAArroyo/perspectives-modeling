@@ -47,9 +47,10 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Overview
 
+* Define random forests
+* Compare bagging and random forest algorithms
 * Define boosting
-* Apply boosting to decision trees
-* Distinguish between Adaboost and gradient boosting methods
+* Apply gradient boosting to decision trees
 * Implement boosting models and compare performance to other tree-based methods
 
 ## Before class
@@ -60,12 +61,18 @@ knitr::opts_chunk$set(echo = FALSE)
 ## Slides and class materials
 
 ```{r slides}
-knitr::include_url("/slides/boosting.html", height = "505px")
+knitr::include_url("/slides/rf-boosting.html", height = "505px")
 ```
 
+* [Random forests](/notes/random-forest/)
 
 ### Additional readings
 
+* [Random forests](http://uc-r.github.io/random_forests)
+* [Gradient boosting machines](http://uc-r.github.io/gbm_regression)
+
+* [Chapter 5 in *Python Data Science Handbook*](http://proquestcombo.safaribooksonline.com.proxy.uchicago.edu/book/programming/python/9781491912126) - covers hyperparameter tuning with `scikit-learn`
+* [XGBoost documentation](https://xgboost.readthedocs.io/en/latest/)
 
 ## What you need to do
 

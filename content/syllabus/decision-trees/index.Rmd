@@ -50,7 +50,7 @@ knitr::opts_chunk$set(echo = FALSE)
 * Define a decision tree
 * Identify the steps to estimating a decision tree
 * Demonstrate how to estimate a decision tree for regression and classification problems
-* Assess aggregation methods for decision trees, including bagging and random forests
+* Assess bagging aggregation methods for decision trees
 
 ## Before class
 
