@@ -11,7 +11,7 @@ link-citations: true
 
 menu:
   notes:
-    parent: Support vector machines
+    parent: Separating hyperplanes
     weight: 1
 ---
 
@@ -68,20 +68,13 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#non-linear-decision-boundaries"><span class="toc-section-number">3.1</span> Non-linear decision boundaries</a></li>
 <li><a href="#support-vector-machines-1"><span class="toc-section-number">3.2</span> Support vector machines</a><ul>
 <li><a href="#kernels"><span class="toc-section-number">3.2.1</span> Kernels</a></li>
+<li><a href="#kernels-for-svms"><span class="toc-section-number">3.2.2</span> Kernels for SVMs</a></li>
 </ul></li>
 </ul></li>
-<li><a href="#applying-and-interpreting-svms"><span class="toc-section-number">4</span> Applying and interpreting SVMs</a><ul>
-<li><a href="#titanic"><span class="toc-section-number">4.1</span> Titanic</a></li>
-<li><a href="#voter-turnout"><span class="toc-section-number">4.2</span> Voter turnout</a><ul>
-<li><a href="#svm"><span class="toc-section-number">4.2.1</span> SVM</a></li>
-<li><a href="#polynomial-kernel"><span class="toc-section-number">4.2.2</span> Polynomial kernel</a></li>
-<li><a href="#radial-kernel"><span class="toc-section-number">4.2.3</span> Radial kernel</a></li>
-<li><a href="#logistic-regression"><span class="toc-section-number">4.2.4</span> Logistic regression</a></li>
-<li><a href="#decision-tree"><span class="toc-section-number">4.2.5</span> Decision tree</a></li>
-<li><a href="#bagging"><span class="toc-section-number">4.2.6</span> Bagging</a></li>
-<li><a href="#random-forest"><span class="toc-section-number">4.2.7</span> Random forest</a></li>
-<li><a href="#compare-the-roc-curves"><span class="toc-section-number">4.2.8</span> Compare the ROC curves</a></li>
-</ul></li>
+<li><a href="#applying-and-interpreting-svms-using-voter-turnout"><span class="toc-section-number">4</span> Applying and interpreting SVMs using voter turnout</a><ul>
+<li><a href="#svm"><span class="toc-section-number">4.0.1</span> SVM</a></li>
+<li><a href="#polynomial-kernel"><span class="toc-section-number">4.0.2</span> Polynomial kernel</a></li>
+<li><a href="#radial-kernel"><span class="toc-section-number">4.0.3</span> Radial kernel</a></li>
 </ul></li>
 <li><a href="#session-info"><span class="toc-section-number">5</span> Session Info</a></li>
 <li><a href="#references"><span class="toc-section-number">6</span> References</a></li>
@@ -93,17 +86,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <span class="kw">library</span>(patchwork)
 <span class="kw">library</span>(iml)
 <span class="kw">library</span>(here)
-<span class="kw">library</span>(modelr)
-<span class="kw">library</span>(tree)
-<span class="kw">library</span>(randomForest)
-<span class="kw">library</span>(ISLR)
-<span class="kw">library</span>(titanic)
 <span class="kw">library</span>(rcfss)
-<span class="kw">library</span>(pROC)
-<span class="kw">library</span>(gbm)
 <span class="kw">library</span>(e1071)
-<span class="kw">library</span>(grid)
-<span class="kw">library</span>(gridExtra)
+<span class="kw">library</span>(caret)
+<span class="kw">library</span>(pROC)
 
 <span class="kw">set.seed</span>(<span class="dv">1234</span>)
 <span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
@@ -122,21 +108,23 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p><span class="math display">\[\beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p &gt; 0\]</span></p>
 <p><span class="math display">\[\beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p &lt; 0\]</span></p>
 <p>The hyperplane therefore divides the <span class="math inline">\(p\)</span>-dimensional space into two halves. To determine on which side of the hyperplane an observation lies, we simply calculate the sign of the corresponding hyperplane equation.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_hyper &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="fl">1.5</span>, <span class="fl">1.5</span>, <span class="dt">length.out =</span> <span class="dv">20</span>),
-                        <span class="dt">x2 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="fl">1.5</span>, <span class="fl">1.5</span>, <span class="dt">length.out =</span> <span class="dv">20</span>)) <span class="op">%&gt;%</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_hyper &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="fl">1.5</span>, <span class="fl">1.5</span>, <span class="dt">length.out =</span> <span class="dv">20</span>),
+  <span class="dt">x2 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="fl">1.5</span>, <span class="fl">1.5</span>, <span class="dt">length.out =</span> <span class="dv">20</span>)
+) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">expand</span>(x1, x2) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y =</span> <span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span><span class="dv">3</span> <span class="op">*</span><span class="st"> </span>x2,
          <span class="dt">group =</span> <span class="kw">ifelse</span>(y <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>,
                         <span class="kw">ifelse</span>(y <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)),
-         <span class="dt">group =</span> <span class="kw">factor</span>(group))</code></pre></div>
-<pre><code>## Warning: `data_frame()` is deprecated, use `tibble()`.
-## This warning is displayed once per session.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_hyper_line &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="fl">1.5</span>, <span class="fl">1.5</span>, <span class="dt">length.out =</span> <span class="dv">20</span>),
-                             <span class="dt">x2 =</span> (<span class="op">-</span><span class="dv">1</span> <span class="op">-</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span><span class="dv">3</span>)
+         <span class="dt">group =</span> <span class="kw">factor</span>(group))
+
+sim_hyper_line &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="fl">1.5</span>, <span class="fl">1.5</span>, <span class="dt">length.out =</span> <span class="dv">20</span>),
+                         <span class="dt">x2 =</span> (<span class="op">-</span><span class="dv">1</span> <span class="op">-</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span><span class="dv">3</span>)
 
 <span class="kw">ggplot</span>(sim_hyper, <span class="kw">aes</span>(x1, x2, <span class="dt">color =</span> group)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">data =</span> sim_hyper_line, <span class="kw">aes</span>(<span class="dt">color =</span> <span class="ot">NULL</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Hyperplane in two dimensions&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/hyperplane-1.png" width="672" /></p>
@@ -157,9 +145,13 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>These observations fall into one of two classes <span class="math inline">\(y_1, \dots, y_n \in \{-1, 1 \}\)</span> where <span class="math inline">\(-1\)</span> and <span class="math inline">\(1\)</span> represent two separate classes or categories. We also have a test observation <span class="math inline">\(x^*\)</span> which is a <span class="math inline">\(p\)</span>-vector of observed predictors <span class="math inline">\(x^* = (x_1^*, \dots, x_p^*)\)</span>. We want to develop a model that classifies the test observation correctly given our knowledge of the training observations. Previously we have used methods such as logistic regression (where the response variable is coded <span class="math inline">\(\{0, 1 \}\)</span>) and decision trees to perform this task. Now we want to use a hyperplane to <strong>separate</strong> the training observations into the two possible classes.</p>
 <p>A <strong>separating hyperplane</strong> perfectly separates training observations into their class labels. Observations in the blue class are coded as <span class="math inline">\(y_i = 1\)</span> those from the red class as <span class="math inline">\(y_i = -1\)</span>. So a separating hyperplane takes on the properties:</p>
 <p><span class="math display">\[\beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} &gt; 0, \text{if } y_i = 1\]</span> <span class="math display">\[\beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} &lt; 0, \text{if } y_i = -1\]</span></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
-                  <span class="dt">x2 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
-                  <span class="dt">y =</span> <span class="kw">ifelse</span>(<span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span><span class="dv">3</span> <span class="op">*</span><span class="st"> </span>x2 <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)) <span class="op">%&gt;%</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">123</span>)
+
+sim &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x1 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
+  <span class="dt">x2 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
+  <span class="dt">y =</span> <span class="kw">ifelse</span>(<span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span><span class="dv">3</span> <span class="op">*</span><span class="st"> </span>x2 <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)
+) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate_each</span>(<span class="kw">funs</span>(<span class="kw">ifelse</span>(y <span class="op">==</span><span class="st"> </span><span class="dv">1</span>, . <span class="op">+</span><span class="st"> </span><span class="fl">1.5</span>, .)), x2) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y =</span> <span class="kw">factor</span>(y, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>))) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">line1 =</span> (<span class="op">-</span><span class="dv">1</span> <span class="op">-</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span><span class="dv">3</span>,
@@ -179,6 +171,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> line1, <span class="dt">color =</span> <span class="ot">NULL</span>)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> line2, <span class="dt">color =</span> <span class="ot">NULL</span>)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">y =</span> line3, <span class="dt">color =</span> <span class="ot">NULL</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Examples of separating hyperplanes&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-1.png" width="672" /></p>
@@ -187,19 +180,24 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
                <span class="dt">scale =</span> <span class="ot">FALSE</span>)
 sim_coef &lt;-<span class="st"> </span><span class="kw">c</span>(sim_mod<span class="op">$</span>rho, <span class="kw">t</span>(sim_mod<span class="op">$</span>coefs) <span class="op">%*%</span><span class="st"> </span>sim_mod<span class="op">$</span>SV)
 
-sim_grid &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>, <span class="dt">length.out =</span> <span class="dv">100</span>),
-                  <span class="dt">x2 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="dv">2</span>, <span class="fl">3.5</span>, <span class="dt">length.out =</span> <span class="dv">100</span>)) <span class="op">%&gt;%</span>
+sim_grid &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>, <span class="dt">length.out =</span> <span class="dv">100</span>),
+  <span class="dt">x2 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="dv">2</span>, <span class="fl">3.5</span>, <span class="dt">length.out =</span> <span class="dv">100</span>)
+) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">expand</span>(x1, x2) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y =</span> <span class="kw">ifelse</span>(<span class="op">-</span>sim_coef[[<span class="dv">1</span>]] <span class="op">+</span><span class="st"> </span>sim_coef[[<span class="dv">2</span>]] <span class="op">*</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span>sim_coef[[<span class="dv">3</span>]] <span class="op">*</span><span class="st"> </span>x2 <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>),
          <span class="dt">y =</span> <span class="kw">factor</span>(y, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)))
 
-sim_plane &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>, <span class="dt">length.out =</span> <span class="dv">100</span>),
-                        <span class="dt">x2 =</span> (sim_coef[[<span class="dv">1</span>]] <span class="op">-</span><span class="st"> </span>sim_coef[[<span class="dv">2</span>]] <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span>sim_coef[[<span class="dv">3</span>]])
+sim_plane &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>, <span class="dt">length.out =</span> <span class="dv">100</span>),
+  <span class="dt">x2 =</span> (sim_coef[[<span class="dv">1</span>]] <span class="op">-</span><span class="st"> </span>sim_coef[[<span class="dv">2</span>]] <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span>sim_coef[[<span class="dv">3</span>]]
+)
 
 <span class="kw">ggplot</span>(sim, <span class="kw">aes</span>(x1)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">data =</span> sim_grid, <span class="kw">aes</span>(x1, x2, <span class="dt">color =</span> y), <span class="dt">alpha =</span> .<span class="dv">25</span>, <span class="dt">size =</span> .<span class="dv">25</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>(<span class="kw">aes</span>(<span class="dt">y =</span> x2, <span class="dt">color =</span> y)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">data =</span> sim_plane, <span class="kw">aes</span>(x1, x2)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Maximal margin classification&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-decision-1.png" width="672" /></p>
@@ -215,10 +213,11 @@ sim_dist &lt;-<span class="st"> </span><span class="kw">attr</span>(sim_pred, <s
 <span class="st">  </span><span class="kw">geom_point</span>(<span class="kw">aes</span>(<span class="dt">y =</span> x2, <span class="dt">color =</span> y)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">data =</span> sim_grid, <span class="kw">aes</span>(x1, x2, <span class="dt">color =</span> y), <span class="dt">alpha =</span> .<span class="dv">1</span>, <span class="dt">size =</span> .<span class="dv">25</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">data =</span> sim_plane, <span class="kw">aes</span>(x1, x2)) <span class="op">+</span>
-<span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> <span class="kw">mutate</span>(sim_plane, <span class="dt">x2 =</span> x2 <span class="op">-</span><span class="st"> </span><span class="kw">min</span>(<span class="kw">abs</span>(sim_dist))),
-              <span class="kw">aes</span>(x1, x2), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
-<span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> <span class="kw">mutate</span>(sim_plane, <span class="dt">x2 =</span> x2 <span class="op">+</span><span class="st"> </span><span class="kw">min</span>(<span class="kw">abs</span>(sim_dist))),
-              <span class="kw">aes</span>(x1, x2), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">data =</span> <span class="kw">mutate</span>(sim_plane, <span class="dt">x2 =</span> x2 <span class="op">-</span><span class="st"> </span><span class="kw">min</span>(<span class="kw">abs</span>(sim_dist))),
+            <span class="kw">aes</span>(x1, x2), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">data =</span> <span class="kw">mutate</span>(sim_plane, <span class="dt">x2 =</span> x2 <span class="op">+</span><span class="st"> </span><span class="kw">min</span>(<span class="kw">abs</span>(sim_dist))),
+            <span class="kw">aes</span>(x1, x2), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Maximal margin classification&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-margin-1.png" width="672" /></p>
@@ -236,12 +235,15 @@ sim_dist &lt;-<span class="st"> </span><span class="kw">attr</span>(sim_pred, <s
 <div id="non-separable-cases" class="section level3">
 <h3><span class="header-section-number">1.3.2</span> Non-separable cases</h3>
 <p>Unfortunately the maximal margin classifier only works if there exists a separating hyperplane for the data. If the cases cannot be perfectly separated by a hyperplane, then we can never satisfy the conditions of the maximal margin classifier.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
-           <span class="dt">x2 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
-           <span class="dt">y =</span> <span class="kw">c</span>(<span class="kw">rep</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">10</span>), <span class="kw">rep</span>(<span class="dv">1</span>, <span class="dv">10</span>))) <span class="op">%&gt;%</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(
+  <span class="dt">x1 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
+  <span class="dt">x2 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
+  <span class="dt">y =</span> <span class="kw">c</span>(<span class="kw">rep</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">10</span>), <span class="kw">rep</span>(<span class="dv">1</span>, <span class="dv">10</span>))
+) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y =</span> <span class="kw">factor</span>(y, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>))) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x1, x2, <span class="dt">color =</span> y)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Non-separable data&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-nosep-1.png" width="672" /></p>
@@ -256,17 +258,20 @@ sim_dist &lt;-<span class="st"> </span><span class="kw">attr</span>(sim_pred, <s
 <li>A perfectly separating hyperplane is too sensitive to individual training observations, generating potentially very small margins or overfitting the training set.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></li>
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># original model</span>
-sensitive &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
-                  <span class="dt">x2 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
-                  <span class="dt">y =</span> <span class="kw">ifelse</span>(<span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span><span class="dv">3</span> <span class="op">*</span><span class="st"> </span>x2 <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)) <span class="op">%&gt;%</span>
+<span class="kw">set.seed</span>(<span class="dv">123</span>)
+sensitive &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x1 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
+  <span class="dt">x2 =</span> <span class="kw">runif</span>(<span class="dv">20</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
+  <span class="dt">y =</span> <span class="kw">ifelse</span>(<span class="dv">1</span> <span class="op">+</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span><span class="dv">3</span> <span class="op">*</span><span class="st"> </span>x2 <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)
+) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate_each</span>(<span class="kw">funs</span>(<span class="kw">ifelse</span>(y <span class="op">==</span><span class="st"> </span><span class="dv">1</span>, . <span class="op">+</span><span class="st"> </span>.<span class="dv">5</span>, .)), x2) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y =</span> <span class="kw">factor</span>(y, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)))
 
 sens_mod &lt;-<span class="st"> </span><span class="kw">svm</span>(y <span class="op">~</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span>x2, <span class="dt">data =</span> sensitive, <span class="dt">kernel =</span> <span class="st">&quot;linear&quot;</span>,
                 <span class="dt">cost =</span> <span class="fl">1e05</span>, <span class="dt">scale =</span> <span class="ot">FALSE</span>)
 sens_coef &lt;-<span class="st"> </span><span class="kw">c</span>(sens_mod<span class="op">$</span>rho, <span class="kw">t</span>(sens_mod<span class="op">$</span>coefs) <span class="op">%*%</span><span class="st"> </span>sens_mod<span class="op">$</span>SV)
-sens_plane &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>, <span class="dt">length.out =</span> <span class="dv">100</span>),
-                        <span class="dt">x2 =</span> (sens_coef[[<span class="dv">1</span>]] <span class="op">-</span><span class="st"> </span>sens_coef[[<span class="dv">2</span>]] <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span>sens_coef[[<span class="dv">3</span>]])
+sens_plane &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>, <span class="dt">length.out =</span> <span class="dv">100</span>),
+                     <span class="dt">x2 =</span> (sens_coef[[<span class="dv">1</span>]] <span class="op">-</span><span class="st"> </span>sens_coef[[<span class="dv">2</span>]] <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span>sens_coef[[<span class="dv">3</span>]])
 
 <span class="kw">ggplot</span>(sensitive, <span class="kw">aes</span>(x1)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>(<span class="kw">aes</span>(<span class="dt">y =</span> x2, <span class="dt">color =</span> y)) <span class="op">+</span>
@@ -275,21 +280,22 @@ sens_plane &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<spa
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-sensitive-1.png" width="672" /></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># slight tweak</span>
-sensitive2 &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">with</span>(sensitive, x1[<span class="kw">which</span>(x2 <span class="op">==</span><span class="st"> </span><span class="kw">max</span>(x2[y <span class="op">==</span><span class="st"> </span><span class="op">-</span><span class="dv">1</span>]))]),
-                         <span class="dt">x2 =</span> <span class="kw">with</span>(sensitive, <span class="kw">max</span>(x2[y <span class="op">==</span><span class="st"> </span><span class="op">-</span><span class="dv">1</span>])) <span class="op">+</span><span class="st"> </span>.<span class="dv">1</span>,
-                         <span class="dt">y =</span> <span class="kw">factor</span>(<span class="dv">1</span>, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>))) <span class="op">%&gt;%</span>
+sensitive2 &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x1 =</span> <span class="kw">with</span>(sensitive, x1[<span class="kw">which</span>(x2 <span class="op">==</span><span class="st"> </span><span class="kw">max</span>(x2[y <span class="op">==</span><span class="st"> </span><span class="op">-</span><span class="dv">1</span>]))]),
+                     <span class="dt">x2 =</span> <span class="kw">with</span>(sensitive, <span class="kw">max</span>(x2[y <span class="op">==</span><span class="st"> </span><span class="op">-</span><span class="dv">1</span>])) <span class="op">+</span><span class="st"> </span>.<span class="dv">1</span>,
+                     <span class="dt">y =</span> <span class="kw">factor</span>(<span class="dv">1</span>, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>))) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">bind_rows</span>(sensitive)
 
 sens2_mod &lt;-<span class="st"> </span><span class="kw">svm</span>(y <span class="op">~</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span>x2, <span class="dt">data =</span> sensitive2, <span class="dt">kernel =</span> <span class="st">&quot;linear&quot;</span>,
-                <span class="dt">cost =</span> <span class="fl">1e05</span>, <span class="dt">scale =</span> <span class="ot">FALSE</span>)
+                 <span class="dt">cost =</span> <span class="fl">1e05</span>, <span class="dt">scale =</span> <span class="ot">FALSE</span>)
 sens2_coef &lt;-<span class="st"> </span><span class="kw">c</span>(sens2_mod<span class="op">$</span>rho, <span class="kw">t</span>(sens2_mod<span class="op">$</span>coefs) <span class="op">%*%</span><span class="st"> </span>sens2_mod<span class="op">$</span>SV)
-sens2_plane &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>, <span class="dt">length.out =</span> <span class="dv">100</span>),
-                        <span class="dt">x2 =</span> (sens2_coef[[<span class="dv">1</span>]] <span class="op">-</span><span class="st"> </span>sens2_coef[[<span class="dv">2</span>]] <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span>sens2_coef[[<span class="dv">3</span>]])
+sens2_plane &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>, <span class="dt">length.out =</span> <span class="dv">100</span>),
+                      <span class="dt">x2 =</span> (sens2_coef[[<span class="dv">1</span>]] <span class="op">-</span><span class="st"> </span>sens2_coef[[<span class="dv">2</span>]] <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span>sens2_coef[[<span class="dv">3</span>]])
 
 <span class="kw">ggplot</span>(sensitive2, <span class="kw">aes</span>(x1)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>(<span class="kw">aes</span>(<span class="dt">y =</span> x2, <span class="dt">color =</span> y)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">data =</span> sens2_plane, <span class="kw">aes</span>(x1, x2)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>(<span class="dt">data =</span> sens_plane, <span class="kw">aes</span>(x1, x2), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Maximal margin classification&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-sensitive-2.png" width="672" /></p>
@@ -311,9 +317,12 @@ sens2_plane &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<sp
 <p><span class="math inline">\(C\)</span> defines precisely how much error we are willing to tolerate in the resulting separating hyperplane. The sum of the errors for all training observations cannot exceed <span class="math inline">\(C\)</span>. Larger values of <span class="math inline">\(C\)</span> permit more overall error in the separating hyperplane and lead to larger margins, and smaller values of <span class="math inline">\(C\)</span> tolerate less error and produce smaller margins. If <span class="math inline">\(C = 0\)</span> then we do not tolerate any error in the separating hyperplane, in which case <span class="math inline">\(\epsilon_1, \dots, \epsilon_n = 0\)</span> and we estimate the maximal margin classifier (of course this is only possible if the classes are perfectly separable). Once we solve the optimization problem, we generate predictions the same way as for maximal margin classifiers, based on <span class="math inline">\(f(x^*) = \beta_0 + \beta_1 x_1^* + \dots + \beta_p x_p^*\)</span>.</p>
 <p>Selecting a value for <span class="math inline">\(C\)</span> is tricky and generally determined through a cross-validation approach to compare support vector classifiers under different values for <span class="math inline">\(C\)</span>. When <span class="math inline">\(C\)</span> is small, we generate a model with low-bias (it fits the data well) but high-variance (small changes in the training observations can generate substantial changes in the support vector classifier). If <span class="math inline">\(C\)</span> is large, we generate a model with more bias but less variance.</p>
 <p>The important thing to realize is that the support vector classifier is robust, like the maximal margin classifier, to changes in observations outside of the margin. Observations that lie directly on the margin or inside the margin but on the correct side of the hyperplane are <strong>support vectors</strong>. The support vector classifier will only change if those observations are adjusted. When <span class="math inline">\(C\)</span> is large, the number of observations falling inside the margin increases and therefore the number of support vectors also increases.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_c &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">rnorm</span>(<span class="dv">20</span>),
-                    <span class="dt">x2 =</span> <span class="kw">rnorm</span>(<span class="dv">20</span>),
-                    <span class="dt">y =</span> <span class="kw">ifelse</span>(<span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span>x2 <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">20</span>, <span class="dv">0</span>, .<span class="dv">25</span>) <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)) <span class="op">%&gt;%</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">123</span>)
+sim_c &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x1 =</span> <span class="kw">rnorm</span>(<span class="dv">20</span>),
+  <span class="dt">x2 =</span> <span class="kw">rnorm</span>(<span class="dv">20</span>),
+  <span class="dt">y =</span> <span class="kw">ifelse</span>(<span class="dv">2</span> <span class="op">*</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span>x2 <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">20</span>, <span class="dv">0</span>, .<span class="dv">25</span>) <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)
+) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y =</span> <span class="kw">factor</span>(y, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)))
 
 plot_svm &lt;-<span class="st"> </span><span class="cf">function</span>(df, <span class="dt">cost =</span> <span class="dv">1</span>){
@@ -324,8 +333,8 @@ plot_svm &lt;-<span class="st"> </span><span class="cf">function</span>(df, <spa
   
   <span class="co"># extract separating hyperplane</span>
   sim_coef &lt;-<span class="st"> </span><span class="kw">c</span>(sim_mod<span class="op">$</span>rho, <span class="kw">t</span>(sim_mod<span class="op">$</span>coefs) <span class="op">%*%</span><span class="st"> </span>sim_mod<span class="op">$</span>SV)
-  sim_plane &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="kw">min</span>(df<span class="op">$</span>x1), <span class="kw">max</span>(df<span class="op">$</span>x1), <span class="dt">length.out =</span> <span class="dv">100</span>),
-                          <span class="dt">x2 =</span> (<span class="op">-</span>sim_coef[[<span class="dv">1</span>]] <span class="op">-</span><span class="st"> </span>sim_coef[[<span class="dv">2</span>]] <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span>sim_coef[[<span class="dv">3</span>]])
+  sim_plane &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x1 =</span> <span class="kw">seq</span>(<span class="kw">min</span>(df<span class="op">$</span>x1), <span class="kw">max</span>(df<span class="op">$</span>x1), <span class="dt">length.out =</span> <span class="dv">100</span>),
+                      <span class="dt">x2 =</span> (<span class="op">-</span>sim_coef[[<span class="dv">1</span>]] <span class="op">-</span><span class="st"> </span>sim_coef[[<span class="dv">2</span>]] <span class="op">*</span><span class="st"> </span>x1) <span class="op">/</span><span class="st"> </span>sim_coef[[<span class="dv">3</span>]])
   
   <span class="co"># extract properties to draw margins</span>
   sim_pred &lt;-<span class="st"> </span><span class="kw">predict</span>(sim_mod, df, <span class="dt">decision.values =</span> <span class="ot">TRUE</span>)
@@ -338,35 +347,41 @@ plot_svm &lt;-<span class="st"> </span><span class="cf">function</span>(df, <spa
               <span class="kw">aes</span>(x1, x2), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
 <span class="st">    </span><span class="kw">geom_line</span>(<span class="dt">data =</span> <span class="kw">mutate</span>(sim_plane, <span class="dt">x2 =</span> x2 <span class="op">+</span><span class="st"> </span><span class="kw">min</span>(<span class="kw">abs</span>(sim_dist))),
               <span class="kw">aes</span>(x1, x2), <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
+<span class="st">    </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
 <span class="st">    </span><span class="kw">labs</span>(<span class="dt">subtitle =</span> <span class="kw">str_c</span>(<span class="st">&quot;Cost = &quot;</span>, cost)) <span class="op">+</span>
 <span class="st">    </span><span class="kw">coord_equal</span>(<span class="dt">xlim =</span> <span class="kw">range</span>(df<span class="op">$</span>x1),
-                    <span class="dt">ylim =</span> <span class="kw">range</span>(df<span class="op">$</span>x2)) <span class="op">+</span>
+                <span class="dt">ylim =</span> <span class="kw">range</span>(df<span class="op">$</span>x2)) <span class="op">+</span>
 <span class="st">    </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)
 }
 
-<span class="kw">grid.arrange</span>(<span class="dt">grobs =</span> <span class="kw">list</span>(<span class="kw">plot_svm</span>(sim_c, <span class="dt">cost =</span> <span class="dv">1</span>),
-                  <span class="kw">plot_svm</span>(sim_c, <span class="dt">cost =</span> <span class="dv">10</span>),
-                  <span class="kw">plot_svm</span>(sim_c, <span class="dt">cost =</span> <span class="dv">100</span>),
-                  <span class="kw">plot_svm</span>(sim_c, <span class="dt">cost =</span> <span class="dv">200</span>)), <span class="dt">ncol =</span> <span class="dv">2</span>)</code></pre></div>
+<span class="kw">plot_svm</span>(sim_c, <span class="dt">cost =</span> <span class="dv">1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">plot_svm</span>(sim_c, <span class="dt">cost =</span> <span class="dv">10</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">plot_svm</span>(sim_c, <span class="dt">cost =</span> <span class="dv">100</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">plot_svm</span>(sim_c, <span class="dt">cost =</span> <span class="dv">200</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">plot_layout</span>(<span class="dt">ncol =</span> <span class="dv">2</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-c-1.png" width="672" /></p>
 </div>
 <div id="support-vector-machines" class="section level1">
 <h1><span class="header-section-number">3</span> Support vector machines</h1>
 <div id="non-linear-decision-boundaries" class="section level2">
 <h2><span class="header-section-number">3.1</span> Non-linear decision boundaries</h2>
-<p>So far we have only demonstrated the support vector classifier with a <strong>linear decision boundary</strong>. But as with linear regression, we also know there are <a href="persp007_nonlinear.html">methods of extending the linear framework to account for non-linear relationships</a>. Consider the following relationship:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">1</span>)
+<p>So far we have only demonstrated the support vector classifier with a <strong>linear decision boundary</strong>. But as with linear regression, we also know there are <a href="/notes/global-methods/">methods of extending the linear framework to account for non-linear relationships</a>. Consider the following relationship:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">123</span>)
+
 x &lt;-<span class="st"> </span><span class="kw">matrix</span>(<span class="kw">rnorm</span>(<span class="dv">200</span> <span class="op">*</span><span class="st"> </span><span class="dv">2</span>), <span class="dt">ncol =</span> <span class="dv">2</span>)
 x[<span class="dv">1</span><span class="op">:</span><span class="dv">100</span>, ] &lt;-<span class="st"> </span>x[<span class="dv">1</span><span class="op">:</span><span class="dv">100</span>, ] <span class="op">+</span><span class="st"> </span><span class="dv">2</span>
 x[<span class="dv">101</span><span class="op">:</span><span class="dv">150</span>, ] &lt;-<span class="st"> </span>x[<span class="dv">101</span><span class="op">:</span><span class="dv">150</span>, ] <span class="op">-</span><span class="st"> </span><span class="dv">2</span>
 y &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="kw">rep</span>(<span class="dv">1</span>, <span class="dv">150</span>), <span class="kw">rep</span>(<span class="dv">2</span>, <span class="dv">50</span>))
-sim_nonlm &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">x =</span> x, <span class="dt">y =</span> <span class="kw">as.factor</span>(y)) <span class="op">%&gt;%</span>
-<span class="st">  </span>as_tibble <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">rename</span>(<span class="dt">x1 =</span> x.<span class="dv">1</span>,
-         <span class="dt">x2 =</span> x.<span class="dv">2</span>)
+
+sim_nonlm &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x1 =</span> x[, <span class="dv">1</span>],
+  <span class="dt">x2 =</span> x[, <span class="dv">2</span>],
+  <span class="dt">y =</span> <span class="kw">as.factor</span>(y)
+)
 
 radial_p &lt;-<span class="st"> </span><span class="kw">ggplot</span>(sim_nonlm, <span class="kw">aes</span>(x1, x2, <span class="dt">color =</span> y)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)
 radial_p</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-nonlinear-1.png" width="672" /></p>
@@ -379,11 +394,16 @@ radial_p</code></pre></div>
 &amp; \text{s.t.} &amp; &amp; y_i \left( \beta_0 + \sum_{j = 1}^p \beta_{j1} x_{ij} + \sum_{j = 1}^p \beta_{j2} x_{ij}^2 \right) \geq M(1 - \epsilon_i), \\
 &amp; &amp; &amp; \epsilon_i \geq 0, \sum_{i = 1}^n \epsilon_i \leq C, \sum_{j = 1}^p \sum_{k = 1}^2 \beta_{jk}^2 = 1 \\
 \end{aligned}\]</span></p>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/3liCbRZPrZA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+</iframe>
 <p>The problem with this approach is that as you add polynomial terms (or interactions or splines) you increase the <strong>feature space</strong> used to generate the decision boundary and the separating hyperplane (i.e. the total number of predictors increases). Maximizing this optimization problem is already computationally intensive: if you continue to increase the number of features, computing the support vector classifier becomes much more difficult and inefficient, and may even become impossible.</p>
 </div>
 <div id="support-vector-machines-1" class="section level2">
 <h2><span class="header-section-number">3.2</span> Support vector machines</h2>
 <p>The <strong>support vector machine</strong> is an extension of the support vector classifier that enlarges the feature space by using <strong>kernels</strong>. Kernels are a computationally efficient method for extending the feature space to accomodate a non-linear decision boundary.</p>
+<blockquote>
+<p>Do not confuse this kernel function with <a href="/notes/local-regression/#kernel-functions">kernel smoothers</a>. Same word, two different definitions.</p>
+</blockquote>
 <p>Computing the support vector classifier involves the <strong>inner products</strong> of the observations, rather than the observations themselves.<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a> The inner product of two <span class="math inline">\(r\)</span>-length vectors <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span> is defined as <span class="math inline">\(\langle a,b \rangle = \sum_{i = 1}^r a_i b_i\)</span>.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(x &lt;-<span class="st"> </span><span class="dv">1</span><span class="op">:</span><span class="dv">5</span>)</code></pre></div>
 <pre><code>## [1] 1 2 3 4 5</code></pre>
@@ -400,34 +420,82 @@ radial_p</code></pre></div>
 <p><span class="math display">\[f(x) = \beta_0 + \sum_{i \in \mathbb{S}} \alpha_i \langle x, x_i \rangle\]</span></p>
 <div id="kernels" class="section level3">
 <h3><span class="header-section-number">3.2.1</span> Kernels</h3>
+<p>Imagine we had to calculate the inner product of two vectors which are the output of a function <span class="math inline">\(f(\mathbf{x})\)</span>:<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a></p>
+<p><span class="math display">\[
+\begin{align}
+\mathbf{x} &amp;= (1, 2, 3) \\
+\mathbf{y} &amp;= (4, 5, 6) \\
+f(x_1, x_2, x_3) &amp;= x_1x_1 + x_1 x_2 + x_1x_3 + x_2x_1 + \\
+&amp;\qquad x_2x_2 + x_2x_3 + x_3x_1 + x_3x_2 + x_3x_3
+\end{align}
+\]</span></p>
+<p>If we have to calculate the inner product by first transforming these three-dimensional vectors into nine dimensions, the calculation is:</p>
+<p><span class="math display">\[
+\begin{align}
+f(\mathbf{x}) &amp;= 1, 2, 3, 2, 4, 6, 3, 6, 9 \\
+f(\mathbf{y}) &amp;= 16, 20, 24, 20, 25, 30, 24, 30, 36 \\
+\langle f(\mathbf{x}), f(\mathbf{y}) \rangle &amp;= (1, 2, 3, 2, 4, 6, 3, 6, 9) \cdot (16, 20, 24, 20, 25, 30, 24, 30, 36) \\
+&amp;= 16 + 40 + 72 + 40 + 100 + 180 + 72 + 180 + 324 \\
+&amp;= 1024
+\end{align}
+\]</span></p>
+<p>That was a lot of algebra because <span class="math inline">\(f\)</span> required the full mapping prior to calculating the inner product.</p>
+<p>Consider instead if we used a kernel function</p>
+<p><span class="math display">\[K(\mathbf{x}, \mathbf{y}) = \langle \mathbf{x}, \mathbf{y} \rangle^2\]</span></p>
+<p>Now our operation is</p>
+<p><span class="math display">\[
+\begin{align}
+K(\mathbf{x}, \mathbf{y}) &amp;= \langle (1, 2, 3, 2, 4, 6, 3, 6, 9) \cdot 16, 20, 24, 20, 25, 30, 24, 30, 36 \rangle ^2 \\
+ &amp;= (4 + 10 + 18)^2 \\
+&amp;= 32^2 \\
+&amp;= 1024
+\end{align}
+\]</span></p>
+<p>Same result, but the calculation is far less difficult. Now consider how this computation scales on a computer.</p>
+<p><img src="/notes/support-vector-machines_files/figure-html/inner-prod-compare-1.png" width="672" /></p>
+</div>
+<div id="kernels-for-svms" class="section level3">
+<h3><span class="header-section-number">3.2.2</span> Kernels for SVMs</h3>
 <p>Now rather than using the actual inner product,</p>
 <p><span class="math display">\[\langle x_i, x_{i&#39;} \rangle = \sum_{j = 1}^p x_{ij} x_{i&#39;j}\]</span></p>
-<p>instead we can use a <strong>generalization</strong> of the inner product following some functional form <span class="math inline">\(K\)</span> which we will call a kernel:</p>
+<p>instead we can use a <strong>generalization</strong> of the inner product following some functional form <span class="math inline">\(K\)</span> which we will call a <strong>kernel</strong>:</p>
 <p><span class="math display">\[K(x_i, x_{i&#39;})\]</span></p>
-<p>A kernel calculates the similarity of two observations. For example,</p>
+<p>In this context, a kernel calculates the similarity of two observations. For example,</p>
 <p><span class="math display">\[K(x_i, x_{i&#39;}) = \sum_{j = 1}^p x_{ij} x_{i&#39;j}\]</span></p>
 <p>generates the support vector classifier, also known as the <strong>linear kernel</strong>. Alternatively, we could use a different kernel function such as:</p>
 <p><span class="math display">\[K(x_i, x_{i&#39;}) = (1 + \sum_{j = 1}^p x_{ij} x_{i&#39;j})^d\]</span></p>
 <p>This is called the <strong>polynomial kernel</strong> of degree <span class="math inline">\(d\)</span> where <span class="math inline">\(d\)</span> is some positive integer. This will generate a much more flexible decision boundary, similar to how using a spline in linear regression generates a flexible, non-linear functional form. To use this kernel in a support vector classifier, the functional form becomes:</p>
 <p><span class="math display">\[f(x) = \beta_0 + \sum_{i \in \mathbb{S}} \alpha_i K(x,x_i)\]</span></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_nonlm &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">runif</span>(<span class="dv">100</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
-                  <span class="dt">x2 =</span> <span class="kw">runif</span>(<span class="dv">100</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
-                  <span class="dt">y =</span> <span class="kw">ifelse</span>(x1 <span class="op">+</span><span class="st"> </span>x1<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>x1<span class="op">^</span><span class="dv">3</span> <span class="op">-</span><span class="st"> </span>x2 <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span> <span class="op">+</span>
-<span class="st">                               </span><span class="kw">rnorm</span>(<span class="dv">100</span>, <span class="dv">0</span>, <span class="dv">1</span>), <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)) <span class="op">%&gt;%</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">123</span>)
+
+sim_nonlm &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x1 =</span> <span class="kw">runif</span>(<span class="dv">100</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
+  <span class="dt">x2 =</span> <span class="kw">runif</span>(<span class="dv">100</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">2</span>),
+  <span class="dt">y =</span> <span class="kw">ifelse</span>(x1 <span class="op">+</span><span class="st"> </span>x1<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>x1<span class="op">^</span><span class="dv">3</span> <span class="op">-</span><span class="st"> </span>x2 <span class="op">&lt;</span><span class="st"> </span><span class="dv">0</span> <span class="op">+</span>
+<span class="st">               </span><span class="kw">rnorm</span>(<span class="dv">100</span>, <span class="dv">0</span>, <span class="dv">1</span>), <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)
+) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">y =</span> <span class="kw">factor</span>(y, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)))
 
 <span class="kw">ggplot</span>(sim_nonlm, <span class="kw">aes</span>(x1, x2, <span class="dt">color =</span> y)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/svm-poly-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">svm</span>(y <span class="op">~</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span>x2, <span class="dt">data =</span> sim_nonlm, <span class="dt">kernel =</span> <span class="st">&quot;polynomial&quot;</span>, <span class="dt">scale =</span> <span class="ot">FALSE</span>, <span class="dt">cost =</span> <span class="dv">1</span>) <span class="op">%&gt;%</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">svm</span>(y <span class="op">~</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span>x2,
+    <span class="dt">data =</span> sim_nonlm,
+    <span class="dt">kernel =</span> <span class="st">&quot;polynomial&quot;</span>,
+    <span class="dt">scale =</span> <span class="ot">FALSE</span>,
+    <span class="dt">cost =</span> <span class="dv">1</span>) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">plot</span>(sim_nonlm, x2 <span class="op">~</span><span class="st"> </span>x1)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/svm-poly-2.png" width="672" /></p>
 <p>Another choice is the <strong>radial kernel</strong>:</p>
 <p><span class="math display">\[K(x_i, x_{i&#39;}) = \exp(- \gamma \sum_{j=1}^p (x_{ij} - x_{i&#39;j})^2)\]</span></p>
 <p>where <span class="math inline">\(\gamma\)</span> is some positive constant. Radial kernels work by localizing predictions for test observations based on their Euclidian distance to nearby training observations.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_rad_mod &lt;-<span class="st"> </span><span class="kw">svm</span>(y <span class="op">~</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span>x2, <span class="dt">data =</span> sim_nonlm,
-                     <span class="dt">kernel =</span> <span class="st">&quot;radial&quot;</span>, <span class="dt">cost =</span> <span class="dv">5</span>, <span class="dt">scale =</span> <span class="ot">FALSE</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sim_rad_mod &lt;-<span class="st"> </span><span class="kw">svm</span>(y <span class="op">~</span><span class="st"> </span>x1 <span class="op">+</span><span class="st"> </span>x2,
+                   <span class="dt">data =</span> sim_nonlm,
+                   <span class="dt">kernel =</span> <span class="st">&quot;radial&quot;</span>,
+                   <span class="dt">cost =</span> <span class="dv">5</span>,
+                   <span class="dt">scale =</span> <span class="ot">FALSE</span>)
 
 radial_p</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/svm-radial-1.png" width="672" /></p>
@@ -437,226 +505,12 @@ radial_p</code></pre></div>
 </div>
 </div>
 </div>
-<div id="applying-and-interpreting-svms" class="section level1">
-<h1><span class="header-section-number">4</span> Applying and interpreting SVMs</h1>
+<div id="applying-and-interpreting-svms-using-voter-turnout" class="section level1">
+<h1><span class="header-section-number">4</span> Applying and interpreting SVMs using voter turnout</h1>
 <p>SVMs are generally used for <strong>prediction models</strong>. They generate predicted classes for test observations and we can assess confidence in the model and overall model fit using standard metric. However SVMs are not good for conducting inference, since there are no easy methods for interpreting the relative importance and influence of individual predictors on the separating hyperplane. Regression coefficients are generally easy to interpret, and even tree-based methods have visual and statistical interpretations (variable importance plots) of the individual predictors. Generally SVMs are interpreted by assessing overall model fit and error rates, using a combination of cross-validation methods and visuals such as ROC curves.</p>
-<div id="titanic" class="section level2">
-<h2><span class="header-section-number">4.1</span> Titanic</h2>
-<p>Let’s try this method out on our trusty Titanic dataset, using age and gender to predict survival. First we’ll split our dataset into training and test sets.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic &lt;-<span class="st"> </span>titanic_train <span class="op">%&gt;%</span>
-<span class="st">  </span>as_tibble <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Name, <span class="op">-</span>Ticket, <span class="op">-</span>Cabin, <span class="op">-</span>PassengerId) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate_each</span>(<span class="kw">funs</span>(<span class="kw">as.factor</span>(.)), Survived, Pclass, Embarked) <span class="op">%&gt;%</span>
-<span class="st">  </span>na.omit</code></pre></div>
-<pre><code>## Warning: funs() is soft deprecated as of dplyr 0.8.0
-## please use list() instead
-## 
-## # Before:
-## funs(name = f(.)
-## 
-## # After: 
-## list(name = ~f(.))
-## This warning is displayed once per session.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_split &lt;-<span class="st"> </span><span class="kw">resample_partition</span>(titanic, <span class="dt">p =</span> <span class="kw">c</span>(<span class="st">&quot;test&quot;</span> =<span class="st"> </span>.<span class="dv">3</span>, <span class="st">&quot;train&quot;</span> =<span class="st"> </span>.<span class="dv">7</span>))</code></pre></div>
-<p>Our first attempt will use a linear kernel (i.e. support vector classifier) and we’ll use 10-fold cross-validation to determine the optimal cost parameter <span class="math inline">\(C\)</span>.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_tune &lt;-<span class="st"> </span><span class="kw">tune</span>(svm, Survived <span class="op">~</span><span class="st"> </span>Age <span class="op">+</span><span class="st"> </span>Fare, <span class="dt">data =</span> <span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>train),
-                     <span class="dt">kernel =</span> <span class="st">&quot;linear&quot;</span>,
-                     <span class="dt">range =</span> <span class="kw">list</span>(<span class="dt">cost =</span> <span class="kw">c</span>(.<span class="dv">001</span>, .<span class="dv">01</span>, .<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">100</span>)))
-<span class="kw">summary</span>(titanic_tune)</code></pre></div>
-<pre><code>## 
-## Parameter tuning of &#39;svm&#39;:
-## 
-## - sampling method: 10-fold cross validation 
-## 
-## - best parameters:
-##  cost
-##     5
-## 
-## - best performance: 0.364 
-## 
-## - Detailed performance results:
-##    cost error dispersion
-## 1 1e-03 0.400 0.06863753
-## 2 1e-02 0.390 0.07788881
-## 3 1e-01 0.376 0.07290786
-## 4 1e+00 0.366 0.07604092
-## 5 5e+00 0.364 0.07351493
-## 6 1e+01 0.364 0.07351493
-## 7 1e+02 0.364 0.07351493</code></pre>
-<p><span class="math inline">\(C = 1\)</span> produces the lower CV error rate, so let’s use that model for estimating model fit using a <a href="persp004_logistic_regression.html#receiver_operating_characteristics_(roc)_curve">ROC curve</a>.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_best &lt;-<span class="st"> </span>titanic_tune<span class="op">$</span>best.model
-<span class="kw">summary</span>(titanic_best)</code></pre></div>
-<pre><code>## 
-## Call:
-## best.tune(method = svm, train.x = Survived ~ Age + Fare, data = as_tibble(titanic_split$train), 
-##     ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), 
-##     kernel = &quot;linear&quot;)
-## 
-## 
-## Parameters:
-##    SVM-Type:  C-classification 
-##  SVM-Kernel:  linear 
-##        cost:  5 
-##       gamma:  0.5 
-## 
-## Number of Support Vectors:  372
-## 
-##  ( 186 186 )
-## 
-## 
-## Number of Classes:  2 
-## 
-## Levels: 
-##  0 1</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get predictions for test set</span>
-fitted &lt;-<span class="st"> </span><span class="kw">predict</span>(titanic_best, <span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>test), <span class="dt">decision.values =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span>attributes
-
-roc_line &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>test)<span class="op">$</span>Survived, fitted<span class="op">$</span>decision.values)</code></pre></div>
-<pre><code>## Warning in roc.default(as_tibble(titanic_split$test)$Survived,
-## fitted$decision.values): Deprecated use a matrix as predictor. Unexpected
-## results may be produced, please pass a numeric vector.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(roc_line)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/titanic-linear-pred-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(roc_line)</code></pre></div>
-<pre><code>## Area under the curve: 0.7587</code></pre>
-<p>How does this compare to a polynomial kernel SVM?</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_poly_tune &lt;-<span class="st"> </span><span class="kw">tune</span>(svm, Survived <span class="op">~</span><span class="st"> </span>Age <span class="op">+</span><span class="st"> </span>Fare, <span class="dt">data =</span> <span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>train),
-                     <span class="dt">kernel =</span> <span class="st">&quot;polynomial&quot;</span>,
-                     <span class="dt">range =</span> <span class="kw">list</span>(<span class="dt">cost =</span> <span class="kw">c</span>(.<span class="dv">001</span>, .<span class="dv">01</span>, .<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">100</span>)))
-<span class="kw">summary</span>(titanic_poly_tune)</code></pre></div>
-<pre><code>## 
-## Parameter tuning of &#39;svm&#39;:
-## 
-## - sampling method: 10-fold cross validation 
-## 
-## - best parameters:
-##   cost
-##  0.001
-## 
-## - best performance: 0.394 
-## 
-## - Detailed performance results:
-##    cost error dispersion
-## 1 1e-03 0.394 0.08435375
-## 2 1e-02 0.398 0.08715248
-## 3 1e-01 0.396 0.08630695
-## 4 1e+00 0.398 0.08508819
-## 5 5e+00 0.396 0.08579044
-## 6 1e+01 0.398 0.08508819
-## 7 1e+02 0.396 0.08579044</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_poly_best &lt;-<span class="st"> </span>titanic_poly_tune<span class="op">$</span>best.model
-<span class="kw">summary</span>(titanic_poly_best)</code></pre></div>
-<pre><code>## 
-## Call:
-## best.tune(method = svm, train.x = Survived ~ Age + Fare, data = as_tibble(titanic_split$train), 
-##     ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), 
-##     kernel = &quot;polynomial&quot;)
-## 
-## 
-## Parameters:
-##    SVM-Type:  C-classification 
-##  SVM-Kernel:  polynomial 
-##        cost:  0.001 
-##      degree:  3 
-##       gamma:  0.5 
-##      coef.0:  0 
-## 
-## Number of Support Vectors:  397
-## 
-##  ( 198 199 )
-## 
-## 
-## Number of Classes:  2 
-## 
-## Levels: 
-##  0 1</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get predictions for test set</span>
-fitted &lt;-<span class="st"> </span><span class="kw">predict</span>(titanic_poly_best, <span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>test), <span class="dt">decision.values =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span>attributes
-
-roc_poly &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>test)<span class="op">$</span>Survived, fitted<span class="op">$</span>decision.values)</code></pre></div>
-<pre><code>## Warning in roc.default(as_tibble(titanic_split$test)$Survived,
-## fitted$decision.values): Deprecated use a matrix as predictor. Unexpected
-## results may be produced, please pass a numeric vector.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(roc_poly)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/titanic-svm-poly-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(roc_poly)</code></pre></div>
-<pre><code>## Area under the curve: 0.7243</code></pre>
-<p>Not quite as good. The optimal cost parameter is smaller (<span class="math inline">\(.1\)</span>), but the associated CV error rate is higher than the linear kernel and the resulting test AUC is smaller. How does this stack up against the radial kernel?</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_rad_tune &lt;-<span class="st"> </span><span class="kw">tune</span>(svm, Survived <span class="op">~</span><span class="st"> </span>Age <span class="op">+</span><span class="st"> </span>Fare, <span class="dt">data =</span> <span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>train),
-                     <span class="dt">kernel =</span> <span class="st">&quot;radial&quot;</span>,
-                     <span class="dt">range =</span> <span class="kw">list</span>(<span class="dt">cost =</span> <span class="kw">c</span>(.<span class="dv">001</span>, .<span class="dv">01</span>, .<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">100</span>)))
-<span class="kw">summary</span>(titanic_rad_tune)</code></pre></div>
-<pre><code>## 
-## Parameter tuning of &#39;svm&#39;:
-## 
-## - sampling method: 10-fold cross validation 
-## 
-## - best parameters:
-##  cost
-##   100
-## 
-## - best performance: 0.326 
-## 
-## - Detailed performance results:
-##    cost error dispersion
-## 1 1e-03 0.400 0.06253888
-## 2 1e-02 0.400 0.06253888
-## 3 1e-01 0.358 0.08297255
-## 4 1e+00 0.342 0.08189424
-## 5 5e+00 0.330 0.06342099
-## 6 1e+01 0.328 0.06811755
-## 7 1e+02 0.326 0.06995236</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">titanic_rad_best &lt;-<span class="st"> </span>titanic_rad_tune<span class="op">$</span>best.model
-<span class="kw">summary</span>(titanic_rad_best)</code></pre></div>
-<pre><code>## 
-## Call:
-## best.tune(method = svm, train.x = Survived ~ Age + Fare, data = as_tibble(titanic_split$train), 
-##     ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), 
-##     kernel = &quot;radial&quot;)
-## 
-## 
-## Parameters:
-##    SVM-Type:  C-classification 
-##  SVM-Kernel:  radial 
-##        cost:  100 
-##       gamma:  0.5 
-## 
-## Number of Support Vectors:  334
-## 
-##  ( 165 169 )
-## 
-## 
-## Number of Classes:  2 
-## 
-## Levels: 
-##  0 1</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get predictions for test set</span>
-fitted &lt;-<span class="st"> </span><span class="kw">predict</span>(titanic_rad_best, <span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>test), <span class="dt">decision.values =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span>attributes
-
-roc_rad &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw">as_tibble</span>(titanic_split<span class="op">$</span>test)<span class="op">$</span>Survived, fitted<span class="op">$</span>decision.values)</code></pre></div>
-<pre><code>## Warning in roc.default(as_tibble(titanic_split$test)$Survived,
-## fitted$decision.values): Deprecated use a matrix as predictor. Unexpected
-## results may be produced, please pass a numeric vector.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(roc_rad)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/titanic-svm-radial-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(roc_rad)</code></pre></div>
-<pre><code>## Area under the curve: 0.7004</code></pre>
-<p>The radial improves upon both the polynomial and the linear SVMs. The CV error rate is lower and the test AUC is higher.</p>
-<p>It’s easier to compare if we plot the ROC curves on the same plotting window:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(roc_line, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>)
-<span class="kw">plot</span>(roc_poly, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;red&quot;</span>, <span class="dt">print.auc.y =</span> .<span class="dv">4</span>, <span class="dt">add =</span> <span class="ot">TRUE</span>)
-<span class="kw">plot</span>(roc_rad, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;orange&quot;</span>, <span class="dt">print.auc.y =</span> .<span class="dv">3</span>, <span class="dt">add =</span> <span class="ot">TRUE</span>)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/titanic-roc-compare-1.png" width="672" /></p>
-<p>Based on our predictions from the test set, the radial SVM performs the best on the AUC, followed by the linear SVM, and worst of all the polynomial SVM.</p>
-</div>
-<div id="voter-turnout" class="section level2">
-<h2><span class="header-section-number">4.2</span> Voter turnout</h2>
-<p>Let’s test the SVM method on our voter turnout data. Again, let’s start by splitting the data into training and test sets.<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a></p>
+<p>Let’s test the SVM method on our voter turnout data.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">(mh &lt;-<span class="st"> </span><span class="kw">read_csv</span>(<span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;mental_health.csv&quot;</span>)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate_each</span>(<span class="kw">funs</span>(<span class="kw">as.factor</span>(.)), vote96, black, female, married) <span class="op">%&gt;%</span>
+<span class="st">   </span><span class="kw">mutate</span>(<span class="dt">vote96 =</span> <span class="kw">factor</span>(vote96, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">1</span>), <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;No&quot;</span>, <span class="st">&quot;Yes&quot;</span>))) <span class="op">%&gt;%</span>
 <span class="st">  </span>na.omit)</code></pre></div>
 <pre><code>## Parsed with column specification:
 ## cols(
@@ -671,384 +525,263 @@ roc_rad &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="k
 ## )</code></pre>
 <pre><code>## # A tibble: 1,165 x 8
 ##    vote96 mhealth_sum   age  educ black female married inc10
-##    &lt;fct&gt;        &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt; &lt;fct&gt;  &lt;fct&gt;   &lt;dbl&gt;
-##  1 1                0    60    12 0     0      0        4.81
-##  2 1                1    36    12 0     0      1        8.83
-##  3 0                7    21    13 0     0      0        1.74
-##  4 0                6    29    13 0     0      0       10.7 
-##  5 1                1    41    15 1     1      1        8.83
-##  6 1                2    48    20 0     0      1        8.83
-##  7 0                9    20    12 0     1      0        7.22
-##  8 0               12    27    11 0     1      0        1.20
-##  9 1                2    28    16 0     0      1        7.22
-## 10 1                0    72    14 0     0      1        4.01
+##    &lt;fct&gt;        &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;
+##  1 Yes              0    60    12     0      0       0  4.81
+##  2 Yes              1    36    12     0      0       1  8.83
+##  3 No               7    21    13     0      0       0  1.74
+##  4 No               6    29    13     0      0       0 10.7 
+##  5 Yes              1    41    15     1      1       1  8.83
+##  6 Yes              2    48    20     0      0       1  8.83
+##  7 No               9    20    12     0      1       0  7.22
+##  8 No              12    27    11     0      1       0  1.20
+##  9 Yes              2    28    16     0      0       1  7.22
+## 10 Yes              0    72    14     0      0       1  4.01
 ## # … with 1,155 more rows</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_split &lt;-<span class="st"> </span><span class="kw">resample_partition</span>(mh, <span class="dt">p =</span> <span class="kw">c</span>(<span class="st">&quot;test&quot;</span> =<span class="st"> </span>.<span class="dv">3</span>, <span class="st">&quot;train&quot;</span> =<span class="st"> </span>.<span class="dv">7</span>))</code></pre></div>
 <div id="svm" class="section level3">
-<h3><span class="header-section-number">4.2.1</span> SVM</h3>
+<h3><span class="header-section-number">4.0.1</span> SVM</h3>
 <p>Next let’s compare a few different SVM models. Again we’ll use 10-fold CV on the training set to determine the optimal cost parameter.</p>
 <div id="linear-kernel" class="section level4">
-<h4><span class="header-section-number">4.2.1.1</span> Linear kernel</h4>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_lin_tune &lt;-<span class="st"> </span><span class="kw">tune</span>(svm, vote96 <span class="op">~</span><span class="st"> </span>., <span class="dt">data =</span> <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>train),
-                    <span class="dt">kernel =</span> <span class="st">&quot;linear&quot;</span>,
-                    <span class="dt">range =</span> <span class="kw">list</span>(<span class="dt">cost =</span> <span class="kw">c</span>(.<span class="dv">001</span>, .<span class="dv">01</span>, .<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">100</span>)))
-<span class="kw">summary</span>(mh_lin_tune)</code></pre></div>
-<pre><code>## 
-## Parameter tuning of &#39;svm&#39;:
+<h4><span class="header-section-number">4.0.1.1</span> Linear kernel</h4>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cv_ctrl &lt;-<span class="st"> </span><span class="kw">trainControl</span>(<span class="dt">method =</span> <span class="st">&quot;cv&quot;</span>,
+                        <span class="dt">number =</span> <span class="dv">10</span>,
+                        <span class="dt">savePredictions =</span> <span class="st">&quot;final&quot;</span>,
+                        <span class="dt">classProbs =</span> <span class="ot">TRUE</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
+svm_linear &lt;-<span class="st"> </span><span class="kw">train</span>(
+  vote96 <span class="op">~</span><span class="st"> </span>., 
+  <span class="dt">data =</span> mh, 
+  <span class="dt">method =</span> <span class="st">&quot;svmLinear&quot;</span>,
+  <span class="dt">trControl =</span> cv_ctrl,
+  <span class="dt">tuneLength =</span> <span class="dv">10</span>
+)
+svm_linear<span class="op">$</span>finalModel</code></pre></div>
+<pre><code>## Support Vector Machine object of class &quot;ksvm&quot; 
 ## 
-## - sampling method: 10-fold cross validation 
+## SV type: C-svc  (classification) 
+##  parameter : cost C = 1 
 ## 
-## - best parameters:
-##  cost
-##     5
+## Linear (vanilla) kernel function. 
 ## 
-## - best performance: 0.2943692 
+## Number of Support Vectors : 727 
 ## 
-## - Detailed performance results:
-##    cost     error dispersion
-## 1 1e-03 0.3151009 0.05127152
-## 2 1e-02 0.3151009 0.05127152
-## 3 1e-01 0.3004517 0.05863992
-## 4 1e+00 0.2955887 0.06325786
-## 5 5e+00 0.2943692 0.06472673
-## 6 1e+01 0.2943692 0.06472673
-## 7 1e+02 0.2943692 0.06472673</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_lin &lt;-<span class="st"> </span>mh_lin_tune<span class="op">$</span>best.model
-<span class="kw">summary</span>(mh_lin)</code></pre></div>
-<pre><code>## 
-## Call:
-## best.tune(method = svm, train.x = vote96 ~ ., data = as_tibble(mh_split$train), 
-##     ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), 
-##     kernel = &quot;linear&quot;)
-## 
-## 
-## Parameters:
-##    SVM-Type:  C-classification 
-##  SVM-Kernel:  linear 
-##        cost:  5 
-##       gamma:  0.125 
-## 
-## Number of Support Vectors:  513
-## 
-##  ( 258 255 )
-## 
-## 
-## Number of Classes:  2 
-## 
-## Levels: 
-##  0 1</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">fitted &lt;-<span class="st"> </span><span class="kw">predict</span>(mh_lin, <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test), <span class="dt">decision.values =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span>attributes
+## Objective Function Value : -722.8561 
+## Training error : 0.278112 
+## Probability model included.</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># draw the ROC curve</span>
+svm_linear_roc &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="dt">predictor =</span> svm_linear<span class="op">$</span>pred<span class="op">$</span>Yes,
+                      <span class="dt">response =</span> svm_linear<span class="op">$</span>pred<span class="op">$</span>obs,
+                      <span class="dt">levels =</span> <span class="kw">rev</span>(<span class="kw">levels</span>(mh<span class="op">$</span>vote96)))
 
-roc_line &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test)<span class="op">$</span>vote96, fitted<span class="op">$</span>decision.values)</code></pre></div>
-<pre><code>## Warning in roc.default(as_tibble(mh_split$test)$vote96,
-## fitted$decision.values): Deprecated use a matrix as predictor. Unexpected
-## results may be produced, please pass a numeric vector.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(roc_line)</code></pre></div>
+<span class="kw">plot</span>(svm_linear_roc)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/vote96-svm-line-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(roc_line)</code></pre></div>
-<pre><code>## Area under the curve: 0.7765</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(svm_linear_roc)</code></pre></div>
+<pre><code>## Area under the curve: 0.7499</code></pre>
 </div>
 </div>
 <div id="polynomial-kernel" class="section level3">
-<h3><span class="header-section-number">4.2.2</span> Polynomial kernel</h3>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_poly_tune &lt;-<span class="st"> </span><span class="kw">tune</span>(svm, vote96 <span class="op">~</span><span class="st"> </span>., <span class="dt">data =</span> <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>train),
-                    <span class="dt">kernel =</span> <span class="st">&quot;polynomial&quot;</span>,
-                    <span class="dt">range =</span> <span class="kw">list</span>(<span class="dt">cost =</span> <span class="kw">c</span>(.<span class="dv">001</span>, .<span class="dv">01</span>, .<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">100</span>)))
-<span class="kw">summary</span>(mh_poly_tune)</code></pre></div>
-<pre><code>## 
-## Parameter tuning of &#39;svm&#39;:
+<h3><span class="header-section-number">4.0.2</span> Polynomial kernel</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
+svm_poly &lt;-<span class="st"> </span><span class="kw">train</span>(
+  vote96 <span class="op">~</span><span class="st"> </span>., 
+  <span class="dt">data =</span> mh, 
+  <span class="dt">method =</span> <span class="st">&quot;svmPoly&quot;</span>,
+  <span class="dt">trControl =</span> cv_ctrl,
+  <span class="dt">tuneLength =</span> <span class="dv">3</span>
+)
+svm_poly<span class="op">$</span>finalModel</code></pre></div>
+<pre><code>## Support Vector Machine object of class &quot;ksvm&quot; 
 ## 
-## - sampling method: 10-fold cross validation 
+## SV type: C-svc  (classification) 
+##  parameter : cost C = 0.25 
 ## 
-## - best parameters:
-##  cost
-##     1
+## Polynomial kernel function. 
+##  Hyperparameters : degree =  2  scale =  0.1  offset =  1 
 ## 
-## - best performance: 0.2841614 
+## Number of Support Vectors : 716 
 ## 
-## - Detailed performance results:
-##    cost     error dispersion
-## 1 1e-03 0.3148148 0.03887075
-## 2 1e-02 0.3148148 0.03887075
-## 3 1e-01 0.3037790 0.03876551
-## 4 1e+00 0.2841614 0.04590156
-## 5 5e+00 0.3001957 0.03966298
-## 6 1e+01 0.3014453 0.03088763
-## 7 1e+02 0.3112466 0.03387702</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_poly &lt;-<span class="st"> </span>mh_poly_tune<span class="op">$</span>best.model
-<span class="kw">summary</span>(mh_poly)</code></pre></div>
-<pre><code>## 
-## Call:
-## best.tune(method = svm, train.x = vote96 ~ ., data = as_tibble(mh_split$train), 
-##     ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), 
-##     kernel = &quot;polynomial&quot;)
-## 
-## 
-## Parameters:
-##    SVM-Type:  C-classification 
-##  SVM-Kernel:  polynomial 
-##        cost:  1 
-##      degree:  3 
-##       gamma:  0.125 
-##      coef.0:  0 
-## 
-## Number of Support Vectors:  506
-## 
-##  ( 263 243 )
-## 
-## 
-## Number of Classes:  2 
-## 
-## Levels: 
-##  0 1</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">fitted &lt;-<span class="st"> </span><span class="kw">predict</span>(mh_poly, <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test), <span class="dt">decision.values =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span>attributes
+## Objective Function Value : -172.5873 
+## Training error : 0.276395 
+## Probability model included.</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># draw the ROC curve</span>
+svm_poly_roc &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="dt">predictor =</span> svm_poly<span class="op">$</span>pred<span class="op">$</span>Yes,
+                      <span class="dt">response =</span> svm_poly<span class="op">$</span>pred<span class="op">$</span>obs,
+                      <span class="dt">levels =</span> <span class="kw">rev</span>(<span class="kw">levels</span>(mh<span class="op">$</span>vote96)))
 
-roc_poly &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test)<span class="op">$</span>vote96, fitted<span class="op">$</span>decision.values)</code></pre></div>
-<pre><code>## Warning in roc.default(as_tibble(mh_split$test)$vote96,
-## fitted$decision.values): Deprecated use a matrix as predictor. Unexpected
-## results may be produced, please pass a numeric vector.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(roc_poly)</code></pre></div>
+<span class="kw">plot</span>(svm_poly_roc)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/vote96-svm-poly-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(roc_poly)</code></pre></div>
-<pre><code>## Area under the curve: 0.7301</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(svm_poly_roc)</code></pre></div>
+<pre><code>## Area under the curve: 0.7494</code></pre>
 </div>
 <div id="radial-kernel" class="section level3">
-<h3><span class="header-section-number">4.2.3</span> Radial kernel</h3>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_rad_tune &lt;-<span class="st"> </span><span class="kw">tune</span>(svm, vote96 <span class="op">~</span><span class="st"> </span>., <span class="dt">data =</span> <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>train),
-                    <span class="dt">kernel =</span> <span class="st">&quot;radial&quot;</span>,
-                    <span class="dt">range =</span> <span class="kw">list</span>(<span class="dt">cost =</span> <span class="kw">c</span>(.<span class="dv">001</span>, .<span class="dv">01</span>, .<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">100</span>)))
-<span class="kw">summary</span>(mh_rad_tune)</code></pre></div>
-<pre><code>## 
-## Parameter tuning of &#39;svm&#39;:
+<h3><span class="header-section-number">4.0.3</span> Radial kernel</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
+svm_radial &lt;-<span class="st"> </span><span class="kw">train</span>(
+  vote96 <span class="op">~</span><span class="st"> </span>., 
+  <span class="dt">data =</span> mh, 
+  <span class="dt">method =</span> <span class="st">&quot;svmRadial&quot;</span>,
+  <span class="dt">trControl =</span> cv_ctrl,
+  <span class="dt">tuneLength =</span> <span class="dv">3</span>
+)
+svm_radial<span class="op">$</span>finalModel</code></pre></div>
+<pre><code>## Support Vector Machine object of class &quot;ksvm&quot; 
 ## 
-## - sampling method: 10-fold cross validation 
+## SV type: C-svc  (classification) 
+##  parameter : cost C = 1 
 ## 
-## - best parameters:
-##  cost
-##     1
+## Gaussian Radial Basis kernel function. 
+##  Hyperparameter : sigma =  0.126861544467025 
 ## 
-## - best performance: 0.288106 
+## Number of Support Vectors : 725 
 ## 
-## - Detailed performance results:
-##    cost     error dispersion
-## 1 1e-03 0.3150708 0.05354279
-## 2 1e-02 0.3150708 0.05354279
-## 3 1e-01 0.3138211 0.05088582
-## 4 1e+00 0.2881060 0.05236819
-## 5 5e+00 0.2905300 0.05607455
-## 6 1e+01 0.2930142 0.05677373
-## 7 1e+02 0.3126167 0.05365938</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_rad &lt;-<span class="st"> </span>mh_rad_tune<span class="op">$</span>best.model
-<span class="kw">summary</span>(mh_rad)</code></pre></div>
-<pre><code>## 
-## Call:
-## best.tune(method = svm, train.x = vote96 ~ ., data = as_tibble(mh_split$train), 
-##     ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100)), 
-##     kernel = &quot;radial&quot;)
-## 
-## 
-## Parameters:
-##    SVM-Type:  C-classification 
-##  SVM-Kernel:  radial 
-##        cost:  1 
-##       gamma:  0.125 
-## 
-## Number of Support Vectors:  510
-## 
-##  ( 266 244 )
-## 
-## 
-## Number of Classes:  2 
-## 
-## Levels: 
-##  0 1</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">fitted &lt;-<span class="st"> </span><span class="kw">predict</span>(mh_rad, <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test), <span class="dt">decision.values =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span>attributes
+## Objective Function Value : -651.2728 
+## Training error : 0.253219 
+## Probability model included.</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># draw the ROC curve</span>
+svm_radial_roc &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="dt">predictor =</span> svm_radial<span class="op">$</span>pred<span class="op">$</span>Yes,
+                      <span class="dt">response =</span> svm_radial<span class="op">$</span>pred<span class="op">$</span>obs,
+                      <span class="dt">levels =</span> <span class="kw">rev</span>(<span class="kw">levels</span>(mh<span class="op">$</span>vote96)))
 
-roc_rad &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test)<span class="op">$</span>vote96, fitted<span class="op">$</span>decision.values)</code></pre></div>
-<pre><code>## Warning in roc.default(as_tibble(mh_split$test)$vote96,
-## fitted$decision.values): Deprecated use a matrix as predictor. Unexpected
-## results may be produced, please pass a numeric vector.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(roc_rad)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/vote96-svm-rad-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(roc_rad)</code></pre></div>
-<pre><code>## Area under the curve: 0.7487</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(roc_line, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>)
-<span class="kw">plot</span>(roc_poly, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;red&quot;</span>, <span class="dt">print.auc.y =</span> .<span class="dv">4</span>, <span class="dt">add =</span> <span class="ot">TRUE</span>)
-<span class="kw">plot</span>(roc_rad, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;orange&quot;</span>, <span class="dt">print.auc.y =</span> .<span class="dv">3</span>, <span class="dt">add =</span> <span class="ot">TRUE</span>)</code></pre></div>
+<span class="kw">plot</span>(svm_radial_roc)</code></pre></div>
+<p><img src="/notes/support-vector-machines_files/figure-html/vote96-svm-radial-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(svm_radial_roc)</code></pre></div>
+<pre><code>## Area under the curve: 0.736</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># ROC</span>
+<span class="kw">bind_rows</span>(
+  <span class="dt">Linear =</span> svm_linear<span class="op">$</span>pred,
+  <span class="dt">Polynomial =</span> svm_poly<span class="op">$</span>pred,
+  <span class="dt">Radial =</span> svm_radial<span class="op">$</span>pred,
+  <span class="dt">.id =</span> <span class="st">&quot;kernel&quot;</span>
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(kernel) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">roc_curve</span>(<span class="dt">truth =</span> obs, <span class="dt">estimate =</span> Yes) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> <span class="dv">1</span> <span class="op">-</span><span class="st"> </span>specificity, <span class="dt">y =</span> sensitivity, <span class="dt">color =</span> kernel)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_path</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_abline</span>(<span class="dt">lty =</span> <span class="dv">3</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">coord_equal</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">color =</span> <span class="ot">NULL</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/mh-roc-compare-1.png" width="672" /></p>
-<table>
-<thead>
-<tr class="header">
-<th>SVM kernel</th>
-<th>CV training error rate</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Linear</td>
-<td>0.2943692</td>
-</tr>
-<tr class="even">
-<td>Polynomial</td>
-<td>0.2841614</td>
-</tr>
-<tr class="odd">
-<td>Radial</td>
-<td>0.288106</td>
-</tr>
-</tbody>
-</table>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># AUC</span>
+<span class="kw">bind_rows</span>(
+  <span class="dt">Linear =</span> svm_linear<span class="op">$</span>pred,
+  <span class="dt">Polynomial =</span> svm_poly<span class="op">$</span>pred,
+  <span class="dt">Radial =</span> svm_radial<span class="op">$</span>pred,
+  <span class="dt">.id =</span> <span class="st">&quot;kernel&quot;</span>
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(kernel) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">roc_auc</span>(<span class="dt">truth =</span> obs, Yes) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(kernel) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">summarize</span>(<span class="dt">.estimate =</span> <span class="kw">mean</span>(.estimate)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="kw">fct_reorder</span>(kernel, .estimate), .estimate)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_col</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_y_continuous</span>(<span class="dt">labels =</span> scales<span class="op">::</span>percent) <span class="op">+</span>
+<span class="st">  </span><span class="kw">coord_flip</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Comparison of area under the curve&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;10-fold CV&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Algorithm&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Area under the curve&quot;</span>)</code></pre></div>
+<p><img src="/notes/support-vector-machines_files/figure-html/mh-roc-compare-2.png" width="672" /></p>
 <p>This time the SVM with the highest AUC is the linear model, followed by the radial and then the polynomial SVM. Interestingly, the linear SVM had the highest training error rate (cross-validated), followed by radial, and then polynomial with the lowest error rate. These are cross-validated measures, so it’s not as if they should be heavily biased. However they are all within 1 percentage point of each other, so the differences may not actually be that substantial. Further exploration could be warranted here.</p>
 <p>We could tinker with the parameters for the polynomial and radial kernel SVMs, adjusting the number of degrees in the polynomial SVM and testing different constants <span class="math inline">\(\gamma\)</span> for the radial SVM, again using 10-fold CV to select the optimal values. Instead though, let’s see how the SVM with the highest AUC (linear) stacks up with some of the other statistical learning methods we could apply.</p>
-</div>
-<div id="logistic-regression" class="section level3">
-<h3><span class="header-section-number">4.2.4</span> Logistic regression</h3>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_logit &lt;-<span class="st"> </span><span class="kw">glm</span>(vote96 <span class="op">~</span><span class="st"> </span>., <span class="dt">data =</span> <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>train), <span class="dt">family =</span> binomial)
-<span class="kw">summary</span>(mh_logit)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
+vote96_glm &lt;-<span class="st"> </span><span class="kw">train</span>(
+  vote96 <span class="op">~</span><span class="st"> </span>., 
+  <span class="dt">data =</span> mh, 
+  <span class="dt">method =</span> <span class="st">&quot;glm&quot;</span>,
+  <span class="dt">family =</span> <span class="st">&quot;binomial&quot;</span>,
+  <span class="dt">trControl =</span> cv_ctrl
+)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
+vote96_tree &lt;-<span class="st"> </span><span class="kw">train</span>(
+  vote96 <span class="op">~</span><span class="st"> </span>., 
+  <span class="dt">data =</span> mh, 
+  <span class="dt">method =</span> <span class="st">&quot;rpart&quot;</span>,
+  <span class="dt">trControl =</span> cv_ctrl,
+  <span class="dt">tuneLength =</span> <span class="dv">10</span>
+)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(doParallel)</code></pre></div>
+<pre><code>## Loading required package: foreach</code></pre>
 <pre><code>## 
-## Call:
-## glm(formula = vote96 ~ ., family = binomial, data = as_tibble(mh_split$train))
+## Attaching package: &#39;foreach&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:purrr&#39;:
 ## 
-## Deviance Residuals: 
-##     Min       1Q   Median       3Q      Max  
-## -2.5084  -1.0492   0.5340   0.8547   1.9480  
-## 
-## Coefficients:
-##              Estimate Std. Error z value Pr(&gt;|z|)    
-## (Intercept) -4.000194   0.601623  -6.649 2.95e-11 ***
-## mhealth_sum -0.084780   0.027952  -3.033  0.00242 ** 
-## age          0.043319   0.005849   7.406 1.30e-13 ***
-## educ         0.203049   0.034389   5.904 3.54e-09 ***
-## black1       0.115416   0.236253   0.489  0.62518    
-## female1      0.202243   0.166072   1.218  0.22330    
-## married1     0.210523   0.185436   1.135  0.25626    
-## inc10        0.060510   0.031430   1.925  0.05420 .  
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## (Dispersion parameter for binomial family taken to be 1)
-## 
-##     Null deviance: 1016.74  on 815  degrees of freedom
-## Residual deviance:  876.12  on 808  degrees of freedom
-## AIC: 892.12
-## 
-## Number of Fisher Scoring iterations: 4</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">fitted &lt;-<span class="st"> </span><span class="kw">predict</span>(mh_logit, <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test), <span class="dt">type =</span> <span class="st">&quot;response&quot;</span>)
-logit_err &lt;-<span class="st"> </span><span class="kw">mean</span>(<span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test)<span class="op">$</span>vote96 <span class="op">!=</span><span class="st"> </span><span class="kw">round</span>(fitted))
-
-roc_logit &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test)<span class="op">$</span>vote96, fitted)
-<span class="kw">plot</span>(roc_logit)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/vote96-logit-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(roc_logit)</code></pre></div>
-<pre><code>## Area under the curve: 0.778</code></pre>
-<p>The test error rate for the logistic regression model is 0.260745.</p>
-</div>
-<div id="decision-tree" class="section level3">
-<h3><span class="header-section-number">4.2.5</span> Decision tree</h3>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_tree &lt;-<span class="st"> </span><span class="kw">tree</span>(vote96 <span class="op">~</span><span class="st"> </span>., <span class="dt">data =</span> <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>train))
-mh_tree</code></pre></div>
-<pre><code>## node), split, n, deviance, yval, (yprob)
-##       * denotes terminal node
-## 
-##  1) root 816 1017.00 1 ( 0.31495 0.68505 )  
-##    2) age &lt; 48.5 516  695.80 1 ( 0.40310 0.59690 )  
-##      4) educ &lt; 12.5 191  262.00 0 ( 0.56021 0.43979 )  
-##        8) educ &lt; 11.5 55   62.40 0 ( 0.74545 0.25455 ) *
-##        9) educ &gt; 11.5 136  188.40 1 ( 0.48529 0.51471 ) *
-##      5) educ &gt; 12.5 325  402.80 1 ( 0.31077 0.68923 )  
-##       10) mhealth_sum &lt; 4.5 259  296.10 1 ( 0.25869 0.74131 ) *
-##       11) mhealth_sum &gt; 4.5 66   91.43 0 ( 0.51515 0.48485 ) *
-##    3) age &gt; 48.5 300  267.10 1 ( 0.16333 0.83667 )  
-##      6) educ &lt; 12.5 153  177.90 1 ( 0.26797 0.73203 )  
-##       12) inc10 &lt; 1.08335 43   59.40 1 ( 0.46512 0.53488 ) *
-##       13) inc10 &gt; 1.08335 110  107.30 1 ( 0.19091 0.80909 ) *
-##      7) educ &gt; 12.5 147   62.13 1 ( 0.05442 0.94558 ) *</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(mh_tree)
-<span class="kw">text</span>(mh_tree, <span class="dt">pretty =</span> <span class="dv">0</span>)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/vote96-tree-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">fitted &lt;-<span class="st"> </span><span class="kw">predict</span>(mh_tree, <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test), <span class="dt">type =</span> <span class="st">&quot;class&quot;</span>)
-tree_err &lt;-<span class="st"> </span><span class="kw">mean</span>(<span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test)<span class="op">$</span>vote96 <span class="op">!=</span><span class="st"> </span>fitted)
-
-roc_tree &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw">as.numeric</span>(<span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test)<span class="op">$</span>vote96), <span class="kw">as.numeric</span>(fitted))
-<span class="kw">plot</span>(roc_tree)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/vote96-tree-2.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(roc_tree)</code></pre></div>
-<pre><code>## Area under the curve: 0.5765</code></pre>
-<p>The test error rate for the decision tree model is 0.3151862.</p>
-</div>
-<div id="bagging" class="section level3">
-<h3><span class="header-section-number">4.2.6</span> Bagging</h3>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_bag &lt;-<span class="st"> </span><span class="kw">randomForest</span>(vote96 <span class="op">~</span><span class="st"> </span>., <span class="dt">data =</span> <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>train),
-                         <span class="dt">mtry =</span> <span class="dv">7</span>)
-mh_bag</code></pre></div>
-<pre><code>## 
-## Call:
-##  randomForest(formula = vote96 ~ ., data = as_tibble(mh_split$train),      mtry = 7) 
-##                Type of random forest: classification
-##                      Number of trees: 500
-## No. of variables tried at each split: 7
-## 
-##         OOB estimate of  error rate: 33.46%
-## Confusion matrix:
-##     0   1 class.error
-## 0  90 167   0.6498054
-## 1 106 453   0.1896243</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">varImpPlot</span>(mh_bag)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/vote96-bag-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">fitted &lt;-<span class="st"> </span><span class="kw">predict</span>(mh_bag, <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test), <span class="dt">type =</span> <span class="st">&quot;prob&quot;</span>)[,<span class="dv">2</span>]
-
-roc_bag &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test)<span class="op">$</span>vote96, fitted)
-<span class="kw">plot</span>(roc_bag)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/vote96-bag-2.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(roc_bag)</code></pre></div>
-<pre><code>## Area under the curve: 0.7147</code></pre>
-</div>
-<div id="random-forest" class="section level3">
-<h3><span class="header-section-number">4.2.7</span> Random forest</h3>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">mh_rf &lt;-<span class="st"> </span><span class="kw">randomForest</span>(vote96 <span class="op">~</span><span class="st"> </span>., <span class="dt">data =</span> <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>train))
-mh_rf</code></pre></div>
-<pre><code>## 
-## Call:
-##  randomForest(formula = vote96 ~ ., data = as_tibble(mh_split$train)) 
-##                Type of random forest: classification
-##                      Number of trees: 500
-## No. of variables tried at each split: 2
-## 
-##         OOB estimate of  error rate: 30.27%
-## Confusion matrix:
-##    0   1 class.error
-## 0 77 180   0.7003891
-## 1 67 492   0.1198569</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">varImpPlot</span>(mh_rf)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/vote96-rf-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">fitted &lt;-<span class="st"> </span><span class="kw">predict</span>(mh_rf, <span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test), <span class="dt">type =</span> <span class="st">&quot;prob&quot;</span>)[,<span class="dv">2</span>]
-
-roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw">as_tibble</span>(mh_split<span class="op">$</span>test)<span class="op">$</span>vote96, fitted)
-<span class="kw">plot</span>(roc_rf)</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/vote96-rf-2.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(roc_rf)</code></pre></div>
-<pre><code>## Area under the curve: 0.7415</code></pre>
-</div>
-<div id="compare-the-roc-curves" class="section level3">
-<h3><span class="header-section-number">4.2.8</span> Compare the ROC curves</h3>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(roc_poly, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;blue&quot;</span>, <span class="dt">print.auc.x =</span> .<span class="dv">2</span>)
-<span class="kw">plot</span>(roc_logit, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;red&quot;</span>, <span class="dt">print.auc.x =</span> .<span class="dv">2</span>, <span class="dt">print.auc.y =</span> .<span class="dv">4</span>, <span class="dt">add =</span> <span class="ot">TRUE</span>)
-<span class="kw">plot</span>(roc_tree, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;orange&quot;</span>, <span class="dt">print.auc.x =</span> .<span class="dv">2</span>, <span class="dt">print.auc.y =</span> .<span class="dv">3</span>, <span class="dt">add =</span> <span class="ot">TRUE</span>)
-<span class="kw">plot</span>(roc_bag, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;green&quot;</span>, <span class="dt">print.auc.x =</span> .<span class="dv">2</span>, <span class="dt">print.auc.y =</span> .<span class="dv">2</span>, <span class="dt">add =</span> <span class="ot">TRUE</span>)
-<span class="kw">plot</span>(roc_rf, <span class="dt">print.auc =</span> <span class="ot">TRUE</span>, <span class="dt">col =</span> <span class="st">&quot;purple&quot;</span>, <span class="dt">print.auc.x =</span> .<span class="dv">2</span>, <span class="dt">print.auc.y =</span> .<span class="dv">1</span>, <span class="dt">add =</span> <span class="ot">TRUE</span>)</code></pre></div>
+##     accumulate, when</code></pre>
+<pre><code>## Loading required package: iterators</code></pre>
+<pre><code>## Loading required package: parallel</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cl &lt;-<span class="st"> </span><span class="kw">makePSOCKcluster</span>(<span class="dv">3</span>)
+<span class="kw">registerDoParallel</span>(cl)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
+vote96_bag &lt;-<span class="st"> </span><span class="kw">train</span>(
+  vote96 <span class="op">~</span><span class="st"> </span>., 
+  <span class="dt">data =</span> mh, 
+  <span class="dt">method =</span> <span class="st">&quot;treebag&quot;</span>,
+  <span class="dt">trControl =</span> cv_ctrl
+)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
+vote96_rf &lt;-<span class="st"> </span><span class="kw">train</span>(
+  vote96 <span class="op">~</span><span class="st"> </span>., 
+  <span class="dt">data =</span> mh, 
+  <span class="dt">method =</span> <span class="st">&quot;ranger&quot;</span>,
+  <span class="dt">trControl =</span> cv_ctrl,
+  <span class="dt">tuneLength =</span> <span class="dv">10</span>
+)</code></pre></div>
+<pre><code>## note: only 6 unique complexity parameters in default grid. Truncating the grid to 6 .</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
+vote96_boost &lt;-<span class="st"> </span><span class="kw">train</span>(
+  vote96 <span class="op">~</span><span class="st"> </span>., 
+  <span class="dt">data =</span> mh, 
+  <span class="dt">method =</span> <span class="st">&quot;xgbTree&quot;</span>,
+  <span class="dt">trControl =</span> cv_ctrl,
+  <span class="dt">tuneLength =</span> <span class="dv">3</span>
+)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">stopCluster</span>(cl)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># ROC</span>
+<span class="kw">bind_rows</span>(
+  <span class="st">`</span><span class="dt">SVM (linear)</span><span class="st">`</span> =<span class="st"> </span>svm_linear<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">SVM (polynomial)</span><span class="st">`</span> =<span class="st"> </span>svm_poly<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">SVM (radial)</span><span class="st">`</span> =<span class="st"> </span>svm_radial<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">Logistic regression</span><span class="st">`</span> =<span class="st"> </span>vote96_glm<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">Decision tree</span><span class="st">`</span> =<span class="st"> </span>vote96_tree<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">Bagging</span><span class="st">`</span> =<span class="st"> </span>vote96_bag<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">Random forest</span><span class="st">`</span> =<span class="st"> </span>vote96_rf<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">Boosting</span><span class="st">`</span> =<span class="st"> </span>vote96_boost<span class="op">$</span>pred,
+  <span class="dt">.id =</span> <span class="st">&quot;kernel&quot;</span>
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(kernel) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">roc_curve</span>(<span class="dt">truth =</span> obs, <span class="dt">estimate =</span> Yes) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="dt">x =</span> <span class="dv">1</span> <span class="op">-</span><span class="st"> </span>specificity, <span class="dt">y =</span> sensitivity, <span class="dt">color =</span> kernel)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_path</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_abline</span>(<span class="dt">lty =</span> <span class="dv">3</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">coord_equal</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">color =</span> <span class="ot">NULL</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/vote96-compare-roc-1.png" width="672" /></p>
-<ul>
-<li>SVM (linear kernel)</li>
-<li>Logistic regression</li>
-<li>Decision tree</li>
-<li>Bagging (<span class="math inline">\(n = 500\)</span>)</li>
-<li>Random forest (<span class="math inline">\(n = 500, m = \sqrt{p}\)</span>)</li>
-</ul>
-<p>Based solely on the test AUC, logistic regression and random forest provides the highest predictive accuracy, slightly better than the linear kernel SVM. Decision tree performs the worst, though admittedly AUC is biased against it since all decision trees produce are predictions, not probabilities, so the ROC “curve” is actually a point.</p>
-</div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># AUC</span>
+<span class="kw">bind_rows</span>(
+  <span class="st">`</span><span class="dt">SVM (linear)</span><span class="st">`</span> =<span class="st"> </span>svm_linear<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">SVM (polynomial)</span><span class="st">`</span> =<span class="st"> </span>svm_poly<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">SVM (radial)</span><span class="st">`</span> =<span class="st"> </span>svm_radial<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">Logistic regression</span><span class="st">`</span> =<span class="st"> </span>vote96_glm<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">Decision tree</span><span class="st">`</span> =<span class="st"> </span>vote96_tree<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">Bagging</span><span class="st">`</span> =<span class="st"> </span>vote96_bag<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">Random forest</span><span class="st">`</span> =<span class="st"> </span>vote96_rf<span class="op">$</span>pred,
+  <span class="st">`</span><span class="dt">Boosting</span><span class="st">`</span> =<span class="st"> </span>vote96_boost<span class="op">$</span>pred,
+  <span class="dt">.id =</span> <span class="st">&quot;kernel&quot;</span>
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(kernel) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">roc_auc</span>(<span class="dt">truth =</span> obs, Yes) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(kernel) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">summarize</span>(<span class="dt">.estimate =</span> <span class="kw">mean</span>(.estimate)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(<span class="kw">fct_reorder</span>(kernel, .estimate), .estimate)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_col</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_y_continuous</span>(<span class="dt">labels =</span> scales<span class="op">::</span>percent) <span class="op">+</span>
+<span class="st">  </span><span class="kw">coord_flip</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Comparison of area under the curve&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;10-fold CV&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Algorithm&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Area under the curve&quot;</span>)</code></pre></div>
+<p><img src="/notes/support-vector-machines_files/figure-html/vote96-compare-roc-2.png" width="672" /></p>
 </div>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
@@ -1076,6 +809,7 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  bookdown        0.9        2018-12-21 [1]
 ##  broom         * 0.5.1      2018-12-05 [2]
 ##  callr           3.1.1      2018-12-21 [2]
+##  caret         * 6.0-81     2018-11-20 [1]
 ##  cellranger      1.1.0      2016-07-27 [2]
 ##  checkmate       1.9.1      2019-01-15 [2]
 ##  class           7.3-15     2019-01-01 [2]
@@ -1090,24 +824,23 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  devtools        2.0.1      2018-10-26 [1]
 ##  dials         * 0.0.2      2018-12-09 [1]
 ##  digest          0.6.18     2018-10-10 [1]
+##  doParallel    * 1.0.14     2018-09-24 [1]
 ##  dplyr         * 0.8.0.1    2019-02-15 [1]
 ##  DT              0.5        2018-11-05 [2]
 ##  dygraphs        1.1.1.6    2018-07-11 [2]
 ##  e1071         * 1.7-0.1    2019-01-21 [1]
 ##  evaluate        0.13       2019-02-12 [2]
-##  fansi           0.4.0      2018-10-05 [2]
 ##  forcats       * 0.4.0      2019-02-17 [2]
-##  foreach         1.4.4      2017-12-12 [2]
+##  foreach       * 1.4.4      2017-12-12 [2]
 ##  Formula         1.2-3      2018-05-03 [2]
 ##  fs              1.2.6      2018-08-23 [1]
-##  gbm           * 2.1.5      2019-01-14 [2]
 ##  generics        0.0.2      2018-11-29 [1]
 ##  ggplot2       * 3.1.0      2018-10-25 [1]
 ##  ggridges        0.5.1      2018-09-27 [2]
 ##  glmnet          2.0-16     2018-04-02 [1]
 ##  glue            1.3.0      2018-07-17 [2]
 ##  gower           0.1.2      2017-02-23 [2]
-##  gridExtra     * 2.3        2017-09-09 [2]
+##  gridExtra       2.3        2017-09-09 [2]
 ##  gtable          0.2.0      2016-02-26 [2]
 ##  gtools          3.8.1      2018-06-26 [2]
 ##  haven           2.1.0      2019-02-19 [2]
@@ -1123,13 +856,12 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  inline          0.3.15     2018-05-18 [2]
 ##  inum            1.0-0      2017-12-12 [1]
 ##  ipred           0.9-8      2018-11-05 [1]
-##  ISLR          * 1.2        2017-10-20 [2]
-##  iterators       1.0.10     2018-07-13 [2]
+##  iterators     * 1.0.10     2018-07-13 [2]
 ##  janeaustenr     0.1.5      2017-06-10 [2]
 ##  jsonlite        1.6        2018-12-07 [2]
 ##  knitr           1.21       2018-12-10 [2]
 ##  later           0.8.0      2019-02-11 [2]
-##  lattice         0.20-38    2018-11-04 [2]
+##  lattice       * 0.20-38    2018-11-04 [2]
 ##  lava            1.6.5      2019-02-12 [2]
 ##  lazyeval        0.2.1      2017-10-29 [2]
 ##  libcoin         1.0-3      2019-02-18 [1]
@@ -1146,7 +878,8 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  mime            0.6        2018-10-05 [1]
 ##  miniUI          0.1.1.1    2018-05-18 [2]
 ##  minqa           1.2.4      2014-10-09 [2]
-##  modelr        * 0.1.4      2019-02-18 [2]
+##  ModelMetrics    1.2.2      2018-11-03 [2]
+##  modelr          0.1.4      2019-02-18 [2]
 ##  munsell         0.5.0      2018-06-12 [2]
 ##  mvtnorm         1.0-8      2018-05-31 [2]
 ##  nlme            3.1-137    2018-04-07 [2]
@@ -1169,7 +902,6 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  ps              1.3.0      2018-12-21 [2]
 ##  purrr         * 0.3.0      2019-01-27 [2]
 ##  R6              2.4.0      2019-02-14 [1]
-##  randomForest  * 4.6-14     2018-03-25 [2]
 ##  rcfss         * 0.1.5      2019-01-24 [1]
 ##  Rcpp            1.0.0      2018-11-07 [1]
 ##  readr         * 1.3.1      2018-12-21 [2]
@@ -1210,11 +942,8 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  tidytext        0.2.0      2018-10-17 [1]
 ##  tidyverse     * 1.2.1      2017-11-14 [2]
 ##  timeDate        3043.102   2018-02-21 [2]
-##  titanic       * 0.1.0      2015-08-31 [2]
 ##  tokenizers      0.2.1      2018-03-29 [2]
-##  tree          * 1.0-39     2018-03-17 [2]
 ##  usethis         1.4.0      2018-08-14 [1]
-##  utf8            1.1.4      2018-05-24 [2]
 ##  withr           2.1.2      2018-03-15 [2]
 ##  xfun            0.5        2019-02-20 [1]
 ##  xml2            1.2.0      2018-01-24 [2]
@@ -1233,6 +962,7 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
@@ -1246,16 +976,12 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  CRAN (R 3.5.1)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1266,16 +992,18 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1296,6 +1024,7 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1325,7 +1054,6 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
 ##  local                               
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1369,9 +1097,6 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -1404,6 +1129,6 @@ roc_rf &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="kw
 <li id="fn1"><p>Though they can also be applied to regression on continuous response variables.<a href="#fnref1">↩</a></p></li>
 <li id="fn2"><p>Remember that we can use the perpendicular distance from the hyperplane as a measure of confidence in our predictions, so the new training observation diminishes our confidence for quite a few of the red training observations.<a href="#fnref2">↩</a></p></li>
 <li id="fn3"><p>Like how boosting uses the residuals of the response variable <span class="math inline">\(Y\)</span>, rather than <span class="math inline">\(Y\)</span> itself.<a href="#fnref3">↩</a></p></li>
-<li id="fn4"><p>Why use the validation set approach? We’ve discussed the <a href="persp006_resampling.html#drawbacks_to_the_validation_set_approach">inadequacies</a> of it before. We could use <span class="math inline">\(k\)</span>-fold cross validation instead, however setting this up with the proper code would be much more complicated. When conducting exploratory analysis, you don’t necessarily need to do this on your first pass through the data. Certainly I recommend using CV to validate your models and compare them before publishing anything, but for this application I think the validation set approach works fine.<a href="#fnref4">↩</a></p></li>
+<li id="fn4"><p>Example drawn from <a href="https://www.quora.com/What-are-kernels-in-machine-learning-and-SVM-and-why-do-we-need-them/answer/Lili-Jiang?srid=oOgT">What are kernels in machine learning and SVM and why do we need them?</a><a href="#fnref4">↩</a></p></li>
 </ol>
 </div>
