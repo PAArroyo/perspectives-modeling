@@ -30,6 +30,7 @@ library(rcfss)
 library(e1071)
 library(caret)
 library(pROC)
+library(kernlab)
 
 set.seed(1234)
 theme_set(theme_minimal())
@@ -557,11 +558,7 @@ Let's test the SVM method on our voter turnout data.
   na.omit)
 ```
 
-### SVM
-
-Next let's compare a few different SVM models. Again we'll use 10-fold CV on the training set to determine the optimal cost parameter.
-
-#### Linear kernel
+## Linear kernel
 
 ```{r caret-trainControl}
 cv_ctrl <- trainControl(method = "cv",
@@ -591,7 +588,7 @@ plot(svm_linear_roc)
 auc(svm_linear_roc)
 ```
 
-### Polynomial kernel
+## Polynomial kernel
 
 ```{r vote96-svm-poly, dependson="vote96"}
 # fit model
@@ -614,7 +611,7 @@ plot(svm_poly_roc)
 auc(svm_poly_roc)
 ```
 
-### Radial kernel
+## Radial kernel
 
 ```{r vote96-svm-radial, dependson="vote96"}
 # fit model
@@ -677,6 +674,8 @@ bind_rows(
 ```
 
 This time the SVM with the highest AUC is the linear model, followed by the radial and then the polynomial SVM. Interestingly, the linear SVM had the highest training error rate (cross-validated), followed by radial, and then polynomial with the lowest error rate. These are cross-validated measures, so it's not as if they should be heavily biased. However they are all within 1 percentage point of each other, so the differences may not actually be that substantial. Further exploration could be warranted here.
+
+## Comparison to other models
 
 We could tinker with the parameters for the polynomial and radial kernel SVMs, adjusting the number of degrees in the polynomial SVM and testing different constants $\gamma$ for the radial SVM, again using 10-fold CV to select the optimal values. Instead though, let's see how the SVM with the highest AUC (linear) stacks up with some of the other statistical learning methods we could apply.
 
@@ -790,6 +789,143 @@ bind_rows(
        subtitle = "10-fold CV",
        x = "Algorithm",
        y = "Area under the curve")
+```
+
+# Support vector regression
+
+Support vector machines can also be extended to regression problems with continuous outcomes of interest. The major difference from classification SVM is that the response variable falls on the real number line. The most common form of SVM regression is **epsilon-insensitive SVM** ($\epsilon$-SVM) regression. The goal is to find a function $f(x)$ that deviates from $y_i$ by a value no greater than $\epsilon$ for each training point $x$, and at the same time is as flat as possible.
+
+Suppose we have a training set of data where $x_i$ is a multivariate set of $N$ observations with observed response values $y_i$. The optimization problem is
+
+$$
+\begin{aligned}
+& \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\text{maximize}} & & M \\
+& \text{subject to} & &  \sum_{j=1}^p \beta_j^2 = 1, \\
+& & &  y_i - (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip})  \geq M(1 - \epsilon_i) + \xi_i, \\
+& & &  (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) - y_i  \geq M(1 - \epsilon_i) + \xi_i^*, \\
+& & & \epsilon_i \geq 0, \\
+& & & \sum_{i = 1}^n \epsilon_i \leq C, \\
+& & & \xi_i \geq 0, \\
+& & & \xi_i^* \geq 0 \\
+\end{aligned}
+$$
+
+This means to estimate parameter values $B_p$ that ensure the flatest possible hyperplane subject to the residuals having a value less than $\epsilon_i$. Because, like with SVMs, we will not be able to do this in most situations, we add **slack variables** $\xi_i, \xi_i^*$ to allow regression errors up to the value of $\xi_i$ and $\xi_i^*$, yet still satisfy the other conditions. This is equivalent to imposing soft margins for SVMs. The major tuning parameters are $C$ (the cost budget) and $\epsilon$, the maximum allowable error for which the algorithm ignores the observation. That is, rather than establishing support vectors which are closest to the hyperplane, SVM regression establishes support vectors as observations sufficiently far away from the hyperplane. All observations within the range of $\epsilon$ (as measured by $L_1$ distance) are treated as having residuals of 0.
+
+## Linear SVR
+
+```{r line-data}
+set.seed(101)
+x <- seq(from = 0, to = 2 * pi, length = 500)
+y <- x + rnorm(length(x), sd = 0.3)
+line_data <- tibble(
+  x = x,
+  y = y
+)
+
+ggplot(line_data, aes(x, y)) +
+  geom_point(alpha = 0.1) +
+  stat_function(fun = function(x) x) +
+  labs(title = "Simulated linear data",
+       x = expression(X),
+       y = expression(Y))
+```
+
+```{r line-svm, dependson = "line-data"}
+# function to estimate model
+sine_svm <- function(epsilon = 0.1, kernel = 'rbfdot', df, C = 1){
+  ksvm(y ~ x, data = df, type = "eps-svr", kernel = kernel, C = C, scaled = c(),
+       epsilon = epsilon)
+}
+
+# linear kernel
+tibble(
+  epsilon = c(0.001, 0.01, 0.1, 1)
+) %>%
+  mutate(model = map(epsilon, sine_svm, df = line_data, kernel = "vanilladot"),
+         pred = map(model, predict)) %>%
+  unnest(pred) %>%
+  group_by(epsilon) %>%
+  mutate(x = line_data$x,
+         epsilon_lab = str_c("epsilon == ", epsilon)) %>%
+  ggplot(aes(x, pred)) +
+  geom_point(data = line_data, aes(x, y), alpha = 0.1) +
+  stat_function(fun = function(x) x) +
+  geom_line(aes(color = factor(epsilon))) +
+  scale_color_brewer(type = "qual", palette = "Dark2", guide = FALSE) +
+  facet_wrap(~ epsilon_lab, labeller = label_parsed) +
+  labs(title = "Support vector regression",
+       subtitle = "Linear kernel, C = 1",
+       x = expression(X),
+       y = expression(Y),
+       color = expression(epsilon))
+```
+
+## Non-linear SVR
+
+As with SVM, we can use kernel functions to map $x_i$ into a higher-dimensional space in the context of calculating similarity, thus transforming a non-linear problem into a linear problem.
+
+```{r sine-data}
+# Simulate some sine wave data
+set.seed(101)
+x <- seq(from = 0, to = 2 * pi, length = 500)
+y <- sin(x) + rnorm(length(x), sd = 0.3)
+sine_data <- tibble(
+  x = x,
+  y = y
+)
+
+ggplot(sine_data, aes(x, y)) +
+  geom_point(alpha = 0.1) +
+  stat_function(fun = sin) +
+  labs(title = "Simulated sine wave data",
+       x = expression(X),
+       y = expression(Y))
+```
+
+```{r svm-sine, dependson = "sine-data"}
+# radial basis kernel
+tibble(
+  epsilon = c(0.001, 0.01, 0.1, 1)
+) %>%
+  mutate(model = map(epsilon, sine_svm, df = sine_data, C = 1),
+         pred = map(model, predict)) %>%
+  unnest(pred) %>%
+  group_by(epsilon) %>%
+  mutate(x = sine_data$x,
+         epsilon_lab = str_c("epsilon == ", epsilon)) %>%
+  ggplot(aes(x, pred)) +
+  geom_point(data = sine_data, aes(x, y), alpha = 0.1) +
+  stat_function(fun = sin) +
+  geom_line(aes(color = factor(epsilon))) +
+  scale_color_brewer(type = "qual", palette = "Dark2", guide = FALSE) +
+  facet_wrap(~ epsilon_lab, labeller = label_parsed) +
+  labs(title = "Support vector regression",
+       subtitle = "Radial basis kernel, C = 1",
+       x = expression(X),
+       y = expression(Y),
+       color = expression(epsilon))
+
+tibble(
+  epsilon = c(0.001, 0.01, 0.1, 1)
+) %>%
+  mutate(model = map(epsilon, sine_svm, df = sine_data, C = 5),
+         pred = map(model, predict)) %>%
+  unnest(pred) %>%
+  group_by(epsilon) %>%
+  mutate(x = sine_data$x,
+         epsilon_lab = str_c("epsilon == ", epsilon)) %>%
+  ggplot(aes(x, pred)) +
+  geom_point(data = sine_data, aes(x, y), alpha = 0.1) +
+  stat_function(fun = sin) +
+  geom_line(aes(color = factor(epsilon))) +
+  scale_color_brewer(type = "qual", palette = "Dark2", guide = FALSE) +
+  facet_wrap(~ epsilon_lab, labeller = label_parsed) +
+  labs(title = "Support vector regression",
+       subtitle = "Radial basis kernel, C = 5",
+       x = expression(X),
+       y = expression(Y),
+       color = expression(epsilon))
 ```
 
 # Session Info {.toc-ignore}

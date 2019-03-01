@@ -72,12 +72,17 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </ul></li>
 </ul></li>
 <li><a href="#applying-and-interpreting-svms-using-voter-turnout"><span class="toc-section-number">4</span> Applying and interpreting SVMs using voter turnout</a><ul>
-<li><a href="#svm"><span class="toc-section-number">4.0.1</span> SVM</a></li>
-<li><a href="#polynomial-kernel"><span class="toc-section-number">4.0.2</span> Polynomial kernel</a></li>
-<li><a href="#radial-kernel"><span class="toc-section-number">4.0.3</span> Radial kernel</a></li>
+<li><a href="#linear-kernel"><span class="toc-section-number">4.1</span> Linear kernel</a></li>
+<li><a href="#polynomial-kernel"><span class="toc-section-number">4.2</span> Polynomial kernel</a></li>
+<li><a href="#radial-kernel"><span class="toc-section-number">4.3</span> Radial kernel</a></li>
+<li><a href="#comparison-to-other-models"><span class="toc-section-number">4.4</span> Comparison to other models</a></li>
 </ul></li>
-<li><a href="#session-info"><span class="toc-section-number">5</span> Session Info</a></li>
-<li><a href="#references"><span class="toc-section-number">6</span> References</a></li>
+<li><a href="#support-vector-regression"><span class="toc-section-number">5</span> Support vector regression</a><ul>
+<li><a href="#linear-svr"><span class="toc-section-number">5.1</span> Linear SVR</a></li>
+<li><a href="#non-linear-svr"><span class="toc-section-number">5.2</span> Non-linear SVR</a></li>
+</ul></li>
+<li><a href="#session-info"><span class="toc-section-number">6</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">7</span> References</a></li>
 </ul>
 </div>
 
@@ -90,6 +95,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <span class="kw">library</span>(e1071)
 <span class="kw">library</span>(caret)
 <span class="kw">library</span>(pROC)
+<span class="kw">library</span>(kernlab)
 
 <span class="kw">set.seed</span>(<span class="dv">1234</span>)
 <span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
@@ -318,11 +324,8 @@ K(\mathbf{x}, \mathbf{y}) &amp;= \langle (1, 2, 3, 2, 4, 6, 3, 6, 9) \cdot 16, 2
 ##  9 Yes              2    28    16     0      0       1  7.22
 ## 10 Yes              0    72    14     0      0       1  4.01
 ## # … with 1,155 more rows</code></pre>
-<div id="svm" class="section level3">
-<h3><span class="header-section-number">4.0.1</span> SVM</h3>
-<p>Next let’s compare a few different SVM models. Again we’ll use 10-fold CV on the training set to determine the optimal cost parameter.</p>
-<div id="linear-kernel" class="section level4">
-<h4><span class="header-section-number">4.0.1.1</span> Linear kernel</h4>
+<div id="linear-kernel" class="section level2">
+<h2><span class="header-section-number">4.1</span> Linear kernel</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cv_ctrl &lt;-<span class="st"> </span><span class="kw">trainControl</span>(<span class="dt">method =</span> <span class="st">&quot;cv&quot;</span>,
                         <span class="dt">number =</span> <span class="dv">10</span>,
                         <span class="dt">savePredictions =</span> <span class="st">&quot;final&quot;</span>,
@@ -358,9 +361,8 @@ svm_linear_roc &lt;-<span class="st"> </span><span class="kw">roc</span>(<span c
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(svm_linear_roc)</code></pre></div>
 <pre><code>## Area under the curve: 0.7499</code></pre>
 </div>
-</div>
-<div id="polynomial-kernel" class="section level3">
-<h3><span class="header-section-number">4.0.2</span> Polynomial kernel</h3>
+<div id="polynomial-kernel" class="section level2">
+<h2><span class="header-section-number">4.2</span> Polynomial kernel</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
 svm_poly &lt;-<span class="st"> </span><span class="kw">train</span>(
   vote96 <span class="op">~</span><span class="st"> </span>., 
@@ -393,8 +395,8 @@ svm_poly_roc &lt;-<span class="st"> </span><span class="kw">roc</span>(<span cla
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(svm_poly_roc)</code></pre></div>
 <pre><code>## Area under the curve: 0.7494</code></pre>
 </div>
-<div id="radial-kernel" class="section level3">
-<h3><span class="header-section-number">4.0.3</span> Radial kernel</h3>
+<div id="radial-kernel" class="section level2">
+<h2><span class="header-section-number">4.3</span> Radial kernel</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
 svm_radial &lt;-<span class="st"> </span><span class="kw">train</span>(
   vote96 <span class="op">~</span><span class="st"> </span>., 
@@ -464,6 +466,9 @@ svm_radial_roc &lt;-<span class="st"> </span><span class="kw">roc</span>(<span c
        <span class="dt">y =</span> <span class="st">&quot;Area under the curve&quot;</span>)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/mh-roc-compare-2.png" width="672" /></p>
 <p>This time the SVM with the highest AUC is the linear model, followed by the radial and then the polynomial SVM. Interestingly, the linear SVM had the highest training error rate (cross-validated), followed by radial, and then polynomial with the lowest error rate. These are cross-validated measures, so it’s not as if they should be heavily biased. However they are all within 1 percentage point of each other, so the differences may not actually be that substantial. Further exploration could be warranted here.</p>
+</div>
+<div id="comparison-to-other-models" class="section level2">
+<h2><span class="header-section-number">4.4</span> Comparison to other models</h2>
 <p>We could tinker with the parameters for the polynomial and radial kernel SVMs, adjusting the number of degrees in the polynomial SVM and testing different constants <span class="math inline">\(\gamma\)</span> for the radial SVM, again using 10-fold CV to select the optimal values. Instead though, let’s see how the SVM with the highest AUC (linear) stacks up with some of the other statistical learning methods we could apply.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
 vote96_glm &lt;-<span class="st"> </span><span class="kw">train</span>(
@@ -481,8 +486,16 @@ vote96_tree &lt;-<span class="st"> </span><span class="kw">train</span>(
   <span class="dt">trControl =</span> cv_ctrl,
   <span class="dt">tuneLength =</span> <span class="dv">10</span>
 )</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(doParallel)
-cl &lt;-<span class="st"> </span><span class="kw">makePSOCKcluster</span>(<span class="dv">3</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(doParallel)</code></pre></div>
+<pre><code>## Loading required package: foreach</code></pre>
+<pre><code>## 
+## Attaching package: &#39;foreach&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:purrr&#39;:
+## 
+##     accumulate, when</code></pre>
+<pre><code>## Loading required package: iterators</code></pre>
+<pre><code>## Loading required package: parallel</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cl &lt;-<span class="st"> </span><span class="kw">makePSOCKcluster</span>(<span class="dv">3</span>)
 <span class="kw">registerDoParallel</span>(cl)</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
 vote96_bag &lt;-<span class="st"> </span><span class="kw">train</span>(
@@ -557,8 +570,139 @@ vote96_boost &lt;-<span class="st"> </span><span class="kw">train</span>(
 <p><img src="/notes/support-vector-machines_files/figure-html/vote96-compare-roc-2.png" width="672" /></p>
 </div>
 </div>
+<div id="support-vector-regression" class="section level1">
+<h1><span class="header-section-number">5</span> Support vector regression</h1>
+<p>Support vector machines can also be extended to regression problems with continuous outcomes of interest. The major difference from classification SVM is that the response variable falls on the real number line. The most common form of SVM regression is <strong>epsilon-insensitive SVM</strong> (<span class="math inline">\(\epsilon\)</span>-SVM) regression. The goal is to find a function <span class="math inline">\(f(x)\)</span> that deviates from <span class="math inline">\(y_i\)</span> by a value no greater than <span class="math inline">\(\epsilon\)</span> for each training point <span class="math inline">\(x\)</span>, and at the same time is as flat as possible.</p>
+<p>Suppose we have a training set of data where <span class="math inline">\(x_i\)</span> is a multivariate set of <span class="math inline">\(N\)</span> observations with observed response values <span class="math inline">\(y_i\)</span>. The optimization problem is</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp; \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\text{maximize}} &amp; &amp; M \\
+&amp; \text{subject to} &amp; &amp;  \sum_{j=1}^p \beta_j^2 = 1, \\
+&amp; &amp; &amp;  y_i - (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip})  \geq M(1 - \epsilon_i) + \xi_i, \\
+&amp; &amp; &amp;  (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) - y_i  \geq M(1 - \epsilon_i) + \xi_i^*, \\
+&amp; &amp; &amp; \epsilon_i \geq 0, \\
+&amp; &amp; &amp; \sum_{i = 1}^n \epsilon_i \leq C, \\
+&amp; &amp; &amp; \xi_i \geq 0, \\
+&amp; &amp; &amp; \xi_i^* \geq 0 \\
+\end{aligned}
+\]</span></p>
+<p>This means to estimate parameter values <span class="math inline">\(B_p\)</span> that ensure the flatest possible hyperplane subject to the residuals having a value less than <span class="math inline">\(\epsilon_i\)</span>. Because, like with SVMs, we will not be able to do this in most situations, we add <strong>slack variables</strong> <span class="math inline">\(\xi_i, \xi_i^*\)</span> to allow regression errors up to the value of <span class="math inline">\(\xi_i\)</span> and <span class="math inline">\(\xi_i^*\)</span>, yet still satisfy the other conditions. This is equivalent to imposing soft margins for SVMs. The major tuning parameters are <span class="math inline">\(C\)</span> (the cost budget) and <span class="math inline">\(\epsilon\)</span>, the maximum allowable error for which the algorithm ignores the observation. That is, rather than establishing support vectors which are closest to the hyperplane, SVM regression establishes support vectors as observations sufficiently far away from the hyperplane. All observations within the range of <span class="math inline">\(\epsilon\)</span> (as measured by <span class="math inline">\(L_1\)</span> distance) are treated as having residuals of 0.</p>
+<div id="linear-svr" class="section level2">
+<h2><span class="header-section-number">5.1</span> Linear SVR</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">101</span>)
+x &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="dt">from =</span> <span class="dv">0</span>, <span class="dt">to =</span> <span class="dv">2</span> <span class="op">*</span><span class="st"> </span>pi, <span class="dt">length =</span> <span class="dv">500</span>)
+y &lt;-<span class="st"> </span>x <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="kw">length</span>(x), <span class="dt">sd =</span> <span class="fl">0.3</span>)
+line_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x =</span> x,
+  <span class="dt">y =</span> y
+)
+
+<span class="kw">ggplot</span>(line_data, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">alpha =</span> <span class="fl">0.1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> <span class="cf">function</span>(x) x) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Simulated linear data&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y))</code></pre></div>
+<p><img src="/notes/support-vector-machines_files/figure-html/line-data-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># function to estimate model</span>
+sine_svm &lt;-<span class="st"> </span><span class="cf">function</span>(<span class="dt">epsilon =</span> <span class="fl">0.1</span>, <span class="dt">kernel =</span> <span class="st">&#39;rbfdot&#39;</span>, df, <span class="dt">C =</span> <span class="dv">1</span>){
+  <span class="kw">ksvm</span>(y <span class="op">~</span><span class="st"> </span>x, <span class="dt">data =</span> df, <span class="dt">type =</span> <span class="st">&quot;eps-svr&quot;</span>, <span class="dt">kernel =</span> kernel, <span class="dt">C =</span> C, <span class="dt">scaled =</span> <span class="kw">c</span>(),
+       <span class="dt">epsilon =</span> epsilon)
+}
+
+<span class="co"># linear kernel</span>
+<span class="kw">tibble</span>(
+  <span class="dt">epsilon =</span> <span class="kw">c</span>(<span class="fl">0.001</span>, <span class="fl">0.01</span>, <span class="fl">0.1</span>, <span class="dv">1</span>)
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">model =</span> <span class="kw">map</span>(epsilon, sine_svm, <span class="dt">df =</span> line_data, <span class="dt">kernel =</span> <span class="st">&quot;vanilladot&quot;</span>),
+         <span class="dt">pred =</span> <span class="kw">map</span>(model, predict)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">unnest</span>(pred) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(epsilon) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">x =</span> line_data<span class="op">$</span>x,
+         <span class="dt">epsilon_lab =</span> <span class="kw">str_c</span>(<span class="st">&quot;epsilon == &quot;</span>, epsilon)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, pred)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">data =</span> line_data, <span class="kw">aes</span>(x, y), <span class="dt">alpha =</span> <span class="fl">0.1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> <span class="cf">function</span>(x) x) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="kw">factor</span>(epsilon))) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>, <span class="dt">guide =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>epsilon_lab, <span class="dt">labeller =</span> label_parsed) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Support vector regression&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Linear kernel, C = 1&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y),
+       <span class="dt">color =</span> <span class="kw">expression</span>(epsilon))</code></pre></div>
+<pre><code>##  Setting default kernel parameters  
+##  Setting default kernel parameters  
+##  Setting default kernel parameters  
+##  Setting default kernel parameters</code></pre>
+<p><img src="/notes/support-vector-machines_files/figure-html/line-svm-1.png" width="672" /></p>
+</div>
+<div id="non-linear-svr" class="section level2">
+<h2><span class="header-section-number">5.2</span> Non-linear SVR</h2>
+<p>As with SVM, we can use kernel functions to map <span class="math inline">\(x_i\)</span> into a higher-dimensional space in the context of calculating similarity, thus transforming a non-linear problem into a linear problem.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Simulate some sine wave data</span>
+<span class="kw">set.seed</span>(<span class="dv">101</span>)
+x &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="dt">from =</span> <span class="dv">0</span>, <span class="dt">to =</span> <span class="dv">2</span> <span class="op">*</span><span class="st"> </span>pi, <span class="dt">length =</span> <span class="dv">500</span>)
+y &lt;-<span class="st"> </span><span class="kw">sin</span>(x) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(<span class="kw">length</span>(x), <span class="dt">sd =</span> <span class="fl">0.3</span>)
+sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">x =</span> x,
+  <span class="dt">y =</span> y
+)
+
+<span class="kw">ggplot</span>(sine_data, <span class="kw">aes</span>(x, y)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">alpha =</span> <span class="fl">0.1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> sin) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Simulated sine wave data&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y))</code></pre></div>
+<p><img src="/notes/support-vector-machines_files/figure-html/sine-data-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># radial basis kernel</span>
+<span class="kw">tibble</span>(
+  <span class="dt">epsilon =</span> <span class="kw">c</span>(<span class="fl">0.001</span>, <span class="fl">0.01</span>, <span class="fl">0.1</span>, <span class="dv">1</span>)
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">model =</span> <span class="kw">map</span>(epsilon, sine_svm, <span class="dt">df =</span> sine_data, <span class="dt">C =</span> <span class="dv">1</span>),
+         <span class="dt">pred =</span> <span class="kw">map</span>(model, predict)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">unnest</span>(pred) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(epsilon) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">x =</span> sine_data<span class="op">$</span>x,
+         <span class="dt">epsilon_lab =</span> <span class="kw">str_c</span>(<span class="st">&quot;epsilon == &quot;</span>, epsilon)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, pred)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">data =</span> sine_data, <span class="kw">aes</span>(x, y), <span class="dt">alpha =</span> <span class="fl">0.1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> sin) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="kw">factor</span>(epsilon))) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>, <span class="dt">guide =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>epsilon_lab, <span class="dt">labeller =</span> label_parsed) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Support vector regression&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Radial basis kernel, C = 1&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y),
+       <span class="dt">color =</span> <span class="kw">expression</span>(epsilon))</code></pre></div>
+<p><img src="/notes/support-vector-machines_files/figure-html/svm-sine-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(
+  <span class="dt">epsilon =</span> <span class="kw">c</span>(<span class="fl">0.001</span>, <span class="fl">0.01</span>, <span class="fl">0.1</span>, <span class="dv">1</span>)
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">model =</span> <span class="kw">map</span>(epsilon, sine_svm, <span class="dt">df =</span> sine_data, <span class="dt">C =</span> <span class="dv">5</span>),
+         <span class="dt">pred =</span> <span class="kw">map</span>(model, predict)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">unnest</span>(pred) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">group_by</span>(epsilon) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">x =</span> sine_data<span class="op">$</span>x,
+         <span class="dt">epsilon_lab =</span> <span class="kw">str_c</span>(<span class="st">&quot;epsilon == &quot;</span>, epsilon)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, pred)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">data =</span> sine_data, <span class="kw">aes</span>(x, y), <span class="dt">alpha =</span> <span class="fl">0.1</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">stat_function</span>(<span class="dt">fun =</span> sin) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="kw">factor</span>(epsilon))) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>, <span class="dt">guide =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>epsilon_lab, <span class="dt">labeller =</span> label_parsed) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Support vector regression&quot;</span>,
+       <span class="dt">subtitle =</span> <span class="st">&quot;Radial basis kernel, C = 5&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X),
+       <span class="dt">y =</span> <span class="kw">expression</span>(Y),
+       <span class="dt">color =</span> <span class="kw">expression</span>(epsilon))</code></pre></div>
+<p><img src="/notes/support-vector-machines_files/figure-html/svm-sine-2.png" width="672" /></p>
+</div>
+</div>
 <div id="session-info" class="section level1 toc-ignore">
-<h1><span class="header-section-number">5</span> Session Info</h1>
+<h1><span class="header-section-number">6</span> Session Info</h1>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
@@ -570,169 +714,162 @@ vote96_boost &lt;-<span class="st"> </span><span class="kw">train</span>(
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-02-28                  
+##  date     2019-03-01                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
-##  package        * version    date       lib
-##  assertthat       0.2.0      2017-04-11 [2]
-##  backports        1.1.3      2018-12-14 [2]
-##  base64enc        0.1-3      2015-07-28 [2]
-##  bayesplot        1.6.0      2018-08-02 [2]
-##  blogdown         0.10       2019-01-09 [1]
-##  bookdown         0.9        2018-12-21 [1]
-##  broom          * 0.5.1      2018-12-05 [2]
-##  callr            3.1.1      2018-12-21 [2]
-##  caret          * 6.0-81     2018-11-20 [1]
-##  cellranger       1.1.0      2016-07-27 [2]
-##  checkmate        1.9.1      2019-01-15 [2]
-##  class            7.3-15     2019-01-01 [2]
-##  cli              1.0.1      2018-09-25 [1]
-##  codetools        0.2-16     2018-12-24 [2]
-##  colorspace       1.4-0      2019-01-13 [2]
-##  colourpicker     1.0        2017-09-27 [2]
-##  crayon           1.3.4      2017-09-16 [2]
-##  crosstalk        1.0.0      2016-12-21 [2]
-##  data.table       1.12.0     2019-01-13 [2]
-##  desc             1.2.0      2018-05-01 [2]
-##  devtools         2.0.1      2018-10-26 [1]
-##  dials          * 0.0.2      2018-12-09 [1]
-##  digest           0.6.18     2018-10-10 [1]
-##  doParallel     * 1.0.14     2018-09-24 [1]
-##  dplyr          * 0.8.0.1    2019-02-15 [1]
-##  DT               0.5        2018-11-05 [2]
-##  dygraphs         1.1.1.6    2018-07-11 [2]
-##  e1071          * 1.7-0.1    2019-01-21 [1]
-##  evaluate         0.13       2019-02-12 [2]
-##  forcats        * 0.4.0      2019-02-17 [2]
-##  foreach        * 1.4.4      2017-12-12 [2]
-##  Formula          1.2-3      2018-05-03 [2]
-##  fs               1.2.6      2018-08-23 [1]
-##  gbm            * 2.1.5      2019-01-14 [2]
-##  generics         0.0.2      2018-11-29 [1]
-##  ggplot2        * 3.1.0      2018-10-25 [1]
-##  ggridges         0.5.1      2018-09-27 [2]
-##  glmnet           2.0-16     2018-04-02 [1]
-##  glue             1.3.0      2018-07-17 [2]
-##  gower            0.1.2      2017-02-23 [2]
-##  gridExtra      * 2.3        2017-09-09 [2]
-##  gtable           0.2.0      2016-02-26 [2]
-##  gtools           3.8.1      2018-06-26 [2]
-##  haven            2.1.0      2019-02-19 [2]
-##  here           * 0.1        2017-05-28 [2]
-##  hms              0.4.2      2018-03-10 [2]
-##  htmltools        0.3.6      2017-04-28 [1]
-##  htmlwidgets      1.3        2018-09-30 [2]
-##  httpuv           1.4.5.1    2018-12-18 [2]
-##  httr             1.4.0      2018-12-11 [2]
-##  igraph           1.2.4      2019-02-13 [2]
-##  iml            * 0.9.0      2019-02-05 [1]
-##  infer          * 0.4.0      2018-11-15 [1]
-##  inline           0.3.15     2018-05-18 [2]
-##  inum             1.0-0      2017-12-12 [1]
-##  ipred            0.9-8      2018-11-05 [1]
-##  ISLR           * 1.2        2017-10-20 [2]
-##  iterators      * 1.0.10     2018-07-13 [2]
-##  janeaustenr      0.1.5      2017-06-10 [2]
-##  jsonlite         1.6        2018-12-07 [2]
-##  knitr            1.21       2018-12-10 [2]
-##  labeling         0.3        2014-08-23 [2]
-##  later            0.8.0      2019-02-11 [2]
-##  lattice        * 0.20-38    2018-11-04 [2]
-##  lava             1.6.5      2019-02-12 [2]
-##  lazyeval         0.2.1      2017-10-29 [2]
-##  libcoin          1.0-3      2019-02-18 [1]
-##  lme4             1.1-20     2019-02-04 [2]
-##  loo              2.0.0      2018-04-11 [2]
-##  lubridate        1.7.4      2018-04-11 [2]
-##  magrittr         1.5        2014-11-22 [2]
-##  markdown         0.9        2018-12-07 [2]
-##  MASS             7.3-51.1   2018-11-01 [2]
-##  Matrix           1.2-15     2018-11-01 [2]
-##  matrixStats      0.54.0     2018-07-23 [2]
-##  memoise          1.1.0      2017-04-21 [2]
-##  Metrics          0.1.4      2018-07-09 [1]
-##  microbenchmark * 1.4-6      2018-10-18 [2]
-##  mime             0.6        2018-10-05 [1]
-##  miniUI           0.1.1.1    2018-05-18 [2]
-##  minqa            1.2.4      2014-10-09 [2]
-##  ModelMetrics     1.2.2      2018-11-03 [2]
-##  modelr         * 0.1.4      2019-02-18 [2]
-##  munsell          0.5.0      2018-06-12 [2]
-##  mvtnorm          1.0-8      2018-05-31 [2]
-##  nlme             3.1-137    2018-04-07 [2]
-##  nloptr           1.2.1      2018-10-03 [2]
-##  nnet             7.3-12     2016-02-02 [2]
-##  parsnip        * 0.0.1      2018-11-12 [1]
-##  partykit         1.2-3      2019-01-31 [1]
-##  patchwork      * 0.0.1      2018-09-06 [1]
-##  pillar           1.3.1      2018-12-15 [2]
-##  pkgbuild         1.0.2      2018-10-16 [1]
-##  pkgconfig        2.0.2      2018-08-16 [2]
-##  pkgload          1.0.2      2018-10-29 [1]
-##  plyr             1.8.4      2016-06-08 [2]
-##  prediction       0.3.6.2    2019-01-31 [2]
-##  prettyunits      1.0.2      2015-07-13 [2]
-##  pROC           * 1.13.0     2018-09-24 [1]
-##  processx         3.2.1      2018-12-05 [2]
-##  prodlim          2018.04.18 2018-04-18 [2]
-##  promises         1.0.1      2018-04-13 [2]
-##  ps               1.3.0      2018-12-21 [2]
-##  purrr          * 0.3.0      2019-01-27 [2]
-##  R6               2.4.0      2019-02-14 [1]
-##  randomForest   * 4.6-14     2018-03-25 [2]
-##  rcfss          * 0.1.5      2019-01-24 [1]
-##  RColorBrewer     1.1-2      2014-12-07 [2]
-##  Rcpp             1.0.0      2018-11-07 [1]
-##  readr          * 1.3.1      2018-12-21 [2]
-##  readxl           1.3.0      2019-02-15 [2]
-##  recipes        * 0.1.4      2018-11-19 [1]
-##  remotes          2.0.2      2018-10-30 [1]
-##  reshape2         1.4.3      2017-12-11 [2]
-##  rlang            0.3.1      2019-01-08 [1]
-##  rmarkdown        1.11       2018-12-08 [2]
-##  rpart            4.1-13     2018-02-23 [1]
-##  rprojroot        1.3-2      2018-01-03 [2]
-##  rsample        * 0.0.4      2019-01-07 [1]
-##  rsconnect        0.8.13     2019-01-10 [2]
-##  rstan            2.18.2     2018-11-07 [2]
-##  rstanarm         2.18.2     2018-11-10 [2]
-##  rstantools       1.5.1      2018-08-22 [2]
-##  rstudioapi       0.9.0      2019-01-09 [1]
-##  rvest            0.3.2      2016-06-17 [2]
-##  scales         * 1.0.0      2018-08-09 [1]
-##  sessioninfo      1.1.1      2018-11-05 [1]
-##  shiny            1.2.0      2018-11-02 [2]
-##  shinyjs          1.0        2018-01-08 [2]
-##  shinystan        2.5.0      2018-05-01 [2]
-##  shinythemes      1.1.2      2018-11-06 [2]
-##  SnowballC        0.6.0      2019-01-15 [2]
-##  StanHeaders      2.18.1     2019-01-28 [2]
-##  stringi          1.3.1      2019-02-13 [1]
-##  stringr        * 1.4.0      2019-02-10 [1]
-##  survival         2.43-3     2018-11-26 [2]
-##  testthat         2.0.1      2018-10-13 [2]
-##  threejs          0.3.1      2017-08-13 [2]
-##  tibble         * 2.0.1      2019-01-12 [2]
-##  tidymodels     * 0.0.2      2018-11-27 [1]
-##  tidyposterior    0.0.2      2018-11-15 [1]
-##  tidypredict      0.3.0      2019-01-10 [1]
-##  tidyr          * 0.8.2.9000 2019-02-11 [1]
-##  tidyselect       0.2.5      2018-10-11 [1]
-##  tidytext         0.2.0      2018-10-17 [1]
-##  tidyverse      * 1.2.1      2017-11-14 [2]
-##  timeDate         3043.102   2018-02-21 [2]
-##  titanic        * 0.1.0      2015-08-31 [2]
-##  tokenizers       0.2.1      2018-03-29 [2]
-##  tree           * 1.0-39     2018-03-17 [2]
-##  usethis          1.4.0      2018-08-14 [1]
-##  withr            2.1.2      2018-03-15 [2]
-##  xfun             0.5        2019-02-20 [1]
-##  xml2             1.2.0      2018-01-24 [2]
-##  xtable           1.8-3      2018-08-29 [2]
-##  xts              0.11-2     2018-11-05 [2]
-##  yaml             2.2.0      2018-07-25 [2]
-##  yardstick      * 0.0.2      2018-11-05 [1]
-##  zoo              1.8-4      2018-09-19 [2]
+##  package       * version    date       lib
+##  assertthat      0.2.0      2017-04-11 [2]
+##  backports       1.1.3      2018-12-14 [2]
+##  base64enc       0.1-3      2015-07-28 [2]
+##  bayesplot       1.6.0      2018-08-02 [2]
+##  blogdown        0.10       2019-01-09 [1]
+##  bookdown        0.9        2018-12-21 [1]
+##  broom         * 0.5.1      2018-12-05 [2]
+##  callr           3.1.1      2018-12-21 [2]
+##  caret         * 6.0-81     2018-11-20 [1]
+##  cellranger      1.1.0      2016-07-27 [2]
+##  checkmate       1.9.1      2019-01-15 [2]
+##  class           7.3-15     2019-01-01 [2]
+##  cli             1.0.1      2018-09-25 [1]
+##  codetools       0.2-16     2018-12-24 [2]
+##  colorspace      1.4-0      2019-01-13 [2]
+##  colourpicker    1.0        2017-09-27 [2]
+##  crayon          1.3.4      2017-09-16 [2]
+##  crosstalk       1.0.0      2016-12-21 [2]
+##  data.table      1.12.0     2019-01-13 [2]
+##  desc            1.2.0      2018-05-01 [2]
+##  devtools        2.0.1      2018-10-26 [1]
+##  dials         * 0.0.2      2018-12-09 [1]
+##  digest          0.6.18     2018-10-10 [1]
+##  doParallel    * 1.0.14     2018-09-24 [1]
+##  dplyr         * 0.8.0.1    2019-02-15 [1]
+##  DT              0.5        2018-11-05 [2]
+##  dygraphs        1.1.1.6    2018-07-11 [2]
+##  e1071         * 1.7-0.1    2019-01-21 [1]
+##  evaluate        0.13       2019-02-12 [2]
+##  forcats       * 0.4.0      2019-02-17 [2]
+##  foreach       * 1.4.4      2017-12-12 [2]
+##  Formula         1.2-3      2018-05-03 [2]
+##  fs              1.2.6      2018-08-23 [1]
+##  generics        0.0.2      2018-11-29 [1]
+##  ggplot2       * 3.1.0      2018-10-25 [1]
+##  ggridges        0.5.1      2018-09-27 [2]
+##  glmnet          2.0-16     2018-04-02 [1]
+##  glue            1.3.0      2018-07-17 [2]
+##  gower           0.1.2      2017-02-23 [2]
+##  gridExtra       2.3        2017-09-09 [2]
+##  gtable          0.2.0      2016-02-26 [2]
+##  gtools          3.8.1      2018-06-26 [2]
+##  haven           2.1.0      2019-02-19 [2]
+##  here          * 0.1        2017-05-28 [2]
+##  hms             0.4.2      2018-03-10 [2]
+##  htmltools       0.3.6      2017-04-28 [1]
+##  htmlwidgets     1.3        2018-09-30 [2]
+##  httpuv          1.4.5.1    2018-12-18 [2]
+##  httr            1.4.0      2018-12-11 [2]
+##  igraph          1.2.4      2019-02-13 [2]
+##  iml           * 0.9.0      2019-02-05 [1]
+##  infer         * 0.4.0      2018-11-15 [1]
+##  inline          0.3.15     2018-05-18 [2]
+##  inum            1.0-0      2017-12-12 [1]
+##  ipred           0.9-8      2018-11-05 [1]
+##  iterators     * 1.0.10     2018-07-13 [2]
+##  janeaustenr     0.1.5      2017-06-10 [2]
+##  jsonlite        1.6        2018-12-07 [2]
+##  kernlab       * 0.9-27     2018-08-10 [2]
+##  knitr           1.21       2018-12-10 [2]
+##  later           0.8.0      2019-02-11 [2]
+##  lattice       * 0.20-38    2018-11-04 [2]
+##  lava            1.6.5      2019-02-12 [2]
+##  lazyeval        0.2.1      2017-10-29 [2]
+##  libcoin         1.0-3      2019-02-18 [1]
+##  lme4            1.1-20     2019-02-04 [2]
+##  loo             2.0.0      2018-04-11 [2]
+##  lubridate       1.7.4      2018-04-11 [2]
+##  magrittr        1.5        2014-11-22 [2]
+##  markdown        0.9        2018-12-07 [2]
+##  MASS            7.3-51.1   2018-11-01 [2]
+##  Matrix          1.2-15     2018-11-01 [2]
+##  matrixStats     0.54.0     2018-07-23 [2]
+##  memoise         1.1.0      2017-04-21 [2]
+##  Metrics         0.1.4      2018-07-09 [1]
+##  mime            0.6        2018-10-05 [1]
+##  miniUI          0.1.1.1    2018-05-18 [2]
+##  minqa           1.2.4      2014-10-09 [2]
+##  ModelMetrics    1.2.2      2018-11-03 [2]
+##  modelr          0.1.4      2019-02-18 [2]
+##  munsell         0.5.0      2018-06-12 [2]
+##  mvtnorm         1.0-8      2018-05-31 [2]
+##  nlme            3.1-137    2018-04-07 [2]
+##  nloptr          1.2.1      2018-10-03 [2]
+##  nnet            7.3-12     2016-02-02 [2]
+##  parsnip       * 0.0.1      2018-11-12 [1]
+##  partykit        1.2-3      2019-01-31 [1]
+##  patchwork     * 0.0.1      2018-09-06 [1]
+##  pillar          1.3.1      2018-12-15 [2]
+##  pkgbuild        1.0.2      2018-10-16 [1]
+##  pkgconfig       2.0.2      2018-08-16 [2]
+##  pkgload         1.0.2      2018-10-29 [1]
+##  plyr            1.8.4      2016-06-08 [2]
+##  prediction      0.3.6.2    2019-01-31 [2]
+##  prettyunits     1.0.2      2015-07-13 [2]
+##  pROC          * 1.13.0     2018-09-24 [1]
+##  processx        3.2.1      2018-12-05 [2]
+##  prodlim         2018.04.18 2018-04-18 [2]
+##  promises        1.0.1      2018-04-13 [2]
+##  ps              1.3.0      2018-12-21 [2]
+##  purrr         * 0.3.0      2019-01-27 [2]
+##  R6              2.4.0      2019-02-14 [1]
+##  rcfss         * 0.1.5      2019-01-24 [1]
+##  Rcpp            1.0.0      2018-11-07 [1]
+##  readr         * 1.3.1      2018-12-21 [2]
+##  readxl          1.3.0      2019-02-15 [2]
+##  recipes       * 0.1.4      2018-11-19 [1]
+##  remotes         2.0.2      2018-10-30 [1]
+##  reshape2        1.4.3      2017-12-11 [2]
+##  rlang           0.3.1      2019-01-08 [1]
+##  rmarkdown       1.11       2018-12-08 [2]
+##  rpart           4.1-13     2018-02-23 [1]
+##  rprojroot       1.3-2      2018-01-03 [2]
+##  rsample       * 0.0.4      2019-01-07 [1]
+##  rsconnect       0.8.13     2019-01-10 [2]
+##  rstan           2.18.2     2018-11-07 [2]
+##  rstanarm        2.18.2     2018-11-10 [2]
+##  rstantools      1.5.1      2018-08-22 [2]
+##  rstudioapi      0.9.0      2019-01-09 [1]
+##  rvest           0.3.2      2016-06-17 [2]
+##  scales        * 1.0.0      2018-08-09 [1]
+##  sessioninfo     1.1.1      2018-11-05 [1]
+##  shiny           1.2.0      2018-11-02 [2]
+##  shinyjs         1.0        2018-01-08 [2]
+##  shinystan       2.5.0      2018-05-01 [2]
+##  shinythemes     1.1.2      2018-11-06 [2]
+##  SnowballC       0.6.0      2019-01-15 [2]
+##  StanHeaders     2.18.1     2019-01-28 [2]
+##  stringi         1.3.1      2019-02-13 [1]
+##  stringr       * 1.4.0      2019-02-10 [1]
+##  survival        2.43-3     2018-11-26 [2]
+##  testthat        2.0.1      2018-10-13 [2]
+##  threejs         0.3.1      2017-08-13 [2]
+##  tibble        * 2.0.1      2019-01-12 [2]
+##  tidymodels    * 0.0.2      2018-11-27 [1]
+##  tidyposterior   0.0.2      2018-11-15 [1]
+##  tidypredict     0.3.0      2019-01-10 [1]
+##  tidyr         * 0.8.2.9000 2019-02-11 [1]
+##  tidyselect      0.2.5      2018-10-11 [1]
+##  tidytext        0.2.0      2018-10-17 [1]
+##  tidyverse     * 1.2.1      2017-11-14 [2]
+##  timeDate        3043.102   2018-02-21 [2]
+##  tokenizers      0.2.1      2018-03-29 [2]
+##  usethis         1.4.0      2018-08-14 [1]
+##  withr           2.1.2      2018-03-15 [2]
+##  xfun            0.5        2019-02-20 [1]
+##  xml2            1.2.0      2018-01-24 [2]
+##  xtable          1.8-3      2018-08-29 [2]
+##  xts             0.11-2     2018-11-05 [2]
+##  yaml            2.2.0      2018-07-25 [2]
+##  yardstick     * 0.0.2      2018-11-05 [1]
+##  zoo             1.8-4      2018-09-19 [2]
 ##  source                              
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -767,7 +904,6 @@ vote96_boost &lt;-<span class="st"> </span><span class="kw">train</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -795,7 +931,6 @@ vote96_boost &lt;-<span class="st"> </span><span class="kw">train</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.1)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
@@ -808,7 +943,6 @@ vote96_boost &lt;-<span class="st"> </span><span class="kw">train</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -839,9 +973,7 @@ vote96_boost &lt;-<span class="st"> </span><span class="kw">train</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
 ##  local                               
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
@@ -884,8 +1016,6 @@ vote96_boost &lt;-<span class="st"> </span><span class="kw">train</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -898,7 +1028,7 @@ vote96_boost &lt;-<span class="st"> </span><span class="kw">train</span>(
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
 </div>
 <div id="references" class="section level1 toc-ignore">
-<h1><span class="header-section-number">6</span> References</h1>
+<h1><span class="header-section-number">7</span> References</h1>
 <ul>
 <li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
 <li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
