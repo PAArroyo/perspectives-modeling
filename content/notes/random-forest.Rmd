@@ -41,7 +41,7 @@ theme_set(theme_minimal())
 
 The problem with [bagging](/notes/bagging/) is that if there is a single dominant predictor in the dataset, most trees will use the same predictor for the first split and ensure correlation and similarity among the trees. Consider a set of six decision trees grown using the `ISLR::Auto` dataset to predict fuel efficiency (`mpg`), where each decision tree is constructed from a bootstrapped sample:
 
-```{r mpg-bag-trees, dependson = "ames"}
+```{r mpg-bag-trees}
 # generate bootstrapped samples
 bag_trees <- bootstraps(ISLR::Auto, times = 6) %>%
   mutate(tree = map(splits, ~ rpart(mpg ~ .,
