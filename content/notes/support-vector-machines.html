@@ -130,17 +130,8 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
   x_{np}
  \end{pmatrix}\]</span></p>
 <p>These observations fall into one of two classes <span class="math inline">\(y_1, \dots, y_n \in \{-1, 1 \}\)</span> where <span class="math inline">\(-1\)</span> and <span class="math inline">\(1\)</span> represent two separate classes or categories. We also have a test observation <span class="math inline">\(x^*\)</span> which is a <span class="math inline">\(p\)</span>-vector of observed predictors <span class="math inline">\(x^* = (x_1^*, \dots, x_p^*)\)</span>. We want to develop a model that classifies the test observation correctly given our knowledge of the training observations. Previously we have used methods such as logistic regression (where the response variable is coded <span class="math inline">\(\{0, 1 \}\)</span>) and decision trees to perform this task. Now we want to use a hyperplane to <strong>separate</strong> the training observations into the two possible classes.</p>
-<p>A <strong>separating hyperplane</strong> perfectly separates training observations into their class labels. Observations in the blue class are coded as <span class="math inline">\(y_i = 1\)</span> those from the red class as <span class="math inline">\(y_i = -1\)</span>. So a separating hyperplane takes on the properties:</p>
+<p>A <strong>separating hyperplane</strong> perfectly separates training observations into their class labels. Observations in the purple class are coded as <span class="math inline">\(y_i = 1\)</span> those from the green class as <span class="math inline">\(y_i = -1\)</span>. So a separating hyperplane takes on the properties:</p>
 <p><span class="math display">\[\beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} &gt; 0, \text{if } y_i = 1\]</span> <span class="math display">\[\beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} &lt; 0, \text{if } y_i = -1\]</span></p>
-<pre><code>## Warning: funs() is soft deprecated as of dplyr 0.8.0
-## please use list() instead
-## 
-## # Before:
-## funs(name = f(.)
-## 
-## # After: 
-## list(name = ~f(.))
-## This warning is displayed once per session.</code></pre>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-1.png" width="672" /></p>
 <p>If a separating hyperplane exists, then we can classify test observations based on their location relative to the hyperplane:</p>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-decision-1.png" width="672" /></p>
@@ -187,6 +178,15 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li>There exists no perfectly separating hyperplane</li>
 <li>A perfectly separating hyperplane is too sensitive to individual training observations, generating potentially very small margins or overfitting the training set.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></li>
 </ol>
+<pre><code>## Warning: funs() is soft deprecated as of dplyr 0.8.0
+## please use list() instead
+## 
+## # Before:
+## funs(name = f(.)
+## 
+## # After: 
+## list(name = ~f(.))
+## This warning is displayed once per session.</code></pre>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-sensitive-1.png" width="672" /><img src="/notes/support-vector-machines_files/figure-html/sim-sensitive-2.png" width="672" /></p>
 <p>Instead, we want a separating hyperplane that does not perfectly separate the two classes but provides greater robustness to individual observations and better classification of <strong>most</strong> training observations. We are willing to sacrifice accuracy on a few observations if the resulting hyperplane performs better across the remaining observations.</p>
 <p>This approach is called the <strong>support vector classifier</strong>. It allows observations to not only exist on the wrong side of the margin (i.e. inside the cushion defined by <span class="math inline">\(M\)</span>), but also exist on the wrong side of the hyperplane.</p>
@@ -276,7 +276,7 @@ f(\mathbf{y}) &amp;= 16, 20, 24, 20, 25, 30, 24, 30, 36 \\
 <p>Now our operation is</p>
 <p><span class="math display">\[
 \begin{align}
-K(\mathbf{x}, \mathbf{y}) &amp;= \langle (1, 2, 3, 2, 4, 6, 3, 6, 9) \cdot 16, 20, 24, 20, 25, 30, 24, 30, 36 \rangle ^2 \\
+K(\mathbf{x}, \mathbf{y}) &amp;= \langle (1, 2, 3) \cdot (4, 5, 6) \rangle ^2 \\
  &amp;= (4 + 10 + 18)^2 \\
 &amp;= 32^2 \\
 &amp;= 1024
@@ -691,8 +691,9 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
        <span class="dt">x =</span> <span class="kw">expression</span>(X),
        <span class="dt">y =</span> <span class="kw">expression</span>(Y),
        <span class="dt">color =</span> <span class="kw">expression</span>(epsilon))</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/svm-sine-1.png" width="672" /></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(
+<p><img src="/notes/support-vector-machines_files/figure-html/svm-sine-c1-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># radial basis kernel</span>
+<span class="kw">tibble</span>(
   <span class="dt">epsilon =</span> <span class="kw">c</span>(<span class="fl">0.001</span>, <span class="fl">0.01</span>, <span class="fl">0.1</span>, <span class="dv">1</span>)
 ) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">model =</span> <span class="kw">map</span>(epsilon, sine_svm, <span class="dt">df =</span> sine_data, <span class="dt">C =</span> <span class="dv">5</span>),
@@ -712,7 +713,7 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
        <span class="dt">x =</span> <span class="kw">expression</span>(X),
        <span class="dt">y =</span> <span class="kw">expression</span>(Y),
        <span class="dt">color =</span> <span class="kw">expression</span>(epsilon))</code></pre></div>
-<p><img src="/notes/support-vector-machines_files/figure-html/svm-sine-2.png" width="672" /></p>
+<p><img src="/notes/support-vector-machines_files/figure-html/svm-sine-c5-1.png" width="672" /></p>
 </div>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
@@ -760,7 +761,6 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  DT               0.5        2018-11-05 [2]
 ##  dygraphs         1.1.1.6    2018-07-11 [2]
 ##  e1071          * 1.7-0.1    2019-01-21 [1]
-##  ellipsis         0.1.0      2019-02-19 [2]
 ##  evaluate         0.13       2019-02-12 [2]
 ##  forcats        * 0.4.0      2019-02-17 [2]
 ##  foreach        * 1.4.4      2017-12-12 [2]
@@ -887,7 +887,6 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  usethis          1.4.0      2018-08-14 [1]
 ##  withr            2.1.2      2018-03-15 [2]
 ##  xfun             0.5        2019-02-20 [1]
-##  xgboost          0.81.0.1   2019-01-31 [1]
 ##  xml2             1.2.0      2018-01-24 [2]
 ##  xtable           1.8-3      2018-08-29 [2]
 ##  xts              0.11-2     2018-11-05 [2]
@@ -922,7 +921,6 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
@@ -1049,7 +1047,6 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      

@@ -82,7 +82,9 @@ ggplot(sim_hyper, aes(x1, x2, color = group)) +
   geom_point() +
   geom_line(data = sim_hyper_line, aes(color = NULL)) +
   scale_color_brewer(type = "qual") +
-  labs(title = "Hyperplane in two dimensions") +
+  labs(title = "Hyperplane in two dimensions",
+       x = expression(X[1]),
+       y = expression(X[2])) +
   theme(legend.position = "none")
 ```
 
@@ -103,7 +105,7 @@ $$x_1 = \begin{pmatrix}
 
 These observations fall into one of two classes $y_1, \dots, y_n \in \{-1, 1 \}$ where $-1$ and $1$ represent two separate classes or categories. We also have a test observation $x^*$ which is a $p$-vector of observed predictors $x^* = (x_1^*, \dots, x_p^*)$. We want to develop a model that classifies the test observation correctly given our knowledge of the training observations. Previously we have used methods such as logistic regression (where the response variable is coded $\{0, 1 \}$) and decision trees to perform this task. Now we want to use a hyperplane to **separate** the training observations into the two possible classes.
 
-A **separating hyperplane** perfectly separates training observations into their class labels. Observations in the blue class are coded as $y_i = 1$ those from the red class as $y_i = -1$. So a separating hyperplane takes on the properties:
+A **separating hyperplane** perfectly separates training observations into their class labels. Observations in the purple class are coded as $y_i = 1$ those from the green class as $y_i = -1$. So a separating hyperplane takes on the properties:
 
 $$\beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} > 0, \text{if } y_i = 1$$
 $$\beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} < 0, \text{if } y_i = -1$$
@@ -116,7 +118,7 @@ sim <- tibble(
   x2 = runif(20, -2, 2),
   y = ifelse(1 + 2 * x1 + 3 * x2 < 0, -1, 1)
 ) %>%
-  mutate_each(funs(ifelse(y == 1, . + 1.5, .)), x2) %>%
+  mutate_each(list(~ ifelse(y == 1, . + 1.5, .)), x2) %>%
   mutate(y = factor(y, levels = c(-1, 1))) %>%
   mutate(line1 = (-1 - 2 * x1) / 3,
          line2 = .5 + (-1 - 1.5 * x1) / 3,
@@ -128,7 +130,9 @@ ggplot(sim, aes(x1)) +
   geom_line(aes(y = line2, color = NULL)) +
   geom_line(aes(y = line3, color = NULL)) +
   scale_color_brewer(type = "qual") +
-  labs(title = "Examples of separating hyperplanes") +
+  labs(title = "Examples of separating hyperplanes",
+       x = expression(X[1]),
+       y = expression(X[2])) +
   theme(legend.position = "none")
 ```
 
@@ -157,7 +161,9 @@ ggplot(sim, aes(x1)) +
   geom_point(aes(y = x2, color = y)) +
   geom_line(data = sim_plane, aes(x1, x2)) +
   scale_color_brewer(type = "qual") +
-  labs(title = "Maximal margin classification") +
+  labs(title = "Maximal margin classification",
+       x = expression(X[1]),
+       y = expression(X[2])) +
   theme(legend.position = "none")
 ```
 
@@ -180,7 +186,9 @@ ggplot(sim, aes(x1)) +
   geom_line(data = mutate(sim_plane, x2 = x2 + min(abs(sim_dist))),
             aes(x1, x2), linetype = 2) +
   scale_color_brewer(type = "qual") +
-  labs(title = "Maximal margin classification") +
+  labs(title = "Maximal margin classification",
+       x = expression(X[1]),
+       y = expression(X[2])) +
   theme(legend.position = "none")
 ```
 
@@ -229,7 +237,9 @@ tibble(
   ggplot(aes(x1, x2, color = y)) +
   geom_point() +
   scale_color_brewer(type = "qual") +
-  labs(title = "Non-separable data") +
+  labs(title = "Non-separable data",
+       x = expression(X[1]),
+       y = expression(X[2])) +
   theme(legend.position = "none")
 ```
 
@@ -260,7 +270,10 @@ sens_plane <- tibble(x1 = seq(-2, 2, length.out = 100),
 ggplot(sensitive, aes(x1)) +
   geom_point(aes(y = x2, color = y)) +
   geom_line(data = sens_plane, aes(x1, x2)) +
-  labs(title = "Maximal margin classification") +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Maximal margin classification",
+       x = expression(X[1]),
+       y = expression(X[2])) +
   theme(legend.position = "none")
 
 # slight tweak
@@ -280,7 +293,9 @@ ggplot(sensitive2, aes(x1)) +
   geom_line(data = sens2_plane, aes(x1, x2)) +
   geom_line(data = sens_plane, aes(x1, x2), linetype = 2) +
   scale_color_brewer(type = "qual") +
-  labs(title = "Maximal margin classification") +
+  labs(title = "Maximal margin classification",
+       x = expression(X[1]),
+       y = expression(X[2])) +
   theme(legend.position = "none")
 ```
 
@@ -343,7 +358,9 @@ plot_svm <- function(df, cost = 1){
     geom_line(data = mutate(sim_plane, x2 = x2 + min(abs(sim_dist))),
               aes(x1, x2), linetype = 2) +
     scale_color_brewer(type = "qual") +
-    labs(subtitle = str_c("Cost = ", cost)) +
+    labs(subtitle = str_c("Cost = ", cost),
+         x = expression(X[1]),
+         y = expression(X[2])) +
     coord_equal(xlim = range(df$x1),
                 ylim = range(df$x2)) +
     theme(legend.position = "none")
@@ -379,6 +396,8 @@ sim_nonlm <- tibble(
 radial_p <- ggplot(sim_nonlm, aes(x1, x2, color = y)) +
   geom_point() +
   scale_color_brewer(type = "qual") +
+  labs(x = expression(X[1]),
+       y = expression(X[2])) +
   theme(legend.position = "none")
 radial_p
 ```
@@ -476,7 +495,7 @@ Now our operation is
 
 $$
 \begin{align}
-K(\mathbf{x}, \mathbf{y}) &= \langle (`r str_c(f_vec(x), collapse = ", ")`) \cdot `r str_c(f_vec(y), collapse = ", ")` \rangle ^2 \\
+K(\mathbf{x}, \mathbf{y}) &= \langle (`r str_c(x, collapse = ", ")`) \cdot (`r str_c(y, collapse = ", ")`) \rangle ^2 \\
  &= (`r str_c(x * y, collapse = " + ")`)^2 \\
 &= `r sum(x * y)`^2 \\
 &= `r sum(x * y)^2`
@@ -536,6 +555,8 @@ sim_nonlm <- tibble(
 ggplot(sim_nonlm, aes(x1, x2, color = y)) +
   geom_point() +
   scale_color_brewer(type = "qual") +
+  labs(x = expression(X[1]),
+       y = expression(X[2])) +
   theme(legend.position = "none")
 
 svm(y ~ x1 + x2,
@@ -902,7 +923,7 @@ ggplot(sine_data, aes(x, y)) +
        y = expression(Y))
 ```
 
-```{r svm-sine, dependson = "sine-data"}
+```{r svm-sine-c1, dependson = "sine-data"}
 # radial basis kernel
 tibble(
   epsilon = c(0.001, 0.01, 0.1, 1)
@@ -924,7 +945,10 @@ tibble(
        x = expression(X),
        y = expression(Y),
        color = expression(epsilon))
+```
 
+```{r svm-sine-c5, dependson = "sine-data"}
+# radial basis kernel
 tibble(
   epsilon = c(0.001, 0.01, 0.1, 1)
 ) %>%

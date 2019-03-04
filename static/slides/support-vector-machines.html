@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Support Vector Machines</title>
+    <meta charset="utf-8">
+    <meta name="author" content="MACS 30100   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Support Vector Machines
+### <a href="https://model.uchicago.edu">MACS 30100</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Support vector machines
+
+* Historically popular method for classification
+* Individual components
+    * Maximal margin classifier
+    * Support vector classifier
+    * Support vector machine
+
+---
+
+# Hyperplanes
+
+* Flat subspace of `\(p - 1\)` dimensions
+* Affine
+* In two dimensions
+* In three dimensions
+* In `\(p\)` dimensions
+
+---
+
+# Hyperplane
+
+* Two-dimensional
+
+    `$$\beta_0 + \beta_1 X_1 + \beta_2 X_2 = 0$$`
+
+    * `\(X = (X_1, X_2)^T\)`
+* `\(p\)`-dimensional
+
+    `$$\beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p = 0$$`
+
+    * `\(X = (X_1, X_2, \dots, X_p)^T\)`
+* Failure to meet condition
+    
+    `$$\beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p &gt; 0$$`
+    
+    `$$\beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p &lt; 0$$`
+
+* Where an observation lies
+
+---
+
+# Hyperplane
+
+&lt;img src="support-vector-machines_files/figure-html/hyperplane-1.png" width="864" /&gt;
+
+---
+
+# Separating hyperplane
+
+`$$x_1 = \begin{pmatrix}
+  x_{11} \\
+  \vdots \\
+  x_{1p}
+ \end{pmatrix},
+ \dots, x_n = \begin{pmatrix}
+  x_{n1} \\
+  \vdots \\
+  x_{np}
+ \end{pmatrix}$$`
+ 
+* `\(y_1, \dots, y_n \in \{-1, 1 \}\)`
+* `\(x^* = (x_1^*, \dots, x_p^*)\)`
+* How to classify `\(x^*\)`?
+    * Logistic regression - `\(y_1, \dots, y_n \in \{0, 1 \}\)`
+    * Decision trees
+    * Separating hyperplane
+
+---
+
+# Separating hyperplane
+
+&lt;img src="support-vector-machines_files/figure-html/sim-1.png" width="864" /&gt;
+
+---
+
+# Classification with separating hyperplane
+
+.pull-left[
+
+`$$\beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} &gt; 0, \text{if } y_i = 1$$`
+`$$\beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} &lt; 0, \text{if } y_i = -1$$`
+
+* Sign of `\(f(x^*)\)`
+* Magnitude of `\(f(x^*)\)`
+* Linear decision boundary
+
+]
+
+.pull-right[
+
+&lt;img src="support-vector-machines_files/figure-html/sim-decision-1.png" width="432" /&gt;
+
+]
+
+---
+
+# Maximal margin classifier
+
+* Multiple potential separating hyperplanes
+* Optimal separating hyperplane
+    * Maximal margin hyperplane
+    * Margin `\(\hat{f}(x_i)\)`
+    * Maximal margin classifier
+    * Potential for overfitting
+
+---
+
+# Maximal margin classifier
+
+* Support vectors
+
+&lt;img src="support-vector-machines_files/figure-html/sim-margin-1.png" width="864" /&gt;
+
+---
+
+# Maximal margin hyperplane
+
+* `\(x_1, \dots, x_n \in \mathbb{R}^p\)`
+* `\(y_1, \dots, y_n \in \{-1, 1\}\)`
+
+##### Maximization
+
+$$
+`\begin{aligned}
+&amp; \underset{\beta_0, \beta_1, \dots, \beta_p}{\max} &amp; &amp; M \\
+&amp; \text{subject to} &amp; &amp;  \sum_{j=1}^p \beta_j^2 = 1, \\
+&amp; &amp; &amp; y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M \; \forall \; i = 1, \dots, n \\
+\end{aligned}`
+$$
+
+---
+
+# Maximal margin hyperplane
+
+* `\(x_1, \dots, x_n \in \mathbb{R}^p\)`
+* `\(y_1, \dots, y_n \in \{-1, 1\}\)`
+
+##### Minimization
+
+$$
+`\begin{aligned}
+&amp; \underset{\beta, \beta_0}{\min} &amp; &amp; \| \beta \| \\
+&amp; \text{subject to} &amp; &amp; y_i(x_i^{T}\beta + \beta_0) \geq 1 \; \forall \; i = 1, \dots, n \\
+\end{aligned}`
+$$
+
+where
+
+`$$\| \beta \| = \sum_{j=1}^p \beta_j^2$$`
+
+`$$M = \frac{1}{\| \beta \|}$$`
+
+---
+
+# Non-separable cases
+
+&lt;img src="support-vector-machines_files/figure-html/sim-nosep-1.png" width="864" /&gt;
+
+---
+
+# Support vector classifier
+
+* Relax perfect separation requirement
+* Reasonable when
+    * Exists no perfectly separating hyperplane
+    * Overly sensitive to individual support vectors
+* Ensure robust overall model
+
+---
+
+# Support vector classifier
+
+&lt;img src="support-vector-machines_files/figure-html/sim-sensitive-1.png" width="864" /&gt;
+
+---
+
+# Support vector classifier
+
+* Allows observations to exist on
+    * Wrong side of the margin `\(M\)`
+    * Wrong side of the hyperplane
+
+$$
+`\begin{aligned}
+&amp; \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\max} &amp; &amp; M \\
+&amp; \text{subject to} &amp; &amp;  \sum_{j=1}^p \beta_j^2 = 1, \\
+&amp; &amp; &amp; y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M(1 - \epsilon_i), \\
+&amp; &amp; &amp; \epsilon_i \geq 0, \sum_{i = 1}^n \epsilon_i \leq C \\
+\end{aligned}`
+$$
+
+* Error `\(\epsilon_i\)`
+    * `\(\epsilon_i = 0\)`
+    * `\(\epsilon_i &gt; 0\)`
+    * `\(\epsilon_i &gt; 1\)`
+* Cost `\(C\)`
+* Selecting `\(C\)`
+    * Bias-variance trade-off
+* Identifying support vectors
+
+---
+
+# Support vector classification
+
+&lt;img src="support-vector-machines_files/figure-html/sim-c-1.png" width="864" /&gt;
+
+---
+
+# Non-linear decision boundaries
+
+* Linear support vector classifiers
+* Non-linear support vector classifiers
+
+---
+
+# Non-linear decision boundaries
+
+&lt;img src="support-vector-machines_files/figure-html/sim-nonlinear-1.png" width="864" /&gt;
+
+---
+
+# Non-linear decision boundaries
+
+* How to accomodate non-linear boundaries?
+* Add polynomial terms
+
+`$$X_1, X_1^2, X_2, X_2^2, \dots, X_p, X_p^2$$`
+    
+`$$\begin{aligned}
+&amp; \underset{\beta_0, \beta_{11}, \beta_{12}, \dots, \beta_{p1}, \beta_{p2}, \epsilon_1, \dots, \epsilon_n}{\max} &amp; &amp; M \\
+&amp; \text{subject to} &amp; &amp; y_i \left( \beta_0 + \sum_{j = 1}^p \beta_{j1} x_{ij} + \sum_{j = 1}^p \beta_{j2} x_{ij}^2 \right) \geq M(1 - \epsilon_i), \\
+&amp; &amp; &amp; \epsilon_i \geq 0, \sum_{i = 1}^n \epsilon_i \leq C, \sum_{j = 1}^p \sum_{k = 1}^2 \beta_{jk}^2 = 1 \\
+\end{aligned}$$`
+
+---
+
+# Non-linear decision boundaries
+
+&lt;iframe width="800" height="450" src="https://www.youtube.com/embed/3liCbRZPrZA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen&gt;&lt;/iframe&gt;
+
+--
+
+* Increases the feature space
+* Computationally inefficient
+
+---
+
+# Support vector machines
+
+* Extend feature space using **kernels**
+* Computation of support vector classifier uses inner products of observations
+* Inner product of two `\(r\)`-length vectors `\(a\)` and `\(b\)`
+    
+    `$$\langle a,b \rangle = \sum_{i = 1}^r a_i b_i$$`
+* Inner product of two observations
+
+    `$$\langle x_i, x_{i'} \rangle = \sum_{j = 1}^p x_{ij} x_{i'j}$$`
+
+* Linear support vector
+
+    `$$f(x) = \beta_0 + \sum_{i = 1}^n \alpha_i \langle x, x_i \rangle$$`
+    
+    * `\(\alpha_i\)` for non-support vectors
+
+    `$$f(x) = \beta_0 + \sum_{i \in \mathbb{S}} \alpha_i \langle x, x_i \rangle$$`
+
+---
+
+# Kernels
+
+
+
+$$
+`\begin{align}
+\mathbf{x} &amp;= (1, 2, 3) \\
+\mathbf{y} &amp;= (4, 5, 6) \\
+f(x_1, x_2, x_3) &amp;= x_1x_1 + x_1 x_2 + x_1x_3 + x_2x_1 + \\
+&amp;\qquad x_2x_2 + x_2x_3 + x_3x_1 + x_3x_2 + x_3x_3
+\end{align}`
+$$
+
+--
+
+$$
+`\begin{align}
+f(\mathbf{x}) &amp;= 1, 2, 3, 2, 4, 6, 3, 6, 9 \\
+f(\mathbf{y}) &amp;= 16, 20, 24, 20, 25, 30, 24, 30, 36 \\
+\langle f(\mathbf{x}), f(\mathbf{y}) \rangle &amp;= (1, 2, 3, 2, 4, 6, 3, 6, 9) \cdot (16, 20, 24, 20, 25, 30, 24, 30, 36)
+\end{align}`
+$$
+
+--
+
+`$$K(\mathbf{x}, \mathbf{y}) = \langle \mathbf{x}, \mathbf{y} \rangle^2$$`
+
+$$
+`\begin{align}
+K(\mathbf{x}, \mathbf{y}) &amp;= \langle (1, 2, 3) \cdot (4, 5, 6) \rangle ^2
+\end{align}`
+$$
+
+---
+
+# Kernels
+
+&lt;img src="support-vector-machines_files/figure-html/inner-prod-compare-1.png" width="864" /&gt;
+
+---
+
+# Kernels for SVMs
+
+`$$\langle x_i, x_{i'} \rangle = \sum_{j = 1}^p x_{ij} x_{i'j}$$`
+
+* Generalize to `\(K\)`
+
+    `$$K(x_i, x_{i'})$$`
+    
+    * Measure of similarity
+
+* Linear kernel
+
+    `$$K(x_i, x_{i'}) = \sum_{j = 1}^p x_{ij} x_{i'j}$$`
+
+* Polynomial kernel
+
+    `$$K(x_i, x_{i'}) = (1 + \sum_{j = 1}^p x_{ij} x_{i'j})^d$$`
+    
+    * `\(d\)`
+
+    `$$f(x) = \beta_0 + \sum_{i \in \mathbb{S}} \alpha_i K(x,x_i)$$`
+
+---
+
+# Polynomial kernel
+
+.pull-left[
+
+&lt;img src="support-vector-machines_files/figure-html/svm-poly-1.png" width="432" /&gt;
+
+]
+
+.pull-right[
+
+&lt;img src="support-vector-machines_files/figure-html/svm-poly-pred-1.png" width="432" /&gt;
+
+]
+
+---
+
+# Radial kernel
+
+`$$K(x_i, x_{i'}) = \exp(- \gamma \sum_{j=1}^p (x_{ij} - x_{i'j})^2)$$`
+
+* `\(\gamma\)`
+* Localize predictions for test observations based on Euclidian distance to nearby training observations
+
+---
+
+# Radial kernel
+
+.pull-left[
+
+&lt;img src="support-vector-machines_files/figure-html/svm-radial-1.png" width="432" /&gt;
+
+]
+
+.pull-right[
+
+&lt;img src="support-vector-machines_files/figure-html/svm-radial-pred-1.png" width="432" /&gt;
+
+]
+
+---
+
+# Benefits of kernels
+
+* Do not need to enlarge the feature space
+* Compute `\(K(x_i, x_{i'})\)` for all `\(\binom{n}{2}\)` distinct pairs `\(i, i'\)`
+* `\(p\)` never changes
+
+---
+
+# Voter turnout
+
+
+```
+## # A tibble: 1,165 x 8
+##    vote96 mhealth_sum   age  educ black female married inc10
+##    &lt;fct&gt;        &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;
+##  1 Yes              0    60    12     0      0       0  4.81
+##  2 Yes              1    36    12     0      0       1  8.83
+##  3 No               7    21    13     0      0       0  1.74
+##  4 No               6    29    13     0      0       0 10.7 
+##  5 Yes              1    41    15     1      1       1  8.83
+##  6 Yes              2    48    20     0      0       1  8.83
+##  7 No               9    20    12     0      1       0  7.22
+##  8 No              12    27    11     0      1       0  1.20
+##  9 Yes              2    28    16     0      0       1  7.22
+## 10 Yes              0    72    14     0      0       1  4.01
+## # … with 1,155 more rows
+```
+
+---
+
+# Linear kernel
+
+
+
+
+
+.pull-left[
+
+
+```
+## Support Vector Machine object of class "ksvm" 
+## 
+## SV type: C-svc  (classification) 
+##  parameter : cost C = 1 
+## 
+## Linear (vanilla) kernel function. 
+## 
+## Number of Support Vectors : 727 
+## 
+## Objective Function Value : -722.8561 
+## Training error : 0.278112 
+## Probability model included.
+```
+
+]
+
+.pull-right[
+
+&lt;img src="support-vector-machines_files/figure-html/vote96-svm-line-roc-1.png" width="432" /&gt;
+
+```
+## Area under the curve: 0.7499
+```
+
+]
+
+---
+
+# Polynomial kernel
+
+.pull-left[
+
+
+```
+## Support Vector Machine object of class "ksvm" 
+## 
+## SV type: C-svc  (classification) 
+##  parameter : cost C = 0.25 
+## 
+## Polynomial kernel function. 
+##  Hyperparameters : degree =  2  scale =  0.1  offset =  1 
+## 
+## Number of Support Vectors : 716 
+## 
+## Objective Function Value : -172.5873 
+## Training error : 0.276395 
+## Probability model included.
+```
+
+]
+
+.pull-right[
+
+&lt;img src="support-vector-machines_files/figure-html/vote96-svm-poly-roc-1.png" width="432" /&gt;
+
+```
+## Area under the curve: 0.7494
+```
+
+]
+
+---
+
+# Radial kernel
+
+.pull-left[
+
+
+```
+## Support Vector Machine object of class "ksvm" 
+## 
+## SV type: C-svc  (classification) 
+##  parameter : cost C = 1 
+## 
+## Gaussian Radial Basis kernel function. 
+##  Hyperparameter : sigma =  0.126861544467025 
+## 
+## Number of Support Vectors : 725 
+## 
+## Objective Function Value : -651.2728 
+## Training error : 0.253219 
+## Probability model included.
+```
+
+]
+
+.pull-right[
+
+&lt;img src="support-vector-machines_files/figure-html/vote96-svm-radial-roc-1.png" width="432" /&gt;
+
+```
+## Area under the curve: 0.736
+```
+
+]
+
+---
+
+# Kernel comparison
+
+&lt;img src="support-vector-machines_files/figure-html/mh-roc-compare-1.png" width="864" /&gt;
+
+---
+
+# Comparison to other models
+
+
+
+
+
+
+
+
+```
+## note: only 6 unique complexity parameters in default grid. Truncating the grid to 6 .
+```
+
+
+
+
+
+&lt;img src="support-vector-machines_files/figure-html/vote96-compare-roc-1.png" width="864" /&gt;
+
+---
+
+# Support vector regression
+
+* Extension to continuous outcomes of interest
+* `\(\epsilon\)`-insensitive SVM
+* Find `\(f(x)\)` that
+    * Deviates from `\(y_i\)` by a value no greater than `\(\epsilon\)` for each training point `\(x\)`
+    * Is as flat as possible
+
+---
+
+# Support vector regression
+
+$$
+`\begin{aligned}
+&amp; \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\max} &amp; &amp; M \\
+&amp; \text{subject to} &amp; &amp;  \sum_{j=1}^p \beta_j^2 = 1, \\
+&amp; &amp; &amp;  y_i - (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip})  \geq M(1 - \epsilon_i) + \xi_i, \\
+&amp; &amp; &amp;  (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) - y_i  \geq M(1 - \epsilon_i) + \xi_i^*, \\
+&amp; &amp; &amp; \epsilon_i \geq 0, \\
+&amp; &amp; &amp; \sum_{i = 1}^n \epsilon_i \leq C, \\
+&amp; &amp; &amp; \xi_i \geq 0, \\
+&amp; &amp; &amp; \xi_i^* \geq 0 \\
+\end{aligned}`
+$$
+
+---
+
+# Linear SVR
+
+&lt;img src="support-vector-machines_files/figure-html/line-data-1.png" width="864" /&gt;
+
+---
+
+# Linear SVR
+
+
+```
+##  Setting default kernel parameters  
+##  Setting default kernel parameters  
+##  Setting default kernel parameters  
+##  Setting default kernel parameters
+```
+
+&lt;img src="support-vector-machines_files/figure-html/line-svm-1.png" width="864" /&gt;
+
+---
+
+# Non-linear SVR
+
+&lt;img src="support-vector-machines_files/figure-html/sine-data-1.png" width="864" /&gt;
+
+---
+
+# Non-linear SVR
+
+&lt;img src="support-vector-machines_files/figure-html/svm-sine-c1-1.png" width="864" /&gt;
+
+---
+
+# Non-linear SVR
+
+&lt;img src="support-vector-machines_files/figure-html/svm-sine-c5-1.png" width="864" /&gt;
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

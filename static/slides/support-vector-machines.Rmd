@@ -1,0 +1,1139 @@
+---
+title: "Support Vector Machines"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2, fig.width = 12)
+
+library(tidyverse)
+library(tidymodels)
+library(patchwork)
+library(iml)
+library(here)
+library(rcfss)
+library(e1071)
+library(caret)
+library(pROC)
+library(kernlab)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 16))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+# Support vector machines
+
+* Historically popular method for classification
+* Individual components
+    * Maximal margin classifier
+    * Support vector classifier
+    * Support vector machine
+
+---
+
+# Hyperplanes
+
+* Flat subspace of $p - 1$ dimensions
+* Affine
+* In two dimensions
+* In three dimensions
+* In $p$ dimensions
+
+---
+
+# Hyperplane
+
+* Two-dimensional
+
+    $$\beta_0 + \beta_1 X_1 + \beta_2 X_2 = 0$$
+
+    * $X = (X_1, X_2)^T$
+* $p$-dimensional
+
+    $$\beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p = 0$$
+
+    * $X = (X_1, X_2, \dots, X_p)^T$
+* Failure to meet condition
+    
+    $$\beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p > 0$$
+    
+    $$\beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_p X_p < 0$$
+
+* Where an observation lies
+
+---
+
+# Hyperplane
+
+```{r hyperplane, echo = FALSE}
+sim_hyper <- tibble(
+  x1 = seq(-1.5, 1.5, length.out = 20),
+  x2 = seq(-1.5, 1.5, length.out = 20)
+) %>%
+  expand(x1, x2) %>%
+  mutate(y = 1 + 2 * x1 + 3 * x2,
+         group = ifelse(y < 0, -1,
+                        ifelse(y > 0, 1, 0)),
+         group = factor(group))
+
+sim_hyper_line <- tibble(x1 = seq(-1.5, 1.5, length.out = 20),
+                         x2 = (-1 - 2 * x1) / 3)
+
+ggplot(sim_hyper, aes(x1, x2, color = group)) +
+  geom_point() +
+  geom_line(data = sim_hyper_line, aes(color = NULL)) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Hyperplane in two dimensions",
+       x = expression(X[1]),
+       y = expression(X[2])) +
+  theme(legend.position = "none")
+```
+
+---
+
+# Separating hyperplane
+
+$$x_1 = \begin{pmatrix}
+  x_{11} \\
+  \vdots \\
+  x_{1p}
+ \end{pmatrix},
+ \dots, x_n = \begin{pmatrix}
+  x_{n1} \\
+  \vdots \\
+  x_{np}
+ \end{pmatrix}$$
+ 
+* $y_1, \dots, y_n \in \{-1, 1 \}$
+* $x^* = (x_1^*, \dots, x_p^*)$
+* How to classify $x^*$?
+    * Logistic regression - $y_1, \dots, y_n \in \{0, 1 \}$
+    * Decision trees
+    * Separating hyperplane
+
+---
+
+# Separating hyperplane
+
+```{r sim, echo = FALSE}
+set.seed(123)
+
+sim <- tibble(
+  x1 = runif(20, -2, 2),
+  x2 = runif(20, -2, 2),
+  y = ifelse(1 + 2 * x1 + 3 * x2 < 0, -1, 1)
+) %>%
+  mutate_each(list(~ ifelse(y == 1, . + 1.5, .)), x2) %>%
+  mutate(y = factor(y, levels = c(-1, 1))) %>%
+  mutate(line1 = (-1 - 2 * x1) / 3,
+         line2 = .5 + (-1 - 1.5 * x1) / 3,
+         line3 = .25 - .05 * x1)
+
+ggplot(sim, aes(x1)) +
+  geom_point(aes(y = x2, color = y)) +
+  geom_line(aes(y = line1, color = NULL)) +
+  geom_line(aes(y = line2, color = NULL)) +
+  geom_line(aes(y = line3, color = NULL)) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Examples of separating hyperplanes",
+       x = expression(X[1]),
+       y = expression(X[2])) +
+  theme(legend.position = "none")
+```
+
+---
+
+# Classification with separating hyperplane
+
+.pull-left[
+
+$$\beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} > 0, \text{if } y_i = 1$$
+$$\beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip} < 0, \text{if } y_i = -1$$
+
+* Sign of $f(x^*)$
+* Magnitude of $f(x^*)$
+* Linear decision boundary
+
+]
+
+.pull-right[
+
+```{r sim-decision, dependson = "sim", echo = FALSE, fig.width = 6}
+sim_mod <- svm(y ~ x1 + x2, data = sim, kernel = "linear", cost = 1e05,
+               scale = FALSE)
+sim_coef <- c(sim_mod$rho, t(sim_mod$coefs) %*% sim_mod$SV)
+
+sim_grid <- tibble(
+  x1 = seq(-2, 2, length.out = 100),
+  x2 = seq(-2, 3.5, length.out = 100)
+) %>%
+  expand(x1, x2) %>%
+  mutate(y = ifelse(-sim_coef[[1]] + sim_coef[[2]] * x1 + sim_coef[[3]] * x2 > 0, -1, 1),
+         y = factor(y, levels = c(-1, 1)))
+
+sim_plane <- tibble(
+  x1 = seq(-2, 2, length.out = 100),
+  x2 = (sim_coef[[1]] - sim_coef[[2]] * x1) / sim_coef[[3]]
+)
+
+ggplot(sim, aes(x1)) +
+  geom_point(data = sim_grid, aes(x1, x2, color = y), alpha = .25, size = .25) +
+  geom_point(aes(y = x2, color = y)) +
+  geom_line(data = sim_plane, aes(x1, x2)) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Maximal margin classification",
+       x = expression(X[1]),
+       y = expression(X[2])) +
+  theme(legend.position = "none")
+```
+
+]
+
+---
+
+# Maximal margin classifier
+
+* Multiple potential separating hyperplanes
+* Optimal separating hyperplane
+    * Maximal margin hyperplane
+    * Margin $\hat{f}(x_i)$
+    * Maximal margin classifier
+    * Potential for overfitting
+
+---
+
+# Maximal margin classifier
+
+* Support vectors
+
+```{r sim-margin, dependson = c("sim", "sim-decision"), echo = FALSE}
+sim_pred <- predict(sim_mod, sim, decision.values = TRUE)
+sim_dist <- attr(sim_pred, "decision.values")
+
+ggplot(sim, aes(x1)) +
+  geom_point(aes(y = x2, color = y)) +
+  geom_point(data = sim_grid, aes(x1, x2, color = y), alpha = .1, size = .25) +
+  geom_line(data = sim_plane, aes(x1, x2)) +
+  geom_line(data = mutate(sim_plane, x2 = x2 - 1.15),
+            aes(x1, x2), linetype = 2) +
+  geom_line(data = mutate(sim_plane, x2 = x2 + 1.15),
+            aes(x1, x2), linetype = 2) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Maximal margin classification",
+       x = expression(X[1]),
+       y = expression(X[2])) +
+  theme(legend.position = "none")
+```
+
+---
+
+# Maximal margin hyperplane
+
+* $x_1, \dots, x_n \in \mathbb{R}^p$
+* $y_1, \dots, y_n \in \{-1, 1\}$
+
+##### Maximization
+
+$$
+\begin{aligned}
+& \underset{\beta_0, \beta_1, \dots, \beta_p}{\max} & & M \\
+& \text{subject to} & &  \sum_{j=1}^p \beta_j^2 = 1, \\
+& & & y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M \; \forall \; i = 1, \dots, n \\
+\end{aligned}
+$$
+
+---
+
+# Maximal margin hyperplane
+
+* $x_1, \dots, x_n \in \mathbb{R}^p$
+* $y_1, \dots, y_n \in \{-1, 1\}$
+
+##### Minimization
+
+$$
+\begin{aligned}
+& \underset{\beta, \beta_0}{\min} & & \| \beta \| \\
+& \text{subject to} & & y_i(x_i^{T}\beta + \beta_0) \geq 1 \; \forall \; i = 1, \dots, n \\
+\end{aligned}
+$$
+
+where
+
+$$\| \beta \| = \sum_{j=1}^p \beta_j^2$$
+
+$$M = \frac{1}{\| \beta \|}$$
+
+---
+
+# Non-separable cases
+
+```{r sim-nosep, echo = FALSE}
+tibble(
+  x1 = runif(20, -2, 2),
+  x2 = runif(20, -2, 2),
+  y = c(rep(-1, 10), rep(1, 10))
+) %>%
+  mutate(y = factor(y, levels = c(-1, 1))) %>%
+  ggplot(aes(x1, x2, color = y)) +
+  geom_point() +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Non-separable data",
+       x = expression(X[1]),
+       y = expression(X[2])) +
+  theme(legend.position = "none")
+```
+
+---
+
+# Support vector classifier
+
+* Relax perfect separation requirement
+* Reasonable when
+    * Exists no perfectly separating hyperplane
+    * Overly sensitive to individual support vectors
+* Ensure robust overall model
+
+---
+
+# Support vector classifier
+
+```{r sim-sensitive, echo = FALSE}
+# original model
+set.seed(123)
+sensitive <- tibble(
+  x1 = runif(20, -2, 2),
+  x2 = runif(20, -2, 2),
+  y = ifelse(1 + 2 * x1 + 3 * x2 < 0, -1, 1)
+) %>%
+  mutate_each(funs(ifelse(y == 1, . + .5, .)), x2) %>%
+  mutate(y = factor(y, levels = c(-1, 1)))
+
+sens_mod <- svm(y ~ x1 + x2, data = sensitive, kernel = "linear",
+                cost = 1e05, scale = FALSE)
+sens_coef <- c(sens_mod$rho, t(sens_mod$coefs) %*% sens_mod$SV)
+sens_plane <- tibble(x1 = seq(-2, 2, length.out = 100),
+                     x2 = (sens_coef[[1]] - sens_coef[[2]] * x1) / sens_coef[[3]])
+
+orig_obs <- ggplot(sensitive, aes(x1)) +
+  geom_point(aes(y = x2, color = y)) +
+  geom_line(data = sens_plane, aes(x1, x2)) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Maximal margin classification",
+       x = expression(X[1]),
+       y = expression(X[2])) +
+  theme(legend.position = "none")
+
+# slight tweak
+sensitive2 <- tibble(x1 = with(sensitive, x1[which(x2 == max(x2[y == -1]))]),
+                     x2 = with(sensitive, max(x2[y == -1])) + .1,
+                     y = factor(1, levels = c(-1, 1))) %>%
+  bind_rows(sensitive)
+
+sens2_mod <- svm(y ~ x1 + x2, data = sensitive2, kernel = "linear",
+                 cost = 1e05, scale = FALSE)
+sens2_coef <- c(sens2_mod$rho, t(sens2_mod$coefs) %*% sens2_mod$SV)
+sens2_plane <- tibble(x1 = seq(-2, 2, length.out = 100),
+                      x2 = (sens2_coef[[1]] - sens2_coef[[2]] * x1) / sens2_coef[[3]])
+
+sens_obs <- ggplot(sensitive2, aes(x1)) +
+  geom_point(aes(y = x2, color = y)) +
+  geom_line(data = sens2_plane, aes(x1, x2)) +
+  geom_line(data = sens_plane, aes(x1, x2), linetype = 2) +
+  scale_color_brewer(type = "qual") +
+  labs(title = "Maximal margin classification",
+       x = expression(X[1]),
+       y = expression(X[2])) +
+  theme(legend.position = "none")
+
+orig_obs +
+  sens_obs
+```
+
+---
+
+# Support vector classifier
+
+* Allows observations to exist on
+    * Wrong side of the margin $M$
+    * Wrong side of the hyperplane
+
+$$
+\begin{aligned}
+& \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\max} & & M \\
+& \text{subject to} & &  \sum_{j=1}^p \beta_j^2 = 1, \\
+& & & y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M(1 - \epsilon_i), \\
+& & & \epsilon_i \geq 0, \sum_{i = 1}^n \epsilon_i \leq C \\
+\end{aligned}
+$$
+
+* Error $\epsilon_i$
+    * $\epsilon_i = 0$
+    * $\epsilon_i > 0$
+    * $\epsilon_i > 1$
+* Cost $C$
+* Selecting $C$
+    * Bias-variance trade-off
+* Identifying support vectors
+
+---
+
+# Support vector classification
+
+```{r sim-c, echo = FALSE}
+set.seed(123)
+sim_c <- tibble(
+  x1 = rnorm(20),
+  x2 = rnorm(20),
+  y = ifelse(2 * x1 + x2 + rnorm(20) < 0, -1, 1)
+) %>%
+  mutate(y = factor(y, levels = c(-1, 1)))
+
+plot_svm <- function(df, cost = 1){
+  # estimate model
+  sim_mod <- svm(y ~ x1 + x2, data = df, kernel = "linear",
+                 cost = cost,
+                 scale = FALSE)
+  
+  # extract separating hyperplane
+  sim_coef <- c(sim_mod$rho, t(sim_mod$coefs) %*% sim_mod$SV)
+  sim_plane <- tibble(x1 = seq(min(df$x1), max(df$x1), length.out = 100),
+                      x2 = (-sim_coef[[1]] - sim_coef[[2]] * x1) / sim_coef[[3]])
+  
+  # extract properties to draw margins
+  sim_pred <- predict(sim_mod, df, decision.values = TRUE)
+  sim_dist <- attr(sim_pred, "decision.values")
+  
+  ggplot(df, aes(x1)) +
+    geom_point(aes(y = x2, color = y)) +
+    geom_line(data = sim_plane, aes(x1, x2)) +
+    geom_line(data = mutate(sim_plane, x2 = x2 - min(abs(sim_dist))),
+              aes(x1, x2), linetype = 2) +
+    geom_line(data = mutate(sim_plane, x2 = x2 + min(abs(sim_dist))),
+              aes(x1, x2), linetype = 2) +
+    scale_color_brewer(type = "qual") +
+    labs(subtitle = str_c("Cost = ", cost),
+         x = expression(X[1]),
+         y = expression(X[2])) +
+    coord_cartesian(xlim = range(df$x1),
+                    ylim = range(df$x2)) +
+    theme(legend.position = "none")
+}
+
+plot_svm(sim_c, cost = 1) +
+  plot_svm(sim_c, cost = 10) +
+  plot_svm(sim_c, cost = 50) +
+  plot_svm(sim_c, cost = 100) +
+  plot_layout(ncol = 2)
+```
+
+---
+
+# Non-linear decision boundaries
+
+* Linear support vector classifiers
+* Non-linear support vector classifiers
+
+---
+
+# Non-linear decision boundaries
+
+```{r sim-nonlinear, echo = FALSE}
+set.seed(123)
+
+x <- matrix(rnorm(200 * 2), ncol = 2)
+x[1:100, ] <- x[1:100, ] + 2
+x[101:150, ] <- x[101:150, ] - 2
+y <- c(rep(1, 150), rep(2, 50))
+
+sim_nonlm <- tibble(
+  x1 = x[, 1],
+  x2 = x[, 2],
+  y = as.factor(y)
+)
+
+radial_p <- ggplot(sim_nonlm, aes(x1, x2, color = y)) +
+  geom_point() +
+  scale_color_brewer(type = "qual") +
+  labs(x = expression(X[1]),
+       y = expression(X[2])) +
+  theme(legend.position = "none")
+radial_p
+```
+
+---
+
+# Non-linear decision boundaries
+
+* How to accomodate non-linear boundaries?
+* Add polynomial terms
+
+$$X_1, X_1^2, X_2, X_2^2, \dots, X_p, X_p^2$$
+    
+$$\begin{aligned}
+& \underset{\beta_0, \beta_{11}, \beta_{12}, \dots, \beta_{p1}, \beta_{p2}, \epsilon_1, \dots, \epsilon_n}{\max} & & M \\
+& \text{subject to} & & y_i \left( \beta_0 + \sum_{j = 1}^p \beta_{j1} x_{ij} + \sum_{j = 1}^p \beta_{j2} x_{ij}^2 \right) \geq M(1 - \epsilon_i), \\
+& & & \epsilon_i \geq 0, \sum_{i = 1}^n \epsilon_i \leq C, \sum_{j = 1}^p \sum_{k = 1}^2 \beta_{jk}^2 = 1 \\
+\end{aligned}$$
+
+---
+
+# Non-linear decision boundaries
+
+<iframe width="800" height="450" src="https://www.youtube.com/embed/3liCbRZPrZA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+--
+
+* Increases the feature space
+* Computationally inefficient
+
+---
+
+# Support vector machines
+
+* Extend feature space using **kernels**
+* Computation of support vector classifier uses inner products of observations
+* Inner product of two $r$-length vectors $a$ and $b$
+    
+    $$\langle a,b \rangle = \sum_{i = 1}^r a_i b_i$$
+* Inner product of two observations
+
+    $$\langle x_i, x_{i'} \rangle = \sum_{j = 1}^p x_{ij} x_{i'j}$$
+
+* Linear support vector
+
+    $$f(x) = \beta_0 + \sum_{i = 1}^n \alpha_i \langle x, x_i \rangle$$
+    
+    * $\alpha_i$ for non-support vectors
+
+    $$f(x) = \beta_0 + \sum_{i \in \mathbb{S}} \alpha_i \langle x, x_i \rangle$$
+
+---
+
+# Kernels
+
+```{r inner-prod-func, include = FALSE}
+x <- c(1, 2, 3)
+y <- c(4, 5, 6)
+
+f_vec <- function(x){
+  results <- vector(mode = "list", length = length(x))
+  for(i in seq_along(x)){
+    results[[i]] <- x[[i]] * x
+  }
+  unlist(results)
+}
+```
+
+$$
+\begin{align}
+\mathbf{x} &= (`r str_c(x, collapse = ", ")`) \\
+\mathbf{y} &= (`r str_c(y, collapse = ", ")`) \\
+f(x_1, x_2, x_3) &= x_1x_1 + x_1 x_2 + x_1x_3 + x_2x_1 + \\
+&\qquad x_2x_2 + x_2x_3 + x_3x_1 + x_3x_2 + x_3x_3
+\end{align}
+$$
+
+--
+
+$$
+\begin{align}
+f(\mathbf{x}) &= `r str_c(f_vec(x), collapse = ", ")` \\
+f(\mathbf{y}) &= `r str_c(f_vec(y), collapse = ", ")` \\
+\langle f(\mathbf{x}), f(\mathbf{y}) \rangle &= (`r str_c(f_vec(x), collapse = ", ")`) \cdot (`r str_c(f_vec(y), collapse = ", ")`)
+\end{align}
+$$
+
+--
+
+$$K(\mathbf{x}, \mathbf{y}) = \langle \mathbf{x}, \mathbf{y} \rangle^2$$
+
+$$
+\begin{align}
+K(\mathbf{x}, \mathbf{y}) &= \langle (`r str_c(x, collapse = ", ")`) \cdot (`r str_c(y, collapse = ", ")`) \rangle ^2
+\end{align}
+$$
+
+---
+
+# Kernels
+
+```{r inner-prod-compare, dependson = "inner-prod-func", echo = FALSE, message = FALSE}
+library(microbenchmark)
+
+# create practice vectors
+big_x <- big_y <- seq(from = 1, to = 100)
+
+big_results <- microbenchmark(
+  `Full feature space` = f_vec(big_x) %*% f_vec(big_y),
+  `Kernel function` = sum(big_x %*% big_y)^2
+)
+
+autoplot(big_results) +
+  ggtitle("Inner product of vectors length 100")
+```
+
+---
+
+# Kernels for SVMs
+
+$$\langle x_i, x_{i'} \rangle = \sum_{j = 1}^p x_{ij} x_{i'j}$$
+
+* Generalize to $K$
+
+    $$K(x_i, x_{i'})$$
+    
+    * Measure of similarity
+
+* Linear kernel
+
+    $$K(x_i, x_{i'}) = \sum_{j = 1}^p x_{ij} x_{i'j}$$
+
+* Polynomial kernel
+
+    $$K(x_i, x_{i'}) = (1 + \sum_{j = 1}^p x_{ij} x_{i'j})^d$$
+    
+    * $d$
+
+    $$f(x) = \beta_0 + \sum_{i \in \mathbb{S}} \alpha_i K(x,x_i)$$
+
+---
+
+# Polynomial kernel
+
+.pull-left[
+
+```{r svm-poly, echo = FALSE, fig.width = 6}
+set.seed(123)
+
+sim_nonlm <- tibble(
+  x1 = runif(100, -2, 2),
+  x2 = runif(100, -2, 2),
+  y = ifelse(x1 + x1^2 + x1^3 - x2 < 0 +
+               rnorm(100, 0, 1), -1, 1)
+) %>%
+  mutate(y = factor(y, levels = c(-1, 1)))
+
+ggplot(sim_nonlm, aes(x1, x2, color = y)) +
+  geom_point() +
+  scale_color_brewer(type = "qual") +
+  labs(x = expression(X[1]),
+       y = expression(X[2])) +
+  theme(legend.position = "none")
+```
+
+]
+
+.pull-right[
+
+```{r svm-poly-pred, dependson = "svm-poly", echo = FALSE, fig.width = 6}
+svm(y ~ x1 + x2,
+    data = sim_nonlm,
+    kernel = "polynomial",
+    scale = FALSE,
+    cost = 1) %>%
+  plot(sim_nonlm, x2 ~ x1)
+```
+
+]
+
+---
+
+# Radial kernel
+
+$$K(x_i, x_{i'}) = \exp(- \gamma \sum_{j=1}^p (x_{ij} - x_{i'j})^2)$$
+
+* $\gamma$
+* Localize predictions for test observations based on Euclidian distance to nearby training observations
+
+---
+
+# Radial kernel
+
+.pull-left[
+
+```{r svm-radial, echo = FALSE, fig.width = 6}
+radial_p
+```
+
+]
+
+.pull-right[
+
+```{r svm-radial-pred, echo = FALSE, fig.width = 6}
+sim_rad_mod <- svm(y ~ x1 + x2,
+                   data = sim_nonlm,
+                   kernel = "radial",
+                   cost = 5,
+                   scale = FALSE)
+
+plot(sim_rad_mod, sim_nonlm, x2 ~ x1)
+```
+
+]
+
+---
+
+# Benefits of kernels
+
+* Do not need to enlarge the feature space
+* Compute $K(x_i, x_{i'})$ for all $\binom{n}{2}$ distinct pairs $i, i'$
+* $p$ never changes
+
+---
+
+# Voter turnout
+
+```{r vote96}
+(mh <- read_csv(here("static", "data", "mental_health.csv")) %>%
+   mutate(vote96 = factor(vote96, levels = c(0, 1), labels = c("No", "Yes"))) %>%
+  na.omit)
+```
+
+---
+
+# Linear kernel
+
+```{r caret-trainControl}
+cv_ctrl <- trainControl(method = "cv",
+                        number = 10,
+                        savePredictions = "final",
+                        classProbs = TRUE)
+```
+
+```{r parallel-start, cache = FALSE}
+library(doParallel)
+cl <- makePSOCKcluster(3)
+registerDoParallel(cl)
+```
+
+.pull-left[
+
+```{r vote96-svm-line, dependson="vote96"}
+# fit model
+svm_linear <- train(
+  vote96 ~ ., 
+  data = mh, 
+  method = "svmLinear",
+  trControl = cv_ctrl,
+  tuneLength = 10
+)
+svm_linear$finalModel
+```
+
+]
+
+.pull-right[
+
+```{r vote96-svm-line-roc, dependson = "vote96-svm-line", fig.width = 6}
+# draw the ROC curve
+svm_linear_roc <- roc(predictor = svm_linear$pred$Yes,
+                      response = svm_linear$pred$obs,
+                      levels = rev(levels(mh$vote96)))
+
+plot(svm_linear_roc)
+auc(svm_linear_roc)
+```
+
+]
+
+---
+
+# Polynomial kernel
+
+.pull-left[
+
+```{r vote96-svm-poly, dependson="vote96"}
+# fit model
+svm_poly <- train(
+  vote96 ~ ., 
+  data = mh, 
+  method = "svmPoly",
+  trControl = cv_ctrl,
+  tuneLength = 3
+)
+svm_poly$finalModel
+```
+
+]
+
+.pull-right[
+
+```{r vote96-svm-poly-roc, dependson = "vote96-svm-poly", fig.width = 6}
+# draw the ROC curve
+svm_poly_roc <- roc(predictor = svm_poly$pred$Yes,
+                    response = svm_poly$pred$obs,
+                    levels = rev(levels(mh$vote96)))
+
+plot(svm_poly_roc)
+auc(svm_poly_roc)
+```
+
+]
+
+---
+
+# Radial kernel
+
+.pull-left[
+
+```{r vote96-svm-radial, dependson="vote96"}
+# fit model
+svm_radial <- train(
+  vote96 ~ ., 
+  data = mh, 
+  method = "svmRadial",
+  trControl = cv_ctrl,
+  tuneLength = 3
+)
+svm_radial$finalModel
+```
+
+]
+
+.pull-right[
+
+```{r vote96-svm-radial-roc, dependson = "vote96-svm-radial", fig.width = 6}
+# draw the ROC curve
+svm_radial_roc <- roc(predictor = svm_radial$pred$Yes,
+                      response = svm_radial$pred$obs,
+                      levels = rev(levels(mh$vote96)))
+
+plot(svm_radial_roc)
+auc(svm_radial_roc)
+```
+
+]
+
+---
+
+# Kernel comparison
+
+```{r mh-roc-compare, dependson=c("vote96-svm-line","vote96-svm-poly","vote96-svm-radial")}
+{
+  # ROC
+  bind_rows(
+    Linear = svm_linear$pred,
+    Polynomial = svm_poly$pred,
+    Radial = svm_radial$pred,
+    .id = "kernel"
+  ) %>%
+    group_by(kernel) %>%
+    roc_curve(truth = obs, estimate = Yes) %>%
+    ggplot(aes(x = 1 - specificity, y = sensitivity, color = kernel)) +
+    geom_path() +
+    geom_abline(lty = 3) +
+    scale_color_brewer(type = "qual") +
+    coord_equal() +
+    labs(color = NULL) +
+    theme(legend.position = "bottom")
+} + {
+  # AUC
+  bind_rows(
+    Linear = svm_linear$pred,
+    Polynomial = svm_poly$pred,
+    Radial = svm_radial$pred,
+    .id = "kernel"
+  ) %>%
+    group_by(kernel) %>%
+    roc_auc(truth = obs, Yes) %>%
+    group_by(kernel) %>%
+    summarize(.estimate = mean(.estimate)) %>%
+    ggplot(aes(fct_reorder(kernel, .estimate), .estimate)) +
+    geom_col() +
+    scale_y_continuous(labels = scales::percent) +
+    coord_flip() +
+    labs(title = "Comparison of area under the curve",
+         subtitle = "10-fold CV",
+         x = "Algorithm",
+         y = "Area under the curve")
+}
+```
+
+---
+
+# Comparison to other models
+
+```{r vote96-logit, dependson = "vote96"}
+# fit model
+vote96_glm <- train(
+  vote96 ~ ., 
+  data = mh, 
+  method = "glm",
+  family = "binomial",
+  trControl = cv_ctrl
+)
+```
+
+```{r vote96-tree, dependson = "vote96"}
+# fit model
+vote96_tree <- train(
+  vote96 ~ ., 
+  data = mh, 
+  method = "rpart",
+  trControl = cv_ctrl,
+  tuneLength = 10
+)
+```
+
+```{r vote96-bag, dependson = "vote96"}
+# fit model
+vote96_bag <- train(
+  vote96 ~ ., 
+  data = mh, 
+  method = "treebag",
+  trControl = cv_ctrl
+)
+```
+
+```{r vote96-rf, dependson = "vote96", message = FALSE}
+# fit model
+vote96_rf <- train(
+  vote96 ~ ., 
+  data = mh, 
+  method = "ranger",
+  trControl = cv_ctrl,
+  tuneLength = 10
+)
+```
+
+```{r vote96-boost, dependson = "vote96"}
+# fit model
+vote96_boost <- train(
+  vote96 ~ ., 
+  data = mh, 
+  method = "xgbTree",
+  trControl = cv_ctrl,
+  tuneLength = 3
+)
+```
+
+```{r parallel-finish, cache = FALSE}
+stopCluster(cl)
+```
+
+```{r vote96-compare-roc, dependson = c("vote96-svm-line","vote96-svm-poly","vote96-svm-radial", "vote96-logit", "vote96-tree", "vote96-bag", "vote96-rf", "vote96-boost")}
+{
+  # ROC
+  bind_rows(
+    `SVM (linear)` = svm_linear$pred,
+    `SVM (polynomial)` = svm_poly$pred,
+    `SVM (radial)` = svm_radial$pred,
+    `Logistic regression` = vote96_glm$pred,
+    `Decision tree` = vote96_tree$pred,
+    `Bagging` = vote96_bag$pred,
+    `Random forest` = vote96_rf$pred,
+    `Boosting` = vote96_boost$pred,
+    .id = "kernel"
+  ) %>%
+    group_by(kernel) %>%
+    roc_curve(truth = obs, estimate = Yes) %>%
+    ggplot(aes(x = 1 - specificity, y = sensitivity, color = kernel)) +
+    geom_path() +
+    geom_abline(lty = 3) +
+    scale_color_brewer(type = "qual") +
+    coord_equal() +
+    labs(color = NULL)
+} + {
+  # AUC
+  bind_rows(
+    `SVM (linear)` = svm_linear$pred,
+    `SVM (polynomial)` = svm_poly$pred,
+    `SVM (radial)` = svm_radial$pred,
+    `Logistic regression` = vote96_glm$pred,
+    `Decision tree` = vote96_tree$pred,
+    `Bagging` = vote96_bag$pred,
+    `Random forest` = vote96_rf$pred,
+    `Boosting` = vote96_boost$pred,
+    .id = "kernel"
+  ) %>%
+    group_by(kernel) %>%
+    roc_auc(truth = obs, Yes) %>%
+    group_by(kernel) %>%
+    summarize(.estimate = mean(.estimate)) %>%
+    ggplot(aes(fct_reorder(kernel, .estimate), .estimate)) +
+    geom_col() +
+    scale_y_continuous(labels = scales::percent) +
+    coord_flip() +
+    labs(title = "Comparison of AUC",
+         subtitle = "10-fold CV",
+         x = "Algorithm",
+         y = "Area under the curve")
+}
+```
+
+---
+
+# Support vector regression
+
+* Extension to continuous outcomes of interest
+* $\epsilon$-insensitive SVM
+* Find $f(x)$ that
+    * Deviates from $y_i$ by a value no greater than $\epsilon$ for each training point $x$
+    * Is as flat as possible
+
+---
+
+# Support vector regression
+
+$$
+\begin{aligned}
+& \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\max} & & M \\
+& \text{subject to} & &  \sum_{j=1}^p \beta_j^2 = 1, \\
+& & &  y_i - (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip})  \geq M(1 - \epsilon_i) + \xi_i, \\
+& & &  (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) - y_i  \geq M(1 - \epsilon_i) + \xi_i^*, \\
+& & & \epsilon_i \geq 0, \\
+& & & \sum_{i = 1}^n \epsilon_i \leq C, \\
+& & & \xi_i \geq 0, \\
+& & & \xi_i^* \geq 0 \\
+\end{aligned}
+$$
+
+---
+
+# Linear SVR
+
+```{r line-data}
+set.seed(101)
+x <- seq(from = 0, to = 2 * pi, length = 500)
+y <- x + rnorm(length(x), sd = 0.3)
+line_data <- tibble(
+  x = x,
+  y = y
+)
+
+ggplot(line_data, aes(x, y)) +
+  geom_point(alpha = 0.1) +
+  stat_function(fun = function(x) x) +
+  labs(title = "Simulated linear data",
+       x = expression(X),
+       y = expression(Y))
+```
+
+---
+
+# Linear SVR
+
+```{r line-svm, dependson = "line-data", message = FALSE}
+# function to estimate model
+sine_svm <- function(epsilon = 0.1, kernel = 'rbfdot', df, C = 1){
+  ksvm(y ~ x, data = df, type = "eps-svr", kernel = kernel, C = C, scaled = c(),
+       epsilon = epsilon)
+}
+
+# linear kernel
+tibble(
+  epsilon = c(0.001, 0.01, 0.1, 1)
+) %>%
+  mutate(model = map(epsilon, sine_svm, df = line_data, kernel = "vanilladot"),
+         pred = map(model, predict)) %>%
+  unnest(pred) %>%
+  group_by(epsilon) %>%
+  mutate(x = line_data$x,
+         epsilon_lab = str_c("epsilon == ", epsilon)) %>%
+  ggplot(aes(x, pred)) +
+  geom_point(data = line_data, aes(x, y), alpha = 0.1) +
+  stat_function(fun = function(x) x) +
+  geom_line(aes(color = factor(epsilon))) +
+  scale_color_brewer(type = "qual", palette = "Dark2", guide = FALSE) +
+  facet_wrap(~ epsilon_lab, labeller = label_parsed) +
+  labs(title = "Support vector regression",
+       subtitle = "Linear kernel, C = 1",
+       x = expression(X),
+       y = expression(Y),
+       color = expression(epsilon))
+```
+
+---
+
+# Non-linear SVR
+
+```{r sine-data}
+# Simulate some sine wave data
+set.seed(101)
+x <- seq(from = 0, to = 2 * pi, length = 500)
+y <- sin(x) + rnorm(length(x), sd = 0.3)
+sine_data <- tibble(
+  x = x,
+  y = y
+)
+
+ggplot(sine_data, aes(x, y)) +
+  geom_point(alpha = 0.1) +
+  stat_function(fun = sin) +
+  labs(title = "Simulated sine wave data",
+       x = expression(X),
+       y = expression(Y))
+```
+
+---
+
+# Non-linear SVR
+
+```{r svm-sine-c1, dependson = "sine-data"}
+# radial basis kernel
+tibble(
+  epsilon = c(0.001, 0.01, 0.1, 1)
+) %>%
+  mutate(model = map(epsilon, sine_svm, df = sine_data, C = 1),
+         pred = map(model, predict)) %>%
+  unnest(pred) %>%
+  group_by(epsilon) %>%
+  mutate(x = sine_data$x,
+         epsilon_lab = str_c("epsilon == ", epsilon)) %>%
+  ggplot(aes(x, pred)) +
+  geom_point(data = sine_data, aes(x, y), alpha = 0.1) +
+  stat_function(fun = sin) +
+  geom_line(aes(color = factor(epsilon))) +
+  scale_color_brewer(type = "qual", palette = "Dark2", guide = FALSE) +
+  facet_wrap(~ epsilon_lab, labeller = label_parsed) +
+  labs(title = "Support vector regression",
+       subtitle = "Radial basis kernel, C = 1",
+       x = expression(X),
+       y = expression(Y),
+       color = expression(epsilon))
+```
+
+---
+
+# Non-linear SVR
+
+```{r svm-sine-c5, dependson = "sine-data"}
+# radial basis kernel
+tibble(
+  epsilon = c(0.001, 0.01, 0.1, 1)
+) %>%
+  mutate(model = map(epsilon, sine_svm, df = sine_data, C = 5),
+         pred = map(model, predict)) %>%
+  unnest(pred) %>%
+  group_by(epsilon) %>%
+  mutate(x = sine_data$x,
+         epsilon_lab = str_c("epsilon == ", epsilon)) %>%
+  ggplot(aes(x, pred)) +
+  geom_point(data = sine_data, aes(x, y), alpha = 0.1) +
+  stat_function(fun = sin) +
+  geom_line(aes(color = factor(epsilon))) +
+  scale_color_brewer(type = "qual", palette = "Dark2", guide = FALSE) +
+  facet_wrap(~ epsilon_lab, labeller = label_parsed) +
+  labs(title = "Support vector regression",
+       subtitle = "Radial basis kernel, C = 5",
+       x = expression(X),
+       y = expression(Y),
+       color = expression(epsilon))
+```
