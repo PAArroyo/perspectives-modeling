@@ -190,13 +190,30 @@ Two observations are equidistant from the maximal margin hyperplane and lie alon
 
 Constructing the maximal margin hyperplane is a (relatively) straight forward affair. Consider a set of $n$ training observations with some number of real number predictors $x_1, \dots, x_n \in \mathbb{R}^p$ and associated class labels $y_1, \dots, y_n \in \{-1, 1\}$. We want to solve the optimization problem:
 
-$$\begin{aligned}
-& \underset{\beta_0, \beta_1, \dots, \beta_p}{\text{maximize}} & & M \\
-& \text{s.t.} & &  \sum_{j=1}^p \beta_j^2 = 1, \\
+$$
+\begin{aligned}
+& \underset{\beta_0, \beta_1, \dots, \beta_p}{\max} & & M \\
+& \text{subject to} & &  \sum_{j=1}^p \beta_j^2 = 1, \\
 & & & y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M \; \forall \; i = 1, \dots, n \\
-\end{aligned}$$
+\end{aligned}
+$$
 
-This is simpler than it looks. $y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M \; \forall \; i = 1, \dots, n$ requires the maximal margin hyperplane to sort observations on the correct side of the hyperplane with some amount of cushion, provided $M$ is positive. The requirement $\sum_{j=1}^p \beta_j^2 = 1$ means that not only are the observations sorted onto the correct sides of the hyperplane, but that the function $y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip})$ defines the **perpendicular distance** between the observation $y_i$ and the hyperplane. Therefore $M$ defines the margin of the hyperplane (i.e. the amount of cushion between the hyperplane and the closest training observations), so we select values for the parameters $\beta_0, \beta_1, \dots, \beta_p$ to maximize $M$; that is, obtain the largest amount of cushion possible given the training observations.
+This is simpler than it looks. $y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M \; \forall \; i = 1, \dots, n$ requires the maximal margin hyperplane to sort observations on the correct side of the hyperplane with some amount of cushion $M$ (the margin), provided $M$ is positive. The requirement $\sum_{j=1}^p \beta_j^2 = 1$ means that not only are the observations sorted onto the correct sides of the hyperplane, but that the function $y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip})$ defines the **perpendicular distance** between the observation $y_i$ and the hyperplane. Therefore $M$ defines the margin of the hyperplane (i.e. the amount of cushion between the hyperplane and the closest training observations), so we select values for the parameters $\beta_0, \beta_1, \dots, \beta_p$ to maximize $M$; that is, obtain the largest amount of cushion possible given the training observations.
+
+Another way of expressing this problem is
+
+$$
+\begin{aligned}
+& \underset{\beta, \beta_0}{\min} & & \| \beta \| \\
+& \text{subject to} & & y_i(x_i^{T}\beta + \beta_0) \geq 1 \; \forall \; i = 1, \dots, n \\
+\end{aligned}
+$$
+
+where
+
+$$\| \beta \| = \sum_{j=1}^p \beta_j^2$$
+
+Note that under this formulation, $M = \frac{1}{\| \beta \|}$, and now we have a minimization problem.
 
 ### Non-separable cases
 
@@ -273,12 +290,14 @@ This approach is called the **support vector classifier**. It allows observation
 
 The approach is the same as the maximal margin classifier but the optimization problem is slightly different:
 
-$$\begin{aligned}
-& \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\text{maximize}} & & M \\
-& \text{s.t.} & &  \sum_{j=1}^p \beta_j^2 = 1, \\
+$$
+\begin{aligned}
+& \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\max} & & M \\
+& \text{subject to} & &  \sum_{j=1}^p \beta_j^2 = 1, \\
 & & & y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M(1 - \epsilon_i), \\
 & & & \epsilon_i \geq 0, \sum_{i = 1}^n \epsilon_i \leq C \\
-\end{aligned}$$
+\end{aligned}
+$$
 
 As in the maximal margin classifier, we attempt to optimize $M$ to generate the largest possible margin. However now we allow some error $\epsilon_i$ for each observation so that they can fall on the wrong side of the margin or hyperplane.
 
@@ -290,14 +309,14 @@ $C$ defines precisely how much error we are willing to tolerate in the resulting
 
 Selecting a value for $C$ is tricky and generally determined through a cross-validation approach to compare support vector classifiers under different values for $C$. When $C$ is small, we generate a model with low-bias (it fits the data well) but high-variance (small changes in the training observations can generate substantial changes in the support vector classifier). If $C$ is large, we generate a model with more bias but less variance.
 
-The important thing to realize is that the support vector classifier is robust, like the maximal margin classifier, to changes in observations outside of the margin. Observations that lie directly on the margin or inside the margin but on the correct side of the hyperplane are **support vectors**. The support vector classifier will only change if those observations are adjusted. When $C$ is large, the number of observations falling inside the margin increases and therefore the number of support vectors also increases.
+The important thing to realize is that the support vector classifier is robust, like the maximal margin classifier, to changes in observations outside of the margin. Observations that lie directly on the margin or inside the margin but on the correct side of the hyperplane are **support vectors**. The support vector classifier will only change if those observations are adjusted. When $C$ is large, the number of observations falling inside the margin increases and therefore the number of support vectors also increases. In fact, observations well inside the class boundary close to the hyperplane actually do not play a big role in shaping the boundary. It is instead defined most strongly by the observations closer to the margin.
 
 ```{r sim-c, fig.asp=1, echo = FALSE}
 set.seed(123)
 sim_c <- tibble(
   x1 = rnorm(20),
   x2 = rnorm(20),
-  y = ifelse(2 * x1 + x2 + rnorm(20, 0, .25) < 0, -1, 1)
+  y = ifelse(2 * x1 + x2 + rnorm(20) < 0, -1, 1)
 ) %>%
   mutate(y = factor(y, levels = c(-1, 1)))
 
@@ -332,8 +351,8 @@ plot_svm <- function(df, cost = 1){
 
 plot_svm(sim_c, cost = 1) +
   plot_svm(sim_c, cost = 10) +
+  plot_svm(sim_c, cost = 50) +
   plot_svm(sim_c, cost = 100) +
-  plot_svm(sim_c, cost = 200) +
   plot_layout(ncol = 2)
 ```
 
@@ -373,8 +392,8 @@ $$X_1, X_1^2, X_2, X_2^2, \dots, X_p, X_p^2$$
 And therefore the optimization problem becomes:
 
 $$\begin{aligned}
-& \underset{\beta_0, \beta_{11}, \beta_{12}, \dots, \beta_{p1}, \beta_{p2}, \epsilon_1, \dots, \epsilon_n}{\text{maximize}} & & M \\
-& \text{s.t.} & & y_i \left( \beta_0 + \sum_{j = 1}^p \beta_{j1} x_{ij} + \sum_{j = 1}^p \beta_{j2} x_{ij}^2 \right) \geq M(1 - \epsilon_i), \\
+& \underset{\beta_0, \beta_{11}, \beta_{12}, \dots, \beta_{p1}, \beta_{p2}, \epsilon_1, \dots, \epsilon_n}{\max} & & M \\
+& \text{subject to} & & y_i \left( \beta_0 + \sum_{j = 1}^p \beta_{j1} x_{ij} + \sum_{j = 1}^p \beta_{j2} x_{ij}^2 \right) \geq M(1 - \epsilon_i), \\
 & & & \epsilon_i \geq 0, \sum_{i = 1}^n \epsilon_i \leq C, \sum_{j = 1}^p \sum_{k = 1}^2 \beta_{jk}^2 = 1 \\
 \end{aligned}$$
 
@@ -567,6 +586,12 @@ cv_ctrl <- trainControl(method = "cv",
                         classProbs = TRUE)
 ```
 
+```{r parallel-start, cache = FALSE}
+library(doParallel)
+cl <- makePSOCKcluster(3)
+registerDoParallel(cl)
+```
+
 ```{r vote96-svm-line, dependson="vote96"}
 # fit model
 svm_linear <- train(
@@ -604,8 +629,8 @@ svm_poly$finalModel
 
 # draw the ROC curve
 svm_poly_roc <- roc(predictor = svm_poly$pred$Yes,
-                      response = svm_poly$pred$obs,
-                      levels = rev(levels(mh$vote96)))
+                    response = svm_poly$pred$obs,
+                    levels = rev(levels(mh$vote96)))
 
 plot(svm_poly_roc)
 auc(svm_poly_roc)
@@ -701,12 +726,6 @@ vote96_tree <- train(
 )
 ```
 
-```{r parallel-start, cache = FALSE}
-library(doParallel)
-cl <- makePSOCKcluster(3)
-registerDoParallel(cl)
-```
-
 ```{r vote96-bag, dependson = "vote96"}
 # fit model
 vote96_bag <- train(
@@ -799,7 +818,7 @@ Suppose we have a training set of data where $x_i$ is a multivariate set of $N$ 
 
 $$
 \begin{aligned}
-& \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\text{maximize}} & & M \\
+& \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\max} & & M \\
 & \text{subject to} & &  \sum_{j=1}^p \beta_j^2 = 1, \\
 & & &  y_i - (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip})  \geq M(1 - \epsilon_i) + \xi_i, \\
 & & &  (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) - y_i  \geq M(1 - \epsilon_i) + \xi_i^*, \\

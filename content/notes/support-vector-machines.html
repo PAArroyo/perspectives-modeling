@@ -154,12 +154,24 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="constructing-the-maximal-margin-hyperplane" class="section level3">
 <h3><span class="header-section-number">1.3.1</span> Constructing the maximal margin hyperplane</h3>
 <p>Constructing the maximal margin hyperplane is a (relatively) straight forward affair. Consider a set of <span class="math inline">\(n\)</span> training observations with some number of real number predictors <span class="math inline">\(x_1, \dots, x_n \in \mathbb{R}^p\)</span> and associated class labels <span class="math inline">\(y_1, \dots, y_n \in \{-1, 1\}\)</span>. We want to solve the optimization problem:</p>
-<p><span class="math display">\[\begin{aligned}
-&amp; \underset{\beta_0, \beta_1, \dots, \beta_p}{\text{maximize}} &amp; &amp; M \\
-&amp; \text{s.t.} &amp; &amp;  \sum_{j=1}^p \beta_j^2 = 1, \\
+<p><span class="math display">\[
+\begin{aligned}
+&amp; \underset{\beta_0, \beta_1, \dots, \beta_p}{\max} &amp; &amp; M \\
+&amp; \text{subject to} &amp; &amp;  \sum_{j=1}^p \beta_j^2 = 1, \\
 &amp; &amp; &amp; y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M \; \forall \; i = 1, \dots, n \\
-\end{aligned}\]</span></p>
-<p>This is simpler than it looks. <span class="math inline">\(y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M \; \forall \; i = 1, \dots, n\)</span> requires the maximal margin hyperplane to sort observations on the correct side of the hyperplane with some amount of cushion, provided <span class="math inline">\(M\)</span> is positive. The requirement <span class="math inline">\(\sum_{j=1}^p \beta_j^2 = 1\)</span> means that not only are the observations sorted onto the correct sides of the hyperplane, but that the function <span class="math inline">\(y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip})\)</span> defines the <strong>perpendicular distance</strong> between the observation <span class="math inline">\(y_i\)</span> and the hyperplane. Therefore <span class="math inline">\(M\)</span> defines the margin of the hyperplane (i.e. the amount of cushion between the hyperplane and the closest training observations), so we select values for the parameters <span class="math inline">\(\beta_0, \beta_1, \dots, \beta_p\)</span> to maximize <span class="math inline">\(M\)</span>; that is, obtain the largest amount of cushion possible given the training observations.</p>
+\end{aligned}
+\]</span></p>
+<p>This is simpler than it looks. <span class="math inline">\(y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M \; \forall \; i = 1, \dots, n\)</span> requires the maximal margin hyperplane to sort observations on the correct side of the hyperplane with some amount of cushion <span class="math inline">\(M\)</span> (the margin), provided <span class="math inline">\(M\)</span> is positive. The requirement <span class="math inline">\(\sum_{j=1}^p \beta_j^2 = 1\)</span> means that not only are the observations sorted onto the correct sides of the hyperplane, but that the function <span class="math inline">\(y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip})\)</span> defines the <strong>perpendicular distance</strong> between the observation <span class="math inline">\(y_i\)</span> and the hyperplane. Therefore <span class="math inline">\(M\)</span> defines the margin of the hyperplane (i.e. the amount of cushion between the hyperplane and the closest training observations), so we select values for the parameters <span class="math inline">\(\beta_0, \beta_1, \dots, \beta_p\)</span> to maximize <span class="math inline">\(M\)</span>; that is, obtain the largest amount of cushion possible given the training observations.</p>
+<p>Another way of expressing this problem is</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp; \underset{\beta, \beta_0}{\min} &amp; &amp; \| \beta \| \\
+&amp; \text{subject to} &amp; &amp; y_i(x_i^{T}\beta + \beta_0) \geq 1 \; \forall \; i = 1, \dots, n \\
+\end{aligned}
+\]</span></p>
+<p>where</p>
+<p><span class="math display">\[\| \beta \| = \sum_{j=1}^p \beta_j^2\]</span></p>
+<p>Note that under this formulation, <span class="math inline">\(M = \frac{1}{\| \beta \|}\)</span>, and now we have a minimization problem.</p>
 </div>
 <div id="non-separable-cases" class="section level3">
 <h3><span class="header-section-number">1.3.2</span> Non-separable cases</h3>
@@ -179,12 +191,14 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>Instead, we want a separating hyperplane that does not perfectly separate the two classes but provides greater robustness to individual observations and better classification of <strong>most</strong> training observations. We are willing to sacrifice accuracy on a few observations if the resulting hyperplane performs better across the remaining observations.</p>
 <p>This approach is called the <strong>support vector classifier</strong>. It allows observations to not only exist on the wrong side of the margin (i.e. inside the cushion defined by <span class="math inline">\(M\)</span>), but also exist on the wrong side of the hyperplane.</p>
 <p>The approach is the same as the maximal margin classifier but the optimization problem is slightly different:</p>
-<p><span class="math display">\[\begin{aligned}
-&amp; \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\text{maximize}} &amp; &amp; M \\
-&amp; \text{s.t.} &amp; &amp;  \sum_{j=1}^p \beta_j^2 = 1, \\
+<p><span class="math display">\[
+\begin{aligned}
+&amp; \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\max} &amp; &amp; M \\
+&amp; \text{subject to} &amp; &amp;  \sum_{j=1}^p \beta_j^2 = 1, \\
 &amp; &amp; &amp; y_i(\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) \geq M(1 - \epsilon_i), \\
 &amp; &amp; &amp; \epsilon_i \geq 0, \sum_{i = 1}^n \epsilon_i \leq C \\
-\end{aligned}\]</span></p>
+\end{aligned}
+\]</span></p>
 <p>As in the maximal margin classifier, we attempt to optimize <span class="math inline">\(M\)</span> to generate the largest possible margin. However now we allow some error <span class="math inline">\(\epsilon_i\)</span> for each observation so that they can fall on the wrong side of the margin or hyperplane.</p>
 <ul>
 <li>If <span class="math inline">\(\epsilon_i = 0\)</span>, then the <span class="math inline">\(i\)</span>th observation falls on the correct side of the margin.</li>
@@ -193,7 +207,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </ul>
 <p><span class="math inline">\(C\)</span> defines precisely how much error we are willing to tolerate in the resulting separating hyperplane. The sum of the errors for all training observations cannot exceed <span class="math inline">\(C\)</span>. Larger values of <span class="math inline">\(C\)</span> permit more overall error in the separating hyperplane and lead to larger margins, and smaller values of <span class="math inline">\(C\)</span> tolerate less error and produce smaller margins. If <span class="math inline">\(C = 0\)</span> then we do not tolerate any error in the separating hyperplane, in which case <span class="math inline">\(\epsilon_1, \dots, \epsilon_n = 0\)</span> and we estimate the maximal margin classifier (of course this is only possible if the classes are perfectly separable). Once we solve the optimization problem, we generate predictions the same way as for maximal margin classifiers, based on <span class="math inline">\(f(x^*) = \beta_0 + \beta_1 x_1^* + \dots + \beta_p x_p^*\)</span>.</p>
 <p>Selecting a value for <span class="math inline">\(C\)</span> is tricky and generally determined through a cross-validation approach to compare support vector classifiers under different values for <span class="math inline">\(C\)</span>. When <span class="math inline">\(C\)</span> is small, we generate a model with low-bias (it fits the data well) but high-variance (small changes in the training observations can generate substantial changes in the support vector classifier). If <span class="math inline">\(C\)</span> is large, we generate a model with more bias but less variance.</p>
-<p>The important thing to realize is that the support vector classifier is robust, like the maximal margin classifier, to changes in observations outside of the margin. Observations that lie directly on the margin or inside the margin but on the correct side of the hyperplane are <strong>support vectors</strong>. The support vector classifier will only change if those observations are adjusted. When <span class="math inline">\(C\)</span> is large, the number of observations falling inside the margin increases and therefore the number of support vectors also increases.</p>
+<p>The important thing to realize is that the support vector classifier is robust, like the maximal margin classifier, to changes in observations outside of the margin. Observations that lie directly on the margin or inside the margin but on the correct side of the hyperplane are <strong>support vectors</strong>. The support vector classifier will only change if those observations are adjusted. When <span class="math inline">\(C\)</span> is large, the number of observations falling inside the margin increases and therefore the number of support vectors also increases. In fact, observations well inside the class boundary close to the hyperplane actually do not play a big role in shaping the boundary. It is instead defined most strongly by the observations closer to the margin.</p>
 <p><img src="/notes/support-vector-machines_files/figure-html/sim-c-1.png" width="672" /></p>
 </div>
 <div id="support-vector-machines" class="section level1">
@@ -207,8 +221,8 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p><span class="math display">\[X_1, X_1^2, X_2, X_2^2, \dots, X_p, X_p^2\]</span></p>
 <p>And therefore the optimization problem becomes:</p>
 <p><span class="math display">\[\begin{aligned}
-&amp; \underset{\beta_0, \beta_{11}, \beta_{12}, \dots, \beta_{p1}, \beta_{p2}, \epsilon_1, \dots, \epsilon_n}{\text{maximize}} &amp; &amp; M \\
-&amp; \text{s.t.} &amp; &amp; y_i \left( \beta_0 + \sum_{j = 1}^p \beta_{j1} x_{ij} + \sum_{j = 1}^p \beta_{j2} x_{ij}^2 \right) \geq M(1 - \epsilon_i), \\
+&amp; \underset{\beta_0, \beta_{11}, \beta_{12}, \dots, \beta_{p1}, \beta_{p2}, \epsilon_1, \dots, \epsilon_n}{\max} &amp; &amp; M \\
+&amp; \text{subject to} &amp; &amp; y_i \left( \beta_0 + \sum_{j = 1}^p \beta_{j1} x_{ij} + \sum_{j = 1}^p \beta_{j2} x_{ij}^2 \right) \geq M(1 - \epsilon_i), \\
 &amp; &amp; &amp; \epsilon_i \geq 0, \sum_{i = 1}^n \epsilon_i \leq C, \sum_{j = 1}^p \sum_{k = 1}^2 \beta_{jk}^2 = 1 \\
 \end{aligned}\]</span></p>
 <iframe width="560" height="315" src="https://www.youtube.com/embed/3liCbRZPrZA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
@@ -330,6 +344,17 @@ K(\mathbf{x}, \mathbf{y}) &amp;= \langle (1, 2, 3, 2, 4, 6, 3, 6, 9) \cdot 16, 2
                         <span class="dt">number =</span> <span class="dv">10</span>,
                         <span class="dt">savePredictions =</span> <span class="st">&quot;final&quot;</span>,
                         <span class="dt">classProbs =</span> <span class="ot">TRUE</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(doParallel)</code></pre></div>
+<pre><code>## Loading required package: foreach</code></pre>
+<pre><code>## 
+## Attaching package: &#39;foreach&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:purrr&#39;:
+## 
+##     accumulate, when</code></pre>
+<pre><code>## Loading required package: iterators</code></pre>
+<pre><code>## Loading required package: parallel</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cl &lt;-<span class="st"> </span><span class="kw">makePSOCKcluster</span>(<span class="dv">3</span>)
+<span class="kw">registerDoParallel</span>(cl)</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
 svm_linear &lt;-<span class="st"> </span><span class="kw">train</span>(
   vote96 <span class="op">~</span><span class="st"> </span>., 
@@ -387,13 +412,13 @@ svm_poly<span class="op">$</span>finalModel</code></pre></div>
 ## Probability model included.</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># draw the ROC curve</span>
 svm_poly_roc &lt;-<span class="st"> </span><span class="kw">roc</span>(<span class="dt">predictor =</span> svm_poly<span class="op">$</span>pred<span class="op">$</span>Yes,
-                      <span class="dt">response =</span> svm_poly<span class="op">$</span>pred<span class="op">$</span>obs,
-                      <span class="dt">levels =</span> <span class="kw">rev</span>(<span class="kw">levels</span>(mh<span class="op">$</span>vote96)))
+                    <span class="dt">response =</span> svm_poly<span class="op">$</span>pred<span class="op">$</span>obs,
+                    <span class="dt">levels =</span> <span class="kw">rev</span>(<span class="kw">levels</span>(mh<span class="op">$</span>vote96)))
 
 <span class="kw">plot</span>(svm_poly_roc)</code></pre></div>
 <p><img src="/notes/support-vector-machines_files/figure-html/vote96-svm-poly-1.png" width="672" /></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">auc</span>(svm_poly_roc)</code></pre></div>
-<pre><code>## Area under the curve: 0.7494</code></pre>
+<pre><code>## Area under the curve: 0.7484</code></pre>
 </div>
 <div id="radial-kernel" class="section level2">
 <h2><span class="header-section-number">4.3</span> Radial kernel</h2>
@@ -486,17 +511,6 @@ vote96_tree &lt;-<span class="st"> </span><span class="kw">train</span>(
   <span class="dt">trControl =</span> cv_ctrl,
   <span class="dt">tuneLength =</span> <span class="dv">10</span>
 )</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(doParallel)</code></pre></div>
-<pre><code>## Loading required package: foreach</code></pre>
-<pre><code>## 
-## Attaching package: &#39;foreach&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:purrr&#39;:
-## 
-##     accumulate, when</code></pre>
-<pre><code>## Loading required package: iterators</code></pre>
-<pre><code>## Loading required package: parallel</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cl &lt;-<span class="st"> </span><span class="kw">makePSOCKcluster</span>(<span class="dv">3</span>)
-<span class="kw">registerDoParallel</span>(cl)</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># fit model</span>
 vote96_bag &lt;-<span class="st"> </span><span class="kw">train</span>(
   vote96 <span class="op">~</span><span class="st"> </span>., 
@@ -576,7 +590,7 @@ vote96_boost &lt;-<span class="st"> </span><span class="kw">train</span>(
 <p>Suppose we have a training set of data where <span class="math inline">\(x_i\)</span> is a multivariate set of <span class="math inline">\(N\)</span> observations with observed response values <span class="math inline">\(y_i\)</span>. The optimization problem is</p>
 <p><span class="math display">\[
 \begin{aligned}
-&amp; \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\text{maximize}} &amp; &amp; M \\
+&amp; \underset{\beta_0, \beta_1, \dots, \beta_p, \epsilon_1, \dots, \epsilon_n}{\max} &amp; &amp; M \\
 &amp; \text{subject to} &amp; &amp;  \sum_{j=1}^p \beta_j^2 = 1, \\
 &amp; &amp; &amp;  y_i - (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip})  \geq M(1 - \epsilon_i) + \xi_i, \\
 &amp; &amp; &amp;  (\beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \dots + \beta_p x_{ip}) - y_i  \geq M(1 - \epsilon_i) + \xi_i^*, \\
@@ -714,162 +728,172 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-03-01                  
+##  date     2019-03-04                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
-##  package       * version    date       lib
-##  assertthat      0.2.0      2017-04-11 [2]
-##  backports       1.1.3      2018-12-14 [2]
-##  base64enc       0.1-3      2015-07-28 [2]
-##  bayesplot       1.6.0      2018-08-02 [2]
-##  blogdown        0.10       2019-01-09 [1]
-##  bookdown        0.9        2018-12-21 [1]
-##  broom         * 0.5.1      2018-12-05 [2]
-##  callr           3.1.1      2018-12-21 [2]
-##  caret         * 6.0-81     2018-11-20 [1]
-##  cellranger      1.1.0      2016-07-27 [2]
-##  checkmate       1.9.1      2019-01-15 [2]
-##  class           7.3-15     2019-01-01 [2]
-##  cli             1.0.1      2018-09-25 [1]
-##  codetools       0.2-16     2018-12-24 [2]
-##  colorspace      1.4-0      2019-01-13 [2]
-##  colourpicker    1.0        2017-09-27 [2]
-##  crayon          1.3.4      2017-09-16 [2]
-##  crosstalk       1.0.0      2016-12-21 [2]
-##  data.table      1.12.0     2019-01-13 [2]
-##  desc            1.2.0      2018-05-01 [2]
-##  devtools        2.0.1      2018-10-26 [1]
-##  dials         * 0.0.2      2018-12-09 [1]
-##  digest          0.6.18     2018-10-10 [1]
-##  doParallel    * 1.0.14     2018-09-24 [1]
-##  dplyr         * 0.8.0.1    2019-02-15 [1]
-##  DT              0.5        2018-11-05 [2]
-##  dygraphs        1.1.1.6    2018-07-11 [2]
-##  e1071         * 1.7-0.1    2019-01-21 [1]
-##  evaluate        0.13       2019-02-12 [2]
-##  forcats       * 0.4.0      2019-02-17 [2]
-##  foreach       * 1.4.4      2017-12-12 [2]
-##  Formula         1.2-3      2018-05-03 [2]
-##  fs              1.2.6      2018-08-23 [1]
-##  generics        0.0.2      2018-11-29 [1]
-##  ggplot2       * 3.1.0      2018-10-25 [1]
-##  ggridges        0.5.1      2018-09-27 [2]
-##  glmnet          2.0-16     2018-04-02 [1]
-##  glue            1.3.0      2018-07-17 [2]
-##  gower           0.1.2      2017-02-23 [2]
-##  gridExtra       2.3        2017-09-09 [2]
-##  gtable          0.2.0      2016-02-26 [2]
-##  gtools          3.8.1      2018-06-26 [2]
-##  haven           2.1.0      2019-02-19 [2]
-##  here          * 0.1        2017-05-28 [2]
-##  hms             0.4.2      2018-03-10 [2]
-##  htmltools       0.3.6      2017-04-28 [1]
-##  htmlwidgets     1.3        2018-09-30 [2]
-##  httpuv          1.4.5.1    2018-12-18 [2]
-##  httr            1.4.0      2018-12-11 [2]
-##  igraph          1.2.4      2019-02-13 [2]
-##  iml           * 0.9.0      2019-02-05 [1]
-##  infer         * 0.4.0      2018-11-15 [1]
-##  inline          0.3.15     2018-05-18 [2]
-##  inum            1.0-0      2017-12-12 [1]
-##  ipred           0.9-8      2018-11-05 [1]
-##  iterators     * 1.0.10     2018-07-13 [2]
-##  janeaustenr     0.1.5      2017-06-10 [2]
-##  jsonlite        1.6        2018-12-07 [2]
-##  kernlab       * 0.9-27     2018-08-10 [2]
-##  knitr           1.21       2018-12-10 [2]
-##  later           0.8.0      2019-02-11 [2]
-##  lattice       * 0.20-38    2018-11-04 [2]
-##  lava            1.6.5      2019-02-12 [2]
-##  lazyeval        0.2.1      2017-10-29 [2]
-##  libcoin         1.0-3      2019-02-18 [1]
-##  lme4            1.1-20     2019-02-04 [2]
-##  loo             2.0.0      2018-04-11 [2]
-##  lubridate       1.7.4      2018-04-11 [2]
-##  magrittr        1.5        2014-11-22 [2]
-##  markdown        0.9        2018-12-07 [2]
-##  MASS            7.3-51.1   2018-11-01 [2]
-##  Matrix          1.2-15     2018-11-01 [2]
-##  matrixStats     0.54.0     2018-07-23 [2]
-##  memoise         1.1.0      2017-04-21 [2]
-##  Metrics         0.1.4      2018-07-09 [1]
-##  mime            0.6        2018-10-05 [1]
-##  miniUI          0.1.1.1    2018-05-18 [2]
-##  minqa           1.2.4      2014-10-09 [2]
-##  ModelMetrics    1.2.2      2018-11-03 [2]
-##  modelr          0.1.4      2019-02-18 [2]
-##  munsell         0.5.0      2018-06-12 [2]
-##  mvtnorm         1.0-8      2018-05-31 [2]
-##  nlme            3.1-137    2018-04-07 [2]
-##  nloptr          1.2.1      2018-10-03 [2]
-##  nnet            7.3-12     2016-02-02 [2]
-##  parsnip       * 0.0.1      2018-11-12 [1]
-##  partykit        1.2-3      2019-01-31 [1]
-##  patchwork     * 0.0.1      2018-09-06 [1]
-##  pillar          1.3.1      2018-12-15 [2]
-##  pkgbuild        1.0.2      2018-10-16 [1]
-##  pkgconfig       2.0.2      2018-08-16 [2]
-##  pkgload         1.0.2      2018-10-29 [1]
-##  plyr            1.8.4      2016-06-08 [2]
-##  prediction      0.3.6.2    2019-01-31 [2]
-##  prettyunits     1.0.2      2015-07-13 [2]
-##  pROC          * 1.13.0     2018-09-24 [1]
-##  processx        3.2.1      2018-12-05 [2]
-##  prodlim         2018.04.18 2018-04-18 [2]
-##  promises        1.0.1      2018-04-13 [2]
-##  ps              1.3.0      2018-12-21 [2]
-##  purrr         * 0.3.0      2019-01-27 [2]
-##  R6              2.4.0      2019-02-14 [1]
-##  rcfss         * 0.1.5      2019-01-24 [1]
-##  Rcpp            1.0.0      2018-11-07 [1]
-##  readr         * 1.3.1      2018-12-21 [2]
-##  readxl          1.3.0      2019-02-15 [2]
-##  recipes       * 0.1.4      2018-11-19 [1]
-##  remotes         2.0.2      2018-10-30 [1]
-##  reshape2        1.4.3      2017-12-11 [2]
-##  rlang           0.3.1      2019-01-08 [1]
-##  rmarkdown       1.11       2018-12-08 [2]
-##  rpart           4.1-13     2018-02-23 [1]
-##  rprojroot       1.3-2      2018-01-03 [2]
-##  rsample       * 0.0.4      2019-01-07 [1]
-##  rsconnect       0.8.13     2019-01-10 [2]
-##  rstan           2.18.2     2018-11-07 [2]
-##  rstanarm        2.18.2     2018-11-10 [2]
-##  rstantools      1.5.1      2018-08-22 [2]
-##  rstudioapi      0.9.0      2019-01-09 [1]
-##  rvest           0.3.2      2016-06-17 [2]
-##  scales        * 1.0.0      2018-08-09 [1]
-##  sessioninfo     1.1.1      2018-11-05 [1]
-##  shiny           1.2.0      2018-11-02 [2]
-##  shinyjs         1.0        2018-01-08 [2]
-##  shinystan       2.5.0      2018-05-01 [2]
-##  shinythemes     1.1.2      2018-11-06 [2]
-##  SnowballC       0.6.0      2019-01-15 [2]
-##  StanHeaders     2.18.1     2019-01-28 [2]
-##  stringi         1.3.1      2019-02-13 [1]
-##  stringr       * 1.4.0      2019-02-10 [1]
-##  survival        2.43-3     2018-11-26 [2]
-##  testthat        2.0.1      2018-10-13 [2]
-##  threejs         0.3.1      2017-08-13 [2]
-##  tibble        * 2.0.1      2019-01-12 [2]
-##  tidymodels    * 0.0.2      2018-11-27 [1]
-##  tidyposterior   0.0.2      2018-11-15 [1]
-##  tidypredict     0.3.0      2019-01-10 [1]
-##  tidyr         * 0.8.2.9000 2019-02-11 [1]
-##  tidyselect      0.2.5      2018-10-11 [1]
-##  tidytext        0.2.0      2018-10-17 [1]
-##  tidyverse     * 1.2.1      2017-11-14 [2]
-##  timeDate        3043.102   2018-02-21 [2]
-##  tokenizers      0.2.1      2018-03-29 [2]
-##  usethis         1.4.0      2018-08-14 [1]
-##  withr           2.1.2      2018-03-15 [2]
-##  xfun            0.5        2019-02-20 [1]
-##  xml2            1.2.0      2018-01-24 [2]
-##  xtable          1.8-3      2018-08-29 [2]
-##  xts             0.11-2     2018-11-05 [2]
-##  yaml            2.2.0      2018-07-25 [2]
-##  yardstick     * 0.0.2      2018-11-05 [1]
-##  zoo             1.8-4      2018-09-19 [2]
+##  package        * version    date       lib
+##  assertthat       0.2.0      2017-04-11 [2]
+##  backports        1.1.3      2018-12-14 [2]
+##  base64enc        0.1-3      2015-07-28 [2]
+##  bayesplot        1.6.0      2018-08-02 [2]
+##  blogdown         0.10       2019-01-09 [1]
+##  bookdown         0.9        2018-12-21 [1]
+##  broom          * 0.5.1      2018-12-05 [2]
+##  callr            3.1.1      2018-12-21 [2]
+##  caret          * 6.0-81     2018-11-20 [1]
+##  cellranger       1.1.0      2016-07-27 [2]
+##  checkmate        1.9.1      2019-01-15 [2]
+##  class            7.3-15     2019-01-01 [2]
+##  cli              1.0.1      2018-09-25 [1]
+##  codetools        0.2-16     2018-12-24 [2]
+##  colorspace       1.4-0      2019-01-13 [2]
+##  colourpicker     1.0        2017-09-27 [2]
+##  crayon           1.3.4      2017-09-16 [2]
+##  crosstalk        1.0.0      2016-12-21 [2]
+##  data.table       1.12.0     2019-01-13 [2]
+##  desc             1.2.0      2018-05-01 [2]
+##  devtools         2.0.1      2018-10-26 [1]
+##  dials          * 0.0.2      2018-12-09 [1]
+##  digest           0.6.18     2018-10-10 [1]
+##  doParallel     * 1.0.14     2018-09-24 [1]
+##  dplyr          * 0.8.0.1    2019-02-15 [1]
+##  DT               0.5        2018-11-05 [2]
+##  dygraphs         1.1.1.6    2018-07-11 [2]
+##  e1071          * 1.7-0.1    2019-01-21 [1]
+##  ellipsis         0.1.0      2019-02-19 [2]
+##  evaluate         0.13       2019-02-12 [2]
+##  forcats        * 0.4.0      2019-02-17 [2]
+##  foreach        * 1.4.4      2017-12-12 [2]
+##  Formula          1.2-3      2018-05-03 [2]
+##  fs               1.2.6      2018-08-23 [1]
+##  gbm            * 2.1.5      2019-01-14 [2]
+##  generics         0.0.2      2018-11-29 [1]
+##  ggplot2        * 3.1.0      2018-10-25 [1]
+##  ggridges         0.5.1      2018-09-27 [2]
+##  glmnet           2.0-16     2018-04-02 [1]
+##  glue             1.3.0      2018-07-17 [2]
+##  gower            0.1.2      2017-02-23 [2]
+##  gridExtra      * 2.3        2017-09-09 [2]
+##  gtable           0.2.0      2016-02-26 [2]
+##  gtools           3.8.1      2018-06-26 [2]
+##  haven            2.1.0      2019-02-19 [2]
+##  here           * 0.1        2017-05-28 [2]
+##  hms              0.4.2      2018-03-10 [2]
+##  htmltools        0.3.6      2017-04-28 [1]
+##  htmlwidgets      1.3        2018-09-30 [2]
+##  httpuv           1.4.5.1    2018-12-18 [2]
+##  httr             1.4.0      2018-12-11 [2]
+##  igraph           1.2.4      2019-02-13 [2]
+##  iml            * 0.9.0      2019-02-05 [1]
+##  infer          * 0.4.0      2018-11-15 [1]
+##  inline           0.3.15     2018-05-18 [2]
+##  inum             1.0-0      2017-12-12 [1]
+##  ipred            0.9-8      2018-11-05 [1]
+##  ISLR           * 1.2        2017-10-20 [2]
+##  iterators      * 1.0.10     2018-07-13 [2]
+##  janeaustenr      0.1.5      2017-06-10 [2]
+##  jsonlite         1.6        2018-12-07 [2]
+##  kernlab        * 0.9-27     2018-08-10 [2]
+##  knitr            1.21       2018-12-10 [2]
+##  labeling         0.3        2014-08-23 [2]
+##  later            0.8.0      2019-02-11 [2]
+##  lattice        * 0.20-38    2018-11-04 [2]
+##  lava             1.6.5      2019-02-12 [2]
+##  lazyeval         0.2.1      2017-10-29 [2]
+##  libcoin          1.0-3      2019-02-18 [1]
+##  lme4             1.1-20     2019-02-04 [2]
+##  loo              2.0.0      2018-04-11 [2]
+##  lubridate        1.7.4      2018-04-11 [2]
+##  magrittr         1.5        2014-11-22 [2]
+##  markdown         0.9        2018-12-07 [2]
+##  MASS             7.3-51.1   2018-11-01 [2]
+##  Matrix           1.2-15     2018-11-01 [2]
+##  matrixStats      0.54.0     2018-07-23 [2]
+##  memoise          1.1.0      2017-04-21 [2]
+##  Metrics          0.1.4      2018-07-09 [1]
+##  microbenchmark * 1.4-6      2018-10-18 [2]
+##  mime             0.6        2018-10-05 [1]
+##  miniUI           0.1.1.1    2018-05-18 [2]
+##  minqa            1.2.4      2014-10-09 [2]
+##  ModelMetrics     1.2.2      2018-11-03 [2]
+##  modelr         * 0.1.4      2019-02-18 [2]
+##  munsell          0.5.0      2018-06-12 [2]
+##  mvtnorm          1.0-8      2018-05-31 [2]
+##  nlme             3.1-137    2018-04-07 [2]
+##  nloptr           1.2.1      2018-10-03 [2]
+##  nnet             7.3-12     2016-02-02 [2]
+##  parsnip        * 0.0.1      2018-11-12 [1]
+##  partykit         1.2-3      2019-01-31 [1]
+##  patchwork      * 0.0.1      2018-09-06 [1]
+##  pillar           1.3.1      2018-12-15 [2]
+##  pkgbuild         1.0.2      2018-10-16 [1]
+##  pkgconfig        2.0.2      2018-08-16 [2]
+##  pkgload          1.0.2      2018-10-29 [1]
+##  plyr             1.8.4      2016-06-08 [2]
+##  prediction       0.3.6.2    2019-01-31 [2]
+##  prettyunits      1.0.2      2015-07-13 [2]
+##  pROC           * 1.13.0     2018-09-24 [1]
+##  processx         3.2.1      2018-12-05 [2]
+##  prodlim          2018.04.18 2018-04-18 [2]
+##  promises         1.0.1      2018-04-13 [2]
+##  ps               1.3.0      2018-12-21 [2]
+##  purrr          * 0.3.0      2019-01-27 [2]
+##  R6               2.4.0      2019-02-14 [1]
+##  randomForest   * 4.6-14     2018-03-25 [2]
+##  rcfss          * 0.1.5      2019-01-24 [1]
+##  RColorBrewer     1.1-2      2014-12-07 [2]
+##  Rcpp             1.0.0      2018-11-07 [1]
+##  readr          * 1.3.1      2018-12-21 [2]
+##  readxl           1.3.0      2019-02-15 [2]
+##  recipes        * 0.1.4      2018-11-19 [1]
+##  remotes          2.0.2      2018-10-30 [1]
+##  reshape2         1.4.3      2017-12-11 [2]
+##  rlang            0.3.1      2019-01-08 [1]
+##  rmarkdown        1.11       2018-12-08 [2]
+##  rpart            4.1-13     2018-02-23 [1]
+##  rprojroot        1.3-2      2018-01-03 [2]
+##  rsample        * 0.0.4      2019-01-07 [1]
+##  rsconnect        0.8.13     2019-01-10 [2]
+##  rstan            2.18.2     2018-11-07 [2]
+##  rstanarm         2.18.2     2018-11-10 [2]
+##  rstantools       1.5.1      2018-08-22 [2]
+##  rstudioapi       0.9.0      2019-01-09 [1]
+##  rvest            0.3.2      2016-06-17 [2]
+##  scales         * 1.0.0      2018-08-09 [1]
+##  sessioninfo      1.1.1      2018-11-05 [1]
+##  shiny            1.2.0      2018-11-02 [2]
+##  shinyjs          1.0        2018-01-08 [2]
+##  shinystan        2.5.0      2018-05-01 [2]
+##  shinythemes      1.1.2      2018-11-06 [2]
+##  SnowballC        0.6.0      2019-01-15 [2]
+##  StanHeaders      2.18.1     2019-01-28 [2]
+##  stringi          1.3.1      2019-02-13 [1]
+##  stringr        * 1.4.0      2019-02-10 [1]
+##  survival         2.43-3     2018-11-26 [2]
+##  testthat         2.0.1      2018-10-13 [2]
+##  threejs          0.3.1      2017-08-13 [2]
+##  tibble         * 2.0.1      2019-01-12 [2]
+##  tidymodels     * 0.0.2      2018-11-27 [1]
+##  tidyposterior    0.0.2      2018-11-15 [1]
+##  tidypredict      0.3.0      2019-01-10 [1]
+##  tidyr          * 0.8.2.9000 2019-02-11 [1]
+##  tidyselect       0.2.5      2018-10-11 [1]
+##  tidytext         0.2.0      2018-10-17 [1]
+##  tidyverse      * 1.2.1      2017-11-14 [2]
+##  timeDate         3043.102   2018-02-21 [2]
+##  titanic        * 0.1.0      2015-08-31 [2]
+##  tokenizers       0.2.1      2018-03-29 [2]
+##  tree           * 1.0-39     2018-03-17 [2]
+##  usethis          1.4.0      2018-08-14 [1]
+##  withr            2.1.2      2018-03-15 [2]
+##  xfun             0.5        2019-02-20 [1]
+##  xgboost          0.81.0.1   2019-01-31 [1]
+##  xml2             1.2.0      2018-01-24 [2]
+##  xtable           1.8-3      2018-08-29 [2]
+##  xts              0.11-2     2018-11-05 [2]
+##  yaml             2.2.0      2018-07-25 [2]
+##  yardstick      * 0.0.2      2018-11-05 [1]
+##  zoo              1.8-4      2018-09-19 [2]
 ##  source                              
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -901,9 +925,11 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -922,6 +948,7 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -931,6 +958,7 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
@@ -943,6 +971,7 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -973,7 +1002,9 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  local                               
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
@@ -1016,6 +1047,9 @@ sine_data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
