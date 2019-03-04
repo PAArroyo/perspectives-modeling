@@ -60,7 +60,7 @@ knitr::opts_chunk$set(echo = FALSE)
 ## Slides and class materials
 
 ```{r slides}
-knitr::include_url("/slides/svm.html", height = "505px")
+knitr::include_url("/slides/support-vector-machines.html", height = "505px")
 ```
 
 * [Support vector machines](/notes/support-vector-machines/)
