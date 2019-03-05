@@ -1,6 +1,6 @@
 ---
 title: "Dimension Reduction"
-date: 2019-03-07T13:30:00  # Schedule page publish date.
+date: 2019-03-02T13:30:00  # Schedule page publish date.
 draft: false
 type: "talk"
 
@@ -11,15 +11,15 @@ output:
 
 # Talk start and end times.
 #   End time can optionally be hidden by prefixing the line with `#`.
-time_start: 2019-03-11T13:30:00
-time_end: 2019-03-11T15:00:00
+time_start: 2019-03-06T13:30:00
+time_end: 2019-03-06T15:00:00
 
 # Authors. Comma separated list, e.g. `["Bob Smith", "David Jones"]`.
 authors: []
 
 # Abstract and optional shortened version.
 abstract: ""
-abstract_short: "Conducting exploratory data analysis with descriptive statistics and visualizations."
+abstract_short: "Introduction to unsupervised learning and dimension reduction techniques."
 
 # Location of event.
 location: "Room 247, Saieh Hall for Economics, Chicago, IL"
@@ -47,25 +47,31 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Overview
 
-* 
+* Distinguish unsupervised learning from supervised learning
+* Explain the purpose of dimension reduction techniques
+* Demonstrate how to estimate and interpret principal components analysis
+* Introduce non-linear dimension reduction methods
+* Define key terms for unsupervised text analysis
+* Implement latent semantic analysis using text data
+* Introduce Latent Dirchlet allocation and apply it to example data
 
 ## Before class
 
-* ISL ch 10
-* ESL ch 14
-* PRML ch 12
-* Notes
+* ISL ch 10.1-.2
+* ESL ch 14.1, 14.5
 
 ## Slides and class materials
 
 ```{r slides}
-knitr::include_url("/slides/theory-model.html", height = "505px")
+knitr::include_url("/slides/dimension-reduction.html", height = "505px")
 ```
 
 * 
 
 ### Additional readings
 
+* [Principal components analysis](http://uc-r.github.io/pca)
+* [Visualizing Data using t-SNE](http://www.cs.toronto.edu/~hinton/absps/tsne.pdf)
 
 ## What you need to do
 
