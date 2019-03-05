@@ -446,6 +446,62 @@ class: center, middle, inverse, title-slide
 
 # Latent semantic analysis
 
+* Bag-of-words approach
+
+```
+ a abandoned abc ability able about above abroad absorbed absorbing abstract
+43         0   0       0    0    10     0      0        0         0        1
+```
+
+* Properties of bag-of-words representation
+    * Sparsity
+    * Stop words
+    * Correlation between words
+* Reduce dimensions of corpus using PCA
+    * Identifies words closely related to one another in lower dimensional space
+    * Enables keyword searches
+
+---
+
+# Interpretation: `NYTimes`
+
+
+
+
+```
+##  [1] "penchant"  "brought"   "structure" "willing"   "yielding" 
+##  [6] "bare"      "school"    "halls"     "challenge" "step"     
+## [11] "largest"   "lovers"    "intense"   "borders"   "mall"     
+## [16] "classic"   "conducted" "mirrors"   "hole"      "location" 
+## [21] "desperate" "published" "head"      "paints"    "another"  
+## [26] "starts"    "familiar"  "window"    "thats"     "broker"
+```
+
+---
+
+# Interpretation: `NYTimes`
+
+
+
+&lt;img src="dimension-reduction_files/figure-html/nytimes-PC1-1.png" width="864" /&gt;
+
+---
+
+# Interpretation: `NYTimes`
+
+&lt;img src="dimension-reduction_files/figure-html/nytimes-PC2-1.png" width="864" /&gt;
+
+---
+
+# Interpretation: `NYTimes`
+
+&lt;img src="dimension-reduction_files/figure-html/nytimes-biplot-1.png" width="864" /&gt;
+
+---
+
+# Interpretation: `NYTimes`
+
+&lt;img src="dimension-reduction_files/figure-html/nytimes-plot-dim-1.png" width="864" /&gt;
 
 ---
 

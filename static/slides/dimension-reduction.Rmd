@@ -554,6 +554,112 @@ pixels_tsne_plot +
 
 # Latent semantic analysis
 
+* Bag-of-words approach
+
+```
+ a abandoned abc ability able about above abroad absorbed absorbing abstract
+43         0   0       0    0    10     0      0        0         0        1
+```
+
+* Properties of bag-of-words representation
+    * Sparsity
+    * Stop words
+    * Correlation between words
+* Reduce dimensions of corpus using PCA
+    * Identifies words closely related to one another in lower dimensional space
+    * Enables keyword searches
+
+---
+
+# Interpretation: `NYTimes`
+
+```{r nytimes}
+# get NYTimes data
+load(here("static", "data", "pca-examples.Rdata"))
+```
+
+```{r nytimes-words}
+colnames(nyt.frame)[sample(ncol(nyt.frame),30)]
+```
+
+---
+
+# Interpretation: `NYTimes`
+
+```{r nytimes-pca}
+# Omit the first column of class labels
+nyt.pca <- prcomp(nyt.frame[,-1])
+
+# Extract the actual component directions/weights for ease of reference
+nyt.latent.sem <- nyt.pca$rotation
+
+# convert to data frame
+nyt.latent.sem <- nyt.latent.sem %>%
+  as_tibble %>%
+  mutate(word = names(nyt.latent.sem[,1])) %>%
+  select(word, everything())
+```
+
+```{r nytimes-PC1}
+nyt.latent.sem %>%
+  select(word, PC1) %>%
+  arrange(PC1) %>%
+  slice(c(1:10, (n() - 10):n())) %>%
+  mutate(pos = ifelse(PC1 > 0, TRUE, FALSE),
+         word = fct_reorder(word, PC1)) %>%
+  ggplot(aes(word, PC1, fill = pos)) +
+  geom_col() +
+  scale_fill_brewer(type = "qual") +
+  labs(title = "LSA analysis of NYTimes articles",
+       x = NULL,
+       y = "PC1 scores") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+---
+
+# Interpretation: `NYTimes`
+
+```{r nytimes-PC2}
+nyt.latent.sem %>%
+  select(word, PC2) %>%
+  arrange(PC2) %>%
+  slice(c(1:10, (n() - 10):n())) %>%
+  mutate(pos = ifelse(PC2 > 0, TRUE, FALSE),
+         word = fct_reorder(word, PC2)) %>%
+  ggplot(aes(word, PC2, fill = pos)) +
+  geom_col() +
+  scale_fill_brewer(type = "qual") +
+  labs(title = "LSA analysis of NYTimes articles",
+       x = NULL,
+       y = "PC2 scores") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+---
+
+# Interpretation: `NYTimes`
+
+```{r nytimes-biplot}
+biplot(nyt.pca, scale = 0, cex = .6)
+```
+
+---
+
+# Interpretation: `NYTimes`
+
+```{r nytimes-plot-dim}
+cbind(type = nyt.frame$class.labels, as_tibble(nyt.pca$x[,1:2])) %>%
+  mutate(type = factor(type, levels = c("art", "music"),
+                       labels = c("A", "M"))) %>%
+  ggplot(aes(PC1, PC2, label = type, color = type)) +
+  geom_text() +
+  scale_color_brewer(type = "qual") +
+  labs(title = "") +
+  theme(legend.position = "none")
+```
 
 ---
 
