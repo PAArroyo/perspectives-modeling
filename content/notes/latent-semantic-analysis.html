@@ -1,0 +1,480 @@
+---
+title: Latent semantic analysis
+date: 2019-03-06T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Dimension reduction
+    weight: 1
+---
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+<div id="TOC">
+<ul>
+<li><a href="#latent-semantic-analysis"><span class="toc-section-number">1</span> Latent semantic analysis</a></li>
+<li><a href="#interpretation-nytimes"><span class="toc-section-number">2</span> Interpretation: <code>NYTimes</code></a></li>
+<li><a href="#session-info"><span class="toc-section-number">3</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">4</span> References</a></li>
+</ul>
+</div>
+
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tidyverse)
+<span class="kw">library</span>(tidymodels)
+<span class="kw">library</span>(patchwork)
+<span class="kw">library</span>(here)
+<span class="kw">library</span>(ggfortify)
+
+<span class="kw">set.seed</span>(<span class="dv">1234</span>)
+<span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
+<div id="latent-semantic-analysis" class="section level1">
+<h1><span class="header-section-number">1</span> Latent semantic analysis</h1>
+<p>Text documents can be utilized in computational text analysis under the <strong>bag of words</strong> approach.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> Documents are represented as vectors, and each variable counts the frequency a word appears in a given document. While we throw away information such as word order, we can represent the information in a mathematical fashion using a matrix. Each row represents a single document, and each column is a different word:</p>
+<pre><code> a abandoned abc ability able about above abroad absorbed absorbing abstract
+43         0   0       0    0    10     0      0        0         0        1</code></pre>
+<p>These vectors can be very large depending on the <strong>dictionary</strong>, or the number of unique words in the dataset. These bag-of-words vectors have three important properties:</p>
+<ol style="list-style-type: decimal">
+<li>They are <strong>sparse</strong>. Most entries in the matrix are zero.</li>
+<li>A small number of words appear frequently across all documents. These are typically uninformative words called <strong>stop words</strong> that inform us nothing about the document (e.g. “a”, “an”, “at”, “of”, “or”).</li>
+<li>Other than these words, the other words in the dataset are correlated with some words but not others. Words typically come together in related bunches.</li>
+</ol>
+<p>Considering these three properties, we probably don’t need to keep all of the words. Instead, we could reduce the dimensionality of the data by projecting the larger dataset into a smaller feature space with fewer dimensions that summarize most of the variation in the data. Each dimension would represent a set of correlated words. Principal component analysis can be used for precisely this task.</p>
+<p>In a textual context, this process is known as <strong>latent semantic analysis</strong>. By identifying words that are closely related to one another, when searching for just one of the terms we can find documents that use not only that specific term but other similar ones. Think about how you search for information online. You normally identify one or more <strong>keywords</strong>, and search for pages that are related to those words. But search engines use techniques such as LSA to retrieve results not only for pages that use your exact word(s), but also pages that use similar or related words.</p>
+</div>
+<div id="interpretation-nytimes" class="section level1">
+<h1><span class="header-section-number">2</span> Interpretation: <code>NYTimes</code></h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get NYTimes data</span>
+<span class="kw">load</span>(<span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;pca-examples.Rdata&quot;</span>))</code></pre></div>
+<p>Let’s look at an application of LSA. <code>nyt.frame</code> contains a document-term matrix of a random sample of stories from the New York Times: 57 stories are about art, and 45 are about music. The first column identifies the topic of the article, and each remaining cell contains a frequency count of the number of times each word appeared in that article.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a> The resulting data frame contains 102 rows and 4432 columns.</p>
+<p>Some examples of words appearing in these articles:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">colnames</span>(nyt.frame)[<span class="kw">sample</span>(<span class="kw">ncol</span>(nyt.frame),<span class="dv">30</span>)]</code></pre></div>
+<pre><code>##  [1] &quot;penchant&quot;  &quot;brought&quot;   &quot;structure&quot; &quot;willing&quot;   &quot;yielding&quot; 
+##  [6] &quot;bare&quot;      &quot;school&quot;    &quot;halls&quot;     &quot;challenge&quot; &quot;step&quot;     
+## [11] &quot;largest&quot;   &quot;lovers&quot;    &quot;intense&quot;   &quot;borders&quot;   &quot;mall&quot;     
+## [16] &quot;classic&quot;   &quot;conducted&quot; &quot;mirrors&quot;   &quot;hole&quot;      &quot;location&quot; 
+## [21] &quot;desperate&quot; &quot;published&quot; &quot;head&quot;      &quot;paints&quot;    &quot;another&quot;  
+## [26] &quot;starts&quot;    &quot;familiar&quot;  &quot;window&quot;    &quot;thats&quot;     &quot;broker&quot;</code></pre>
+<p>We can estimate the LSA using the standard PCA procedure:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Omit the first column of class labels</span>
+nyt.pca &lt;-<span class="st"> </span><span class="kw">prcomp</span>(nyt.frame[,<span class="op">-</span><span class="dv">1</span>])
+
+<span class="co"># Extract the actual component directions/weights for ease of reference</span>
+nyt.latent.sem &lt;-<span class="st"> </span>nyt.pca<span class="op">$</span>rotation
+
+<span class="co"># convert to data frame</span>
+nyt.latent.sem &lt;-<span class="st"> </span>nyt.latent.sem <span class="op">%&gt;%</span>
+<span class="st">  </span>as_tibble <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">word =</span> <span class="kw">names</span>(nyt.latent.sem[,<span class="dv">1</span>])) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(word, <span class="kw">everything</span>())</code></pre></div>
+<p>Let’s extract the biggest components for the first principal component:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">nyt.latent.sem <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(word, PC1) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">arrange</span>(PC1) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(<span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">10</span>, (<span class="kw">n</span>() <span class="op">-</span><span class="st"> </span><span class="dv">10</span>)<span class="op">:</span><span class="kw">n</span>())) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">pos =</span> <span class="kw">ifelse</span>(PC1 <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>, <span class="ot">TRUE</span>, <span class="ot">FALSE</span>),
+         <span class="dt">word =</span> <span class="kw">fct_reorder</span>(word, PC1)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(word, PC1, <span class="dt">fill =</span> pos)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_col</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_fill_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;LSA analysis of NYTimes articles&quot;</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="st">&quot;PC1 scores&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">coord_flip</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
+<p><img src="/notes/latent-semantic-analysis_files/figure-html/nytimes-PC1-1.png" width="672" /></p>
+<p>These are the 10 words with the largest positive and negative loadings on the first principal component. The words on the positive loading seem associated with music, whereas the words on the negative loading are more strongly associated with art.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">nyt.latent.sem <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(word, PC2) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">arrange</span>(PC2) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(<span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">10</span>, (<span class="kw">n</span>() <span class="op">-</span><span class="st"> </span><span class="dv">10</span>)<span class="op">:</span><span class="kw">n</span>())) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">pos =</span> <span class="kw">ifelse</span>(PC2 <span class="op">&gt;</span><span class="st"> </span><span class="dv">0</span>, <span class="ot">TRUE</span>, <span class="ot">FALSE</span>),
+         <span class="dt">word =</span> <span class="kw">fct_reorder</span>(word, PC2)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(word, PC2, <span class="dt">fill =</span> pos)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_col</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_fill_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;LSA analysis of NYTimes articles&quot;</span>,
+       <span class="dt">x =</span> <span class="ot">NULL</span>,
+       <span class="dt">y =</span> <span class="st">&quot;PC2 scores&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">coord_flip</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
+<p><img src="/notes/latent-semantic-analysis_files/figure-html/nytimes-PC2-1.png" width="672" /></p>
+<p>Here the positive words are about art, but more focused on acquiring and trading (“donations”, “tax”). We could perform similar analysis on each of the 103 principal components, but if the point of LSA/PCA is to reduce the dimensionality of the data, let’s just focus on the first two for now.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">biplot</span>(nyt.pca, <span class="dt">scale =</span> <span class="dv">0</span>, <span class="dt">cex =</span> .<span class="dv">6</span>)</code></pre></div>
+<pre><code>## Warning in arrows(0, 0, y[, 1L] * 0.8, y[, 2L] * 0.8, col = col[2L], length
+## = arrow.len): zero-length arrow is of indeterminate angle and so skipped
+
+## Warning in arrows(0, 0, y[, 1L] * 0.8, y[, 2L] * 0.8, col = col[2L], length
+## = arrow.len): zero-length arrow is of indeterminate angle and so skipped</code></pre>
+<p><img src="/notes/latent-semantic-analysis_files/figure-html/nytimes-biplot-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">cbind</span>(<span class="dt">type =</span> nyt.frame<span class="op">$</span>class.labels, <span class="kw">as_tibble</span>(nyt.pca<span class="op">$</span>x[,<span class="dv">1</span><span class="op">:</span><span class="dv">2</span>])) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">type =</span> <span class="kw">factor</span>(type, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="st">&quot;art&quot;</span>, <span class="st">&quot;music&quot;</span>),
+                       <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;A&quot;</span>, <span class="st">&quot;M&quot;</span>))) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(PC1, PC2, <span class="dt">label =</span> type, <span class="dt">color =</span> type)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_text</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
+<p><img src="/notes/latent-semantic-analysis_files/figure-html/nytimes-plot-dim-1.png" width="672" /></p>
+<p>The biplot looks a bit ridiculous because there are 4432 variables to map onto the principal components. Only a few are interpretable. If we instead just consider the articles themselves, even after throwing away the vast majority of information in the original data set the first two principal components still strongly distinguish the two types of articles. If we wanted to use PCA to reduce the dimensionality of the data and predict an article’s topic using a method such as SVM, we could probably generate a pretty good model using just the first two dimensions of the PCA rather than all the individual variables (words).</p>
+</div>
+<div id="session-info" class="section level1 toc-ignore">
+<h1><span class="header-section-number">3</span> Session Info</h1>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
+<pre><code>## ─ Session info ──────────────────────────────────────────────────────────
+##  setting  value                       
+##  version  R version 3.5.2 (2018-12-20)
+##  os       macOS Mojave 10.14.3        
+##  system   x86_64, darwin15.6.0        
+##  ui       X11                         
+##  language (EN)                        
+##  collate  en_US.UTF-8                 
+##  ctype    en_US.UTF-8                 
+##  tz       America/Chicago             
+##  date     2019-03-05                  
+## 
+## ─ Packages ──────────────────────────────────────────────────────────────
+##  package       * version    date       lib
+##  assertthat      0.2.0      2017-04-11 [2]
+##  backports       1.1.3      2018-12-14 [2]
+##  base64enc       0.1-3      2015-07-28 [2]
+##  bayesplot       1.6.0      2018-08-02 [2]
+##  blogdown        0.10       2019-01-09 [1]
+##  bookdown        0.9        2018-12-21 [1]
+##  broom         * 0.5.1      2018-12-05 [2]
+##  callr           3.1.1      2018-12-21 [2]
+##  cellranger      1.1.0      2016-07-27 [2]
+##  class           7.3-15     2019-01-01 [2]
+##  cli             1.0.1      2018-09-25 [1]
+##  codetools       0.2-16     2018-12-24 [2]
+##  colorspace      1.4-0      2019-01-13 [2]
+##  colourpicker    1.0        2017-09-27 [2]
+##  crayon          1.3.4      2017-09-16 [2]
+##  crosstalk       1.0.0      2016-12-21 [2]
+##  desc            1.2.0      2018-05-01 [2]
+##  devtools        2.0.1      2018-10-26 [1]
+##  dials         * 0.0.2      2018-12-09 [1]
+##  digest          0.6.18     2018-10-10 [1]
+##  dplyr         * 0.8.0.1    2019-02-15 [1]
+##  DT              0.5        2018-11-05 [2]
+##  dygraphs        1.1.1.6    2018-07-11 [2]
+##  ellipsis        0.1.0      2019-02-19 [2]
+##  evaluate        0.13       2019-02-12 [2]
+##  forcats       * 0.4.0      2019-02-17 [2]
+##  fs              1.2.6      2018-08-23 [1]
+##  generics        0.0.2      2018-11-29 [1]
+##  ggfortify     * 0.4.5      2018-05-26 [2]
+##  ggplot2       * 3.1.0      2018-10-25 [1]
+##  ggridges        0.5.1      2018-09-27 [2]
+##  glue            1.3.0      2018-07-17 [2]
+##  gower           0.1.2      2017-02-23 [2]
+##  gridExtra       2.3        2017-09-09 [2]
+##  gtable          0.2.0      2016-02-26 [2]
+##  gtools          3.8.1      2018-06-26 [2]
+##  haven           2.1.0      2019-02-19 [2]
+##  here          * 0.1        2017-05-28 [2]
+##  hms             0.4.2      2018-03-10 [2]
+##  htmltools       0.3.6      2017-04-28 [1]
+##  htmlwidgets     1.3        2018-09-30 [2]
+##  httpuv          1.4.5.1    2018-12-18 [2]
+##  httr            1.4.0      2018-12-11 [2]
+##  igraph          1.2.4      2019-02-13 [2]
+##  infer         * 0.4.0      2018-11-15 [1]
+##  inline          0.3.15     2018-05-18 [2]
+##  ipred           0.9-8      2018-11-05 [1]
+##  janeaustenr     0.1.5      2017-06-10 [2]
+##  jsonlite        1.6        2018-12-07 [2]
+##  knitr           1.21       2018-12-10 [2]
+##  labeling        0.3        2014-08-23 [2]
+##  later           0.8.0      2019-02-11 [2]
+##  lattice         0.20-38    2018-11-04 [2]
+##  lava            1.6.5      2019-02-12 [2]
+##  lazyeval        0.2.1      2017-10-29 [2]
+##  lme4            1.1-20     2019-02-04 [2]
+##  loo             2.0.0      2018-04-11 [2]
+##  lubridate       1.7.4      2018-04-11 [2]
+##  magrittr        1.5        2014-11-22 [2]
+##  markdown        0.9        2018-12-07 [2]
+##  MASS            7.3-51.1   2018-11-01 [2]
+##  Matrix          1.2-15     2018-11-01 [2]
+##  matrixStats     0.54.0     2018-07-23 [2]
+##  memoise         1.1.0      2017-04-21 [2]
+##  mime            0.6        2018-10-05 [1]
+##  miniUI          0.1.1.1    2018-05-18 [2]
+##  minqa           1.2.4      2014-10-09 [2]
+##  modelr          0.1.4      2019-02-18 [2]
+##  munsell         0.5.0      2018-06-12 [2]
+##  nlme            3.1-137    2018-04-07 [2]
+##  nloptr          1.2.1      2018-10-03 [2]
+##  nnet            7.3-12     2016-02-02 [2]
+##  parsnip       * 0.0.1      2018-11-12 [1]
+##  patchwork     * 0.0.1      2018-09-06 [1]
+##  pillar          1.3.1      2018-12-15 [2]
+##  pkgbuild        1.0.2      2018-10-16 [1]
+##  pkgconfig       2.0.2      2018-08-16 [2]
+##  pkgload         1.0.2      2018-10-29 [1]
+##  plyr            1.8.4      2016-06-08 [2]
+##  prettyunits     1.0.2      2015-07-13 [2]
+##  pROC            1.13.0     2018-09-24 [1]
+##  processx        3.2.1      2018-12-05 [2]
+##  prodlim         2018.04.18 2018-04-18 [2]
+##  promises        1.0.1      2018-04-13 [2]
+##  ps              1.3.0      2018-12-21 [2]
+##  purrr         * 0.3.0      2019-01-27 [2]
+##  R6              2.4.0      2019-02-14 [1]
+##  RColorBrewer    1.1-2      2014-12-07 [2]
+##  Rcpp            1.0.0      2018-11-07 [1]
+##  readr         * 1.3.1      2018-12-21 [2]
+##  readxl          1.3.0      2019-02-15 [2]
+##  recipes       * 0.1.4      2018-11-19 [1]
+##  remotes         2.0.2      2018-10-30 [1]
+##  reshape2        1.4.3      2017-12-11 [2]
+##  rlang           0.3.1      2019-01-08 [1]
+##  rmarkdown       1.11       2018-12-08 [2]
+##  rpart           4.1-13     2018-02-23 [1]
+##  rprojroot       1.3-2      2018-01-03 [2]
+##  rsample       * 0.0.4      2019-01-07 [1]
+##  rsconnect       0.8.13     2019-01-10 [2]
+##  rstan           2.18.2     2018-11-07 [2]
+##  rstanarm        2.18.2     2018-11-10 [2]
+##  rstantools      1.5.1      2018-08-22 [2]
+##  rstudioapi      0.9.0      2019-01-09 [1]
+##  rvest           0.3.2      2016-06-17 [2]
+##  scales        * 1.0.0      2018-08-09 [1]
+##  sessioninfo     1.1.1      2018-11-05 [1]
+##  shiny           1.2.0      2018-11-02 [2]
+##  shinyjs         1.0        2018-01-08 [2]
+##  shinystan       2.5.0      2018-05-01 [2]
+##  shinythemes     1.1.2      2018-11-06 [2]
+##  SnowballC       0.6.0      2019-01-15 [2]
+##  StanHeaders     2.18.1     2019-01-28 [2]
+##  stringi         1.3.1      2019-02-13 [1]
+##  stringr       * 1.4.0      2019-02-10 [1]
+##  survival        2.43-3     2018-11-26 [2]
+##  testthat        2.0.1      2018-10-13 [2]
+##  threejs         0.3.1      2017-08-13 [2]
+##  tibble        * 2.0.1      2019-01-12 [2]
+##  tidymodels    * 0.0.2      2018-11-27 [1]
+##  tidyposterior   0.0.2      2018-11-15 [1]
+##  tidypredict     0.3.0      2019-01-10 [1]
+##  tidyr         * 0.8.2.9000 2019-02-11 [1]
+##  tidyselect      0.2.5      2018-10-11 [1]
+##  tidytext        0.2.0      2018-10-17 [1]
+##  tidyverse     * 1.2.1      2017-11-14 [2]
+##  timeDate        3043.102   2018-02-21 [2]
+##  tokenizers      0.2.1      2018-03-29 [2]
+##  usethis         1.4.0      2018-08-14 [1]
+##  withr           2.1.2      2018-03-15 [2]
+##  xfun            0.5        2019-02-20 [1]
+##  xml2            1.2.0      2018-01-24 [2]
+##  xtable          1.8-3      2018-08-29 [2]
+##  xts             0.11-2     2018-11-05 [2]
+##  yaml            2.2.0      2018-07-25 [2]
+##  yardstick     * 0.0.2      2018-11-05 [1]
+##  zoo             1.8-4      2018-09-19 [2]
+##  source                              
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.1)                      
+##  Github (thomasp85/patchwork@7fb35b1)
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  Github (tidyverse/tidyr@0b27690)    
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
+## 
+## [1] /Users/soltoffbc/Library/R/3.5/library
+## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
+</div>
+<div id="references" class="section level1 toc-ignore">
+<h1><span class="header-section-number">4</span> References</h1>
+<ul>
+<li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
+<li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
+</ul>
+<div id="refs" class="references">
+<div id="ref-friedman2001elements">
+<p>Friedman, Jerome, Trevor Hastie, and Robert Tibshirani. 2001. <em>The Elements of Statistical Learning</em>. Vol. 1. 10. Springer series in statistics New York, NY, USA: <a href="https://web.stanford.edu/~hastie/ElemStatLearn/" class="uri">https://web.stanford.edu/~hastie/ElemStatLearn/</a>.</p>
+</div>
+<div id="ref-james2013introduction">
+<p>James, Gareth, Daniela Witten, Trevor Hastie, and Robert Tibshirani. 2013. <em>An Introduction to Statistical Learning</em>. Vol. 112. Springer. <a href="http://www-bcf.usc.edu/~gareth/ISL/" class="uri">http://www-bcf.usc.edu/~gareth/ISL/</a>.</p>
+</div>
+</div>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>This section drawn from <a href="https://www.stat.cmu.edu/~cshalizi/uADA/12/lectures/ch18.pdf">18.3 in “Principal Component Analysis”.</a>.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Actually it contains the <a href="http://cfss.uchicago.edu/text001_tidytext.html#assessing_word_and_document_frequency">term frequency-inverse document frequency</a> which downweights words that appear frequently across many documents. This is one method for guarding against any biases caused by stop words.<a href="#fnref2">↩</a></p></li>
+</ol>
+</div>

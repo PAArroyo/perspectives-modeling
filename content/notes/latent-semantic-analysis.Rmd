@@ -1,0 +1,151 @@
+---
+title: Latent semantic analysis
+date: 2019-03-06T13:30:00-06:00  # Schedule page publish date.
+    
+draft: false
+type: docs
+
+bibliography: [../../static/bib/sources.bib]
+csl: [../../static/bib/apa.csl]
+link-citations: true
+
+menu:
+  notes:
+    parent: Dimension reduction
+    weight: 1
+---
+
+```{r setup, include = FALSE}
+# set default chunk options
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{r packages, message = FALSE, warning = FALSE, cache = FALSE}
+library(tidyverse)
+library(tidymodels)
+library(patchwork)
+library(here)
+library(ggfortify)
+
+set.seed(1234)
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}
+
+# Latent semantic analysis
+
+Text documents can be utilized in computational text analysis under the **bag of words** approach.^[This section drawn from [18.3 in "Principal Component Analysis".](https://www.stat.cmu.edu/~cshalizi/uADA/12/lectures/ch18.pdf).] Documents are represented as vectors, and each variable counts the frequency a word appears in a given document. While we throw away information such as word order, we can represent the information in a mathematical fashion using a matrix. Each row represents a single document, and each column is a different word:
+
+```
+ a abandoned abc ability able about above abroad absorbed absorbing abstract
+43         0   0       0    0    10     0      0        0         0        1
+```
+
+These vectors can be very large depending on the **dictionary**, or the number of unique words in the dataset. These bag-of-words vectors have three important properties:
+
+1. They are **sparse**. Most entries in the matrix are zero.
+1. A small number of words appear frequently across all documents. These are typically uninformative words called **stop words** that inform us nothing about the document (e.g. "a", "an", "at", "of", "or").
+1. Other than these words, the other words in the dataset are correlated with some words but not others. Words typically come together in related bunches.
+
+Considering these three properties, we probably don't need to keep all of the words. Instead, we could reduce the dimensionality of the data by projecting the larger dataset into a smaller feature space with fewer dimensions that summarize most of the variation in the data. Each dimension would represent a set of correlated words. Principal component analysis can be used for precisely this task.
+
+In a textual context, this process is known as **latent semantic analysis**. By identifying words that are closely related to one another, when searching for just one of the terms we can find documents that use not only that specific term but other similar ones. Think about how you search for information online. You normally identify one or more **keywords**, and search for pages that are related to those words. But search engines use techniques such as LSA to retrieve results not only for pages that use your exact word(s), but also pages that use similar or related words.
+
+# Interpretation: `NYTimes`
+
+```{r nytimes}
+# get NYTimes data
+load(here("static", "data", "pca-examples.Rdata"))
+```
+
+Let's look at an application of LSA. `nyt.frame` contains a document-term matrix of a random sample of stories from the New York Times: 57 stories are about art, and 45 are about music. The first column identifies the topic of the article, and each remaining cell contains a frequency count of the number of times each word appeared in that article.^[Actually it contains the [term frequency-inverse document frequency](http://cfss.uchicago.edu/text001_tidytext.html#assessing_word_and_document_frequency) which downweights words that appear frequently across many documents. This is one method for guarding against any biases caused by stop words.] The resulting data frame contains `r nrow(nyt.frame)` rows and `r ncol(nyt.frame)` columns.
+
+Some examples of words appearing in these articles:
+
+```{r nytimes-words}
+colnames(nyt.frame)[sample(ncol(nyt.frame),30)]
+```
+
+We can estimate the LSA using the standard PCA procedure:
+
+```{r nytimes-pca}
+# Omit the first column of class labels
+nyt.pca <- prcomp(nyt.frame[,-1])
+
+# Extract the actual component directions/weights for ease of reference
+nyt.latent.sem <- nyt.pca$rotation
+
+# convert to data frame
+nyt.latent.sem <- nyt.latent.sem %>%
+  as_tibble %>%
+  mutate(word = names(nyt.latent.sem[,1])) %>%
+  select(word, everything())
+```
+
+Let's extract the biggest components for the first principal component:
+
+```{r nytimes-PC1}
+nyt.latent.sem %>%
+  select(word, PC1) %>%
+  arrange(PC1) %>%
+  slice(c(1:10, (n() - 10):n())) %>%
+  mutate(pos = ifelse(PC1 > 0, TRUE, FALSE),
+         word = fct_reorder(word, PC1)) %>%
+  ggplot(aes(word, PC1, fill = pos)) +
+  geom_col() +
+  scale_fill_brewer(type = "qual") +
+  labs(title = "LSA analysis of NYTimes articles",
+       x = NULL,
+       y = "PC1 scores") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+These are the 10 words with the largest positive and negative loadings on the first principal component. The words on the positive loading seem associated with music, whereas the words on the negative loading are more strongly associated with art.
+
+```{r nytimes-PC2}
+nyt.latent.sem %>%
+  select(word, PC2) %>%
+  arrange(PC2) %>%
+  slice(c(1:10, (n() - 10):n())) %>%
+  mutate(pos = ifelse(PC2 > 0, TRUE, FALSE),
+         word = fct_reorder(word, PC2)) %>%
+  ggplot(aes(word, PC2, fill = pos)) +
+  geom_col() +
+  scale_fill_brewer(type = "qual") +
+  labs(title = "LSA analysis of NYTimes articles",
+       x = NULL,
+       y = "PC2 scores") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+Here the positive words are about art, but more focused on acquiring and trading ("donations", "tax"). We could perform similar analysis on each of the `r ncol(nyt.latent.sem)` principal components, but if the point of LSA/PCA is to reduce the dimensionality of the data, let's just focus on the first two for now.
+
+```{r nytimes-biplot}
+biplot(nyt.pca, scale = 0, cex = .6)
+```
+
+```{r nytimes-plot-dim}
+cbind(type = nyt.frame$class.labels, as_tibble(nyt.pca$x[,1:2])) %>%
+  mutate(type = factor(type, levels = c("art", "music"),
+                       labels = c("A", "M"))) %>%
+  ggplot(aes(PC1, PC2, label = type, color = type)) +
+  geom_text() +
+  scale_color_brewer(type = "qual") +
+  labs(title = "") +
+  theme(legend.position = "none")
+```
+
+The biplot looks a bit ridiculous because there are `r ncol(nyt.frame)` variables to map onto the principal components. Only a few are interpretable. If we instead just consider the articles themselves, even after throwing away the vast majority of information in the original data set the first two principal components still strongly distinguish the two types of articles. If we wanted to use PCA to reduce the dimensionality of the data and predict an article's topic using a method such as SVM, we could probably generate a pretty good model using just the first two dimensions of the PCA rather than all the individual variables (words).
+
+# Session Info {.toc-ignore}
+
+```{r child = here::here("R", "_session-info.Rmd")}
+```
+
+# References {.toc-ignore}
+
+* @james2013introduction
+* @friedman2001elements
