@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Dimension Reduction</title>
+    <meta charset="utf-8">
+    <meta name="author" content="MACS 30100   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Dimension Reduction
+### <a href="https://model.uchicago.edu">MACS 30100</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Unsupervised learning
+
+
+---
+
+# Principal components analysis
+
+* Reduce the dimensionality of the data set through linear combinations of features `\(X_1, X_2, \ldots, X_p\)`
+* Common purposes
+    * Feature reduction
+    * Reduce multicollinearity
+    * Data visualization
+
+---
+
+# `USArrests`
+
+
+```
+## # A tibble: 50 x 5
+##    State       Murder Assault UrbanPop  Rape
+##    &lt;chr&gt;        &lt;dbl&gt;   &lt;int&gt;    &lt;int&gt; &lt;dbl&gt;
+##  1 Alabama       13.2     236       58  21.2
+##  2 Alaska        10       263       48  44.5
+##  3 Arizona        8.1     294       80  31  
+##  4 Arkansas       8.8     190       50  19.5
+##  5 California     9       276       91  40.6
+##  6 Colorado       7.9     204       78  38.7
+##  7 Connecticut    3.3     110       77  11.1
+##  8 Delaware       5.9     238       72  15.8
+##  9 Florida       15.4     335       80  31.9
+## 10 Georgia       17.4     211       60  25.8
+## # … with 40 more rows
+```
+
+---
+
+# Data preparation
+
+* Mean center
+* Standardize variance
+
+##### Unscaled
+
+
+```
+## # A tibble: 1 x 4
+##   Murder Assault UrbanPop  Rape
+##    &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;
+## 1   19.0   6945.     210.  87.7
+```
+
+##### Scaled
+
+
+```
+## # A tibble: 1 x 4
+##   Murder Assault UrbanPop  Rape
+##    &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;
+## 1      1      1.        1 1.000
+```
+
+--
+
+* When not to scale
+
+---
+
+# Principal components
+
+* Explain most of the variability in the data with a smaller number of variables
+* Low-dimensional representation of high-dimensional data, with minimal information loss
+* Small number of dimensions
+    * Amount that the observations vary along each dimension
+* Linear combination of `\(p\)` features
+
+---
+
+# Principal components
+
+## First principal component
+
+* Data set `\(X_1, X_2, \ldots, X_p\)`
+
+    `$$Z_1 = \phi_{11}X_1 + \phi_{21}X_2 + \dots + \phi_{p1}X_p$$`
+    
+    `$$\max \Var(Z_1)$$`
+    
+* `\(\phi_1\)` - first principal component loading vector
+    * `\(p\)` individual loadings `\(\phi_{11}, \dots, \phi_{p1}\)`
+* Normalized `\(\phi\)`
+    
+    `$$\sum_{j=1}^p \phi_{j1}^2 = 1$$`
+
+---
+
+# Principal components
+
+## Second principal component
+
+`$$Z_2 = \phi_{12}X_1 + \phi_{22}X_2 + \dots + \phi_{p2}X_p$$`
+
+`$$\max \Var(Z_2)$$`
+
+* `\(\sum_{j=1}^p \phi_{j2}^2 = 1\)`
+* `\(Z_1, Z_2\)` uncorrelated
+    * Orthogonality
+
+---
+
+# Principal components
+
+## `\(n\)`th principal component
+
+* `\(p\)` unique principal components
+* As `\(j\)` increases, variance of `\(Z_j\)` constantly decreasing
+
+---
+
+# Estimating principal components
+
+1. Compute the covariance matrix `\(\mathbf{S}\)`
+
+    `$$\mathbf{S} = \dfrac{1}{N} \mathbf{X}' \mathbf{X}$$`
+    
+1. Compute the `\(K\)` largest **eigenvectors** of `\(\mathbf{S}\)`
+    * Principal components of the dataset
+    * Vector elements - PC scores
+    * Eigenvalue - variance of each PC
+
+---
+
+# Estimating principal components
+
+## Covariance matrix
+
+
+```
+##              Murder   Assault   UrbanPop      Rape
+## Murder   1.00000000 0.8018733 0.06957262 0.5635788
+## Assault  0.80187331 1.0000000 0.25887170 0.6652412
+## UrbanPop 0.06957262 0.2588717 1.00000000 0.4113412
+## Rape     0.56357883 0.6652412 0.41134124 1.0000000
+```
+
+## Eigen
+
+
+```
+## eigen() decomposition
+## $values
+## [1] 2.4802416 0.9897652 0.3565632 0.1734301
+## 
+## $vectors
+##            [,1]       [,2]       [,3]        [,4]
+## [1,] -0.5358995  0.4181809 -0.3412327  0.64922780
+## [2,] -0.5831836  0.1879856 -0.2681484 -0.74340748
+## [3,] -0.2781909 -0.8728062 -0.3780158  0.13387773
+## [4,] -0.5434321 -0.1673186  0.8177779  0.08902432
+```
+
+---
+
+# Recover `\(\phi\)`
+
+
+```
+##                PC1        PC2
+## Murder   0.5358995 -0.4181809
+## Assault  0.5831836 -0.1879856
+## UrbanPop 0.2781909  0.8728062
+## Rape     0.5434321  0.1673186
+```
+
+* Principal component vector
+* Interpreting PC vectors
+
+---
+
+# Calculating PC scores
+
+* Project `\(x_1, \ldots, x_n\)` onto eigenvector
+* Calculate principal component scores
+
+--
+
+
+```
+## # A tibble: 50 x 3
+##    State           PC1     PC2
+##    &lt;chr&gt;         &lt;dbl&gt;   &lt;dbl&gt;
+##  1 Alabama      0.976  -1.12  
+##  2 Alaska       1.93   -1.06  
+##  3 Arizona      1.75    0.738 
+##  4 Arkansas    -0.140  -1.11  
+##  5 California   2.50    1.53  
+##  6 Colorado     1.50    0.978 
+##  7 Connecticut -1.34    1.08  
+##  8 Delaware     0.0472  0.322 
+##  9 Florida      2.98   -0.0388
+## 10 Georgia      1.62   -1.27  
+## # … with 40 more rows
+```
+
+---
+
+# Visualizing PC scores
+
+&lt;img src="dimension-reduction_files/figure-html/usarrests-pc-scores-plot-1.png" width="864" /&gt;
+
+---
+
+# Biplot
+
+&lt;img src="dimension-reduction_files/figure-html/usarrests-pc-scores-biplot-1.png" width="864" /&gt;
+
+---
+
+# Selecting the number of PCs
+
+* Total variance in a dataset
+
+    `$$\sum_{j=1}^p \Var(X_j) = \sum_{j=1}^p \frac{1}{N} \sum_{i=1}^N x_{ij}^2$$`
+
+* Variance explained by the `\(m\)`th principal component
+
+    `$$\frac{1}{N} \sum_{i=1}^N z_{im}^2 = \frac{1}{N} \sum_{i=1}^N \left( \sum_{j=1}^p \phi_{jm} x_{ij} \right)^2$$`
+    
+* Proportion of variance explained by the `\(m\)`th principal component
+
+    `$$\text{PVE} = \frac{\sum_{i=1}^N \left( \sum_{j=1}^p \phi_{jm} x_{ij} \right)^2}{\sum_{j=1}^p \sum_{i=1}^N x_{ij}^2}$$`
+    
+--
+
+    `$$\text{PVE} = \frac{\lambda_m}{\sum_{j=1}^p \lambda_j}$$`
+
+---
+
+# Variance explained
+
+&lt;img src="dimension-reduction_files/figure-html/pca-usarrests-pve-1.png" width="864" /&gt;
+
+---
+
+# Deciding on `\(m\)` principal components
+
+.center[
+
+![:scale 150%](https://media2.giphy.com/media/y65VoOlimZaus/giphy.gif?cid=3640f6095c7edcde43567a3359ba1a62)
+
+]
+
+---
+
+# MNIST data set
+
+.center[
+
+![MNIST digits](https://upload.wikimedia.org/wikipedia/commons/2/27/MnistExamples.png)
+
+]
+
+---
+
+# Import data
+
+
+
+
+```
+## # A tibble: 60,000 x 785
+##       X1    X2    X3    X4    X5    X6    X7    X8    X9   X10   X11   X12
+##    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1     5     0     0     0     0     0     0     0     0     0     0     0
+##  2     0     0     0     0     0     0     0     0     0     0     0     0
+##  3     4     0     0     0     0     0     0     0     0     0     0     0
+##  4     1     0     0     0     0     0     0     0     0     0     0     0
+##  5     9     0     0     0     0     0     0     0     0     0     0     0
+##  6     2     0     0     0     0     0     0     0     0     0     0     0
+##  7     1     0     0     0     0     0     0     0     0     0     0     0
+##  8     3     0     0     0     0     0     0     0     0     0     0     0
+##  9     1     0     0     0     0     0     0     0     0     0     0     0
+## 10     4     0     0     0     0     0     0     0     0     0     0     0
+## # … with 59,990 more rows, and 773 more variables: X13 &lt;dbl&gt;, X14 &lt;dbl&gt;,
+## #   X15 &lt;dbl&gt;, X16 &lt;dbl&gt;, X17 &lt;dbl&gt;, X18 &lt;dbl&gt;, X19 &lt;dbl&gt;, X20 &lt;dbl&gt;,
+## #   X21 &lt;dbl&gt;, X22 &lt;dbl&gt;, X23 &lt;dbl&gt;, X24 &lt;dbl&gt;, X25 &lt;dbl&gt;, X26 &lt;dbl&gt;,
+## #   X27 &lt;dbl&gt;, X28 &lt;dbl&gt;, X29 &lt;dbl&gt;, X30 &lt;dbl&gt;, X31 &lt;dbl&gt;, X32 &lt;dbl&gt;,
+## #   X33 &lt;dbl&gt;, X34 &lt;dbl&gt;, X35 &lt;dbl&gt;, X36 &lt;dbl&gt;, X37 &lt;dbl&gt;, X38 &lt;dbl&gt;,
+## #   X39 &lt;dbl&gt;, X40 &lt;dbl&gt;, X41 &lt;dbl&gt;, X42 &lt;dbl&gt;, X43 &lt;dbl&gt;, X44 &lt;dbl&gt;,
+## #   X45 &lt;dbl&gt;, X46 &lt;dbl&gt;, X47 &lt;dbl&gt;, X48 &lt;dbl&gt;, X49 &lt;dbl&gt;, X50 &lt;dbl&gt;,
+## #   X51 &lt;dbl&gt;, X52 &lt;dbl&gt;, X53 &lt;dbl&gt;, X54 &lt;dbl&gt;, X55 &lt;dbl&gt;, X56 &lt;dbl&gt;,
+## #   X57 &lt;dbl&gt;, X58 &lt;dbl&gt;, X59 &lt;dbl&gt;, X60 &lt;dbl&gt;, X61 &lt;dbl&gt;, X62 &lt;dbl&gt;,
+## #   X63 &lt;dbl&gt;, X64 &lt;dbl&gt;, X65 &lt;dbl&gt;, X66 &lt;dbl&gt;, X67 &lt;dbl&gt;, X68 &lt;dbl&gt;,
+## #   X69 &lt;dbl&gt;, X70 &lt;dbl&gt;, X71 &lt;dbl&gt;, X72 &lt;dbl&gt;, X73 &lt;dbl&gt;, X74 &lt;dbl&gt;,
+## #   X75 &lt;dbl&gt;, X76 &lt;dbl&gt;, X77 &lt;dbl&gt;, X78 &lt;dbl&gt;, X79 &lt;dbl&gt;, X80 &lt;dbl&gt;,
+## #   X81 &lt;dbl&gt;, X82 &lt;dbl&gt;, X83 &lt;dbl&gt;, X84 &lt;dbl&gt;, X85 &lt;dbl&gt;, X86 &lt;dbl&gt;,
+## #   X87 &lt;dbl&gt;, X88 &lt;dbl&gt;, X89 &lt;dbl&gt;, X90 &lt;dbl&gt;, X91 &lt;dbl&gt;, X92 &lt;dbl&gt;,
+## #   X93 &lt;dbl&gt;, X94 &lt;dbl&gt;, X95 &lt;dbl&gt;, X96 &lt;dbl&gt;, X97 &lt;dbl&gt;, X98 &lt;dbl&gt;,
+## #   X99 &lt;dbl&gt;, X100 &lt;dbl&gt;, X101 &lt;dbl&gt;, X102 &lt;dbl&gt;, X103 &lt;dbl&gt;, X104 &lt;dbl&gt;,
+## #   X105 &lt;dbl&gt;, X106 &lt;dbl&gt;, X107 &lt;dbl&gt;, X108 &lt;dbl&gt;, X109 &lt;dbl&gt;,
+## #   X110 &lt;dbl&gt;, X111 &lt;dbl&gt;, X112 &lt;dbl&gt;, …
+```
+
+---
+
+# Import data
+
+
+
+&lt;img src="dimension-reduction_files/figure-html/instances_12_graph-1.png" width="864" /&gt;
+
+---
+
+# Interpret PCA
+
+
+
+&lt;img src="dimension-reduction_files/figure-html/pixels-pca-pc12-1.png" width="864" /&gt;
+
+---
+
+# Interpret PCA
+
+&lt;img src="dimension-reduction_files/figure-html/pixels-pca-pc12-facet-1.png" width="864" /&gt;
+
+---
+
+# Interpret PCA
+
+&lt;img src="dimension-reduction_files/figure-html/pixels-pca-pc12-biplot-1.png" width="864" /&gt;
+
+---
+
+# Scree plots
+
+&lt;img src="dimension-reduction_files/figure-html/pixels-pca-pve-1.png" width="864" /&gt;
+
+---
+
+# Non-linear dimension reduction
+
+* Linear combination of features
+* Non-linear combination of features
+* Global vs. local
+    * Global - preserve geometry at all scales
+    * Local - map nearby points in high dimensions to nearby points in low dimensions
+    
+---
+
+# Stochastic Neighbor Embedding (SNE)
+
+* Convert high-demensional Euclidean distances between data points into conditional probabilities representing similarities
+* Similarity of `\(x_j\)` to `\(x_i\)`
+* `\(p_{j | i}\)`
+    * Conditional probability `\(x_i\)` would choose `\(x_j\)` as its neighbor proportionally to their probability density under a Gaussian centered at `\(x_i\)`
+* `\(p_{j | i}\)` for close data points
+* `\(p_{j | i}\)` for distant data points
+
+`$$p_{j|i} = \frac{\exp(- \| x_i - x_j \|^2 / 2\sigma_i^2)}{\sum_{k \neq i} \exp(- \| x_i - x_k \|^2 / 2\sigma_i^2)}$$`
+
+---
+
+# Stochastic Neighbor Embedding (SNE)
+
+* Convert low-demensional counterparts' Euclidean distances between data points into conditional probabilities representing similarities
+* Similarity of `\(y_j\)` to `\(y_i\)`
+* `\(q_{j | i}\)`
+    * Conditional probability `\(y_i\)` would choose `\(y_j\)` as its neighbor proportionally to their probability density under a Gaussian centered at `\(y_i\)`
+* `\(q_{j | i}\)` for close data points
+* `\(q_{j | i}\)` for distant data points
+
+`$$q_{j|i} = \frac{\exp(- \| x_i - x_j \|^2)}{\sum_{k \neq i} \exp(- \| x_i - x_k \|^2)}$$`
+
+---
+
+# Stochastic Neighbor Embedding (SNE)
+
+* Minimize the difference between `\(p_{j | i}\)` and `\(q_{j | i}\)`
+* Complex cost function
+* Difficult to compute
+* `\(t\)`-SNE
+    * Use `\(t\)`-distribution for q_{j|i}
+    * Resolves many optimization problems
+    
+---
+
+# `\(t\)`-SNE
+
+* Non-linear dimension reduction algorithm
+* Finds patterns in the data by identifying observed clusters based on similarity across feature space
+* Maps the multi-dimensional data to a lower dimensional space
+* Data exploration/visualization
+* Construct features from output of `\(t\)`-SNE
+* Major tuning parameters
+    * Number of dimensions for reduction
+    * Perplexity - effective size of local neighborhood
+    * Initial PCA step
+
+---
+
+# MNIST data set
+
+
+
+&lt;img src="dimension-reduction_files/figure-html/pixels-tsne-dim-1.png" width="864" /&gt;
+
+---
+
+# MNIST data set
+
+&lt;img src="dimension-reduction_files/figure-html/pixels-tsne-dim-facet-1.png" width="864" /&gt;
+
+---
+
+# Comparison of PCA and `\(t\)`-SNE
+
+&lt;img src="dimension-reduction_files/figure-html/pca-tsne-compare-1.png" width="864" /&gt;
+
+---
+
+# Latent semantic analysis
+
+
+---
+
+# LDA
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
