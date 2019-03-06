@@ -196,7 +196,7 @@ $$\max \Var(Z_2)$$
 
 ## $n$th principal component
 
-* $p$ unique principal components
+* $\min(p, n)$ unique principal components
 * As $j$ increases, variance of $Z_j$ constantly decreasing
 
 ---
@@ -222,7 +222,7 @@ $$\max \Var(Z_2)$$
     
 1. Compute the $K$ largest **eigenvectors** of $\mathbf{S}$
     * Principal components of the dataset
-    * Vector elements - PC scores
+    * Vector elements - PC loadings
     * Eigenvalue - variance of each PC
 
 ---
