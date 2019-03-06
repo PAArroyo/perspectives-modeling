@@ -33,8 +33,66 @@ $$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{
 
 ---
 
+# Supervised learning
+
+* Predict $Y = Y_1, \ldots, Y_m$ given $X^T = (X_1, \ldots, X_p)$
+* Use training sample of known outcomes and predictors
+* Minimize loss function $L(Y, \hat{Y})$
+* $\Pr(X,Y)$
+* Estimate properties of $\Pr(Y | X)$
+
+    $$\mu(x) = \underset{\theta}{\text{argmin}} \E_{Y | X} L(Y, \theta)$$
+    
+    $$\Pr(X,Y) = \Pr(Y | X) \cdot \Pr(X)$$
+    
+    * Ignore $\Pr(X)$
+
+---
+
 # Unsupervised learning
 
+* $X^T = (X_1, \ldots, X_p)$
+* Estimate properties of $\Pr(X)$
+* No objective function
+* Much higher dimensionality
+* Not worried about how $\Pr(X)$ changes conditional on changes in $X$
+
+---
+
+# Unsupervised learning with low $p$
+
+```{r infant}
+infant <- read_csv(here("static", "data", "infant.csv")) %>%
+  # remove non-countries
+  filter(is.na(`Value Footnotes`) | `Value Footnotes` != 1) %>%
+  select(`Country or Area`, Year, Value) %>%
+  rename(country = `Country or Area`,
+         year = Year,
+         mortal = Value)
+```
+
+```{r infant-epan-optimal, dependson = "infant"}
+ggplot(infant, aes(mortal)) +
+  geom_density(kernel = "epanechnikov") +
+  labs(title = "Epanechnikov kernel function",
+       subtitle = str_c("Optimal bandwidth = ",
+                        round(density(x = infant$mortal, kernel = "epanechnikov")$bw,
+                              digits = 2)),
+       x = "Infant mortality rate (per 1,000)",
+       y = "Density")
+```
+
+---
+
+# Unsupervised learning
+
+* Dimension reduction
+* Cluster analysis
+
+--
+
+* Metric for success
+    
 
 ---
 
@@ -225,7 +283,7 @@ ggplot(PC, aes(PC1, PC2)) +
 # Biplot
 
 ```{r usarrests-pc-scores-biplot, dependson = "usarrests-pc-scores"}
-phi_df <- (phi * 2) %>%
+phi_df <- (phi * 1.75) %>%
   as.data.frame %>%
   rownames_to_column(var = "variable")
 
@@ -307,7 +365,7 @@ us_pve + us_cve
 
 .center[
 
-![:scale 150%](https://media2.giphy.com/media/y65VoOlimZaus/giphy.gif?cid=3640f6095c7edcde43567a3359ba1a62)
+<iframe src="https://giphy.com/embed/y65VoOlimZaus" width="600" height="549" frameBorder="0" class="giphy-embed" allowFullScreen></iframe><p><a href="https://giphy.com/gifs/idk-shrug-power-rangers-y65VoOlimZaus">via GIPHY</a></p>
 
 ]
 
@@ -485,7 +543,7 @@ $$q_{j|i} = \frac{\exp(- \| x_i - x_j \|^2)}{\sum_{k \neq i} \exp(- \| x_i - x_k
 * Complex cost function
 * Difficult to compute
 * $t$-SNE
-    * Use $t$-distribution for q_{j|i}
+    * Use $t$-distribution for $q_{j|i}$
     * Resolves many optimization problems
     
 ---
@@ -499,7 +557,7 @@ $$q_{j|i} = \frac{\exp(- \| x_i - x_j \|^2)}{\sum_{k \neq i} \exp(- \| x_i - x_k
 * Construct features from output of $t$-SNE
 * Major tuning parameters
     * Number of dimensions for reduction
-    * Perplexity - effective size of local neighborhood
+    * Effective size of local neighborhood
     * Initial PCA step
 
 ---

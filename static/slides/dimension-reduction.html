@@ -24,8 +24,49 @@ class: center, middle, inverse, title-slide
 
 ---
 
+# Supervised learning
+
+* Predict `\(Y = Y_1, \ldots, Y_m\)` given `\(X^T = (X_1, \ldots, X_p)\)`
+* Use training sample of known outcomes and predictors
+* Minimize loss function `\(L(Y, \hat{Y})\)`
+* `\(\Pr(X,Y)\)`
+* Estimate properties of `\(\Pr(Y | X)\)`
+
+    `$$\mu(x) = \underset{\theta}{\text{argmin}} \E_{Y | X} L(Y, \theta)$$`
+    
+    `$$\Pr(X,Y) = \Pr(Y | X) \cdot \Pr(X)$$`
+    
+    * Ignore `\(\Pr(X)\)`
+
+---
+
 # Unsupervised learning
 
+* `\(X^T = (X_1, \ldots, X_p)\)`
+* Estimate properties of `\(\Pr(X)\)`
+* No objective function
+* Much higher dimensionality
+* Not worried about how `\(\Pr(X)\)` changes conditional on changes in `\(X\)`
+
+---
+
+# Unsupervised learning with low `\(p\)`
+
+
+
+&lt;img src="dimension-reduction_files/figure-html/infant-epan-optimal-1.png" width="864" /&gt;
+
+---
+
+# Unsupervised learning
+
+* Dimension reduction
+* Cluster analysis
+
+--
+
+* Metric for success
+    
 
 ---
 
@@ -272,7 +313,7 @@ class: center, middle, inverse, title-slide
 
 .center[
 
-![:scale 150%](https://media2.giphy.com/media/y65VoOlimZaus/giphy.gif?cid=3640f6095c7edcde43567a3359ba1a62)
+&lt;iframe src="https://giphy.com/embed/y65VoOlimZaus" width="600" height="549" frameBorder="0" class="giphy-embed" allowFullScreen&gt;&lt;/iframe&gt;&lt;p&gt;&lt;a href="https://giphy.com/gifs/idk-shrug-power-rangers-y65VoOlimZaus"&gt;via GIPHY&lt;/a&gt;&lt;/p&gt;
 
 ]
 
@@ -405,7 +446,7 @@ class: center, middle, inverse, title-slide
 * Complex cost function
 * Difficult to compute
 * `\(t\)`-SNE
-    * Use `\(t\)`-distribution for q_{j|i}
+    * Use `\(t\)`-distribution for `\(q_{j|i}\)`
     * Resolves many optimization problems
     
 ---
@@ -419,7 +460,7 @@ class: center, middle, inverse, title-slide
 * Construct features from output of `\(t\)`-SNE
 * Major tuning parameters
     * Number of dimensions for reduction
-    * Perplexity - effective size of local neighborhood
+    * Effective size of local neighborhood
     * Initial PCA step
 
 ---
