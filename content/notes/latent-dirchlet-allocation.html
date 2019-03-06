@@ -72,12 +72,13 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li><a href="#compare-lda-to-supervised-structure"><span class="toc-section-number">3.6</span> Compare LDA to supervised structure</a></li>
 <li><a href="#document-classification"><span class="toc-section-number">3.7</span> Document classification</a></li>
 </ul></li>
-<li><a href="#associated-press-articles"><span class="toc-section-number">4</span> Associated Press articles</a><ul>
-<li><a href="#selecting-k"><span class="toc-section-number">4.1</span> Selecting <span class="math inline">\(k\)</span></a><ul>
-<li><a href="#k4"><span class="toc-section-number">4.1.1</span> <span class="math inline">\(k=4\)</span></a></li>
-<li><a href="#k12"><span class="toc-section-number">4.1.2</span> <span class="math inline">\(k=12\)</span></a></li>
+<li><a href="#rjokes-data-set"><span class="toc-section-number">4</span> <code>r/jokes</code> data set</a><ul>
+<li><a href="#convert-to-document-term-matrix-1"><span class="toc-section-number">4.1</span> Convert to document-term matrix</a></li>
+<li><a href="#selecting-k"><span class="toc-section-number">4.2</span> Selecting <span class="math inline">\(k\)</span></a><ul>
+<li><a href="#k4"><span class="toc-section-number">4.2.1</span> <span class="math inline">\(k=4\)</span></a></li>
+<li><a href="#k12"><span class="toc-section-number">4.2.2</span> <span class="math inline">\(k=12\)</span></a></li>
 </ul></li>
-<li><a href="#perplexity"><span class="toc-section-number">4.2</span> Perplexity</a></li>
+<li><a href="#perplexity"><span class="toc-section-number">4.3</span> Perplexity</a></li>
 </ul></li>
 <li><a href="#session-info"><span class="toc-section-number">5</span> Session Info</a></li>
 <li><a href="#references"><span class="toc-section-number">6</span> References</a></li>
@@ -93,6 +94,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <span class="kw">library</span>(topicmodels)
 <span class="kw">library</span>(rjson)
 <span class="kw">library</span>(furrr)
+<span class="kw">library</span>(tictoc)
 
 <span class="kw">set.seed</span>(<span class="dv">1234</span>)
 <span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
@@ -165,10 +167,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <ul>
 <li>And for each topic <span class="math inline">\(t\)</span>, compute two things:
 <ol style="list-style-type: decimal">
-<li>The proportion of words in document <span class="math inline">\(d\)</span> that are currently assigned to topic <span class="math inline">\(t\)</span> - <span class="math inline">\(p(t | d)\)</span></li>
-<li>The proportion of assignments to topic <span class="math inline">\(t\)</span> over all documents that come from this word <span class="math inline">\(w\)</span> - <span class="math inline">\(p(w | t)\)</span></li>
+<li>The proportion of words in document <span class="math inline">\(d\)</span> that are currently assigned to topic <span class="math inline">\(t\)</span> - <span class="math inline">\(\Pr(t | d)\)</span></li>
+<li>The proportion of assignments to topic <span class="math inline">\(t\)</span> over all documents that come from this word <span class="math inline">\(w\)</span> - <span class="math inline">\(\Pr(w | t)\)</span></li>
 </ol></li>
-<li>Reassign <span class="math inline">\(w\)</span> a new topic, where you choose topic <span class="math inline">\(t\)</span> with probability <span class="math inline">\(p(t|d) \times p(w|t)\)</span> - this is the probability that topic <span class="math inline">\(t\)</span> generated word <span class="math inline">\(w\)</span></li>
+<li>Reassign <span class="math inline">\(w\)</span> a new topic, where you choose topic <span class="math inline">\(t\)</span> with probability <span class="math inline">\(\Pr(t|d) \times \Pr(w|t)\)</span> - this is the probability that topic <span class="math inline">\(t\)</span> generated word <span class="math inline">\(w\)</span></li>
 <li>In other words, in this step, we’re assuming that all topic assignments except for the current word in question are correct, and then updating the assignment of the current word using our model of how documents are generated.</li>
 </ul></li>
 </ul></li>
@@ -396,35 +398,98 @@ congress_gamma</code></pre></div>
 <p>Do the policy agendas topic codes map onto the 20-topic LDA model? Not well. No clear and distinct topics for this subset at least. Substantive implications?</p>
 </div>
 </div>
-<div id="associated-press-articles" class="section level1">
-<h1><span class="header-section-number">4</span> Associated Press articles</h1>
-<p>The <code>topicmodels</code> package includes a document-term matrix of a sample of articles published by the Associated Press in 1992. Let’s load them into R and estimate a series of LDA models.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(<span class="st">&quot;AssociatedPress&quot;</span>, <span class="dt">package =</span> <span class="st">&quot;topicmodels&quot;</span>)
+<div id="rjokes-data-set" class="section level1">
+<h1><span class="header-section-number">4</span> <code>r/jokes</code> data set</h1>
+<p>Example:</p>
+<blockquote class="reddit-card" data-card-created="1551898234">
+<a href="https://www.reddit.com/r/Jokes/comments/a593r0/twenty_years_from_now_kids_are_gonna_think_baby/">Twenty years from now, kids are gonna think “Baby it’s cold outside” is really weird, and we’re gonna have to explain that it has to be understood as a product of its time.</a> from <a href="http://www.reddit.com/r/Jokes">r/Jokes</a>
+</blockquote>
+<script async src="//embed.redditmedia.com/widgets/platform.js" charset="UTF-8"></script>
+<p>Many are quite a bit more offensive than this.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">jokes_json &lt;-<span class="st"> </span><span class="kw">fromJSON</span>(<span class="dt">file =</span> <span class="st">&quot;https://github.com/taivop/joke-dataset/raw/master/reddit_jokes.json&quot;</span>)
+jokes &lt;-<span class="st"> </span>jokes_json <span class="op">%&gt;%</span>
+{
+  <span class="kw">tibble</span>(
+    <span class="dt">id =</span> <span class="kw">map_chr</span>(., <span class="st">&quot;id&quot;</span>),
+    <span class="dt">title =</span> <span class="kw">map_chr</span>(., <span class="st">&quot;title&quot;</span>),
+    <span class="dt">body =</span> <span class="kw">map_chr</span>(., <span class="st">&quot;body&quot;</span>),
+    <span class="dt">score =</span> <span class="kw">map_dbl</span>(., <span class="st">&quot;score&quot;</span>)
+  )
+}
+<span class="kw">glimpse</span>(jokes)</code></pre></div>
+<pre><code>## Observations: 194,553
+## Variables: 4
+## $ id    &lt;chr&gt; &quot;5tz52q&quot;, &quot;5tz4dd&quot;, &quot;5tz319&quot;, &quot;5tz2wj&quot;, &quot;5tz1pc&quot;, &quot;5tz1o1&quot;…
+## $ title &lt;chr&gt; &quot;I hate how you cant even say black paint anymore&quot;, &quot;What&#39;…
+## $ body  &lt;chr&gt; &quot;Now I have to say \&quot;Leroy can you please paint the fence?…
+## $ score &lt;dbl&gt; 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 15, 0, 0, 3, 1, 0, 3, 2, 2, …</code></pre>
+<div id="convert-to-document-term-matrix-1" class="section level2">
+<h2><span class="header-section-number">4.1</span> Convert to document-term matrix</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">123</span>)
+n_grams &lt;-<span class="st"> </span><span class="dv">1</span><span class="op">:</span><span class="dv">5</span>
+jokes_lite &lt;-<span class="st"> </span><span class="kw">sample_n</span>(jokes, <span class="dv">5000</span>)
 
-<span class="co"># tidy and remove stop words</span>
-ap_td &lt;-<span class="st"> </span><span class="kw">tidy</span>(AssociatedPress)</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ap_dtm &lt;-<span class="st"> </span>ap_td <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">anti_join</span>(stop_words, <span class="dt">by =</span> <span class="kw">c</span>(<span class="dt">term =</span> <span class="st">&quot;word&quot;</span>)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">cast_dtm</span>(document, term, count)
-ap_dtm</code></pre></div>
-<pre><code>## &lt;&lt;DocumentTermMatrix (documents: 2246, terms: 10134)&gt;&gt;
-## Non-/sparse entries: 259208/22501756
-## Sparsity           : 99%
-## Maximal term length: 18
+jokes_tokens &lt;-<span class="st"> </span><span class="kw">map_df</span>(n_grams, <span class="op">~</span><span class="st"> </span>jokes_lite <span class="op">%&gt;%</span>
+<span class="st">      </span><span class="co"># combine title and body</span>
+<span class="st">      </span><span class="kw">unite</span>(<span class="dt">col =</span> joke, title, body, <span class="dt">sep =</span> <span class="st">&quot; &quot;</span>) <span class="op">%&gt;%</span>
+<span class="st">      </span><span class="co"># tokenize</span>
+<span class="st">      </span><span class="kw">unnest_tokens</span>(<span class="dt">output =</span> word,
+                    <span class="dt">input =</span> joke,
+                    <span class="dt">token =</span> <span class="st">&quot;ngrams&quot;</span>,
+                    <span class="dt">n =</span> .x) <span class="op">%&gt;%</span>
+<span class="st">        </span><span class="kw">mutate</span>(<span class="dt">ngram =</span> .x,
+               <span class="dt">token_id =</span> <span class="kw">row_number</span>()))
+
+<span class="co"># identify n-grams beginning or ending with stop word</span>
+jokes_stop_words &lt;-<span class="st"> </span>jokes_tokens <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="co"># separate ngrams into separate columns</span>
+<span class="st">  </span><span class="kw">separate</span>(<span class="dt">col =</span> word,
+           <span class="dt">into =</span> <span class="kw">c</span>(<span class="st">&quot;word1&quot;</span>, <span class="st">&quot;word2&quot;</span>, <span class="st">&quot;word3&quot;</span>, <span class="st">&quot;word4&quot;</span>, <span class="st">&quot;word5&quot;</span>),
+           <span class="dt">sep =</span> <span class="st">&quot; &quot;</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="co"># find last word</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">last =</span> <span class="kw">if_else</span>(ngram <span class="op">==</span><span class="st"> </span><span class="dv">5</span>, word5,
+                        <span class="kw">if_else</span>(ngram <span class="op">==</span><span class="st"> </span><span class="dv">4</span>, word4,
+                                <span class="kw">if_else</span>(ngram <span class="op">==</span><span class="st"> </span><span class="dv">3</span>, word3,
+                                        <span class="kw">if_else</span>(ngram <span class="op">==</span><span class="st"> </span><span class="dv">2</span>, word2, word1))))) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="co"># remove tokens where the first or last word is a stop word</span>
+<span class="st">  </span><span class="kw">filter</span>(word1 <span class="op">%in%</span><span class="st"> </span>stop_words<span class="op">$</span>word <span class="op">|</span>
+<span class="st">           </span>last <span class="op">%in%</span><span class="st"> </span>stop_words<span class="op">$</span>word) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(ngram, token_id)</code></pre></div>
+<pre><code>## Warning: Expected 5 pieces. Missing pieces filled with `NA` in 924710
+## rows [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+## 20, ...].</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># convert to dtm</span>
+jokes_dtm &lt;-<span class="st"> </span>jokes_tokens <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="co"># remove stop word tokens</span>
+<span class="st">  </span><span class="kw">anti_join</span>(jokes_stop_words) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="co"># get count of each token in each document</span>
+<span class="st">  </span><span class="kw">count</span>(id, word) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="co"># create a document-term matrix with all features and tf weighting</span>
+<span class="st">  </span><span class="kw">cast_dtm</span>(<span class="dt">document =</span> id, <span class="dt">term =</span> word, <span class="dt">value =</span> n) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">removeSparseTerms</span>(<span class="dt">sparse =</span> .<span class="dv">999</span>)</code></pre></div>
+<pre><code>## Joining, by = c(&quot;ngram&quot;, &quot;token_id&quot;)</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># remove documents with no terms remaining</span>
+jokes_dtm &lt;-<span class="st"> </span>jokes_dtm[<span class="kw">unique</span>(jokes_dtm<span class="op">$</span>i),]
+jokes_dtm</code></pre></div>
+<pre><code>## &lt;&lt;DocumentTermMatrix (documents: 4952, terms: 2927)&gt;&gt;
+## Non-/sparse entries: 48020/14446484
+## Sparsity           : 100%
+## Maximal term length: NA
 ## Weighting          : term frequency (tf)</code></pre>
+</div>
 <div id="selecting-k" class="section level2">
-<h2><span class="header-section-number">4.1</span> Selecting <span class="math inline">\(k\)</span></h2>
+<h2><span class="header-section-number">4.2</span> Selecting <span class="math inline">\(k\)</span></h2>
 <p>Remember that for LDA, you need to specify in advance the number of topics in the underlying topic structure.</p>
 <div id="k4" class="section level3">
-<h3><span class="header-section-number">4.1.1</span> <span class="math inline">\(k=4\)</span></h3>
-<p>Let’s estimate an LDA model for the Associated Press articles, setting <span class="math inline">\(k=4\)</span>.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ap_lda &lt;-<span class="st"> </span><span class="kw">LDA</span>(ap_dtm, <span class="dt">k =</span> <span class="dv">4</span>, <span class="dt">control =</span> <span class="kw">list</span>(<span class="dt">seed =</span> <span class="dv">1234</span>))
-ap_lda</code></pre></div>
+<h3><span class="header-section-number">4.2.1</span> <span class="math inline">\(k=4\)</span></h3>
+<p>Let’s estimate an LDA model for the <code>r/jokes</code> subset, setting <span class="math inline">\(k=4\)</span>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">jokes_lda4 &lt;-<span class="st"> </span><span class="kw">LDA</span>(jokes_dtm, <span class="dt">k =</span> <span class="dv">4</span>, <span class="dt">control =</span> <span class="kw">list</span>(<span class="dt">seed =</span> <span class="dv">1234</span>))
+jokes_lda4</code></pre></div>
 <pre><code>## A LDA_VEM topic model with 4 topics.</code></pre>
 <p>What do the top terms for each of these topics look like?</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ap_lda_td &lt;-<span class="st"> </span><span class="kw">tidy</span>(ap_lda)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">jokes_lda4_td &lt;-<span class="st"> </span><span class="kw">tidy</span>(jokes_lda4)
 
-top_terms &lt;-<span class="st"> </span>ap_lda_td <span class="op">%&gt;%</span>
+top_terms &lt;-<span class="st"> </span>jokes_lda4_td <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">group_by</span>(topic) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">top_n</span>(<span class="dv">5</span>, beta) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ungroup</span>() <span class="op">%&gt;%</span>
@@ -433,62 +498,61 @@ top_terms</code></pre></div>
 <pre><code>## # A tibble: 20 x 3
 ##    topic term          beta
 ##    &lt;int&gt; &lt;chr&gt;        &lt;dbl&gt;
-##  1     1 police     0.0102 
-##  2     1 people     0.00856
-##  3     1 officials  0.00478
-##  4     1 city       0.00399
-##  5     1 killed     0.00373
-##  6     2 soviet     0.0113 
-##  7     2 government 0.00982
-##  8     2 president  0.00880
-##  9     2 united     0.00775
-## 10     2 party      0.00598
-## 11     3 percent    0.0191 
-## 12     3 million    0.0127 
-## 13     3 billion    0.00894
-## 14     3 market     0.00649
-## 15     3 company    0.00601
-## 16     4 court      0.00615
-## 17     4 bush       0.00482
-## 18     4 people     0.00431
-## 19     4 dukakis    0.00419
-## 20     4 president  0.00417</code></pre>
+##  1     1 wife       0.0180 
+##  2     1 doctor     0.0127 
+##  3     1 day        0.0120 
+##  4     1 husband    0.0107 
+##  5     1 son        0.0104 
+##  6     2 guy        0.0279 
+##  7     2 bar        0.0222 
+##  8     2 walks      0.0197 
+##  9     2 bartender  0.0126 
+## 10     2 girl       0.0123 
+## 11     3 black      0.0110 
+## 12     3 people     0.0107 
+## 13     3 boy        0.0102 
+## 14     3 teacher    0.00937
+## 15     3 women      0.00804
+## 16     4 door       0.0279 
+## 17     4 call       0.0278 
+## 18     4 joke       0.0138 
+## 19     4 car        0.0107 
+## 20     4 difference 0.0107</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">top_terms <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">term =</span> <span class="kw">reorder</span>(term, beta)) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(term, beta, <span class="dt">fill =</span> <span class="kw">factor</span>(topic))) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_bar</span>(<span class="dt">alpha =</span> <span class="fl">0.8</span>, <span class="dt">stat =</span> <span class="st">&quot;identity&quot;</span>, <span class="dt">show.legend =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>topic, <span class="dt">scales =</span> <span class="st">&quot;free&quot;</span>, <span class="dt">ncol =</span> <span class="dv">2</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">coord_flip</span>()</code></pre></div>
-<p><img src="/notes/latent-dirchlet-allocation_files/figure-html/ap_4_topn-1.png" width="672" /></p>
-<p>Fair enough. The four topics generally look to describe:</p>
+<p><img src="/notes/latent-dirchlet-allocation_files/figure-html/jokes_4_topn-1.png" width="672" /></p>
 </div>
 <div id="k12" class="section level3">
-<h3><span class="header-section-number">4.1.2</span> <span class="math inline">\(k=12\)</span></h3>
+<h3><span class="header-section-number">4.2.2</span> <span class="math inline">\(k=12\)</span></h3>
 <p>What happens if we set <span class="math inline">\(k=12\)</span>? How do our results change?</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ap_lda &lt;-<span class="st"> </span><span class="kw">LDA</span>(ap_dtm, <span class="dt">k =</span> <span class="dv">12</span>, <span class="dt">control =</span> <span class="kw">list</span>(<span class="dt">seed =</span> <span class="dv">1234</span>))
-ap_lda</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">jokes_lda12 &lt;-<span class="st"> </span><span class="kw">LDA</span>(jokes_dtm, <span class="dt">k =</span> <span class="dv">12</span>, <span class="dt">control =</span> <span class="kw">list</span>(<span class="dt">seed =</span> <span class="dv">1234</span>))
+jokes_lda12</code></pre></div>
 <pre><code>## A LDA_VEM topic model with 12 topics.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ap_lda_td &lt;-<span class="st"> </span><span class="kw">tidy</span>(ap_lda)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">jokes_lda12_td &lt;-<span class="st"> </span><span class="kw">tidy</span>(jokes_lda12)
 
-top_terms &lt;-<span class="st"> </span>ap_lda_td <span class="op">%&gt;%</span>
+top_terms &lt;-<span class="st"> </span>jokes_lda12_td <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">group_by</span>(topic) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">top_n</span>(<span class="dv">5</span>, beta) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ungroup</span>() <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">arrange</span>(topic, <span class="op">-</span>beta)
 top_terms</code></pre></div>
 <pre><code>## # A tibble: 60 x 3
-##    topic term          beta
-##    &lt;int&gt; &lt;chr&gt;        &lt;dbl&gt;
-##  1     1 people     0.00497
-##  2     1 dont       0.00396
-##  3     1 air        0.00391
-##  4     1 time       0.00377
-##  5     1 york       0.00367
-##  6     2 soviet     0.0175 
-##  7     2 aid        0.0108 
-##  8     2 million    0.00640
-##  9     2 government 0.00622
-## 10     2 corn       0.00572
+##    topic term     beta
+##    &lt;int&gt; &lt;chr&gt;   &lt;dbl&gt;
+##  1     1 2      0.0279
+##  2     1 1      0.0270
+##  3     1 blonde 0.0169
+##  4     1 10     0.0167
+##  5     1 5      0.0134
+##  6     2 woman  0.0587
+##  7     2 dog    0.0337
+##  8     2 women  0.0273
+##  9     2 jokes  0.0212
+## 10     2 child  0.0179
 ## # … with 50 more rows</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">top_terms <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">term =</span> <span class="kw">reorder</span>(term, beta)) <span class="op">%&gt;%</span>
@@ -496,31 +560,32 @@ top_terms</code></pre></div>
 <span class="st">  </span><span class="kw">geom_bar</span>(<span class="dt">alpha =</span> <span class="fl">0.8</span>, <span class="dt">stat =</span> <span class="st">&quot;identity&quot;</span>, <span class="dt">show.legend =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>topic, <span class="dt">scales =</span> <span class="st">&quot;free&quot;</span>, <span class="dt">ncol =</span> <span class="dv">3</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">coord_flip</span>()</code></pre></div>
-<p><img src="/notes/latent-dirchlet-allocation_files/figure-html/ap_12_topn-1.png" width="672" /></p>
-<p>Hmm. Well, these topics appear to be more specific, yet not as easily decodeable. Alas, this is the problem with LDA. Several different values for <span class="math inline">\(k\)</span> may be plausible, but by increasing <span class="math inline">\(k\)</span> we sacrifice clarity. Is there any statistical measure which will help us determine the optimal number of topics?</p>
+<p><img src="/notes/latent-dirchlet-allocation_files/figure-html/jokes_12_topn-1.png" width="672" /></p>
 </div>
 </div>
 <div id="perplexity" class="section level2">
-<h2><span class="header-section-number">4.2</span> Perplexity</h2>
-<p>Well, sort of. Some aspects of LDA are driven by gut-thinking (or perhaps <a href="http://www.cc.com/video-clips/63ite2/the-colbert-report-the-word---truthiness">truthiness</a>). However we can have some help. <a href="https://en.wikipedia.org/wiki/Perplexity"><strong>Perplexity</strong></a> is a statistical measure of how well a probability model predicts a sample. As applied to LDA, for a given value of <span class="math inline">\(k\)</span>, you estimate the LDA model. Then given the theoretical word distributions represented by the topics, compare that to the actual topic mixtures, or distribution of words in your documents.</p>
+<h2><span class="header-section-number">4.3</span> Perplexity</h2>
+<p>Some aspects of LDA are driven by gut-thinking (or perhaps <a href="http://www.cc.com/video-clips/63ite2/the-colbert-report-the-word---truthiness">truthiness</a>). However we can have some help. <a href="https://en.wikipedia.org/wiki/Perplexity"><strong>Perplexity</strong></a> is a statistical measure of how well a probability model predicts a sample. As applied to LDA, for a given value of <span class="math inline">\(k\)</span>, you estimate the LDA model. Then given the theoretical word distributions represented by the topics, compare that to the actual topic mixtures, or distribution of words in your documents.</p>
 <p><code>topicmodels</code> includes the function <code>perplexity()</code> which calculates this value for a given model.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">perplexity</span>(ap_lda)</code></pre></div>
-<pre><code>## [1] 2277.876</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">perplexity</span>(jokes_lda12)</code></pre></div>
+<pre><code>## [1] 1102.435</code></pre>
 <p>However, the statistic is somewhat meaningless on its own. The benefit of this statistic comes in comparing perplexity across different models with varying <span class="math inline">\(k\)</span>s. The model with the lowest perplexity is generally considered the “best”.</p>
-<p>Let’s estimate a series of LDA models on the Associated Press dataset. Here I make use of <code>purrr</code> and the <code>map()</code> functions to iteratively generate a series of LDA models for the AP corpus, using a different number of topics in each model.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<p>Let’s estimate a series of LDA models on the Associated Press dataset. Here I make use of <code>purrr</code> and the <code>map()</code> functions to iteratively generate a series of LDA models for the <code>r/jokes</code> corpus, using a different number of topics in each model.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">n_topics &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">50</span>, <span class="dv">100</span>)
 
-<span class="cf">if</span>(<span class="kw">file.exists</span>(<span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;ap_lda_compare.Rdata&quot;</span>))){
-  <span class="kw">load</span>(<span class="dt">file =</span> <span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;ap_lda_compare.Rdata&quot;</span>))
+<span class="cf">if</span>(<span class="kw">file.exists</span>(<span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;jokes_lda_compare.Rdata&quot;</span>))){
+  <span class="kw">load</span>(<span class="dt">file =</span> <span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;jokes_lda_compare.Rdata&quot;</span>))
 } <span class="cf">else</span>{
   <span class="kw">plan</span>(multiprocess)
   
-  ap_lda_compare &lt;-<span class="st"> </span>n_topics <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">future_map</span>(LDA, <span class="dt">x =</span> ap_dtm, <span class="dt">control =</span> <span class="kw">list</span>(<span class="dt">seed =</span> <span class="dv">1234</span>))
-  <span class="kw">save</span>(ap_lda_compare, <span class="dt">file =</span> <span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;ap_lda_compare.Rdata&quot;</span>))
+  <span class="kw">tic</span>()
+  jokes_lda_compare &lt;-<span class="st"> </span>n_topics <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">future_map</span>(LDA, <span class="dt">x =</span> jokes_dtm, <span class="dt">control =</span> <span class="kw">list</span>(<span class="dt">seed =</span> <span class="dv">1234</span>))
+  <span class="kw">toc</span>()
+  <span class="kw">save</span>(jokes_lda_compare, <span class="dt">file =</span> <span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;jokes_lda_compare.Rdata&quot;</span>))
 }</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(<span class="dt">k =</span> n_topics,
-           <span class="dt">perplex =</span> <span class="kw">map_dbl</span>(ap_lda_compare, perplexity)) <span class="op">%&gt;%</span>
+       <span class="dt">perplex =</span> <span class="kw">map_dbl</span>(jokes_lda_compare, perplexity)) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(k, perplex)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
@@ -528,30 +593,30 @@ top_terms</code></pre></div>
        <span class="dt">subtitle =</span> <span class="st">&quot;Optimal number of topics (smaller is better)&quot;</span>,
        <span class="dt">x =</span> <span class="st">&quot;Number of topics&quot;</span>,
        <span class="dt">y =</span> <span class="st">&quot;Perplexity&quot;</span>)</code></pre></div>
-<p><img src="/notes/latent-dirchlet-allocation_files/figure-html/ap_lda_compare_viz-1.png" width="672" /></p>
+<p><img src="/notes/latent-dirchlet-allocation_files/figure-html/jokes_lda_compare_viz-1.png" width="672" /></p>
 <p>It looks like the 100-topic model has the lowest perplexity score. What kind of topics does this generate? Let’s look just at the first 12 topics produced by the model (<code>ggplot2</code> has difficulty rendering a graph for 100 separate facets):</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ap_lda_td &lt;-<span class="st"> </span><span class="kw">tidy</span>(ap_lda_compare[[<span class="dv">6</span>]])
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">jokes_lda_td &lt;-<span class="st"> </span><span class="kw">tidy</span>(jokes_lda_compare[[<span class="dv">6</span>]])
 
-top_terms &lt;-<span class="st"> </span>ap_lda_td <span class="op">%&gt;%</span>
+top_terms &lt;-<span class="st"> </span>jokes_lda_td <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">group_by</span>(topic) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">top_n</span>(<span class="dv">5</span>, beta) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ungroup</span>() <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">arrange</span>(topic, <span class="op">-</span>beta)
 top_terms</code></pre></div>
-<pre><code>## # A tibble: 500 x 3
-##    topic term          beta
-##    &lt;int&gt; &lt;chr&gt;        &lt;dbl&gt;
-##  1     1 president  0.00802
-##  2     1 oil        0.00562
-##  3     1 people     0.00553
-##  4     1 embassy    0.00526
-##  5     1 television 0.00518
-##  6     2 convention 0.0163 
-##  7     2 york       0.0102 
-##  8     2 dukakis    0.00849
-##  9     2 national   0.00693
-## 10     2 jackson    0.00647
-## # … with 490 more rows</code></pre>
+<pre><code>## # A tibble: 502 x 3
+##    topic term         beta
+##    &lt;int&gt; &lt;chr&gt;       &lt;dbl&gt;
+##  1     1 women      0.191 
+##  2     1 change     0.140 
+##  3     1 light      0.115 
+##  4     1 bulb       0.0665
+##  5     1 lightbulb  0.0600
+##  6     1 light bulb 0.0600
+##  7     2 voice      0.0576
+##  8     2 ladder     0.0383
+##  9     2 quiet      0.0330
+## 10     2 success    0.0296
+## # … with 492 more rows</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">top_terms <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">filter</span>(topic <span class="op">&lt;=</span><span class="st"> </span><span class="dv">12</span>) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">term =</span> <span class="kw">reorder</span>(term, beta)) <span class="op">%&gt;%</span>
@@ -559,9 +624,7 @@ top_terms</code></pre></div>
 <span class="st">  </span><span class="kw">geom_bar</span>(<span class="dt">alpha =</span> <span class="fl">0.8</span>, <span class="dt">stat =</span> <span class="st">&quot;identity&quot;</span>, <span class="dt">show.legend =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>topic, <span class="dt">scales =</span> <span class="st">&quot;free&quot;</span>, <span class="dt">ncol =</span> <span class="dv">3</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">coord_flip</span>()</code></pre></div>
-<p><img src="/notes/latent-dirchlet-allocation_files/figure-html/ap_100_topn-1.png" width="672" /></p>
-<p>We are getting even more specific topics now. The question becomes how would we present these results and use them in an informative way? Not to mention perplexity was still dropping at <span class="math inline">\(k=100\)</span> - would <span class="math inline">\(k=200\)</span> generate an even lower perplexity score?<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></p>
-<p>Again, this is where your intuition and domain knowledge as a researcher is important. You can use perplexity as one data point in your decision process, but a lot of the time it helps to simply look at the topics themselves and the highest probability words associated with each one to determine if the structure makes sense. If you have a known topic structure you can compare it to (such as the books example above), this can also be useful.</p>
+<p><img src="/notes/latent-dirchlet-allocation_files/figure-html/jokes_100_topn-1.png" width="672" /></p>
 </div>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
@@ -706,6 +769,7 @@ top_terms</code></pre></div>
 ##  testthat        2.0.1      2018-10-13 [2]
 ##  threejs         0.3.1      2017-08-13 [2]
 ##  tibble        * 2.0.1      2019-01-12 [2]
+##  tictoc        * 1.0        2014-06-17 [1]
 ##  tidymodels    * 0.0.2      2018-11-27 [1]
 ##  tidyposterior   0.0.2      2018-11-15 [1]
 ##  tidypredict     0.3.0      2019-01-10 [1]
@@ -853,6 +917,7 @@ top_terms</code></pre></div>
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.1)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
@@ -897,6 +962,5 @@ top_terms</code></pre></div>
 <hr />
 <ol>
 <li id="fn1"><p>Note that LDA can quickly become CPU and memory intensive as you scale up the size of the corpus and number of topics. Replicating this analysis on your computer may take a long time (i.e. minutes or even hours). It is very possible you may not be able to replicate this analysis on your machine. If so, you need to reduce the amount of text, the number of models, or offload the analysis to the <a href="https://rcc.uchicago.edu/">Research Computing Center</a>.<a href="#fnref1">↩</a></p></li>
-<li id="fn2"><p>I tried to estimate this model, but my computer was taking too long.<a href="#fnref2">↩</a></p></li>
 </ol>
 </div>

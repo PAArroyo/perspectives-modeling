@@ -27,7 +27,9 @@ library(Rtsne)
 library(tidytext)
 library(tm)
 library(topicmodels)
+library(rjson)
 library(furrr)
+library(tictoc)
 
 set.seed(1234)
 theme_set(theme_minimal(base_size = 16))
@@ -915,34 +917,87 @@ congress_tokens %>%
 
 ---
 
-# Associated Press articles
+# `r/jokes`
 
-```{r associated_press}
-data("AssociatedPress", package = "topicmodels")
+<blockquote class="reddit-card" data-card-created="1551898234"><a href="https://www.reddit.com/r/Jokes/comments/a593r0/twenty_years_from_now_kids_are_gonna_think_baby/">Twenty years from now, kids are gonna think "Baby it's cold outside" is really weird, and we're gonna have to explain that it has to be understood as a product of its time.</a> from <a href="http://www.reddit.com/r/Jokes">r/Jokes</a></blockquote>
+<script async src="//embed.redditmedia.com/widgets/platform.js" charset="UTF-8"></script>
 
-# tidy and remove stop words
-ap_td <- tidy(AssociatedPress)
+---
+
+# `r/jokes` dataset
+
+```{r jokes}
+jokes_json <- fromJSON(file = "https://github.com/taivop/joke-dataset/raw/master/reddit_jokes.json")
+jokes <- jokes_json %>%
+{
+  tibble(
+    id = map_chr(., "id"),
+    title = map_chr(., "title"),
+    body = map_chr(., "body"),
+    score = map_dbl(., "score")
+  )
+}
+glimpse(jokes)
 ```
 
-```{r ap_stopwords, dependson = "associated_press"}
-ap_dtm <- ap_td %>%
-  anti_join(stop_words, by = c(term = "word")) %>%
-  cast_dtm(document, term, count)
-ap_dtm
+```{r jokes-dtm, dependson = "jokes"}
+set.seed(123)
+n_grams <- 1:5
+jokes_lite <- sample_n(jokes, 5000)
+
+jokes_tokens <- map_df(n_grams, ~ jokes_lite %>%
+      # combine title and body
+      unite(col = joke, title, body, sep = " ") %>%
+      # tokenize
+      unnest_tokens(output = word,
+                    input = joke,
+                    token = "ngrams",
+                    n = .x) %>%
+        mutate(ngram = .x,
+               token_id = row_number()))
+
+# identify n-grams beginning or ending with stop word
+jokes_stop_words <- jokes_tokens %>%
+  # separate ngrams into separate columns
+  separate(col = word,
+           into = c("word1", "word2", "word3", "word4", "word5"),
+           sep = " ") %>%
+  # find last word
+  mutate(last = if_else(ngram == 5, word5,
+                        if_else(ngram == 4, word4,
+                                if_else(ngram == 3, word3,
+                                        if_else(ngram == 2, word2, word1))))) %>%
+  # remove tokens where the first or last word is a stop word
+  filter(word1 %in% stop_words$word |
+           last %in% stop_words$word) %>%
+  select(ngram, token_id)
+
+# convert to dtm
+jokes_dtm <- jokes_tokens %>%
+  # remove stop word tokens
+  anti_join(jokes_stop_words) %>%
+  # get count of each token in each document
+  count(id, word) %>%
+  # create a document-term matrix with all features and tf weighting
+  cast_dtm(document = id, term = word, value = n) %>%
+  removeSparseTerms(sparse = .999)
+# remove documents with no terms remaining
+jokes_dtm <- jokes_dtm[unique(jokes_dtm$i),]
+jokes_dtm
 ```
 
 ---
 
 # $k=4$
 
-```{r ap_topic_4, dependson = "associated_press"}
-ap_lda <- LDA(ap_dtm, k = 4, control = list(seed = 1234))
+```{r jokes_topic_4, dependson = "jokes-dtm"}
+jokes_lda4 <- LDA(jokes_dtm, k = 4, control = list(seed = 1234))
 ```
 
-```{r ap_4_topn, dependson = "ap_topic_4"}
-ap_lda_td <- tidy(ap_lda)
+```{r jokes_4_topn, dependson = "jokes_topic_4"}
+jokes_lda4_td <- tidy(jokes_lda4)
 
-top_terms <- ap_lda_td %>%
+top_terms <- jokes_lda4_td %>%
   group_by(topic) %>%
   top_n(5, beta) %>%
   ungroup() %>%
@@ -960,14 +1015,14 @@ top_terms %>%
 
 # $k=12$
 
-```{r ap_topic_12, dependson = "associated_press"}
-ap_lda <- LDA(ap_dtm, k = 12, control = list(seed = 1234))
+```{r jokes_topic_12, dependson = "jokes-dtm"}
+jokes_lda12 <- LDA(jokes_dtm, k = 12, control = list(seed = 1234))
 ```
 
-```{r ap_12_topn, dependson="ap_topic_12"}
-ap_lda_td <- tidy(ap_lda)
+```{r jokes_12_topn, dependson="jokes_topic_12"}
+jokes_lda12_td <- tidy(jokes_lda12)
 
-top_terms <- ap_lda_td %>%
+top_terms <- jokes_lda12_td %>%
   group_by(topic) %>%
   top_n(5, beta) %>%
   ungroup() %>%
@@ -988,29 +1043,31 @@ top_terms %>%
 * A statistical measure of how well a probability model predicts a sample
 * Given the theoretical word distributions represented by the topics, compare that to the actual topic mixtures, or distribution of words in your documents
 * Perplexity for LDA model with 12 topics
-    * `r topicmodels::perplexity(ap_lda)`
+    * `r perplexity(jokes_lda12)`
 
 ---
 
 # Perplexity
 
-```{r ap_lda_compare, dependson="associated_press"}
+```{r jokes_lda_compare, dependson = "jokes-dtm"}
 n_topics <- c(2, 4, 10, 20, 50, 100)
 
-if(file.exists(here("static", "data", "ap_lda_compare.Rdata"))){
-  load(file = here("static", "data", "ap_lda_compare.Rdata"))
+if(file.exists(here("static", "data", "jokes_lda_compare.Rdata"))){
+  load(file = here("static", "data", "jokes_lda_compare.Rdata"))
 } else{
   plan(multiprocess)
   
-  ap_lda_compare <- n_topics %>%
-    future_map(LDA, x = ap_dtm, control = list(seed = 1234))
-  save(ap_lda_compare, file = here("static", "data", "ap_lda_compare.Rdata"))
+  tic()
+  jokes_lda_compare <- n_topics %>%
+    future_map(LDA, x = jokes_dtm, control = list(seed = 1234))
+  toc()
+  save(jokes_lda_compare, file = here("static", "data", "jokes_lda_compare.Rdata"))
 }
 ```
 
-```{r ap_lda_compare_viz, dependson="ap_lda_compare"} 
+```{r jokes_lda_compare_viz, dependson="jokes_lda_compare"} 
 tibble(k = n_topics,
-           perplex = map_dbl(ap_lda_compare, perplexity)) %>%
+       perplex = map_dbl(jokes_lda_compare, perplexity)) %>%
   ggplot(aes(k, perplex)) +
   geom_point() +
   geom_line() +
@@ -1024,14 +1081,15 @@ tibble(k = n_topics,
 
 # $k=100$
 
-```{r ap_100_topn, dependson="ap_lda_compare"}
-ap_lda_td <- tidy(ap_lda_compare[[6]])
+```{r jokes_100_topn, dependson="jokes_lda_compare"}
+jokes_lda_td <- tidy(jokes_lda_compare[[6]])
 
-top_terms <- ap_lda_td %>%
+top_terms <- jokes_lda_td %>%
   group_by(topic) %>%
   top_n(5, beta) %>%
   ungroup() %>%
   arrange(topic, -beta)
+top_terms
 
 top_terms %>%
   filter(topic <= 12) %>%

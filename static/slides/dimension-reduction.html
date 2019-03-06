@@ -660,16 +660,31 @@ class: center, middle, inverse, title-slide
 
 ---
 
-# Associated Press articles
+# `r/jokes`
 
+&lt;blockquote class="reddit-card" data-card-created="1551898234"&gt;&lt;a href="https://www.reddit.com/r/Jokes/comments/a593r0/twenty_years_from_now_kids_are_gonna_think_baby/"&gt;Twenty years from now, kids are gonna think "Baby it's cold outside" is really weird, and we're gonna have to explain that it has to be understood as a product of its time.&lt;/a&gt; from &lt;a href="http://www.reddit.com/r/Jokes"&gt;r/Jokes&lt;/a&gt;&lt;/blockquote&gt;
+&lt;script async src="//embed.redditmedia.com/widgets/platform.js" charset="UTF-8"&gt;&lt;/script&gt;
 
+---
+
+# `r/jokes` dataset
 
 
 ```
-## &lt;&lt;DocumentTermMatrix (documents: 2246, terms: 10134)&gt;&gt;
-## Non-/sparse entries: 259208/22501756
-## Sparsity           : 99%
-## Maximal term length: 18
+## Observations: 194,553
+## Variables: 4
+## $ id    &lt;chr&gt; "5tz52q", "5tz4dd", "5tz319", "5tz2wj", "5tz1pc", "5tz1o1"…
+## $ title &lt;chr&gt; "I hate how you cant even say black paint anymore", "What'…
+## $ body  &lt;chr&gt; "Now I have to say \"Leroy can you please paint the fence?…
+## $ score &lt;dbl&gt; 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 15, 0, 0, 3, 1, 0, 3, 2, 2, …
+```
+
+
+```
+## &lt;&lt;DocumentTermMatrix (documents: 4952, terms: 2927)&gt;&gt;
+## Non-/sparse entries: 48020/14446484
+## Sparsity           : 100%
+## Maximal term length: NA
 ## Weighting          : term frequency (tf)
 ```
 
@@ -679,7 +694,7 @@ class: center, middle, inverse, title-slide
 
 
 
-&lt;img src="dimension-reduction_files/figure-html/ap_4_topn-1.png" width="864" /&gt;
+&lt;img src="dimension-reduction_files/figure-html/jokes_4_topn-1.png" width="864" /&gt;
 
 ---
 
@@ -687,7 +702,7 @@ class: center, middle, inverse, title-slide
 
 
 
-&lt;img src="dimension-reduction_files/figure-html/ap_12_topn-1.png" width="864" /&gt;
+&lt;img src="dimension-reduction_files/figure-html/jokes_12_topn-1.png" width="864" /&gt;
 
 ---
 
@@ -696,7 +711,7 @@ class: center, middle, inverse, title-slide
 * A statistical measure of how well a probability model predicts a sample
 * Given the theoretical word distributions represented by the topics, compare that to the actual topic mixtures, or distribution of words in your documents
 * Perplexity for LDA model with 12 topics
-    * 2277.8757156
+    * 1102.4348005
 
 ---
 
@@ -704,13 +719,31 @@ class: center, middle, inverse, title-slide
 
 
 
-&lt;img src="dimension-reduction_files/figure-html/ap_lda_compare_viz-1.png" width="864" /&gt;
+&lt;img src="dimension-reduction_files/figure-html/jokes_lda_compare_viz-1.png" width="864" /&gt;
 
 ---
 
 # `\(k=100\)`
 
-&lt;img src="dimension-reduction_files/figure-html/ap_100_topn-1.png" width="864" /&gt;
+
+```
+## # A tibble: 502 x 3
+##    topic term         beta
+##    &lt;int&gt; &lt;chr&gt;       &lt;dbl&gt;
+##  1     1 women      0.191 
+##  2     1 change     0.140 
+##  3     1 light      0.115 
+##  4     1 bulb       0.0665
+##  5     1 lightbulb  0.0600
+##  6     1 light bulb 0.0600
+##  7     2 voice      0.0576
+##  8     2 ladder     0.0383
+##  9     2 quiet      0.0330
+## 10     2 success    0.0296
+## # … with 492 more rows
+```
+
+&lt;img src="dimension-reduction_files/figure-html/jokes_100_topn-1.png" width="864" /&gt;
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="macros.js"></script>
