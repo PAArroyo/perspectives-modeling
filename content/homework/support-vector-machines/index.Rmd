@@ -48,11 +48,11 @@ We have seen that we can fit an SVM with a non-linear kernel in order to perform
 
 ## Tuning the cost parameter
 
-In ISL, it is claimed that in the case of data that is just barely linearly seperable, a support vector classifier with a small value of `cost` that misclassifies a couple of training observations may perform better on test data than one with a huge value of `cost` that does not misclassify any training observations. You will now investigate that claim.
+In ISL, it is claimed that in the case of data that is just barely linearly separable, a support vector classifier with a small value of `cost` that misclassifies a couple of training observations may perform better on test data than one with a huge value of `cost` that does not misclassify any training observations. You will now investigate that claim.
 
 1. Generate two-class data with $p=2$ in such a way that the classes are just barely linearly separable.
 1. Compute the cross-validation error rates for support vector classifiers with a range of `cost` values. How many training errors are made for each value of `cost` considered, and how does this relate to the cross-validation errors obtained?
-1. Generate an appropriate test data set, and compute the test errors corresponding to each of the values of `cost` considered. Which value of `cost` leads to the fewest test errors, and how does this compare to thevalues of `cost` that yield the fewest training errors and the fewest cross-validation errors?
+1. Generate an appropriate test data set, and compute the test errors corresponding to each of the values of `cost` considered. Which value of `cost` leads to the fewest test errors, and how does this compare to the values of `cost` that yield the fewest training errors and the fewest cross-validation errors?
 1. Discuss your results.
 
 # Predicting attitudes towards racist college professors (5 points)

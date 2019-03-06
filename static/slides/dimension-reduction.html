@@ -546,7 +546,171 @@ class: center, middle, inverse, title-slide
 
 ---
 
-# LDA
+# Topic modeling
+
+* Themes
+* Probabilistic topic models
+* Latent Dirichlet allocation
+
+---
+
+# Food and animals
+
+1. I ate a banana and spinach smoothie for breakfast.
+1. I like to eat broccoli and bananas.
+1. Chinchillas and kittens are cute.
+1. My sister adopted a kitten yesterday.
+1. Look at this cute hamster munching on a piece of broccoli.
+
+---
+
+# LDA document structure
+
+* Decide on the number of words N the document will have
+    * [Dirichlet probability distribution](https://en.wikipedia.org/wiki/Dirichlet_distribution)
+    * Fixed set of `\(k\)` topics
+* Generate each word in the document:
+    * Pick a topic
+    * Generate the word
+* LDA backtracks from this assumption
+
+---
+
+# How does LDA learn?
+
+* Randomly assign each word in the document to one of `\(K\)` topics
+* For each document `\(d\)`:
+    * Go through each word `\(w\)` in `\(d\)`
+        * And for each topic `\(t\)`, compute two things:
+            1. `\(p(t | d)\)`
+            1. `\(p(w | t)\)`
+        * Reassign `\(w\)` a new topic `\(t\)` with probability `\(p(t|d) \times p(w|t)\)`
+* Rinse and repeat
+
+* Estimate from LDA
+    1. The topic mixtures of each document
+    1. The words associated to each topic
+---
+
+# `USCongress`
+
+
+```
+## # A tibble: 4,449 x 7
+##       ID  cong billnum h_or_sen major text                    label        
+##    &lt;int&gt; &lt;int&gt;   &lt;int&gt; &lt;fct&gt;    &lt;dbl&gt; &lt;chr&gt;                   &lt;chr&gt;        
+##  1     1   107    4499 HR          18 To suspend temporarily… Foreign trade
+##  2     2   107    4500 HR          18 To suspend temporarily… Foreign trade
+##  3     3   107    4501 HR          18 To suspend temporarily… Foreign trade
+##  4     4   107    4502 HR          18 To reduce temporarily … Foreign trade
+##  5     5   107    4503 HR           5 To amend the Immigrati… Labor and em…
+##  6     6   107    4504 HR          21 To amend title 38, Uni… Public lands…
+##  7     7   107    4505 HR          15 To repeal subtitle B o… Banking, fin…
+##  8     8   107    4506 HR          18 To suspend temporarily… Foreign trade
+##  9     9   107    4507 HR          18 To suspend temporarily… Foreign trade
+## 10    10   107    4508 HR          18 To suspend temporarily… Foreign trade
+## # … with 4,439 more rows
+```
+
+---
+
+# `USCongress`
+
+
+
+
+
+
+
+&lt;img src="dimension-reduction_files/figure-html/plot-tf-idf-1.png" width="864" /&gt;
+
+---
+
+# 20 topic LDA model
+
+
+
+
+```
+## # A tibble: 102 x 3
+##    topic term     beta
+##    &lt;int&gt; &lt;chr&gt;   &lt;dbl&gt;
+##  1     1 health 0.418 
+##  2     1 care   0.182 
+##  3     1 food   0.0896
+##  4     1 human  0.0518
+##  5     1 cosmet 0.0397
+##  6     2 indian 0.0846
+##  7     2 presid 0.0672
+##  8     2 tribe  0.0545
+##  9     2 war    0.0510
+## 10     2 nativ  0.0487
+## # … with 92 more rows
+```
+
+&lt;img src="dimension-reduction_files/figure-html/congress-20-topn-1.png" width="864" /&gt;
+
+---
+
+# Document classification
+
+
+
+&lt;img src="dimension-reduction_files/figure-html/congress-model-compare-1.png" width="864" /&gt;
+
+---
+
+# Associated Press articles
+
+
+
+
+```
+## &lt;&lt;DocumentTermMatrix (documents: 2246, terms: 10134)&gt;&gt;
+## Non-/sparse entries: 259208/22501756
+## Sparsity           : 99%
+## Maximal term length: 18
+## Weighting          : term frequency (tf)
+```
+
+---
+
+# `\(k=4\)`
+
+
+
+&lt;img src="dimension-reduction_files/figure-html/ap_4_topn-1.png" width="864" /&gt;
+
+---
+
+# `\(k=12\)`
+
+
+
+&lt;img src="dimension-reduction_files/figure-html/ap_12_topn-1.png" width="864" /&gt;
+
+---
+
+# Perplexity
+
+* A statistical measure of how well a probability model predicts a sample
+* Given the theoretical word distributions represented by the topics, compare that to the actual topic mixtures, or distribution of words in your documents
+* Perplexity for LDA model with 12 topics
+    * 2277.8757156
+
+---
+
+# Perplexity
+
+
+
+&lt;img src="dimension-reduction_files/figure-html/ap_lda_compare_viz-1.png" width="864" /&gt;
+
+---
+
+# `\(k=100\)`
+
+&lt;img src="dimension-reduction_files/figure-html/ap_100_topn-1.png" width="864" /&gt;
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="macros.js"></script>
