@@ -80,8 +80,12 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </ul></li>
 <li><a href="#perplexity"><span class="toc-section-number">4.3</span> Perplexity</a></li>
 </ul></li>
-<li><a href="#session-info"><span class="toc-section-number">5</span> Session Info</a></li>
-<li><a href="#references"><span class="toc-section-number">6</span> References</a></li>
+<li><a href="#interactive-exploration-of-lda-model"><span class="toc-section-number">5</span> Interactive exploration of LDA model</a><ul>
+<li><a href="#example-this-is-jeopardy"><span class="toc-section-number">5.0.1</span> Example: This is Jeopardy!</a></li>
+<li><a href="#importing-our-own-lda-model"><span class="toc-section-number">5.0.2</span> Importing our own LDA model</a></li>
+</ul></li>
+<li><a href="#session-info"><span class="toc-section-number">6</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">7</span> References</a></li>
 </ul>
 </div>
 
@@ -430,15 +434,17 @@ n_grams &lt;-<span class="st"> </span><span class="dv">1</span><span class="op">
 jokes_lite &lt;-<span class="st"> </span><span class="kw">sample_n</span>(jokes, <span class="dv">5000</span>)
 
 jokes_tokens &lt;-<span class="st"> </span><span class="kw">map_df</span>(n_grams, <span class="op">~</span><span class="st"> </span>jokes_lite <span class="op">%&gt;%</span>
-<span class="st">      </span><span class="co"># combine title and body</span>
-<span class="st">      </span><span class="kw">unite</span>(<span class="dt">col =</span> joke, title, body, <span class="dt">sep =</span> <span class="st">&quot; &quot;</span>) <span class="op">%&gt;%</span>
-<span class="st">      </span><span class="co"># tokenize</span>
-<span class="st">      </span><span class="kw">unnest_tokens</span>(<span class="dt">output =</span> word,
-                    <span class="dt">input =</span> joke,
-                    <span class="dt">token =</span> <span class="st">&quot;ngrams&quot;</span>,
-                    <span class="dt">n =</span> .x) <span class="op">%&gt;%</span>
-<span class="st">        </span><span class="kw">mutate</span>(<span class="dt">ngram =</span> .x,
-               <span class="dt">token_id =</span> <span class="kw">row_number</span>()))
+<span class="st">                         </span><span class="co"># combine title and body</span>
+<span class="st">                         </span><span class="kw">unite</span>(<span class="dt">col =</span> joke, title, body, <span class="dt">sep =</span> <span class="st">&quot; &quot;</span>) <span class="op">%&gt;%</span>
+<span class="st">                         </span><span class="co"># tokenize</span>
+<span class="st">                         </span><span class="kw">unnest_tokens</span>(<span class="dt">output =</span> word,
+                                       <span class="dt">input =</span> joke,
+                                       <span class="dt">token =</span> <span class="st">&quot;ngrams&quot;</span>,
+                                       <span class="dt">n =</span> .x) <span class="op">%&gt;%</span>
+<span class="st">                         </span><span class="kw">mutate</span>(<span class="dt">ngram =</span> .x,
+                                <span class="dt">token_id =</span> <span class="kw">row_number</span>()) <span class="op">%&gt;%</span>
+<span class="st">                         </span><span class="co"># remove tokens that are missing values</span>
+<span class="st">                         </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(word)))
 
 <span class="co"># identify n-grams beginning or ending with stop word</span>
 jokes_stop_words &lt;-<span class="st"> </span>jokes_tokens <span class="op">%&gt;%</span>
@@ -471,10 +477,10 @@ jokes_dtm &lt;-<span class="st"> </span>jokes_tokens <span class="op">%&gt;%</sp
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># remove documents with no terms remaining</span>
 jokes_dtm &lt;-<span class="st"> </span>jokes_dtm[<span class="kw">unique</span>(jokes_dtm<span class="op">$</span>i),]
 jokes_dtm</code></pre></div>
-<pre><code>## &lt;&lt;DocumentTermMatrix (documents: 4952, terms: 2927)&gt;&gt;
-## Non-/sparse entries: 48020/14446484
+<pre><code>## &lt;&lt;DocumentTermMatrix (documents: 4937, terms: 2926)&gt;&gt;
+## Non-/sparse entries: 47992/14397670
 ## Sparsity           : 100%
-## Maximal term length: NA
+## Maximal term length: 27
 ## Weighting          : term frequency (tf)</code></pre>
 </div>
 <div id="selecting-k" class="section level2">
@@ -498,26 +504,26 @@ top_terms</code></pre></div>
 <pre><code>## # A tibble: 20 x 3
 ##    topic term          beta
 ##    &lt;int&gt; &lt;chr&gt;        &lt;dbl&gt;
-##  1     1 wife       0.0180 
-##  2     1 doctor     0.0127 
-##  3     1 day        0.0120 
-##  4     1 husband    0.0107 
-##  5     1 son        0.0104 
-##  6     2 guy        0.0279 
-##  7     2 bar        0.0222 
-##  8     2 walks      0.0197 
-##  9     2 bartender  0.0126 
-## 10     2 girl       0.0123 
-## 11     3 black      0.0110 
-## 12     3 people     0.0107 
-## 13     3 boy        0.0102 
-## 14     3 teacher    0.00937
-## 15     3 women      0.00804
-## 16     4 door       0.0279 
-## 17     4 call       0.0278 
-## 18     4 joke       0.0138 
-## 19     4 car        0.0107 
-## 20     4 difference 0.0107</code></pre>
+##  1     1 call       0.0166 
+##  2     1 people     0.0147 
+##  3     1 son        0.0126 
+##  4     1 girl       0.0124 
+##  5     1 dad        0.0121 
+##  6     2 guy        0.0267 
+##  7     2 door       0.0232 
+##  8     2 wife       0.0218 
+##  9     2 bar        0.0214 
+## 10     2 walks      0.0180 
+## 11     3 doctor     0.0169 
+## 12     3 boy        0.0120 
+## 13     3 dog        0.0112 
+## 14     3 difference 0.0104 
+## 15     3 joke       0.00932
+## 16     4 time       0.0136 
+## 17     4 day        0.0119 
+## 18     4 priest     0.00654
+## 19     4 god        0.00653
+## 20     4 water      0.00641</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">top_terms <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">term =</span> <span class="kw">reorder</span>(term, beta)) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(term, beta, <span class="dt">fill =</span> <span class="kw">factor</span>(topic))) <span class="op">+</span>
@@ -541,18 +547,18 @@ top_terms &lt;-<span class="st"> </span>jokes_lda12_td <span class="op">%&gt;%</
 <span class="st">  </span><span class="kw">arrange</span>(topic, <span class="op">-</span>beta)
 top_terms</code></pre></div>
 <pre><code>## # A tibble: 60 x 3
-##    topic term     beta
-##    &lt;int&gt; &lt;chr&gt;   &lt;dbl&gt;
-##  1     1 2      0.0279
-##  2     1 1      0.0270
-##  3     1 blonde 0.0169
-##  4     1 10     0.0167
-##  5     1 5      0.0134
-##  6     2 woman  0.0587
-##  7     2 dog    0.0337
-##  8     2 women  0.0273
-##  9     2 jokes  0.0212
-## 10     2 child  0.0179
+##    topic term      beta
+##    &lt;int&gt; &lt;chr&gt;    &lt;dbl&gt;
+##  1     1 girl    0.0418
+##  2     1 black   0.0356
+##  3     1 hear    0.0340
+##  4     1 people  0.0262
+##  5     1 baby    0.0207
+##  6     2 wife    0.0697
+##  7     2 husband 0.0367
+##  8     2 blonde  0.0265
+##  9     2 bear    0.0160
+## 10     2 child   0.0150
 ## # … with 50 more rows</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">top_terms <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">term =</span> <span class="kw">reorder</span>(term, beta)) <span class="op">%&gt;%</span>
@@ -568,7 +574,7 @@ top_terms</code></pre></div>
 <p>Some aspects of LDA are driven by gut-thinking (or perhaps <a href="http://www.cc.com/video-clips/63ite2/the-colbert-report-the-word---truthiness">truthiness</a>). However we can have some help. <a href="https://en.wikipedia.org/wiki/Perplexity"><strong>Perplexity</strong></a> is a statistical measure of how well a probability model predicts a sample. As applied to LDA, for a given value of <span class="math inline">\(k\)</span>, you estimate the LDA model. Then given the theoretical word distributions represented by the topics, compare that to the actual topic mixtures, or distribution of words in your documents.</p>
 <p><code>topicmodels</code> includes the function <code>perplexity()</code> which calculates this value for a given model.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">perplexity</span>(jokes_lda12)</code></pre></div>
-<pre><code>## [1] 1102.435</code></pre>
+<pre><code>## [1] 1103.443</code></pre>
 <p>However, the statistic is somewhat meaningless on its own. The benefit of this statistic comes in comparing perplexity across different models with varying <span class="math inline">\(k\)</span>s. The model with the lowest perplexity is generally considered the “best”.</p>
 <p>Let’s estimate a series of LDA models on the Associated Press dataset. Here I make use of <code>purrr</code> and the <code>map()</code> functions to iteratively generate a series of LDA models for the <code>r/jokes</code> corpus, using a different number of topics in each model.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">n_topics &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">50</span>, <span class="dv">100</span>)
@@ -584,6 +590,7 @@ top_terms</code></pre></div>
   <span class="kw">toc</span>()
   <span class="kw">save</span>(jokes_lda_compare, <span class="dt">file =</span> <span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;jokes_lda_compare.Rdata&quot;</span>))
 }</code></pre></div>
+<pre><code>## 617.177 sec elapsed</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(<span class="dt">k =</span> n_topics,
        <span class="dt">perplex =</span> <span class="kw">map_dbl</span>(jokes_lda_compare, perplexity)) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(k, perplex)) <span class="op">+</span>
@@ -604,18 +611,18 @@ top_terms &lt;-<span class="st"> </span>jokes_lda_td <span class="op">%&gt;%</sp
 <span class="st">  </span><span class="kw">arrange</span>(topic, <span class="op">-</span>beta)
 top_terms</code></pre></div>
 <pre><code>## # A tibble: 502 x 3
-##    topic term         beta
-##    &lt;int&gt; &lt;chr&gt;       &lt;dbl&gt;
-##  1     1 women      0.191 
-##  2     1 change     0.140 
-##  3     1 light      0.115 
-##  4     1 bulb       0.0665
-##  5     1 lightbulb  0.0600
-##  6     1 light bulb 0.0600
-##  7     2 voice      0.0576
-##  8     2 ladder     0.0383
-##  9     2 quiet      0.0330
-## 10     2 success    0.0296
+##    topic term      beta
+##    &lt;int&gt; &lt;chr&gt;    &lt;dbl&gt;
+##  1     1 friend  0.268 
+##  2     1 house   0.158 
+##  3     1 baby    0.157 
+##  4     1 penis   0.0640
+##  5     1 beat    0.0457
+##  6     2 green   0.0486
+##  7     2 party   0.0431
+##  8     2 wear    0.0426
+##  9     2 golf    0.0361
+## 10     2 wearing 0.0291
 ## # … with 492 more rows</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">top_terms <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">filter</span>(topic <span class="op">&lt;=</span><span class="st"> </span><span class="dv">12</span>) <span class="op">%&gt;%</span>
@@ -627,8 +634,82 @@ top_terms</code></pre></div>
 <p><img src="/notes/latent-dirchlet-allocation_files/figure-html/jokes_100_topn-1.png" width="672" /></p>
 </div>
 </div>
+<div id="interactive-exploration-of-lda-model" class="section level1">
+<h1><span class="header-section-number">5</span> Interactive exploration of LDA model</h1>
+<p><a href="https://github.com/cpsievert/LDAvis"><code>LDAvis</code></a> allows you to interactively visualize an LDA topic model (see the Python port <a href="https://github.com/bmabey/pyLDAvis">here</a>). It generates two sets of related and interactive graphs that allow one to answer the following questions about a fitted topic model:</p>
+<ol style="list-style-type: decimal">
+<li>What is the meaning of each topic?</li>
+<li>How prevalent is each topic?</li>
+<li>How do the topics relate to each other?</li>
+</ol>
+<p>The first visualization presents a global view of the topic model, answering questions 2 and 3. Each topic is visualized as a circle on a two-dimensional plane whose centers are determined by computing the distance between topics, and then using multidimensional scaling to project the inter-topic distances onto two dimensions. The area of each circle encodes the overall prevalence of each topic in the corpus.</p>
+<p>The second visualization uses a barchart where each bar represents individual terms that are most useful for interpreting a selected topic. Red bars represent the estimated number of times a given term was generated by a given topic, while blue bars represent the overall frequency of each term in the corpus. Selecting a term reveals the conditional distribution over topics (using the first area scatterplot) for the selected term.</p>
+<p>To install the necessary packages, run the code below:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">install.packages</span>(<span class="st">&quot;LDAvis&quot;</span>)
+devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&quot;cpsievert/LDAvisData&quot;</span>)</code></pre></div>
+<div id="example-this-is-jeopardy" class="section level3">
+<h3><span class="header-section-number">5.0.1</span> Example: This is Jeopardy!</h3>
+<p>Here we draw an example directly from the <code>LDAvis</code> package to visualize a <span class="math inline">\(K = 100\)</span> topic LDA model of 200,000+ Jeopardy! “answers” and categories. The model is pre-generated and relevant components from the <code>LDA()</code> function are already stored in a list for us. In order to visualize the model, we need to convert this to a JSON file using <code>createJSON()</code> and then pass this object to <code>serVis()</code>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(LDAvis)
+<span class="kw">library</span>(LDAvisData)
+
+<span class="co"># retrieve LDA model results</span>
+<span class="kw">data</span>(Jeopardy, <span class="dt">package =</span> <span class="st">&quot;LDAvisData&quot;</span>)
+<span class="kw">str</span>(Jeopardy)</code></pre></div>
+<pre><code>## List of 5
+##  $ phi           : num [1:100, 1:4393] 9.78e-04 3.51e-06 1.31e-02 4.14e-06 4.31e-06 ...
+##   ..- attr(*, &quot;dimnames&quot;)=List of 2
+##   .. ..$ : chr [1:100] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;4&quot; ...
+##   .. ..$ : chr [1:4393] &quot;one&quot; &quot;name&quot; &quot;first&quot; &quot;city&quot; ...
+##  $ theta         : num [1:19979, 1:100] 0.001111 0.001 0.00125 0.001111 0.000909 ...
+##   ..- attr(*, &quot;dimnames&quot;)=List of 2
+##   .. ..$ : NULL
+##   .. ..$ : chr [1:100] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;4&quot; ...
+##  $ doc.length    : int [1:19979] 8 9 7 8 10 7 5 9 7 13 ...
+##  $ vocab         : chr [1:4393] &quot;one&quot; &quot;name&quot; &quot;first&quot; &quot;city&quot; ...
+##  $ term.frequency: int [1:4393] 1267 1154 1103 730 715 714 667 659 582 564 ...</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># convert to JSON file</span>
+json &lt;-<span class="st"> </span><span class="kw">createJSON</span>(<span class="dt">phi =</span> Jeopardy<span class="op">$</span>phi,
+                   <span class="dt">theta =</span> Jeopardy<span class="op">$</span>theta,
+                   <span class="dt">doc.length =</span> Jeopardy<span class="op">$</span>doc.length,
+                   <span class="dt">vocab =</span> Jeopardy<span class="op">$</span>vocab,
+                   <span class="dt">term.frequency =</span> Jeopardy<span class="op">$</span>term.frequency)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># view the visualization</span>
+<span class="kw">serVis</span>(json)</code></pre></div>
+<ul>
+<li>Check out topic 22 (bodies of water) and 95 (“rhyme time”)</li>
+</ul>
+</div>
+<div id="importing-our-own-lda-model" class="section level3">
+<h3><span class="header-section-number">5.0.2</span> Importing our own LDA model</h3>
+<p>To convert the output of <code>topicmodels::LDA()</code> to view with <code>LDAvis</code>, use <a href="http://datacm.blogspot.com/2017/03/lda-visualization-with-r-topicmodels.html">this function</a>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">topicmodels_json_ldavis &lt;-<span class="st"> </span><span class="cf">function</span>(fitted, doc_term){
+  <span class="kw">require</span>(LDAvis)
+  <span class="kw">require</span>(slam)
+  
+  <span class="co"># Find required quantities</span>
+  phi &lt;-<span class="st"> </span><span class="kw">as.matrix</span>(<span class="kw">posterior</span>(fitted)<span class="op">$</span>terms)
+  theta &lt;-<span class="st"> </span><span class="kw">as.matrix</span>(<span class="kw">posterior</span>(fitted)<span class="op">$</span>topics)
+  vocab &lt;-<span class="st"> </span><span class="kw">colnames</span>(phi)
+  term_freq &lt;-<span class="st"> </span>slam<span class="op">::</span><span class="kw">col_sums</span>(doc_term)
+  
+  <span class="co"># Convert to json</span>
+  json_lda &lt;-<span class="st"> </span>LDAvis<span class="op">::</span><span class="kw">createJSON</span>(<span class="dt">phi =</span> phi, <span class="dt">theta =</span> theta,
+                                 <span class="dt">vocab =</span> vocab,
+                                 <span class="dt">doc.length =</span> <span class="kw">as.vector</span>(<span class="kw">table</span>(doc_term<span class="op">$</span>i)),
+                                 <span class="dt">term.frequency =</span> term_freq)
+  
+  <span class="kw">return</span>(json_lda)
+}</code></pre></div>
+<p>Let’s test it using the <span class="math inline">\(k = 20\)</span> LDA topic model for the AP dataset.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">jokes_20_json &lt;-<span class="st"> </span><span class="kw">topicmodels_json_ldavis</span>(<span class="dt">fitted =</span> jokes_lda_compare[[<span class="dv">4</span>]],
+                                         <span class="dt">doc_term =</span> jokes_dtm)</code></pre></div>
+<pre><code>## Loading required package: slam</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">serVis</span>(jokes_20_json)</code></pre></div>
+</div>
+</div>
 <div id="session-info" class="section level1 toc-ignore">
-<h1><span class="header-section-number">5</span> Session Info</h1>
+<h1><span class="header-section-number">6</span> Session Info</h1>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
@@ -640,7 +721,7 @@ top_terms</code></pre></div>
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-03-06                  
+##  date     2019-03-07                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package       * version    date       lib
@@ -668,7 +749,6 @@ top_terms</code></pre></div>
 ##  DT              0.5        2018-11-05 [2]
 ##  dygraphs        1.1.1.6    2018-07-11 [2]
 ##  evaluate        0.13       2019-02-12 [2]
-##  fansi           0.4.0      2018-10-05 [2]
 ##  forcats       * 0.4.0      2019-02-17 [2]
 ##  fs              1.2.6      2018-08-23 [1]
 ##  furrr         * 0.1.0      2018-05-16 [1]
@@ -696,11 +776,12 @@ top_terms</code></pre></div>
 ##  janeaustenr     0.1.5      2017-06-10 [2]
 ##  jsonlite        1.6        2018-12-07 [2]
 ##  knitr           1.21       2018-12-10 [2]
-##  labeling        0.3        2014-08-23 [2]
 ##  later           0.8.0      2019-02-11 [2]
 ##  lattice         0.20-38    2018-11-04 [2]
 ##  lava            1.6.5      2019-02-12 [2]
 ##  lazyeval        0.2.1      2017-10-29 [2]
+##  LDAvis        * 0.3.5      2019-03-07 [1]
+##  LDAvisData    * 0.1        2018-11-28 [1]
 ##  listenv         0.7.0      2018-01-21 [1]
 ##  lme4            1.1-20     2019-02-04 [2]
 ##  loo             2.0.0      2018-04-11 [2]
@@ -733,6 +814,7 @@ top_terms</code></pre></div>
 ##  processx        3.2.1      2018-12-05 [2]
 ##  prodlim         2018.04.18 2018-04-18 [2]
 ##  promises        1.0.1      2018-04-13 [2]
+##  proxy           0.4-23     2019-03-05 [1]
 ##  ps              1.3.0      2018-12-21 [2]
 ##  purrr         * 0.3.0      2019-01-27 [2]
 ##  R6              2.4.0      2019-02-14 [1]
@@ -743,6 +825,7 @@ top_terms</code></pre></div>
 ##  remotes         2.0.2      2018-10-30 [1]
 ##  reshape2        1.4.3      2017-12-11 [2]
 ##  rjson         * 0.2.20     2018-06-08 [1]
+##  RJSONIO         1.3-1.1    2018-11-14 [2]
 ##  rlang           0.3.1      2019-01-08 [1]
 ##  rmarkdown       1.11       2018-12-08 [2]
 ##  rpart           4.1-13     2018-02-23 [1]
@@ -760,7 +843,7 @@ top_terms</code></pre></div>
 ##  shinyjs         1.0        2018-01-08 [2]
 ##  shinystan       2.5.0      2018-05-01 [2]
 ##  shinythemes     1.1.2      2018-11-06 [2]
-##  slam            0.1-44     2018-12-21 [1]
+##  slam          * 0.1-44     2018-12-21 [1]
 ##  SnowballC       0.6.0      2019-01-15 [2]
 ##  StanHeaders     2.18.1     2019-01-28 [2]
 ##  stringi         1.3.1      2019-02-13 [1]
@@ -782,7 +865,6 @@ top_terms</code></pre></div>
 ##  tokenizers      0.2.1      2018-03-29 [2]
 ##  topicmodels   * 0.2-8      2018-12-21 [2]
 ##  usethis         1.4.0      2018-08-14 [1]
-##  utf8            1.1.4      2018-05-24 [2]
 ##  withr           2.1.2      2018-03-15 [2]
 ##  xfun            0.5        2019-02-20 [1]
 ##  xml2            1.2.0      2018-01-24 [2]
@@ -791,160 +873,161 @@ top_terms</code></pre></div>
 ##  yaml            2.2.0      2018-07-25 [2]
 ##  yardstick     * 0.0.2      2018-11-05 [1]
 ##  zoo             1.8-4      2018-09-19 [2]
-##  source                              
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.1)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.1)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.1)                      
-##  Github (thomasp85/patchwork@7fb35b1)
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.1)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.1)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  Github (tidyverse/tidyr@0b27690)    
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.2)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
+##  source                               
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.1)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.1)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  Github (cpsievert/LDAvis@5067f7b)    
+##  Github (cpsievert/LDAvisData@43dd263)
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.1)                       
+##  Github (thomasp85/patchwork@7fb35b1) 
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.1)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.1)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  Github (tidyverse/tidyr@0b27690)     
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
+##  CRAN (R 3.5.0)                       
 ## 
 ## [1] /Users/soltoffbc/Library/R/3.5/library
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
 </div>
 <div id="references" class="section level1 toc-ignore">
-<h1><span class="header-section-number">6</span> References</h1>
+<h1><span class="header-section-number">7</span> References</h1>
 <ul>
 <li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
 <li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>

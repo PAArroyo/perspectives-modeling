@@ -959,15 +959,17 @@ n_grams <- 1:5
 jokes_lite <- sample_n(jokes, 5000)
 
 jokes_tokens <- map_df(n_grams, ~ jokes_lite %>%
-      # combine title and body
-      unite(col = joke, title, body, sep = " ") %>%
-      # tokenize
-      unnest_tokens(output = word,
-                    input = joke,
-                    token = "ngrams",
-                    n = .x) %>%
-        mutate(ngram = .x,
-               token_id = row_number()))
+                         # combine title and body
+                         unite(col = joke, title, body, sep = " ") %>%
+                         # tokenize
+                         unnest_tokens(output = word,
+                                       input = joke,
+                                       token = "ngrams",
+                                       n = .x) %>%
+                         mutate(ngram = .x,
+                                token_id = row_number()) %>%
+                         # remove tokens that are missing values
+                         filter(!is.na(word)))
 
 # identify n-grams beginning or ending with stop word
 jokes_stop_words <- jokes_tokens %>%
@@ -1112,3 +1114,13 @@ top_terms %>%
   facet_wrap(~ topic, scales = "free", ncol = 3) +
   coord_flip()
 ```
+
+---
+
+# LDAvis
+
+* Interactive visualization of LDA model results
+1. What is the meaning of each topic?
+1. How prevalent is each topic?
+1. How do the topics relate to each other?
+

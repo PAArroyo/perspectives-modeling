@@ -694,10 +694,10 @@ class: center, middle, inverse, title-slide
 
 
 ```
-## &lt;&lt;DocumentTermMatrix (documents: 4952, terms: 2927)&gt;&gt;
-## Non-/sparse entries: 48020/14446484
+## &lt;&lt;DocumentTermMatrix (documents: 4937, terms: 2926)&gt;&gt;
+## Non-/sparse entries: 47992/14397670
 ## Sparsity           : 100%
-## Maximal term length: NA
+## Maximal term length: 27
 ## Weighting          : term frequency (tf)
 ```
 
@@ -724,7 +724,7 @@ class: center, middle, inverse, title-slide
 * A statistical measure of how well a probability model predicts a sample
 * Given the theoretical word distributions represented by the topics, compare that to the actual topic mixtures, or distribution of words in your documents
 * Perplexity for LDA model with 12 topics
-    * 1102.4348005
+    * 1103.4431296
 
 ---
 
@@ -741,22 +741,31 @@ class: center, middle, inverse, title-slide
 
 ```
 ## # A tibble: 502 x 3
-##    topic term         beta
-##    &lt;int&gt; &lt;chr&gt;       &lt;dbl&gt;
-##  1     1 women      0.191 
-##  2     1 change     0.140 
-##  3     1 light      0.115 
-##  4     1 bulb       0.0665
-##  5     1 lightbulb  0.0600
-##  6     1 light bulb 0.0600
-##  7     2 voice      0.0576
-##  8     2 ladder     0.0383
-##  9     2 quiet      0.0330
-## 10     2 success    0.0296
+##    topic term      beta
+##    &lt;int&gt; &lt;chr&gt;    &lt;dbl&gt;
+##  1     1 friend  0.268 
+##  2     1 house   0.158 
+##  3     1 baby    0.157 
+##  4     1 penis   0.0640
+##  5     1 beat    0.0457
+##  6     2 green   0.0486
+##  7     2 party   0.0431
+##  8     2 wear    0.0426
+##  9     2 golf    0.0361
+## 10     2 wearing 0.0291
 ## # … with 492 more rows
 ```
 
 &lt;img src="dimension-reduction_files/figure-html/jokes_100_topn-1.png" width="864" /&gt;
+
+---
+
+# LDAvis
+
+* Interactive visualization of LDA model results
+1. What is the meaning of each topic?
+1. How prevalent is each topic?
+1. How do the topics relate to each other?
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script src="macros.js"></script>
