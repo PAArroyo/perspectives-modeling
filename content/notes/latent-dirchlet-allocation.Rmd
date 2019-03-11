@@ -295,7 +295,7 @@ glimpse(jokes)
 ```{r jokes-dtm, dependson = "jokes"}
 set.seed(123)
 n_grams <- 1:5
-jokes_lite <- sample_n(jokes, 5000)
+jokes_lite <- sample_n(jokes, 50000)
 
 jokes_tokens <- map_df(n_grams, ~ jokes_lite %>%
                          # combine title and body
@@ -544,6 +544,11 @@ jokes_20_json <- topicmodels_json_ldavis(fitted = jokes_lda_compare[[4]],
 ```{r jokes-20-ldavis-serve, dependson = "jokes-20-ldavis", eval = FALSE}
 serVis(jokes_20_json)
 ```
+
+Check out
+
+* 3
+* 8
 
 # Session Info {.toc-ignore}
 

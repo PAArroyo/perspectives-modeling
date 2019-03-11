@@ -431,7 +431,7 @@ jokes &lt;-<span class="st"> </span>jokes_json <span class="op">%&gt;%</span>
 <h2><span class="header-section-number">4.1</span> Convert to document-term matrix</h2>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">123</span>)
 n_grams &lt;-<span class="st"> </span><span class="dv">1</span><span class="op">:</span><span class="dv">5</span>
-jokes_lite &lt;-<span class="st"> </span><span class="kw">sample_n</span>(jokes, <span class="dv">5000</span>)
+jokes_lite &lt;-<span class="st"> </span><span class="kw">sample_n</span>(jokes, <span class="dv">50000</span>)
 
 jokes_tokens &lt;-<span class="st"> </span><span class="kw">map_df</span>(n_grams, <span class="op">~</span><span class="st"> </span>jokes_lite <span class="op">%&gt;%</span>
 <span class="st">                         </span><span class="co"># combine title and body</span>
@@ -461,7 +461,7 @@ jokes_stop_words &lt;-<span class="st"> </span>jokes_tokens <span class="op">%&g
 <span class="st">  </span><span class="kw">filter</span>(word1 <span class="op">%in%</span><span class="st"> </span>stop_words<span class="op">$</span>word <span class="op">|</span>
 <span class="st">           </span>last <span class="op">%in%</span><span class="st"> </span>stop_words<span class="op">$</span>word) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">select</span>(ngram, token_id)</code></pre></div>
-<pre><code>## Warning: Expected 5 pieces. Missing pieces filled with `NA` in 924710
+<pre><code>## Warning: Expected 5 pieces. Missing pieces filled with `NA` in 8997350
 ## rows [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
 ## 20, ...].</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># convert to dtm</span>
@@ -477,10 +477,10 @@ jokes_dtm &lt;-<span class="st"> </span>jokes_tokens <span class="op">%&gt;%</sp
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># remove documents with no terms remaining</span>
 jokes_dtm &lt;-<span class="st"> </span>jokes_dtm[<span class="kw">unique</span>(jokes_dtm<span class="op">$</span>i),]
 jokes_dtm</code></pre></div>
-<pre><code>## &lt;&lt;DocumentTermMatrix (documents: 4937, terms: 2926)&gt;&gt;
-## Non-/sparse entries: 47992/14397670
+<pre><code>## &lt;&lt;DocumentTermMatrix (documents: 49283, terms: 2482)&gt;&gt;
+## Non-/sparse entries: 443901/121876505
 ## Sparsity           : 100%
-## Maximal term length: 27
+## Maximal term length: 23
 ## Weighting          : term frequency (tf)</code></pre>
 </div>
 <div id="selecting-k" class="section level2">
@@ -502,28 +502,28 @@ top_terms &lt;-<span class="st"> </span>jokes_lda4_td <span class="op">%&gt;%</s
 <span class="st">  </span><span class="kw">arrange</span>(topic, <span class="op">-</span>beta)
 top_terms</code></pre></div>
 <pre><code>## # A tibble: 20 x 3
-##    topic term          beta
-##    &lt;int&gt; &lt;chr&gt;        &lt;dbl&gt;
-##  1     1 call       0.0166 
-##  2     1 people     0.0147 
-##  3     1 son        0.0126 
-##  4     1 girl       0.0124 
-##  5     1 dad        0.0121 
-##  6     2 guy        0.0267 
-##  7     2 door       0.0232 
-##  8     2 wife       0.0218 
-##  9     2 bar        0.0214 
-## 10     2 walks      0.0180 
-## 11     3 doctor     0.0169 
-## 12     3 boy        0.0120 
-## 13     3 dog        0.0112 
-## 14     3 difference 0.0104 
-## 15     3 joke       0.00932
-## 16     4 time       0.0136 
-## 17     4 day        0.0119 
-## 18     4 priest     0.00654
-## 19     4 god        0.00653
-## 20     4 water      0.00641</code></pre>
+##    topic term       beta
+##    &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt;
+##  1     1 wife    0.0269 
+##  2     1 woman   0.0234 
+##  3     1 day     0.0161 
+##  4     1 girl    0.0146 
+##  5     1 home    0.0132 
+##  6     2 doctor  0.0155 
+##  7     2 door    0.0134 
+##  8     2 told    0.0130 
+##  9     2 time    0.0103 
+## 10     2 god     0.00907
+## 11     3 guy     0.0288 
+## 12     3 bar     0.0214 
+## 13     3 walks   0.0195 
+## 14     3 replies 0.0156 
+## 15     3 boy     0.0151 
+## 16     4 call    0.0329 
+## 17     4 joke    0.0256 
+## 18     4 people  0.0238 
+## 19     4 black   0.0158 
+## 20     4 hear    0.0140</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">top_terms <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">term =</span> <span class="kw">reorder</span>(term, beta)) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(term, beta, <span class="dt">fill =</span> <span class="kw">factor</span>(topic))) <span class="op">+</span>
@@ -547,18 +547,18 @@ top_terms &lt;-<span class="st"> </span>jokes_lda12_td <span class="op">%&gt;%</
 <span class="st">  </span><span class="kw">arrange</span>(topic, <span class="op">-</span>beta)
 top_terms</code></pre></div>
 <pre><code>## # A tibble: 60 x 3
-##    topic term      beta
-##    &lt;int&gt; &lt;chr&gt;    &lt;dbl&gt;
-##  1     1 girl    0.0418
-##  2     1 black   0.0356
-##  3     1 hear    0.0340
-##  4     1 people  0.0262
-##  5     1 baby    0.0207
-##  6     2 wife    0.0697
-##  7     2 husband 0.0367
-##  8     2 blonde  0.0265
-##  9     2 bear    0.0160
-## 10     2 child   0.0150
+##    topic term     beta
+##    &lt;int&gt; &lt;chr&gt;   &lt;dbl&gt;
+##  1     1 dead   0.0175
+##  2     1 bear   0.0170
+##  3     1 head   0.0148
+##  4     1 watch  0.0126
+##  5     1 run    0.0122
+##  6     2 god    0.0314
+##  7     2 money  0.0276
+##  8     2 bad    0.0270
+##  9     2 priest 0.0253
+## 10     2 10     0.0250
 ## # … with 50 more rows</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">top_terms <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">term =</span> <span class="kw">reorder</span>(term, beta)) <span class="op">%&gt;%</span>
@@ -574,7 +574,7 @@ top_terms</code></pre></div>
 <p>Some aspects of LDA are driven by gut-thinking (or perhaps <a href="http://www.cc.com/video-clips/63ite2/the-colbert-report-the-word---truthiness">truthiness</a>). However we can have some help. <a href="https://en.wikipedia.org/wiki/Perplexity"><strong>Perplexity</strong></a> is a statistical measure of how well a probability model predicts a sample. As applied to LDA, for a given value of <span class="math inline">\(k\)</span>, you estimate the LDA model. Then given the theoretical word distributions represented by the topics, compare that to the actual topic mixtures, or distribution of words in your documents.</p>
 <p><code>topicmodels</code> includes the function <code>perplexity()</code> which calculates this value for a given model.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">perplexity</span>(jokes_lda12)</code></pre></div>
-<pre><code>## [1] 1103.443</code></pre>
+<pre><code>## [1] 1185.551</code></pre>
 <p>However, the statistic is somewhat meaningless on its own. The benefit of this statistic comes in comparing perplexity across different models with varying <span class="math inline">\(k\)</span>s. The model with the lowest perplexity is generally considered the “best”.</p>
 <p>Let’s estimate a series of LDA models on the Associated Press dataset. Here I make use of <code>purrr</code> and the <code>map()</code> functions to iteratively generate a series of LDA models for the <code>r/jokes</code> corpus, using a different number of topics in each model.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">n_topics &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">50</span>, <span class="dv">100</span>)
@@ -590,7 +590,6 @@ top_terms</code></pre></div>
   <span class="kw">toc</span>()
   <span class="kw">save</span>(jokes_lda_compare, <span class="dt">file =</span> <span class="kw">here</span>(<span class="st">&quot;static&quot;</span>, <span class="st">&quot;data&quot;</span>, <span class="st">&quot;jokes_lda_compare.Rdata&quot;</span>))
 }</code></pre></div>
-<pre><code>## 617.177 sec elapsed</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">tibble</span>(<span class="dt">k =</span> n_topics,
        <span class="dt">perplex =</span> <span class="kw">map_dbl</span>(jokes_lda_compare, perplexity)) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(k, perplex)) <span class="op">+</span>
@@ -610,20 +609,20 @@ top_terms &lt;-<span class="st"> </span>jokes_lda_td <span class="op">%&gt;%</sp
 <span class="st">  </span><span class="kw">ungroup</span>() <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">arrange</span>(topic, <span class="op">-</span>beta)
 top_terms</code></pre></div>
-<pre><code>## # A tibble: 502 x 3
-##    topic term      beta
-##    &lt;int&gt; &lt;chr&gt;    &lt;dbl&gt;
-##  1     1 friend  0.268 
-##  2     1 house   0.158 
-##  3     1 baby    0.157 
-##  4     1 penis   0.0640
-##  5     1 beat    0.0457
-##  6     2 green   0.0486
-##  7     2 party   0.0431
-##  8     2 wear    0.0426
-##  9     2 golf    0.0361
-## 10     2 wearing 0.0291
-## # … with 492 more rows</code></pre>
+<pre><code>## # A tibble: 500 x 3
+##    topic term       beta
+##    &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt;
+##  1     1 started  0.140 
+##  2     1 coming   0.0911
+##  3     1 top      0.0894
+##  4     1 fire     0.0748
+##  5     1 death    0.0739
+##  6     2 water    0.186 
+##  7     2 computer 0.0726
+##  8     2 amazing  0.0547
+##  9     2 pool     0.0456
+## 10     2 machine  0.0446
+## # … with 490 more rows</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">top_terms <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">filter</span>(topic <span class="op">&lt;=</span><span class="st"> </span><span class="dv">12</span>) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">term =</span> <span class="kw">reorder</span>(term, beta)) <span class="op">%&gt;%</span>
@@ -704,8 +703,12 @@ json &lt;-<span class="st"> </span><span class="kw">createJSON</span>(<span clas
 <p>Let’s test it using the <span class="math inline">\(k = 20\)</span> LDA topic model for the AP dataset.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">jokes_20_json &lt;-<span class="st"> </span><span class="kw">topicmodels_json_ldavis</span>(<span class="dt">fitted =</span> jokes_lda_compare[[<span class="dv">4</span>]],
                                          <span class="dt">doc_term =</span> jokes_dtm)</code></pre></div>
-<pre><code>## Loading required package: slam</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">serVis</span>(jokes_20_json)</code></pre></div>
+<p>Check out</p>
+<ul>
+<li>3</li>
+<li>8</li>
+</ul>
 </div>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
@@ -721,7 +724,7 @@ json &lt;-<span class="st"> </span><span class="kw">createJSON</span>(<span clas
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-03-07                  
+##  date     2019-03-11                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package       * version    date       lib
@@ -749,6 +752,7 @@ json &lt;-<span class="st"> </span><span class="kw">createJSON</span>(<span clas
 ##  DT              0.5        2018-11-05 [2]
 ##  dygraphs        1.1.1.6    2018-07-11 [2]
 ##  evaluate        0.13       2019-02-12 [2]
+##  fansi           0.4.0      2018-10-05 [2]
 ##  forcats       * 0.4.0      2019-02-17 [2]
 ##  fs              1.2.6      2018-08-23 [1]
 ##  furrr         * 0.1.0      2018-05-16 [1]
@@ -776,6 +780,7 @@ json &lt;-<span class="st"> </span><span class="kw">createJSON</span>(<span clas
 ##  janeaustenr     0.1.5      2017-06-10 [2]
 ##  jsonlite        1.6        2018-12-07 [2]
 ##  knitr           1.21       2018-12-10 [2]
+##  labeling        0.3        2014-08-23 [2]
 ##  later           0.8.0      2019-02-11 [2]
 ##  lattice         0.20-38    2018-11-04 [2]
 ##  lava            1.6.5      2019-02-12 [2]
@@ -865,6 +870,7 @@ json &lt;-<span class="st"> </span><span class="kw">createJSON</span>(<span clas
 ##  tokenizers      0.2.1      2018-03-29 [2]
 ##  topicmodels   * 0.2-8      2018-12-21 [2]
 ##  usethis         1.4.0      2018-08-14 [1]
+##  utf8            1.1.4      2018-05-24 [2]
 ##  withr           2.1.2      2018-03-15 [2]
 ##  xfun            0.5        2019-02-20 [1]
 ##  xml2            1.2.0      2018-01-24 [2]
@@ -898,6 +904,7 @@ json &lt;-<span class="st"> </span><span class="kw">createJSON</span>(<span clas
 ##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.2)                       
+##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.2)                       
 ##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.0)                       
@@ -925,6 +932,7 @@ json &lt;-<span class="st"> </span><span class="kw">createJSON</span>(<span clas
 ##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.1)                       
+##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.2)                       
 ##  CRAN (R 3.5.2)                       
 ##  CRAN (R 3.5.2)                       
@@ -1006,6 +1014,7 @@ json &lt;-<span class="st"> </span><span class="kw">createJSON</span>(<span clas
 ##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.2)                       
 ##  Github (tidyverse/tidyr@0b27690)     
+##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.0)                       
 ##  CRAN (R 3.5.0)                       

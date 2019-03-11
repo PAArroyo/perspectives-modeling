@@ -754,7 +754,7 @@ glimpse(jokes)
 ```{r jokes-dtm, dependson = "jokes"}
 set.seed(123)
 n_grams <- 1:5
-jokes_lite <- sample_n(jokes, 5000)
+jokes_lite <- sample_n(jokes, 50000)
 
 jokes_tokens <- map_df(n_grams, ~ jokes_lite %>%
                          # combine title and body
