@@ -51,9 +51,6 @@ knitr::opts_chunk$set(echo = FALSE)
 * Explain the purpose of dimension reduction techniques
 * Demonstrate how to estimate and interpret principal components analysis
 * Introduce non-linear dimension reduction methods
-* Define key terms for unsupervised text analysis
-* Implement latent semantic analysis using text data
-* Introduce Latent Dirchlet allocation and apply it to example data
 
 ## Before class
 

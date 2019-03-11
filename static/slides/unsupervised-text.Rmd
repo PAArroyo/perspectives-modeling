@@ -1,0 +1,923 @@
+---
+title: "Unsupervised Learning with Text Data"
+author: "[MACS 30100](https://model.uchicago.edu) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2, fig.width = 12)
+
+library(tidyverse)
+library(tidymodels)
+library(patchwork)
+library(here)
+library(tidytext)
+library(tm)
+library(topicmodels)
+library(rjson)
+library(furrr)
+library(tictoc)
+library(magrittr)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 16))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+# Basic workflow for text analysis
+
+* Obtain your text sources
+* Extract documents and move into a corpus
+* Transformation
+* Extract features
+* Perform analysis
+
+---
+
+# Obtain your text sources
+
+* Web sites
+    * Twitter
+* Databases
+* PDF documents
+* Digital scans of printed materials
+
+---
+
+# Extract documents
+
+* Text corpus
+* Typically stores the text as a raw character string with metadata and details stored with the text
+
+---
+
+# Transformation
+
+* Tag segments of speech for part-of-speech (nouns, verbs, adjectives, etc.) or entity recognition (person, place, company, etc.)
+* Standard text processing
+    * Convert to lower case
+    * Remove punctuation
+    * Remove numbers
+    * Remove stopwords
+    * Remove domain-specific stopwords
+    * Stemming
+
+---
+
+# Extract features
+
+* Convert the text string into some sort of quantifiable measures
+* Bag-of-words model
+    * Term frequency vector
+    * Term-document matrix
+    * Ignores context
+
+---
+
+# Perform analysis
+
+* Basic
+    * Word frequency
+    * Collocation
+    * Dictionary tagging
+* Advanced
+    * Document classification
+        * Supervised
+        * Unsupervised
+    * Corpora comparison
+    * Topic modeling
+
+---
+
+# Download population data
+
+```{r acs-pop}
+# retrieve state populations in 2016 from Census Bureau
+pop_df <- here("static", "data", "pop2016.csv") %>%
+  read_csv()
+
+# do these results make sense?
+pop_df %>% 
+  arrange(desc(population)) %>%
+  top_n(10)
+```
+
+---
+
+# Retrieve song lyrics
+
+```{r lyrics-import}
+song_lyrics <- here("static", "data", "billboard_lyrics_1964-2015.csv") %>%
+  read_csv()
+
+song_lyrics %>%
+  filter(Song == "uptown funk") %$%
+  Lyrics %>%
+  strwrap %>%
+  cat(sep = "\n")
+```
+
+---
+
+# Tokenize
+
+```{r lyrics-tidy, dependson = "lyrics-import"}
+tidy_lyrics <- bind_rows(song_lyrics %>% 
+                           unnest_tokens(output = state_name,
+                                         input = Lyrics),
+                         song_lyrics %>% 
+                           unnest_tokens(output = state_name,
+                                         input = Lyrics, 
+                                         token = "ngrams", n = 2))
+tidy_lyrics %>%
+  filter(Song == "uptown funk")
+```
+
+---
+
+# Find references to states
+
+```{r lyrics-state-distinct, dependson = c("acs-pop", "lyrics-tidy")}
+tidy_lyrics <- inner_join(tidy_lyrics, pop_df) %>%
+  distinct(Rank, Song, Artist, Year, state_name, .keep_all = TRUE)
+tidy_lyrics %>%
+  filter(Song == "uptown funk")
+```
+
+--
+
+* [Line in question](https://youtu.be/OPf0YbXqDm0?t=91)
+
+---
+
+# Find references to states
+  
+```{r state-counts, dependson = "lyrics-state-distinct"}
+(state_counts <- tidy_lyrics %>% 
+   count(state_name) %>% 
+   arrange(desc(n)))
+```
+
+```{r state-counts-poprel, dependson = c("acs-pop", "state-counts")}
+pop_df <- pop_df %>% 
+  left_join(state_counts) %>% 
+  mutate(rate = n / population * 1e6)
+```
+
+---
+
+# Draw a map
+
+```{r state-map, warning = FALSE, dependson = "state-counts-poprel"}
+library(statebins)
+
+{
+  pop_df %>%
+    mutate(state_name = stringr::str_to_title(state_name),
+           state_name = if_else(state_name == "District Of Columbia",
+                                "District of Columbia", state_name)) %>%
+    statebins_continuous(state_col = "state_name", value_col = "n") +
+    labs(subtitle = "Number of mentions") +
+    theme(legend.position = "bottom")
+} + {
+  pop_df %>%
+    mutate(state_name = stringr::str_to_title(state_name),
+           state_name = if_else(state_name == "District Of Columbia",
+                                "District of Columbia", state_name)) %>%
+    statebins_continuous(state_col = "state_name", value_col = "rate") +
+    labs(subtitle = "Number of mentions per capita") +
+    theme(legend.position = "bottom")
+} +
+  plot_annotation(title = "Frequency of states mentioned in song lyrics")
+```
+
+---
+
+# Sentiment analysis
+
+> I am happy
+
+---
+
+# Bing dictionary
+
+```{r bing}
+get_sentiments("bing")
+```
+
+---
+
+# AFINN dictionary
+
+```{r afinn}
+get_sentiments("afinn")
+```
+
+---
+
+# NRC dictionary
+
+.pull-left[
+
+```{r nrc}
+get_sentiments("nrc")
+```
+
+]
+
+--
+
+.pull-right[
+
+```{r nrc-types}
+get_sentiments("nrc") %>%
+  count(sentiment)
+```
+
+]
+
+---
+
+# Harry Potter
+
+```{r hp}
+library(harrypotter)
+
+# names of each book
+hp_books <- c("philosophers_stone", "chamber_of_secrets",
+              "prisoner_of_azkaban", "goblet_of_fire",
+              "order_of_the_phoenix", "half_blood_prince",
+              "deathly_hallows")
+
+# combine books into a list
+hp_words <- list(
+  philosophers_stone,
+  chamber_of_secrets,
+  prisoner_of_azkaban,
+  goblet_of_fire,
+  order_of_the_phoenix,
+  half_blood_prince,
+  deathly_hallows
+) %>%
+  # name each list element
+  set_names(hp_books) %>%
+  # convert each book to a data frame and merge into a single data frame
+  map_df(as_tibble, .id = "book") %>%
+  # convert book to a factor
+  mutate(book = factor(book, levels = hp_books)) %>%
+  # remove empty chapters
+  filter(!is.na(value)) %>%
+  # create a chapter id column
+  group_by(book) %>%
+  mutate(chapter = row_number(book)) %>%
+  # tokenize the data frame
+  unnest_tokens(word, value)
+
+hp_words
+```
+
+---
+
+# Most frequent words, by book
+
+```{r word-freq, fig.height = 8}
+hp_words %>%
+  # delete stopwords
+  anti_join(stop_words) %>%
+  # summarize count per word per book
+  count(book, word) %>%
+  # highest freq on top
+  arrange(desc(n)) %>% 
+  # identify rank within group
+  group_by(book) %>% # 
+  mutate(top = seq_along(word)) %>%
+  # retain top 15 frequent words
+  filter(top <= 15) %>%
+  # create barplot
+  ggplot(aes(x = -top, y = n, fill = book)) + 
+  geom_col(color = "black") +
+  # print words in plot instead of as axis labels
+  geom_text(aes(label = word), hjust = "left", nudge_y = 100) +
+  scale_fill_brewer(type = "qual", palette = "Set3") +
+  labs(title = "Most frequent words in Harry Potter",
+       x = NULL,
+       y = "Word count") +
+  facet_wrap( ~ book) +
+  coord_flip() +
+  theme(legend.position = "none",
+        # rotate x text
+        # axis.text.x = element_text(angle = 45, hjust = 1),
+        # remove tick marks and text on y-axis
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank())
+```
+
+---
+
+# Sentiment term frequency
+
+```{r sentiment-nrc}
+hp_nrc <- hp_words %>% 
+  inner_join(get_sentiments("nrc")) %>%
+  group_by(book, chapter, sentiment)
+```
+
+```{r sentiment-outlier-remove}
+hp_nrc <- hp_nrc %>%
+  filter(word != "harry")
+```
+
+```{r nrc-freq, fig.height = 8}
+hp_nrc %>%
+  # summarize count per word
+  ungroup %>%
+  count(word, sentiment) %>%
+  # highest freq on top
+  arrange(desc(n)) %>% 
+  # identify rank within group
+  group_by(sentiment) %>% # 
+  mutate(top = seq_along(word)) %>%
+  # retain top 15 frequent words
+  filter(top <= 15) %>%
+  # create barplot
+  ggplot(aes(x = -top, y = n, fill = sentiment)) + 
+  geom_col(color = "black") +
+  # print words in plot instead of as axis labels
+  geom_text(aes(label = word), hjust = "left", nudge_y = 50) +
+  scale_fill_brewer(type = "qual", palette = "Set3") +
+  ylim(0, 2606) +
+  labs(title = "Most frequent words in Harry Potter",
+       x = NULL,
+       y = "Word count") +
+  facet_wrap( ~ sentiment, ncol = 5) +
+  coord_flip() +
+  theme(legend.position = "none",
+        # rotate x text
+        # axis.text.x = element_text(angle = 45, hjust = 1),
+        # remove tick marks and text on y-axis
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank())
+```
+
+---
+
+# Emotional arcs
+
+```{r affin-over-time}
+# cumulative score
+hp_words %>% 
+  inner_join(get_sentiments("afinn")) %>%
+  group_by(book) %>%
+  mutate(cumscore = cumsum(score)) %>%
+  ggplot(aes(chapter, cumscore, fill = book)) +
+  geom_step() +
+  facet_wrap(~ book, scales = "free_x") +
+  labs(title = "Emotional arc of Harry Potter books",
+       subtitle = "AFINN sentiment dictionary",
+       x = "Chapter",
+       y = "Cumulative emotional score")
+```
+
+---
+
+# Emotional arcs
+  
+```{r sentiment-over-time, fig.height = 8}
+hp_nrc %>%
+  count(sentiment, book, chapter) %>%
+  filter(!(sentiment %in% c("positive", "negative"))) %>%
+  # create area plot
+  ggplot(aes(x = chapter, y = n)) +
+  geom_area(aes(fill = sentiment), position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_brewer(type = "qual", palette = "Set3") +
+  theme(legend.position = "bottom") +
+  labs(x = "Chapter", y = "Proportion of affective words", # add labels
+       title = "Harry Potter: Emotions during the saga",
+       fill = NULL) +
+  # seperate plots per sentiment and book and free up x-axes
+  facet_wrap(~ book, scale = "free_x", ncol = 4)
+```
+
+---
+
+# Latent semantic analysis
+
+* Bag-of-words approach
+
+```
+ a abandoned abc ability able about above abroad absorbed absorbing abstract
+43         0   0       0    0    10     0      0        0         0        1
+```
+
+* Properties of bag-of-words representation
+    * Sparsity
+    * Stop words
+    * Correlation between words
+* Reduce dimensions of corpus using PCA
+    * Identifies words closely related to one another in lower dimensional space
+    * Enables keyword searches
+
+---
+
+# Interpretation: `NYTimes`
+
+* Sample of stores
+    * 57 art
+    * 45 music
+
+### Example words
+
+```{r nytimes}
+# get NYTimes data
+load(here("static", "data", "pca-examples.Rdata"))
+```
+
+```{r nytimes-words}
+colnames(nyt.frame)[sample(ncol(nyt.frame),30)]
+```
+
+---
+
+# Interpretation: `NYTimes`
+
+```{r nytimes-pca}
+# Omit the first column of class labels
+nyt.pca <- prcomp(nyt.frame[,-1])
+
+# Extract the actual component directions/weights for ease of reference
+nyt.latent.sem <- nyt.pca$rotation
+
+# convert to data frame
+nyt.latent.sem <- nyt.latent.sem %>%
+  as_tibble %>%
+  mutate(word = names(nyt.latent.sem[,1])) %>%
+  select(word, everything())
+```
+
+```{r nytimes-PC1}
+nyt.latent.sem %>%
+  select(word, PC1) %>%
+  arrange(PC1) %>%
+  slice(c(1:10, (n() - 10):n())) %>%
+  mutate(pos = ifelse(PC1 > 0, TRUE, FALSE),
+         word = fct_reorder(word, PC1)) %>%
+  ggplot(aes(word, PC1, fill = pos)) +
+  geom_col() +
+  scale_fill_brewer(type = "qual") +
+  labs(title = "LSA analysis of NYTimes articles",
+       x = NULL,
+       y = "PC1 scores") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+---
+
+# Interpretation: `NYTimes`
+
+```{r nytimes-PC2}
+nyt.latent.sem %>%
+  select(word, PC2) %>%
+  arrange(PC2) %>%
+  slice(c(1:10, (n() - 10):n())) %>%
+  mutate(pos = ifelse(PC2 > 0, TRUE, FALSE),
+         word = fct_reorder(word, PC2)) %>%
+  ggplot(aes(word, PC2, fill = pos)) +
+  geom_col() +
+  scale_fill_brewer(type = "qual") +
+  labs(title = "LSA analysis of NYTimes articles",
+       x = NULL,
+       y = "PC2 scores") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+---
+
+# Interpretation: `NYTimes`
+
+```{r nytimes-biplot}
+ggplot(nyt.latent.sem, aes(PC1, PC2)) + 
+  geom_vline(xintercept = 0, size = 2, color = "black", alpha = .5) +
+  geom_hline(yintercept = 0, size = 2, color = "black", alpha = .5) +
+  geom_text(aes(label = word)) +
+  labs(title = "First two principal components of NYTimes",
+       x = "First principal component",
+       y = "Second principal component")
+```
+
+---
+
+# Interpretation: `NYTimes`
+
+```{r nytimes-plot-dim}
+cbind(type = nyt.frame$class.labels, as_tibble(nyt.pca$x[,1:2])) %>%
+  mutate(type = factor(type, levels = c("art", "music"),
+                       labels = c("A", "M"))) %>%
+  ggplot(aes(PC1, PC2, label = type, color = type)) +
+  geom_text() +
+  scale_color_brewer(type = "qual") +
+  labs(title = "") +
+  theme(legend.position = "none")
+```
+
+---
+
+# Topic modeling
+
+* Themes
+* Probabilistic topic models
+* Latent Dirichlet allocation
+
+---
+
+# Food and animals
+
+1. I ate a banana and spinach smoothie for breakfast.
+1. I like to eat broccoli and bananas.
+1. Chinchillas and kittens are cute.
+1. My sister adopted a kitten yesterday.
+1. Look at this cute hamster munching on a piece of broccoli.
+
+---
+
+# LDA document structure
+
+* Decide on the number of words N the document will have
+    * [Dirichlet probability distribution](https://en.wikipedia.org/wiki/Dirichlet_distribution)
+    * Fixed set of $k$ topics
+* Generate each word in the document:
+    * Pick a topic
+    * Generate the word
+* LDA backtracks from this assumption
+
+---
+
+# How does LDA learn?
+
+* Randomly assign each word in the document to one of $K$ topics
+* For each document $d$:
+    * Go through each word $w$ in $d$
+        * And for each topic $t$, compute two things:
+            1. $p(t | d)$
+            1. $p(w | t)$
+        * Reassign $w$ a new topic $t$ with probability $p(t|d) \times p(w|t)$
+* Rinse and repeat
+
+* Estimate from LDA
+    1. The topic mixtures of each document
+    1. The words associated to each topic
+---
+
+# `USCongress`
+
+```{r get-docs}
+# get USCongress data
+data(USCongress, package = "RTextTools")
+
+# topic labels
+major_topics <- tibble(
+  major = c(1:10, 12:21, 99),
+  label = c("Macroeconomics", "Civil rights, minority issues, civil liberties",
+            "Health", "Agriculture", "Labor and employment", "Education", "Environment",
+            "Energy", "Immigration", "Transportation", "Law, crime, family issues",
+            "Social welfare", "Community development and housing issues",
+            "Banking, finance, and domestic commerce", "Defense",
+            "Space, technology, and communications", "Foreign trade",
+            "International affairs and foreign aid", "Government operations",
+            "Public lands and water management", "Other, miscellaneous")
+)
+
+(congress <- as_tibble(USCongress) %>%
+    mutate(text = as.character(text)) %>%
+    left_join(major_topics))
+```
+
+---
+
+# `USCongress`
+
+```{r convert-tidytext, dependson = "get-docs"}
+congress_tokens <- congress %>%
+  unnest_tokens(output = word, input = text) %>%
+  # remove numbers
+  filter(!str_detect(word, "^[0-9]*$")) %>%
+  # remove stop words
+  anti_join(stop_words) %>%
+  # stem the words
+  mutate(word = SnowballC::wordStem(word))
+```
+
+```{r dtm, dependson = "convert-tidytext"}
+# remove terms with low tf-idf for future LDA model
+congress_dtm <- congress_tokens %>%
+  count(major, word) %>%
+  bind_tf_idf(term = word, document = major, n = n) %>%
+  group_by(major) %>%
+  top_n(40, wt = tf_idf) %>%
+  ungroup %>%
+  count(word) %>%
+  select(-n) %>%
+  left_join(congress_tokens) %>%
+  # get count of each token in each document
+  count(ID, word) %>%
+  # create a document-term matrix with all features and tf weighting
+  cast_dtm(document = ID, term = word, value = n)
+```
+
+```{r bind-tf-idf, dependson = "convert-tidytext"}
+congress_tfidf <- congress_tokens %>%
+  count(label, word) %>%
+  bind_tf_idf(term = word, document = label, n = n)
+```
+
+```{r plot-tf-idf, dependson = "bind-tf-idf"}
+# sort the data frame and convert word to a factor column
+plot_congress <- congress_tfidf %>%
+  arrange(desc(tf_idf)) %>%
+  mutate(word = factor(word, levels = rev(unique(word))))
+
+# graph the top 10 tokens for 4 categories
+plot_congress %>%
+  filter(label %in% c("Macroeconomics",
+                      "Civil rights, minority issues, civil liberties",
+                      "Health", "Education")) %>%
+  group_by(label) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  ggplot(aes(word, tf_idf)) +
+  geom_col() +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~ label, scales = "free") +
+  coord_flip()
+```
+
+---
+
+# 20 topic LDA model
+
+```{r congress-20-topic, dependson = "dtm"}
+congress_lda <- LDA(congress_dtm, k = 20, control = list(seed = 1234))
+```
+
+```{r congress-20-topn, dependson = "congress-20-topic", fig.height = 8}
+congress_lda_td <- tidy(congress_lda)
+
+top_terms <- congress_lda_td %>%
+  group_by(topic) %>%
+  top_n(5, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free", ncol = 4) +
+  coord_flip()
+```
+
+---
+
+# Document classification
+
+```{r uscongress-gamma, dependson = "congress-20-topic"}
+congress_gamma <- tidy(congress_lda, matrix = "gamma")
+```
+
+```{r congress-model-compare, dependson = "uscongress-gamma"}
+congress_tokens %>%
+  count(label, word) %>%
+  bind_tf_idf(term = word, document = label, n = n) %>%
+  group_by(label) %>%
+  top_n(40, wt = tf_idf) %>%
+  ungroup %>%
+  count(word) %>%
+  select(-n) %>%
+  left_join(congress_tokens) %>%
+  distinct(ID) %>%
+  left_join(congress) %>%
+  mutate(document = as.character(row_number())) %>%
+  filter(label %in% c("Macroeconomics",
+                      "Civil rights, minority issues, civil liberties",
+                      "Health", "Education")) %>%
+  left_join(congress_gamma) %>%
+  na.omit %>%
+  ggplot(aes(factor(topic), gamma)) +
+  geom_boxplot() +
+  scale_y_log10() +
+  facet_wrap(~ label) +
+  labs(x = "LDA topic",
+       y = expression(gamma))
+```
+
+---
+
+# `r/jokes`
+
+<blockquote class="reddit-card" data-card-created="1552319072"><a href="https://www.reddit.com/r/Jokes/comments/a593r0/twenty_years_from_now_kids_are_gonna_think_baby/">Twenty years from now, kids are gonna think "Baby it's cold outside" is really weird, and we're gonna have to explain that it has to be understood as a product of its time.</a> from <a href="http://www.reddit.com/r/Jokes">r/Jokes</a></blockquote>
+<script async src="//embed.redditmedia.com/widgets/platform.js" charset="UTF-8"></script>
+
+---
+
+# `r/jokes` dataset
+
+```{r jokes}
+jokes_json <- fromJSON(file = "https://github.com/taivop/joke-dataset/raw/master/reddit_jokes.json")
+jokes <- jokes_json %>%
+{
+  tibble(
+    id = map_chr(., "id"),
+    title = map_chr(., "title"),
+    body = map_chr(., "body"),
+    score = map_dbl(., "score")
+  )
+}
+glimpse(jokes)
+```
+
+```{r jokes-dtm, dependson = "jokes"}
+set.seed(123)
+n_grams <- 1:5
+jokes_lite <- sample_n(jokes, 5000)
+
+jokes_tokens <- map_df(n_grams, ~ jokes_lite %>%
+                         # combine title and body
+                         unite(col = joke, title, body, sep = " ") %>%
+                         # tokenize
+                         unnest_tokens(output = word,
+                                       input = joke,
+                                       token = "ngrams",
+                                       n = .x) %>%
+                         mutate(ngram = .x,
+                                token_id = row_number()) %>%
+                         # remove tokens that are missing values
+                         filter(!is.na(word)))
+
+# identify n-grams beginning or ending with stop word
+jokes_stop_words <- jokes_tokens %>%
+  # separate ngrams into separate columns
+  separate(col = word,
+           into = c("word1", "word2", "word3", "word4", "word5"),
+           sep = " ") %>%
+  # find last word
+  mutate(last = if_else(ngram == 5, word5,
+                        if_else(ngram == 4, word4,
+                                if_else(ngram == 3, word3,
+                                        if_else(ngram == 2, word2, word1))))) %>%
+  # remove tokens where the first or last word is a stop word
+  filter(word1 %in% stop_words$word |
+           last %in% stop_words$word) %>%
+  select(ngram, token_id)
+
+# convert to dtm
+jokes_dtm <- jokes_tokens %>%
+  # remove stop word tokens
+  anti_join(jokes_stop_words) %>%
+  # get count of each token in each document
+  count(id, word) %>%
+  # create a document-term matrix with all features and tf weighting
+  cast_dtm(document = id, term = word, value = n) %>%
+  removeSparseTerms(sparse = .999)
+# remove documents with no terms remaining
+jokes_dtm <- jokes_dtm[unique(jokes_dtm$i),]
+jokes_dtm
+```
+
+---
+
+# $k=4$
+
+```{r jokes_topic_4, dependson = "jokes-dtm"}
+jokes_lda4 <- LDA(jokes_dtm, k = 4, control = list(seed = 1234))
+```
+
+```{r jokes_4_topn, dependson = "jokes_topic_4"}
+jokes_lda4_td <- tidy(jokes_lda4)
+
+top_terms <- jokes_lda4_td %>%
+  group_by(topic) %>%
+  top_n(5, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free", ncol = 2) +
+  coord_flip()
+```
+
+---
+
+# $k=12$
+
+```{r jokes_topic_12, dependson = "jokes-dtm"}
+jokes_lda12 <- LDA(jokes_dtm, k = 12, control = list(seed = 1234))
+```
+
+```{r jokes_12_topn, dependson="jokes_topic_12"}
+jokes_lda12_td <- tidy(jokes_lda12)
+
+top_terms <- jokes_lda12_td %>%
+  group_by(topic) %>%
+  top_n(5, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free", ncol = 3) +
+  coord_flip()
+```
+
+---
+
+# Perplexity
+
+* A statistical measure of how well a probability model predicts a sample
+* Given the theoretical word distributions represented by the topics, compare that to the actual topic mixtures, or distribution of words in your documents
+* Perplexity for LDA model with 12 topics
+    * `r perplexity(jokes_lda12)`
+
+---
+
+# Perplexity
+
+```{r jokes_lda_compare, dependson = "jokes-dtm"}
+n_topics <- c(2, 4, 10, 20, 50, 100)
+
+if(file.exists(here("static", "data", "jokes_lda_compare.Rdata"))){
+  load(file = here("static", "data", "jokes_lda_compare.Rdata"))
+} else{
+  plan(multiprocess)
+  
+  tic()
+  jokes_lda_compare <- n_topics %>%
+    future_map(LDA, x = jokes_dtm, control = list(seed = 1234))
+  toc()
+  save(jokes_lda_compare, file = here("static", "data", "jokes_lda_compare.Rdata"))
+}
+```
+
+```{r jokes_lda_compare_viz, dependson="jokes_lda_compare"} 
+tibble(k = n_topics,
+       perplex = map_dbl(jokes_lda_compare, perplexity)) %>%
+  ggplot(aes(k, perplex)) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Evaluating LDA topic models",
+       subtitle = "Optimal number of topics (smaller is better)",
+       x = "Number of topics",
+       y = "Perplexity")
+```
+
+---
+
+# $k=100$
+
+```{r jokes_100_topn, dependson="jokes_lda_compare"}
+jokes_lda_td <- tidy(jokes_lda_compare[[6]])
+
+top_terms <- jokes_lda_td %>%
+  group_by(topic) %>%
+  top_n(5, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_terms %>%
+  filter(topic <= 12) %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_bar(alpha = 0.8, stat = "identity", show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free", ncol = 3) +
+  coord_flip()
+```
+
+---
+
+# LDAvis
+
+* Interactive visualization of LDA model results
+1. What is the meaning of each topic?
+1. How prevalent is each topic?
+1. How do the topics relate to each other?
+

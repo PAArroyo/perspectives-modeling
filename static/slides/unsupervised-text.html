@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Unsupervised Learning with Text Data</title>
+    <meta charset="utf-8">
+    <meta name="author" content="MACS 30100   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Unsupervised Learning with Text Data
+### <a href="https://model.uchicago.edu">MACS 30100</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Basic workflow for text analysis
+
+* Obtain your text sources
+* Extract documents and move into a corpus
+* Transformation
+* Extract features
+* Perform analysis
+
+---
+
+# Obtain your text sources
+
+* Web sites
+    * Twitter
+* Databases
+* PDF documents
+* Digital scans of printed materials
+
+---
+
+# Extract documents
+
+* Text corpus
+* Typically stores the text as a raw character string with metadata and details stored with the text
+
+---
+
+# Transformation
+
+* Tag segments of speech for part-of-speech (nouns, verbs, adjectives, etc.) or entity recognition (person, place, company, etc.)
+* Standard text processing
+    * Convert to lower case
+    * Remove punctuation
+    * Remove numbers
+    * Remove stopwords
+    * Remove domain-specific stopwords
+    * Stemming
+
+---
+
+# Extract features
+
+* Convert the text string into some sort of quantifiable measures
+* Bag-of-words model
+    * Term frequency vector
+    * Term-document matrix
+    * Ignores context
+
+---
+
+# Perform analysis
+
+* Basic
+    * Word frequency
+    * Collocation
+    * Dictionary tagging
+* Advanced
+    * Document classification
+        * Supervised
+        * Unsupervised
+    * Corpora comparison
+    * Topic modeling
+
+---
+
+# Download population data
+
+
+```
+## # A tibble: 10 x 3
+##    GEOID state_name     population
+##    &lt;chr&gt; &lt;chr&gt;               &lt;dbl&gt;
+##  1 06    california       38654206
+##  2 48    texas            26956435
+##  3 12    florida          19934451
+##  4 36    new york         19697457
+##  5 17    illinois         12851684
+##  6 42    pennsylvania     12783977
+##  7 39    ohio             11586941
+##  8 13    georgia          10099320
+##  9 37    north carolina    9940828
+## 10 26    michigan          9909600
+```
+
+---
+
+# Retrieve song lyrics
+
+
+```
+## this hit that ice cold michelle pfeiffer that white gold this one
+## for them hood girls them good girls straight masterpieces stylin
+## whilen livin it up in the city got chucks on with saint laurent
+## got kiss myself im so prettyim too hot hot damn called a police
+## and a fireman im too hot hot damn make a dragon wanna retire man
+## im too hot hot damn say my name you know who i am im too hot hot
+## damn am i bad bout that money break it downgirls hit your
+## hallelujah whoo girls hit your hallelujah whoo girls hit your
+## hallelujah whoo cause uptown funk gon give it to you cause uptown
+## funk gon give it to you cause uptown funk gon give it to you
+## saturday night and we in the spot dont believe me just watch come
+## ondont believe me just watch uhdont believe me just watch dont
+## believe me just watch dont believe me just watch dont believe me
+## just watch hey hey hey oh meaning byamandah editor 70s girl group
+## the sequence accused bruno mars and producer mark ronson of
+## ripping their sound off in uptown funk their song in question is
+## funk you see all stop wait a minute fill my cup put some liquor in
+## it take a sip sign a check julio get the stretch ride to harlem
+## hollywood jackson mississippi if we show up we gon show out
+## smoother than a fresh jar of skippyim too hot hot damn called a
+## police and a fireman im too hot hot damn make a dragon wanna
+## retire man im too hot hot damn bitch say my name you know who i am
+## im too hot hot damn am i bad bout that money break it downgirls
+## hit your hallelujah whoo girls hit your hallelujah whoo girls hit
+## your hallelujah whoo cause uptown funk gon give it to you cause
+## uptown funk gon give it to you cause uptown funk gon give it to
+## you saturday night and we in the spot dont believe me just watch
+## come ondont believe me just watch uhdont believe me just watch uh
+## dont believe me just watch uh dont believe me just watch dont
+## believe me just watch hey hey hey ohbefore we leave lemmi tell
+## yall a lil something uptown funk you up uptown funk you up uptown
+## funk you up uptown funk you up uh i said uptown funk you up uptown
+## funk you up uptown funk you up uptown funk you upcome on dance
+## jump on it if you sexy then flaunt it if you freaky then own it
+## dont brag about it come show mecome on dance jump on it if you
+## sexy then flaunt it well its saturday night and we in the spot
+## dont believe me just watch come ondont believe me just watch
+## uhdont believe me just watch uh dont believe me just watch uh dont
+## believe me just watch dont believe me just watch hey hey hey
+## ohuptown funk you up uptown funk you up say what uptown funk you
+## up uptown funk you up uptown funk you up uptown funk you up say
+## what uptown funk you up uptown funk you up uptown funk you up
+## uptown funk you up say what uptown funk you up uptown funk you up
+## uptown funk you up uptown funk you up say what uptown funk you up
+```
+
+---
+
+# Tokenize
+
+
+```
+## # A tibble: 1,131 x 6
+##     Rank Song        Artist                          Year Source state_name
+##    &lt;dbl&gt; &lt;chr&gt;       &lt;chr&gt;                          &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;     
+##  1     1 uptown funk mark ronson featuring bruno m…  2015      1 this      
+##  2     1 uptown funk mark ronson featuring bruno m…  2015      1 hit       
+##  3     1 uptown funk mark ronson featuring bruno m…  2015      1 that      
+##  4     1 uptown funk mark ronson featuring bruno m…  2015      1 ice       
+##  5     1 uptown funk mark ronson featuring bruno m…  2015      1 cold      
+##  6     1 uptown funk mark ronson featuring bruno m…  2015      1 michelle  
+##  7     1 uptown funk mark ronson featuring bruno m…  2015      1 pfeiffer  
+##  8     1 uptown funk mark ronson featuring bruno m…  2015      1 that      
+##  9     1 uptown funk mark ronson featuring bruno m…  2015      1 white     
+## 10     1 uptown funk mark ronson featuring bruno m…  2015      1 gold      
+## # … with 1,121 more rows
+```
+
+---
+
+# Find references to states
+
+
+```
+## # A tibble: 1 x 8
+##    Rank Song     Artist             Year Source state_name GEOID population
+##   &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt;             &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;      &lt;chr&gt;      &lt;dbl&gt;
+## 1     1 uptown … mark ronson feat…  2015      1 mississip… 28       2989192
+```
+
+--
+
+* [Line in question](https://youtu.be/OPf0YbXqDm0?t=91)
+
+---
+
+# Find references to states
+  
+
+```
+## # A tibble: 33 x 2
+##    state_name      n
+##    &lt;chr&gt;       &lt;int&gt;
+##  1 new york       64
+##  2 california     34
+##  3 georgia        22
+##  4 tennessee      14
+##  5 texas          14
+##  6 alabama        12
+##  7 mississippi    10
+##  8 kentucky        7
+##  9 hawaii          6
+## 10 illinois        6
+## # … with 23 more rows
+```
+
+
+
+---
+
+# Draw a map
+
+&lt;img src="unsupervised-text_files/figure-html/state-map-1.png" width="864" /&gt;
+
+---
+
+# Sentiment analysis
+
+&gt; I am happy
+
+---
+
+# Bing dictionary
+
+
+```
+## # A tibble: 6,788 x 2
+##    word        sentiment
+##    &lt;chr&gt;       &lt;chr&gt;    
+##  1 2-faced     negative 
+##  2 2-faces     negative 
+##  3 a+          positive 
+##  4 abnormal    negative 
+##  5 abolish     negative 
+##  6 abominable  negative 
+##  7 abominably  negative 
+##  8 abominate   negative 
+##  9 abomination negative 
+## 10 abort       negative 
+## # … with 6,778 more rows
+```
+
+---
+
+# AFINN dictionary
+
+
+```
+## # A tibble: 2,476 x 2
+##    word       score
+##    &lt;chr&gt;      &lt;int&gt;
+##  1 abandon       -2
+##  2 abandoned     -2
+##  3 abandons      -2
+##  4 abducted      -2
+##  5 abduction     -2
+##  6 abductions    -2
+##  7 abhor         -3
+##  8 abhorred      -3
+##  9 abhorrent     -3
+## 10 abhors        -3
+## # … with 2,466 more rows
+```
+
+---
+
+# NRC dictionary
+
+.pull-left[
+
+
+```
+## # A tibble: 13,901 x 2
+##    word        sentiment
+##    &lt;chr&gt;       &lt;chr&gt;    
+##  1 abacus      trust    
+##  2 abandon     fear     
+##  3 abandon     negative 
+##  4 abandon     sadness  
+##  5 abandoned   anger    
+##  6 abandoned   fear     
+##  7 abandoned   negative 
+##  8 abandoned   sadness  
+##  9 abandonment anger    
+## 10 abandonment fear     
+## # … with 13,891 more rows
+```
+
+]
+
+--
+
+.pull-right[
+
+
+```
+## # A tibble: 10 x 2
+##    sentiment        n
+##    &lt;chr&gt;        &lt;int&gt;
+##  1 anger         1247
+##  2 anticipation   839
+##  3 disgust       1058
+##  4 fear          1476
+##  5 joy            689
+##  6 negative      3324
+##  7 positive      2312
+##  8 sadness       1191
+##  9 surprise       534
+## 10 trust         1231
+```
+
+]
+
+---
+
+# Harry Potter
+
+
+```
+## # A tibble: 1,089,386 x 3
+## # Groups:   book [7]
+##    book               chapter word   
+##    &lt;fct&gt;                &lt;int&gt; &lt;chr&gt;  
+##  1 philosophers_stone       1 the    
+##  2 philosophers_stone       1 boy    
+##  3 philosophers_stone       1 who    
+##  4 philosophers_stone       1 lived  
+##  5 philosophers_stone       1 mr     
+##  6 philosophers_stone       1 and    
+##  7 philosophers_stone       1 mrs    
+##  8 philosophers_stone       1 dursley
+##  9 philosophers_stone       1 of     
+## 10 philosophers_stone       1 number 
+## # … with 1,089,376 more rows
+```
+
+---
+
+# Most frequent words, by book
+
+&lt;img src="unsupervised-text_files/figure-html/word-freq-1.png" width="864" /&gt;
+
+---
+
+# Sentiment term frequency
+
+
+
+
+
+&lt;img src="unsupervised-text_files/figure-html/nrc-freq-1.png" width="864" /&gt;
+
+---
+
+# Emotional arcs
+
+&lt;img src="unsupervised-text_files/figure-html/affin-over-time-1.png" width="864" /&gt;
+
+---
+
+# Emotional arcs
+  
+&lt;img src="unsupervised-text_files/figure-html/sentiment-over-time-1.png" width="864" /&gt;
+
+---
+
+# Latent semantic analysis
+
+* Bag-of-words approach
+
+```
+ a abandoned abc ability able about above abroad absorbed absorbing abstract
+43         0   0       0    0    10     0      0        0         0        1
+```
+
+* Properties of bag-of-words representation
+    * Sparsity
+    * Stop words
+    * Correlation between words
+* Reduce dimensions of corpus using PCA
+    * Identifies words closely related to one another in lower dimensional space
+    * Enables keyword searches
+
+---
+
+# Interpretation: `NYTimes`
+
+* Sample of stores
+    * 57 art
+    * 45 music
+
+### Example words
+
+
+
+
+```
+##  [1] "penchant"  "brought"   "structure" "willing"   "yielding" 
+##  [6] "bare"      "school"    "halls"     "challenge" "step"     
+## [11] "largest"   "lovers"    "intense"   "borders"   "mall"     
+## [16] "classic"   "conducted" "mirrors"   "hole"      "location" 
+## [21] "desperate" "published" "head"      "paints"    "another"  
+## [26] "starts"    "familiar"  "window"    "thats"     "broker"
+```
+
+---
+
+# Interpretation: `NYTimes`
+
+
+
+&lt;img src="unsupervised-text_files/figure-html/nytimes-PC1-1.png" width="864" /&gt;
+
+---
+
+# Interpretation: `NYTimes`
+
+&lt;img src="unsupervised-text_files/figure-html/nytimes-PC2-1.png" width="864" /&gt;
+
+---
+
+# Interpretation: `NYTimes`
+
+&lt;img src="unsupervised-text_files/figure-html/nytimes-biplot-1.png" width="864" /&gt;
+
+---
+
+# Interpretation: `NYTimes`
+
+&lt;img src="unsupervised-text_files/figure-html/nytimes-plot-dim-1.png" width="864" /&gt;
+
+---
+
+# Topic modeling
+
+* Themes
+* Probabilistic topic models
+* Latent Dirichlet allocation
+
+---
+
+# Food and animals
+
+1. I ate a banana and spinach smoothie for breakfast.
+1. I like to eat broccoli and bananas.
+1. Chinchillas and kittens are cute.
+1. My sister adopted a kitten yesterday.
+1. Look at this cute hamster munching on a piece of broccoli.
+
+---
+
+# LDA document structure
+
+* Decide on the number of words N the document will have
+    * [Dirichlet probability distribution](https://en.wikipedia.org/wiki/Dirichlet_distribution)
+    * Fixed set of `\(k\)` topics
+* Generate each word in the document:
+    * Pick a topic
+    * Generate the word
+* LDA backtracks from this assumption
+
+---
+
+# How does LDA learn?
+
+* Randomly assign each word in the document to one of `\(K\)` topics
+* For each document `\(d\)`:
+    * Go through each word `\(w\)` in `\(d\)`
+        * And for each topic `\(t\)`, compute two things:
+            1. `\(p(t | d)\)`
+            1. `\(p(w | t)\)`
+        * Reassign `\(w\)` a new topic `\(t\)` with probability `\(p(t|d) \times p(w|t)\)`
+* Rinse and repeat
+
+* Estimate from LDA
+    1. The topic mixtures of each document
+    1. The words associated to each topic
+---
+
+# `USCongress`
+
+
+```
+## # A tibble: 4,449 x 7
+##       ID  cong billnum h_or_sen major text                    label        
+##    &lt;int&gt; &lt;int&gt;   &lt;int&gt; &lt;fct&gt;    &lt;dbl&gt; &lt;chr&gt;                   &lt;chr&gt;        
+##  1     1   107    4499 HR          18 To suspend temporarily… Foreign trade
+##  2     2   107    4500 HR          18 To suspend temporarily… Foreign trade
+##  3     3   107    4501 HR          18 To suspend temporarily… Foreign trade
+##  4     4   107    4502 HR          18 To reduce temporarily … Foreign trade
+##  5     5   107    4503 HR           5 To amend the Immigrati… Labor and em…
+##  6     6   107    4504 HR          21 To amend title 38, Uni… Public lands…
+##  7     7   107    4505 HR          15 To repeal subtitle B o… Banking, fin…
+##  8     8   107    4506 HR          18 To suspend temporarily… Foreign trade
+##  9     9   107    4507 HR          18 To suspend temporarily… Foreign trade
+## 10    10   107    4508 HR          18 To suspend temporarily… Foreign trade
+## # … with 4,439 more rows
+```
+
+---
+
+# `USCongress`
+
+
+
+
+
+
+
+&lt;img src="unsupervised-text_files/figure-html/plot-tf-idf-1.png" width="864" /&gt;
+
+---
+
+# 20 topic LDA model
+
+
+
+&lt;img src="unsupervised-text_files/figure-html/congress-20-topn-1.png" width="864" /&gt;
+
+---
+
+# Document classification
+
+
+
+&lt;img src="unsupervised-text_files/figure-html/congress-model-compare-1.png" width="864" /&gt;
+
+---
+
+# `r/jokes`
+
+&lt;blockquote class="reddit-card" data-card-created="1552319072"&gt;&lt;a href="https://www.reddit.com/r/Jokes/comments/a593r0/twenty_years_from_now_kids_are_gonna_think_baby/"&gt;Twenty years from now, kids are gonna think "Baby it's cold outside" is really weird, and we're gonna have to explain that it has to be understood as a product of its time.&lt;/a&gt; from &lt;a href="http://www.reddit.com/r/Jokes"&gt;r/Jokes&lt;/a&gt;&lt;/blockquote&gt;
+&lt;script async src="//embed.redditmedia.com/widgets/platform.js" charset="UTF-8"&gt;&lt;/script&gt;
+
+---
+
+# `r/jokes` dataset
+
+
+```
+## Observations: 194,553
+## Variables: 4
+## $ id    &lt;chr&gt; "5tz52q", "5tz4dd", "5tz319", "5tz2wj", "5tz1pc", "5tz1o1"…
+## $ title &lt;chr&gt; "I hate how you cant even say black paint anymore", "What'…
+## $ body  &lt;chr&gt; "Now I have to say \"Leroy can you please paint the fence?…
+## $ score &lt;dbl&gt; 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 15, 0, 0, 3, 1, 0, 3, 2, 2, …
+```
+
+
+```
+## &lt;&lt;DocumentTermMatrix (documents: 4937, terms: 2926)&gt;&gt;
+## Non-/sparse entries: 47992/14397670
+## Sparsity           : 100%
+## Maximal term length: 27
+## Weighting          : term frequency (tf)
+```
+
+---
+
+# `\(k=4\)`
+
+
+
+&lt;img src="unsupervised-text_files/figure-html/jokes_4_topn-1.png" width="864" /&gt;
+
+---
+
+# `\(k=12\)`
+
+
+
+&lt;img src="unsupervised-text_files/figure-html/jokes_12_topn-1.png" width="864" /&gt;
+
+---
+
+# Perplexity
+
+* A statistical measure of how well a probability model predicts a sample
+* Given the theoretical word distributions represented by the topics, compare that to the actual topic mixtures, or distribution of words in your documents
+* Perplexity for LDA model with 12 topics
+    * 1103.4431296
+
+---
+
+# Perplexity
+
+
+
+&lt;img src="unsupervised-text_files/figure-html/jokes_lda_compare_viz-1.png" width="864" /&gt;
+
+---
+
+# `\(k=100\)`
+
+&lt;img src="unsupervised-text_files/figure-html/jokes_100_topn-1.png" width="864" /&gt;
+
+---
+
+# LDAvis
+
+* Interactive visualization of LDA model results
+1. What is the meaning of each topic?
+1. How prevalent is each topic?
+1. How do the topics relate to each other?
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
