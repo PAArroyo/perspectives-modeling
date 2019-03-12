@@ -11,7 +11,7 @@ link-citations: true
 
 menu:
   notes:
-    parent: Dimension reduction
+    parent: Unsupervised learning
     weight: 2
 ---
 
