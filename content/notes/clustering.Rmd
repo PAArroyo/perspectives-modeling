@@ -132,9 +132,11 @@ To do this we employ an iterative process. First we randomly assign each observa
 
 Each time we do this observations will move around and join different clusters because the initial assignments were made entirely at random. As we iterate over this process, the cluster assignments will become more stable and eventually stop entirely. This is when we reach the local optimum.
 
-```{r kmeans-sim-animate, dependson = "kmeans", echo = FALSE}
+```{r kmeans-sim-animate, dependson = "kmeans", include = FALSE, eval = FALSE}
 # animation source: https://smorbieu.gitlab.io/animate-intermediate-results-of-your-algorithm/
 # initialize clustering model
+set.seed(123)
+
 dataset <- x
 dataset <- dataset %>%
   mutate(sample = row_number())
@@ -200,29 +202,32 @@ for (i in 1:maxIter) {
 }
 
 # plot change
-# a <- ggplot(d, aes(x = x, y = y, color = factor(cluster), shape = factor(cluster))) +
-#   labs(title = "Iteration: {previous_state}",
-#        x = expression(X[1]),
-#        y = expression(X[2]),
-#        color = "Cluster",
-#        shape = "Cluster") +
-#   geom_point(aes(group = sample), alpha = .4) +
-#   geom_point(data = dCentroids, shape = 10, size = 5) +
-#   scale_color_brewer(type = "qual", palette = "Dark2") +
-#   theme(legend.position = "bottom") +
-#   transition_states(step,
-#                     transition_length = 1,
-#                     state_length = 2,
-#                     wrap = FALSE) +
-#   enter_recolor() +
-#   exit_recolor()
-# 
-# animate(a, duration = 20, start_pause = 10, end_pause = 10)
+a <- ggplot(d, aes(x = x, y = y, color = factor(cluster), shape = factor(cluster))) +
+  labs(title = "Iteration: {previous_state}",
+       x = expression(X[1]),
+       y = expression(X[2]),
+       color = "Cluster",
+       shape = "Cluster") +
+  geom_point(aes(group = sample), alpha = .4) +
+  geom_point(data = dCentroids, shape = 10, size = 5) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  theme(legend.position = "bottom") +
+  transition_states(step,
+                    transition_length = 1,
+                    state_length = 2,
+                    wrap = FALSE) +
+  enter_recolor() +
+  exit_recolor()
+
+animate(a, duration = 20, start_pause = 10, end_pause = 10)
 ```
+
+![](/notes/clustering_files/figure-html/kmeans-sim-animate-1.gif)
 
 Since the local optimum is based on the initial (random) assignments, we run this algorithm multiple times from different random starting configurations and select the best solution (the one with the lowest total within-cluster variation).
 
 ```{r kmeans-sim-start, dependson = "kmeans", echo = FALSE}
+set.seed(125)
 kmean.out <- rerun(6, kmeans(x %>%
                                select(-cluster), 5, nstart = 1))
 withinss <- rep(map_chr(kmean.out, ~ .$tot.withinss), each = nrow(x))

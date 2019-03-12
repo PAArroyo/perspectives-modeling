@@ -130,6 +130,10 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <li>Assign each observation to the cluster whose centroid is closest as defined by Euclidean distance.</li>
 </ol>
 <p>Each time we do this observations will move around and join different clusters because the initial assignments were made entirely at random. As we iterate over this process, the cluster assignments will become more stable and eventually stop entirely. This is when we reach the local optimum.</p>
+<div class="figure">
+<img src="/notes/clustering_files/figure-html/kmeans-sim-animate-1.gif" />
+
+</div>
 <p>Since the local optimum is based on the initial (random) assignments, we run this algorithm multiple times from different random starting configurations and select the best solution (the one with the lowest total within-cluster variation).</p>
 <p><img src="/notes/clustering_files/figure-html/kmeans-sim-start-1.png" width="672" /></p>
 <p>This is basically like starting the algorithm with a different random seed each time. In the above example I ran <span class="math inline">\(K\)</span>-mean clustering with <span class="math inline">\(K=5\)</span> six times with different starting seed values. In four of the iterations, the algorithm converged on the same local optimum solution, while the other two times the algorithm converged on a local optimum with a larger sum of within-cluster variation.</p>
@@ -397,8 +401,9 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  backports       1.1.3      2018-12-14 [2]
 ##  base64enc       0.1-3      2015-07-28 [2]
 ##  bayesplot       1.6.0      2018-08-02 [2]
-##  blogdown        0.10       2019-01-09 [1]
+##  blogdown        0.11       2019-03-11 [1]
 ##  bookdown        0.9        2018-12-21 [1]
+##  boot            1.3-20     2017-08-06 [2]
 ##  broom         * 0.5.1      2018-12-05 [2]
 ##  callr           3.1.1      2018-12-21 [2]
 ##  cellranger      1.1.0      2016-07-27 [2]
@@ -429,7 +434,7 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  ggrepel         0.8.0      2018-05-09 [2]
 ##  ggridges        0.5.1      2018-09-27 [2]
 ##  glue            1.3.0      2018-07-17 [2]
-##  gower           0.1.2      2017-02-23 [2]
+##  gower           0.2.0      2019-03-07 [2]
 ##  gridExtra       2.3        2017-09-09 [2]
 ##  gtable          0.2.0      2016-02-26 [2]
 ##  gtools          3.8.1      2018-06-26 [2]
@@ -446,19 +451,19 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  ipred           0.9-8      2018-11-05 [1]
 ##  janeaustenr     0.1.5      2017-06-10 [2]
 ##  jsonlite        1.6        2018-12-07 [2]
-##  knitr           1.21       2018-12-10 [2]
+##  knitr           1.22       2019-03-08 [2]
 ##  labeling        0.3        2014-08-23 [2]
 ##  later           0.8.0      2019-02-11 [2]
 ##  lattice         0.20-38    2018-11-04 [2]
 ##  lava            1.6.5      2019-02-12 [2]
 ##  lazyeval        0.2.1      2017-10-29 [2]
-##  lme4            1.1-20     2019-02-04 [2]
+##  lme4            1.1-21     2019-03-05 [2]
 ##  loo             2.0.0      2018-04-11 [2]
 ##  lubridate       1.7.4      2018-04-11 [2]
 ##  magrittr        1.5        2014-11-22 [2]
 ##  markdown        0.9        2018-12-07 [2]
 ##  MASS            7.3-51.1   2018-11-01 [2]
-##  Matrix          1.2-15     2018-11-01 [2]
+##  Matrix          1.2-16     2019-03-08 [2]
 ##  matrixStats     0.54.0     2018-07-23 [2]
 ##  memoise         1.1.0      2017-04-21 [2]
 ##  mime            0.6        2018-10-05 [1]
@@ -478,12 +483,12 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  plyr            1.8.4      2016-06-08 [2]
 ##  prettyunits     1.0.2      2015-07-13 [2]
 ##  pROC            1.13.0     2018-09-24 [1]
-##  processx        3.2.1      2018-12-05 [2]
+##  processx        3.3.0      2019-03-10 [2]
 ##  prodlim         2018.04.18 2018-04-18 [2]
 ##  progress        1.2.0      2018-06-14 [2]
 ##  promises        1.0.1      2018-04-13 [2]
 ##  ps              1.3.0      2018-12-21 [2]
-##  purrr         * 0.3.0      2019-01-27 [2]
+##  purrr         * 0.3.1      2019-03-03 [2]
 ##  R6              2.4.0      2019-02-14 [1]
 ##  RColorBrewer    1.1-2      2014-12-07 [2]
 ##  Rcpp            1.0.0      2018-11-07 [1]
@@ -521,7 +526,7 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  tidymodels    * 0.0.2      2018-11-27 [1]
 ##  tidyposterior   0.0.2      2018-11-15 [1]
 ##  tidypredict     0.3.0      2019-01-10 [1]
-##  tidyr         * 0.8.2.9000 2019-02-11 [1]
+##  tidyr         * 0.8.3      2019-03-01 [1]
 ##  tidyselect      0.2.5      2018-10-11 [1]
 ##  tidytext        0.2.0      2018-10-17 [1]
 ##  tidyverse     * 1.2.1      2017-11-14 [2]
@@ -535,7 +540,7 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  xtable          1.8-3      2018-08-29 [2]
 ##  xts             0.11-2     2018-11-05 [2]
 ##  yaml            2.2.0      2018-07-25 [2]
-##  yardstick     * 0.0.2      2018-11-05 [1]
+##  yardstick     * 0.0.3      2019-03-08 [1]
 ##  zoo             1.8-4      2018-09-19 [2]
 ##  source                              
 ##  CRAN (R 3.5.0)                      
@@ -544,6 +549,7 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -574,7 +580,7 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -591,7 +597,7 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.1)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
@@ -623,7 +629,7 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -666,7 +672,7 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  CRAN (R 3.5.1)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
-##  Github (tidyverse/tidyr@0b27690)    
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -680,7 +686,7 @@ final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span cla
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
-##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ## 
 ## [1] /Users/soltoffbc/Library/R/3.5/library
