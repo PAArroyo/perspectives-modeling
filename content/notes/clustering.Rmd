@@ -11,8 +11,8 @@ link-citations: true
 
 menu:
   notes:
-    parent: Clustering
-    weight: 1
+    parent: Unsupervised learning
+    weight: 3
 ---
 
 ```{r setup, include = FALSE}
@@ -26,8 +26,10 @@ library(tidymodels)
 library(patchwork)
 library(here)
 library(tictoc)
-library(modelr)
 library(ggdendro)
+library(gganimate)
+library(cluster)
+library(factoextra)
 
 set.seed(1234)
 theme_set(theme_minimal())
@@ -37,29 +39,79 @@ theme_set(theme_minimal())
 
 **Clustering** refers to a set of techniques for finding subgroups within a dataset, called **clusters**. The goal is to partition the dataset into similar and distinct groups so that observations in each group are similar to one another, while each group is distinctive and dissimilar to the other groups.
 
+## How clustering can be used
+
+# Clustering distance measures
+
+The classification of observations into groups requires some methods for computing the distance or the (dis)similarity between each pair of observations. The result of this computation is known as a **dissimilarity** or **distance matrix**. There are many methods to calculate this distance information.
+
+The choice of distance measures is a critical step in clustering. It defines how the similarity of two elements $(x, y)$ is calculated and it will influence the shape of the clusters. The classical methods for distance measures are **Euclidean** and **Manhattan distances**, which are defined as:
+
+* Euclidean distance
+    
+    $$d_{\text{Euclidean}}(x,y) = \sqrt{\sum_{i=1}^n (x_i - y_i)^2}$$
+
+* Manhattan distance
+    
+    $$d_{\text{Manhattan}}(x,y) = \sqrt{\sum_{i=1}^n | x_i - y_i |}$$
+    
+where $x$ and $y$ are two vectors of length $n$.
+
+Alternatively, we could use **correlation-based distances**. Correlation-based distance is defined bysubtracting the correlation coefficient from 1. For example, the Pearson correlation distance is
+
+$$d_\text{cor}(x,y) = 1 - \frac{\sum_{i=1}^n (x_i - \bar{x}) (y_i - \bar{y})}{\sqrt{\sum_{i=1}^n (x_i - \bar{x})^2 \sum_{i=1}^n (y_i - \bar{y})^2}}$$
+
+**Spearman correlation distance** computes the correlation between the rank of $x$ and the rank of $y$ variables.
+
+$$d_\text{spear}(x,y) = 1 - \frac{\sum_{i=1}^n (x'_i - \bar{x}') (y'_i - \bar{y}')}{\sqrt{\sum_{i=1}^n (x'_i - \bar{x}')^2 \sum_{i=1}^n (y'_i - \bar{y}')^2}}$$
+
+where $x'_i = \text{rank}(x_i)$ and $y'_i = \text{rank}(y_i)$.
+
+The choice of distance is important as it has a strong influence on the clustering results. The default distance measure is Euclidean distance, however depending on the data and your research question, you may consider another dissimilarity measure.
+
+### Importance of standardization
+
+Because clustering relies so heavily on measures of distance, the data needs to be standardized to make the variables comparable. That is, each variable should be transformed to have a mean of zero and standard deviation of one.
+
 # $K$-means clustering
 
 $K$-means clustering is one approach to identifying distinct clusters within data. First we specify the number of $K$ clusters we want to estimate in the data, then assign each observation to precisely one of those $K$ clusters.
 
 ```{r kmeans}
-# generate data
-x <- data_frame(x1 = rnorm(150) + 3,
-                x2 = rnorm(150) - 4)
+# simulate 5 cluster data
+# data source: https://theanlim.rbind.io/post/clustering-k-means-k-means-and-gganimate/
+set.seed(123)
+
+x <- list(
+  `1` = MASS::mvrnorm(n = 300, c(-4,10), matrix(c(1.5,1,1,1.5),2)),
+  `2` = MASS::mvrnorm(n = 300, c(5,7), matrix(c(1,2,2,6),2)),
+  `3` = MASS::mvrnorm(n = 300, c(-1,1), matrix(c(4,0,0,4),2)),
+  `4` = MASS::mvrnorm(n = 300, c(10,-10), matrix(c(4,0,0,4),2)),
+  `5` = MASS::mvrnorm(n = 300, c(3,-3), matrix(c(4,0,0,4),2))
+) %>%
+  map_df(as_tibble, .id = "cluster") %>%
+  rename(x = V1,
+         y = V2)
 
 # estimate k clusters
 x.out <- x %>%
+  select(-cluster) %>%
   mutate(k2 = kmeans(x, 2, nstart = 20)$cluster,
          k3 = kmeans(x, 3, nstart = 20)$cluster,
-         k4 = kmeans(x, 4, nstart = 20)$cluster)
+         k4 = kmeans(x, 4, nstart = 20)$cluster,
+         k5 = kmeans(x, 5, nstart = 20)$cluster,
+         k6 = kmeans(x, 6, nstart = 20)$cluster,
+         k7 = kmeans(x, 6, nstart = 20)$cluster)
 
 # plot clusters
 x.out %>%
-  gather(K, pred, k2:k4) %>%
+  gather(K, pred, k2:k7) %>%
   mutate(K = parse_number(K),
          pred = factor(pred)) %>%
-  ggplot(aes(x1, x2, color = pred)) +
-  facet_grid(. ~ K, labeller = label_both) +
+  ggplot(aes(x, y, color = pred)) +
+  facet_wrap(~ K, labeller = label_both) +
   geom_point() +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
   theme(legend.position = "none")
 ```
 
@@ -78,23 +130,281 @@ To do this we employ an iterative process. First we randomly assign each observa
 1. For each of the $K$ clusters, compute the cluster **centroid**, or the vector of $p$ feature means for the observations in the $k$th cluster.
 1. Assign each observation to the cluster whose centroid is closest as defined by Euclidean distance.
 
-Each time we do this observations will move around and join different clusters because the initial assignments were made entirely at random. As we iterate over this process, the cluster assignments will become more stable and eventually stop entirely. This is when we reach the local optimum. Since the local optimum is based on the initial (random) assignments, we run this algorithm multiple times from different random starting configurations and select the best solution (the one with the lowest total within-cluster variation).
+Each time we do this observations will move around and join different clusters because the initial assignments were made entirely at random. As we iterate over this process, the cluster assignments will become more stable and eventually stop entirely. This is when we reach the local optimum.
 
-```{r kmeans-sim-start}
-kmean.out <- rerun(6, kmeans(x, 3, nstart = 1))
+```{r kmeans-sim-animate, dependson = "kmeans"}
+# animation source: https://smorbieu.gitlab.io/animate-intermediate-results-of-your-algorithm/
+# initialize clustering model
+dataset <- x
+dataset <- dataset %>%
+  mutate(sample = row_number())
+centroids <- dataset %>%
+  sample_n(5) %>%
+  mutate(cluster = row_number()) %>%
+  select(x, y, cluster)
+
+# assignment step
+assignmentStep <- function(samplesDf, centroids) {
+  d <- samplesDf %>%
+    select(x, y, sample)
+  
+  repCentroids <- bind_rows(replicate(nrow(d), centroids, simplify = FALSE)) %>%
+    transmute(xCentroid = x, yCentroid = y, cluster)
+  
+  d %>%
+    slice(rep(1:n(), each = 5)) %>%
+    bind_cols(repCentroids) %>%
+    mutate(s = (x - xCentroid)^2 + (y - yCentroid)^2) %>%
+    group_by(sample) %>%
+    top_n(1, -s) %>%
+    select(sample, cluster, x, y)
+}
+
+# update step
+updateStep <- function(samplesDf) {
+  samplesDf %>%
+    group_by(cluster) %>%
+    summarise(x = mean(x), y = mean(y))
+}
+
+# iterations
+maxIter <- 30
+d <- data.frame(
+  sample = c(),
+  cluster = c(),
+  x = c(),
+  y = c(),
+  step = c()
+)
+
+dCentroids <- data.frame(
+  cluster = c(),
+  x = c(),
+  y = c(),
+  step = c()
+)
+
+for (i in 1:maxIter) {
+  df <- assignmentStep(dataset, centroids)
+  updatedCentroids <- updateStep(df)
+  
+  if (all(updatedCentroids == centroids )) {
+    break
+  }
+  
+  centroids <- updatedCentroids
+  d <- bind_rows(d, df %>%
+                   mutate(step = i))
+  dCentroids <- bind_rows(dCentroids, centroids %>%
+                            mutate(step = i))
+}
+
+# plot change
+# a <- ggplot(d, aes(x = x, y = y, color = factor(cluster), shape = factor(cluster))) +
+#   labs(title = "Iteration: {previous_state}",
+#        x = expression(X[1]),
+#        y = expression(X[2]),
+#        color = "Cluster",
+#        shape = "Cluster") +
+#   geom_point(aes(group = sample), alpha = .4) +
+#   geom_point(data = dCentroids, shape = 10, size = 5) +
+#   scale_color_brewer(type = "qual", palette = "Dark2") +
+#   theme(legend.position = "bottom") +
+#   transition_states(step,
+#                     transition_length = 1,
+#                     state_length = 2,
+#                     wrap = FALSE) +
+#   enter_recolor() +
+#   exit_recolor()
+# 
+# animate(a, duration = 20, start_pause = 10, end_pause = 10)
+```
+
+Since the local optimum is based on the initial (random) assignments, we run this algorithm multiple times from different random starting configurations and select the best solution (the one with the lowest total within-cluster variation).
+
+```{r kmeans-sim-start, dependson = "kmeans"}
+kmean.out <- rerun(6, kmeans(x %>%
+                               select(-cluster), 5, nstart = 1))
+withinss <- rep(map_chr(kmean.out, ~ .$tot.withinss), each = nrow(x))
 
 kmean.out %>%
   map_df(~ as_tibble(.$cluster), .id = "id") %>%
-  bind_cols(bind_rows(x,x,x,x,x,x)) %>%
-  mutate(withinss = rep(map_chr(kmean.out, ~ .$tot.withinss), each = nrow(x)),
+  bind_cols(bind_rows(x, x, x, x, x, x)) %>%
+  mutate(withinss = str_c("Within SS = ", withinss),
+         id = str_c("Attempt #", id),
          value = factor(value)) %>%
-  ggplot(aes(x1, x2, color = value)) +
-  facet_wrap(~ id + withinss, ncol = 3, labeller = label_wrap_gen(multi_line = FALSE)) +
+  ggplot(aes(x, y, color = value)) +
+  facet_wrap(~ id + withinss, ncol = 3, labeller = label_wrap_gen(multi_line = TRUE)) +
   geom_point() +
+  scale_color_brewer(type = "qual", palette = "Dark2", guide = FALSE) +
+  labs(title = "Convergence of k-means cluster algorithm",
+       x = expression(X[1]),
+       y = expression(X[2])) +
   theme(legend.position = "none")
 ```
 
-This is basically like starting the algorithm with a different random seed each time. In the above example I ran $K$-mean clustering with $K=4$ six times with different starting seed values. In four of the iterations, the algorithm converged on the same local optimum solution, while the other two times the algorithm converged on a local optimum with a larger sum of within-cluster variation.
+This is basically like starting the algorithm with a different random seed each time. In the above example I ran $K$-mean clustering with $K=5$ six times with different starting seed values. In four of the iterations, the algorithm converged on the same local optimum solution, while the other two times the algorithm converged on a local optimum with a larger sum of within-cluster variation.
+
+# `USArrests`
+
+Example using `USArrests` dataset:
+
+```{r usarrests}
+df <- USArrests %>%
+  na.omit %>%
+  scale
+head(df)
+```
+
+## $k=2$
+
+```{r usarrests-k2, dependson = "usarrests"}
+k2 <- kmeans(df, centers = 2, nstart = 25)
+k2
+
+fviz_cluster(k2, data = df) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  scale_fill_brewer(type = "qual", palette = "Dark2") +
+  theme_minimal()
+```
+
+* Clustered using all original (standardized) variables
+* Visualized using PCA first two components
+
+## $k=2,3,4,5$
+
+```{r usarrests-kmany, dependson = "usarrests"}
+k3 <- kmeans(df, centers = 3, nstart = 25)
+k4 <- kmeans(df, centers = 4, nstart = 25)
+k5 <- kmeans(df, centers = 5, nstart = 25)
+
+# plots to compare
+p1 <- fviz_cluster(k2, geom = "point", data = df) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  scale_fill_brewer(type = "qual", palette = "Dark2") +
+  theme_minimal() +
+  ggtitle("k = 2")
+p2 <- fviz_cluster(k3, geom = "point",  data = df) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  scale_fill_brewer(type = "qual", palette = "Dark2") +
+  theme_minimal() +
+  ggtitle("k = 3")
+p3 <- fviz_cluster(k4, geom = "point",  data = df) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  scale_fill_brewer(type = "qual", palette = "Dark2") +
+  theme_minimal() +
+  ggtitle("k = 4")
+p4 <- fviz_cluster(k5, geom = "point",  data = df) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  scale_fill_brewer(type = "qual", palette = "Dark2") +
+  theme_minimal() +
+  ggtitle("k = 5")
+
+p1 + p2 + p3 + p4
+```
+
+# Determining optimal number of clusters
+
+Since the number of clusters to use is determined by the researcher, how do we determine the optimal number of clusters?^[Based on [Determining The Optimal Number Of Clusters: 3 Must Know Methods](https://www.datanovia.com/en/lessons/determining-the-optimal-number-of-clusters-3-must-know-methods/)]
+
+## Elbow method
+
+Recall that, the basic idea behind cluster partitioning methods, such as $k$-means clustering, is to define clusters such that the total intra-cluster variation (known as total within-cluster variation or total within-cluster sum of square) is minimized:
+
+$$\min \left(\sum_{k=1}^k W(C_k) \right)$$
+
+where $C_k$ is the $k$th cluster and $W(C_k)$ is the within-cluster variation. The total within-cluster sum of square ($WSS$) measures the compactness of the clustering and we want it to be as small as possible. Thus, we can use the following algorithm to define the optimal clusters:
+
+1. Compute clustering algorithm (e.g., $k$-means clustering) for different values of $k$. For instance, by varying $k$ from 1 to 10 clusters
+1. For each $k$, calculate the total within-cluster sum of square ($WSS$)
+1. Plot the curve of $WSS$ according to the number of clusters $k$.
+1. The location of a bend (knee) in the plot is generally considered as an indicator of the appropriate number of clusters.
+
+```{r elbow, dependson = "usarrests"}
+set.seed(123)
+
+# function to compute total within-cluster sum of square 
+wss <- function(k) {
+  kmeans(df, k, nstart = 10 )$tot.withinss
+}
+
+tibble(
+  k = 1:15
+) %>%
+  mutate(wss = map_dbl(k, wss)) %>%
+  ggplot(aes(k, wss)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "USArrests",
+       x = "Number of clusters K",
+       y = "Total within-clusters sum of squares")
+
+# canned package function
+fviz_nbclust(df, kmeans, method = "wss")
+```
+
+## Average silhouette method
+
+The **average silhouette method** measures the quality of a clustering. That is, it determines how well each object lies within its cluster. A high average silhouette width indicates a good clustering. The average silhouette method computes the average silhouette of observations for different values of $k$. The optimal number of clusters $k$ is the one that maximizes the average silhouette over a range of possible values for $k$.
+
+```{r silhouette, dependson = "usarrests"}
+# function to compute average silhouette for k clusters
+avg_sil <- function(k) {
+  km.res <- kmeans(df, centers = k, nstart = 25)
+  ss <- silhouette(km.res$cluster, dist(df))
+  mean(ss[, 3])
+}
+
+tibble(
+  k = 2:15
+) %>%
+  mutate(avg_sil = map_dbl(k, avg_sil)) %>%
+  ggplot(aes(k, avg_sil)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "USArrests",
+       x = "Number of clusters K",
+       y = "Average silhouettes")
+
+# canned package function
+fviz_nbclust(df, kmeans, method = "silhouette")
+```
+
+## Gap statistic
+
+The **gap statistic** compares the total within intra-cluster variation for different values of $k$ with their expected values under a null reference distribution of the data )i.e. a distribution with no obvious clustering). The reference dataset is generated using Monte Carlo simulations of the sampling process. That is, for each variable $x_i$ in the dataset we compute its range $[\min(x_i), \max(x_i)]$ and generate values for the $n$ points uniformly from the interval min to max.
+
+For the observed data and the the reference data, the total intracluster variation is computed using different values of $k$. The gap statistic for a given $k$ is defined as:
+
+$$\text{Gap}_n(k) = E_n^{*} \log(W_k) - \log(W_k)$$
+
+where $E_n^{*}$ denotes the expectation under a sample size $n$ from the reference distribution. $E_n^{*}$ is defined via bootstrapping by generating $B$ copies of the reference datasets and computing the average $\log(W_k^{*})$. The gap statistic measures the deviation of the observed $W_k$ value from its expected value under this null hypothesis. The estimate of the optimal clusters $\hat{k}$ will be the value that maximizes $\text{Gap}_n(k)$.
+
+```{r gap-stat, dependson = "usarrests"}
+# compute gap statistic
+set.seed(123)
+gap_stat <- clusGap(df, FUN = kmeans, nstart = 25,
+                    K.max = 10, B = 50)
+
+# Print the result
+print(gap_stat, method = "firstmax")
+
+fviz_gap_stat(gap_stat)
+```
+
+Based on these statistics, the optimal number of clusters for `USArrests` is $k=4$.
+
+```{r usarrests-k4, dependson = "usarrests"}
+# Compute k-means clustering with k = 4
+set.seed(123)
+final <- kmeans(df, 4, nstart = 25)
+
+fviz_cluster(final, data = df) +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  scale_fill_brewer(type = "qual", palette = "Dark2") +
+  theme_minimal() +
+  ggtitle("k = 4")
+```
 
 # Hierarchical clustering
 
@@ -108,7 +418,7 @@ Here we plot a dendrogram using simulated data, consisting of `r nrow(x)` observ
 
 ```{r dendro-sim}
 # generate data
-x <- data_frame(x1 = rnorm(50) + 3,
+x <- tibble(x1 = rnorm(50) + 3,
                 x2 = rnorm(50) - 4,
                 y = ifelse(x1 < 3, "1",
                            ifelse(x2 > -4, "2", "3")))
@@ -140,7 +450,7 @@ h <- 4
 # extract dendro data
 hcdata <- dendro_data(hc.complete)
 hclabs <- label(hcdata) %>%
-  left_join(data_frame(label = as.factor(seq.int(nrow(x))),
+  left_join(tibble(label = as.factor(seq.int(nrow(x))),
                        cl = as.factor(cutree(hc.complete, h = h))))
 
 # plot dendrogram
@@ -160,7 +470,7 @@ h <- 3
 # extract dendro data
 hcdata <- dendro_data(hc.complete)
 hclabs <- label(hcdata) %>%
-  left_join(data_frame(label = as.factor(seq.int(nrow(x))),
+  left_join(tibble(label = as.factor(seq.int(nrow(x))),
                        cl = as.factor(cutree(hc.complete, h = h))))
 
 # plot dendrogram

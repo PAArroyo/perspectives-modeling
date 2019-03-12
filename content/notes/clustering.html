@@ -11,8 +11,8 @@ link-citations: true
 
 menu:
   notes:
-    parent: Clustering
-    weight: 1
+    parent: Unsupervised learning
+    weight: 3
 ---
 
 <style type="text/css">
@@ -55,12 +55,25 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <div id="TOC">
 <ul>
-<li><a href="#k-means-clustering"><span class="toc-section-number">1</span> <span class="math inline">\(K\)</span>-means clustering</a></li>
-<li><a href="#hierarchical-clustering"><span class="toc-section-number">2</span> Hierarchical clustering</a></li>
-<li><a href="#interpreting-dendrograms"><span class="toc-section-number">3</span> Interpreting dendrograms</a></li>
-<li><a href="#estimating-hierarchical-clusters"><span class="toc-section-number">4</span> Estimating hierarchical clusters</a></li>
-<li><a href="#session-info"><span class="toc-section-number">5</span> Session Info</a></li>
-<li><a href="#references"><span class="toc-section-number">6</span> References</a></li>
+<li><a href="#how-clustering-can-be-used"><span class="toc-section-number">0.1</span> How clustering can be used</a></li>
+<li><a href="#clustering-distance-measures"><span class="toc-section-number">1</span> Clustering distance measures</a><ul>
+<li><a href="#importance-of-standardization"><span class="toc-section-number">1.0.1</span> Importance of standardization</a></li>
+</ul></li>
+<li><a href="#k-means-clustering"><span class="toc-section-number">2</span> <span class="math inline">\(K\)</span>-means clustering</a></li>
+<li><a href="#usarrests"><span class="toc-section-number">3</span> <code>USArrests</code></a><ul>
+<li><a href="#k2"><span class="toc-section-number">3.1</span> <span class="math inline">\(k=2\)</span></a></li>
+<li><a href="#k2345"><span class="toc-section-number">3.2</span> <span class="math inline">\(k=2,3,4,5\)</span></a></li>
+</ul></li>
+<li><a href="#determining-optimal-number-of-clusters"><span class="toc-section-number">4</span> Determining optimal number of clusters</a><ul>
+<li><a href="#elbow-method"><span class="toc-section-number">4.1</span> Elbow method</a></li>
+<li><a href="#average-silhouette-method"><span class="toc-section-number">4.2</span> Average silhouette method</a></li>
+<li><a href="#gap-statistic"><span class="toc-section-number">4.3</span> Gap statistic</a></li>
+</ul></li>
+<li><a href="#hierarchical-clustering"><span class="toc-section-number">5</span> Hierarchical clustering</a></li>
+<li><a href="#interpreting-dendrograms"><span class="toc-section-number">6</span> Interpreting dendrograms</a></li>
+<li><a href="#estimating-hierarchical-clusters"><span class="toc-section-number">7</span> Estimating hierarchical clusters</a></li>
+<li><a href="#session-info"><span class="toc-section-number">8</span> Session Info</a></li>
+<li><a href="#references"><span class="toc-section-number">9</span> References</a></li>
 </ul>
 </div>
 
@@ -69,34 +82,76 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <span class="kw">library</span>(patchwork)
 <span class="kw">library</span>(here)
 <span class="kw">library</span>(tictoc)
-<span class="kw">library</span>(modelr)
 <span class="kw">library</span>(ggdendro)
+<span class="kw">library</span>(gganimate)
+<span class="kw">library</span>(cluster)
+<span class="kw">library</span>(factoextra)
 
 <span class="kw">set.seed</span>(<span class="dv">1234</span>)
 <span class="kw">theme_set</span>(<span class="kw">theme_minimal</span>())</code></pre></div>
 <p><strong>Clustering</strong> refers to a set of techniques for finding subgroups within a dataset, called <strong>clusters</strong>. The goal is to partition the dataset into similar and distinct groups so that observations in each group are similar to one another, while each group is distinctive and dissimilar to the other groups.</p>
+<div id="how-clustering-can-be-used" class="section level2">
+<h2><span class="header-section-number">0.1</span> How clustering can be used</h2>
+</div>
+<div id="clustering-distance-measures" class="section level1">
+<h1><span class="header-section-number">1</span> Clustering distance measures</h1>
+<p>The classification of observations into groups requires some methods for computing the distance or the (dis)similarity between each pair of observations. The result of this computation is known as a <strong>dissimilarity</strong> or <strong>distance matrix</strong>. There are many methods to calculate this distance information.</p>
+<p>The choice of distance measures is a critical step in clustering. It defines how the similarity of two elements <span class="math inline">\((x, y)\)</span> is calculated and it will influence the shape of the clusters. The classical methods for distance measures are <strong>Euclidean</strong> and <strong>Manhattan distances</strong>, which are defined as:</p>
+<ul>
+<li><p>Euclidean distance</p>
+<p><span class="math display">\[d_{\text{Euclidean}}(x,y) = \sqrt{\sum_{i=1}^n (x_i - y_i)^2}\]</span></p></li>
+<li><p>Manhattan distance</p>
+<p><span class="math display">\[d_{\text{Manhattan}}(x,y) = \sqrt{\sum_{i=1}^n | x_i - y_i |}\]</span></p></li>
+</ul>
+<p>where <span class="math inline">\(x\)</span> and <span class="math inline">\(y\)</span> are two vectors of length <span class="math inline">\(n\)</span>.</p>
+<p>Alternatively, we could use <strong>correlation-based distances</strong>. Correlation-based distance is defined bysubtracting the correlation coefficient from 1. For example, the Pearson correlation distance is</p>
+<p><span class="math display">\[d_\text{cor}(x,y) = 1 - \frac{\sum_{i=1}^n (x_i - \bar{x}) (y_i - \bar{y})}{\sqrt{\sum_{i=1}^n (x_i - \bar{x})^2 \sum_{i=1}^n (y_i - \bar{y})^2}}\]</span></p>
+<p><strong>Spearman correlation distance</strong> computes the correlation between the rank of <span class="math inline">\(x\)</span> and the rank of <span class="math inline">\(y\)</span> variables.</p>
+<p><span class="math display">\[d_\text{spear}(x,y) = 1 - \frac{\sum_{i=1}^n (x&#39;_i - \bar{x}&#39;) (y&#39;_i - \bar{y}&#39;)}{\sqrt{\sum_{i=1}^n (x&#39;_i - \bar{x}&#39;)^2 \sum_{i=1}^n (y&#39;_i - \bar{y}&#39;)^2}}\]</span></p>
+<p>where <span class="math inline">\(x&#39;_i = \text{rank}(x_i)\)</span> and <span class="math inline">\(y&#39;_i = \text{rank}(y_i)\)</span>.</p>
+<p>The choice of distance is important as it has a strong influence on the clustering results. The default distance measure is Euclidean distance, however depending on the data and your research question, you may consider another dissimilarity measure.</p>
+<div id="importance-of-standardization" class="section level3">
+<h3><span class="header-section-number">1.0.1</span> Importance of standardization</h3>
+<p>Because clustering relies so heavily on measures of distance, the data needs to be standardized to make the variables comparable. That is, each variable should be transformed to have a mean of zero and standard deviation of one.</p>
+</div>
+</div>
 <div id="k-means-clustering" class="section level1">
-<h1><span class="header-section-number">1</span> <span class="math inline">\(K\)</span>-means clustering</h1>
+<h1><span class="header-section-number">2</span> <span class="math inline">\(K\)</span>-means clustering</h1>
 <p><span class="math inline">\(K\)</span>-means clustering is one approach to identifying distinct clusters within data. First we specify the number of <span class="math inline">\(K\)</span> clusters we want to estimate in the data, then assign each observation to precisely one of those <span class="math inline">\(K\)</span> clusters.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># generate data</span>
-x &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">rnorm</span>(<span class="dv">150</span>) <span class="op">+</span><span class="st"> </span><span class="dv">3</span>,
-                <span class="dt">x2 =</span> <span class="kw">rnorm</span>(<span class="dv">150</span>) <span class="op">-</span><span class="st"> </span><span class="dv">4</span>)</code></pre></div>
-<pre><code>## Warning: `data_frame()` is deprecated, use `tibble()`.
-## This warning is displayed once per session.</code></pre>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># estimate k clusters</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># simulate 5 cluster data</span>
+<span class="co"># data source: https://theanlim.rbind.io/post/clustering-k-means-k-means-and-gganimate/</span>
+<span class="kw">set.seed</span>(<span class="dv">123</span>)
+
+x &lt;-<span class="st"> </span><span class="kw">list</span>(
+  <span class="st">`</span><span class="dt">1</span><span class="st">`</span> =<span class="st"> </span>MASS<span class="op">::</span><span class="kw">mvrnorm</span>(<span class="dt">n =</span> <span class="dv">300</span>, <span class="kw">c</span>(<span class="op">-</span><span class="dv">4</span>,<span class="dv">10</span>), <span class="kw">matrix</span>(<span class="kw">c</span>(<span class="fl">1.5</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="fl">1.5</span>),<span class="dv">2</span>)),
+  <span class="st">`</span><span class="dt">2</span><span class="st">`</span> =<span class="st"> </span>MASS<span class="op">::</span><span class="kw">mvrnorm</span>(<span class="dt">n =</span> <span class="dv">300</span>, <span class="kw">c</span>(<span class="dv">5</span>,<span class="dv">7</span>), <span class="kw">matrix</span>(<span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">6</span>),<span class="dv">2</span>)),
+  <span class="st">`</span><span class="dt">3</span><span class="st">`</span> =<span class="st"> </span>MASS<span class="op">::</span><span class="kw">mvrnorm</span>(<span class="dt">n =</span> <span class="dv">300</span>, <span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>,<span class="dv">1</span>), <span class="kw">matrix</span>(<span class="kw">c</span>(<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">4</span>),<span class="dv">2</span>)),
+  <span class="st">`</span><span class="dt">4</span><span class="st">`</span> =<span class="st"> </span>MASS<span class="op">::</span><span class="kw">mvrnorm</span>(<span class="dt">n =</span> <span class="dv">300</span>, <span class="kw">c</span>(<span class="dv">10</span>,<span class="op">-</span><span class="dv">10</span>), <span class="kw">matrix</span>(<span class="kw">c</span>(<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">4</span>),<span class="dv">2</span>)),
+  <span class="st">`</span><span class="dt">5</span><span class="st">`</span> =<span class="st"> </span>MASS<span class="op">::</span><span class="kw">mvrnorm</span>(<span class="dt">n =</span> <span class="dv">300</span>, <span class="kw">c</span>(<span class="dv">3</span>,<span class="op">-</span><span class="dv">3</span>), <span class="kw">matrix</span>(<span class="kw">c</span>(<span class="dv">4</span>,<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">4</span>),<span class="dv">2</span>))
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">map_df</span>(as_tibble, <span class="dt">.id =</span> <span class="st">&quot;cluster&quot;</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">rename</span>(<span class="dt">x =</span> V1,
+         <span class="dt">y =</span> V2)
+
+<span class="co"># estimate k clusters</span>
 x.out &lt;-<span class="st"> </span>x <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>cluster) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">k2 =</span> <span class="kw">kmeans</span>(x, <span class="dv">2</span>, <span class="dt">nstart =</span> <span class="dv">20</span>)<span class="op">$</span>cluster,
          <span class="dt">k3 =</span> <span class="kw">kmeans</span>(x, <span class="dv">3</span>, <span class="dt">nstart =</span> <span class="dv">20</span>)<span class="op">$</span>cluster,
-         <span class="dt">k4 =</span> <span class="kw">kmeans</span>(x, <span class="dv">4</span>, <span class="dt">nstart =</span> <span class="dv">20</span>)<span class="op">$</span>cluster)
+         <span class="dt">k4 =</span> <span class="kw">kmeans</span>(x, <span class="dv">4</span>, <span class="dt">nstart =</span> <span class="dv">20</span>)<span class="op">$</span>cluster,
+         <span class="dt">k5 =</span> <span class="kw">kmeans</span>(x, <span class="dv">5</span>, <span class="dt">nstart =</span> <span class="dv">20</span>)<span class="op">$</span>cluster,
+         <span class="dt">k6 =</span> <span class="kw">kmeans</span>(x, <span class="dv">6</span>, <span class="dt">nstart =</span> <span class="dv">20</span>)<span class="op">$</span>cluster,
+         <span class="dt">k7 =</span> <span class="kw">kmeans</span>(x, <span class="dv">6</span>, <span class="dt">nstart =</span> <span class="dv">20</span>)<span class="op">$</span>cluster)
 
 <span class="co"># plot clusters</span>
 x.out <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">gather</span>(K, pred, k2<span class="op">:</span>k4) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">gather</span>(K, pred, k2<span class="op">:</span>k7) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">K =</span> <span class="kw">parse_number</span>(K),
          <span class="dt">pred =</span> <span class="kw">factor</span>(pred)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x1, x2, <span class="dt">color =</span> pred)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">facet_grid</span>(. <span class="op">~</span><span class="st"> </span>K, <span class="dt">labeller =</span> label_both) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y, <span class="dt">color =</span> pred)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>K, <span class="dt">labeller =</span> label_both) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <p><img src="/notes/clustering_files/figure-html/kmeans-1.png" width="672" /></p>
 <p>Let <span class="math inline">\(C_1, C_2, \dots, C_K\)</span> denote sets containing the indicies of the observations in each cluster. <span class="math inline">\(K\)</span>-means clustering defines a good cluster as one for which within-cluster variation is as small as possible. So we want to minimize the within-cluster variation defined by some function <span class="math inline">\(W(C_K)\)</span> that identifies variation:</p>
@@ -109,33 +164,328 @@ x.out <span class="op">%&gt;%</span>
 <li>For each of the <span class="math inline">\(K\)</span> clusters, compute the cluster <strong>centroid</strong>, or the vector of <span class="math inline">\(p\)</span> feature means for the observations in the <span class="math inline">\(k\)</span>th cluster.</li>
 <li>Assign each observation to the cluster whose centroid is closest as defined by Euclidean distance.</li>
 </ol>
-<p>Each time we do this observations will move around and join different clusters because the initial assignments were made entirely at random. As we iterate over this process, the cluster assignments will become more stable and eventually stop entirely. This is when we reach the local optimum. Since the local optimum is based on the initial (random) assignments, we run this algorithm multiple times from different random starting configurations and select the best solution (the one with the lowest total within-cluster variation).</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">kmean.out &lt;-<span class="st"> </span><span class="kw">rerun</span>(<span class="dv">6</span>, <span class="kw">kmeans</span>(x, <span class="dv">3</span>, <span class="dt">nstart =</span> <span class="dv">1</span>))
+<p>Each time we do this observations will move around and join different clusters because the initial assignments were made entirely at random. As we iterate over this process, the cluster assignments will become more stable and eventually stop entirely. This is when we reach the local optimum.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># animation source: https://smorbieu.gitlab.io/animate-intermediate-results-of-your-algorithm/</span>
+<span class="co"># initialize clustering model</span>
+dataset &lt;-<span class="st"> </span>x
+dataset &lt;-<span class="st"> </span>dataset <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">sample =</span> <span class="kw">row_number</span>())
+centroids &lt;-<span class="st"> </span>dataset <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">sample_n</span>(<span class="dv">5</span>) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">cluster =</span> <span class="kw">row_number</span>()) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(x, y, cluster)
+
+<span class="co"># assignment step</span>
+assignmentStep &lt;-<span class="st"> </span><span class="cf">function</span>(samplesDf, centroids) {
+  d &lt;-<span class="st"> </span>samplesDf <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">select</span>(x, y, sample)
+  
+  repCentroids &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(<span class="kw">replicate</span>(<span class="kw">nrow</span>(d), centroids, <span class="dt">simplify =</span> <span class="ot">FALSE</span>)) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">transmute</span>(<span class="dt">xCentroid =</span> x, <span class="dt">yCentroid =</span> y, cluster)
+  
+  d <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">slice</span>(<span class="kw">rep</span>(<span class="dv">1</span><span class="op">:</span><span class="kw">n</span>(), <span class="dt">each =</span> <span class="dv">5</span>)) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">bind_cols</span>(repCentroids) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">s =</span> (x <span class="op">-</span><span class="st"> </span>xCentroid)<span class="op">^</span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>(y <span class="op">-</span><span class="st"> </span>yCentroid)<span class="op">^</span><span class="dv">2</span>) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">group_by</span>(sample) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">top_n</span>(<span class="dv">1</span>, <span class="op">-</span>s) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">select</span>(sample, cluster, x, y)
+}
+
+<span class="co"># update step</span>
+updateStep &lt;-<span class="st"> </span><span class="cf">function</span>(samplesDf) {
+  samplesDf <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">group_by</span>(cluster) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">x =</span> <span class="kw">mean</span>(x), <span class="dt">y =</span> <span class="kw">mean</span>(y))
+}
+
+<span class="co"># iterations</span>
+maxIter &lt;-<span class="st"> </span><span class="dv">30</span>
+d &lt;-<span class="st"> </span><span class="kw">data.frame</span>(
+  <span class="dt">sample =</span> <span class="kw">c</span>(),
+  <span class="dt">cluster =</span> <span class="kw">c</span>(),
+  <span class="dt">x =</span> <span class="kw">c</span>(),
+  <span class="dt">y =</span> <span class="kw">c</span>(),
+  <span class="dt">step =</span> <span class="kw">c</span>()
+)
+
+dCentroids &lt;-<span class="st"> </span><span class="kw">data.frame</span>(
+  <span class="dt">cluster =</span> <span class="kw">c</span>(),
+  <span class="dt">x =</span> <span class="kw">c</span>(),
+  <span class="dt">y =</span> <span class="kw">c</span>(),
+  <span class="dt">step =</span> <span class="kw">c</span>()
+)
+
+<span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span>maxIter) {
+  df &lt;-<span class="st"> </span><span class="kw">assignmentStep</span>(dataset, centroids)
+  updatedCentroids &lt;-<span class="st"> </span><span class="kw">updateStep</span>(df)
+  
+  <span class="cf">if</span> (<span class="kw">all</span>(updatedCentroids <span class="op">==</span><span class="st"> </span>centroids )) {
+    <span class="cf">break</span>
+  }
+  
+  centroids &lt;-<span class="st"> </span>updatedCentroids
+  d &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(d, df <span class="op">%&gt;%</span>
+<span class="st">                   </span><span class="kw">mutate</span>(<span class="dt">step =</span> i))
+  dCentroids &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(dCentroids, centroids <span class="op">%&gt;%</span>
+<span class="st">                            </span><span class="kw">mutate</span>(<span class="dt">step =</span> i))
+}
+
+<span class="co"># plot change</span>
+<span class="co"># a &lt;- ggplot(d, aes(x = x, y = y, color = factor(cluster), shape = factor(cluster))) +</span>
+<span class="co">#   labs(title = &quot;Iteration: {previous_state}&quot;,</span>
+<span class="co">#        x = expression(X[1]),</span>
+<span class="co">#        y = expression(X[2]),</span>
+<span class="co">#        color = &quot;Cluster&quot;,</span>
+<span class="co">#        shape = &quot;Cluster&quot;) +</span>
+<span class="co">#   geom_point(aes(group = sample), alpha = .4) +</span>
+<span class="co">#   geom_point(data = dCentroids, shape = 10, size = 5) +</span>
+<span class="co">#   scale_color_brewer(type = &quot;qual&quot;, palette = &quot;Dark2&quot;) +</span>
+<span class="co">#   theme(legend.position = &quot;bottom&quot;) +</span>
+<span class="co">#   transition_states(step,</span>
+<span class="co">#                     transition_length = 1,</span>
+<span class="co">#                     state_length = 2,</span>
+<span class="co">#                     wrap = FALSE) +</span>
+<span class="co">#   enter_recolor() +</span>
+<span class="co">#   exit_recolor()</span>
+<span class="co"># </span>
+<span class="co"># animate(a, duration = 20, start_pause = 10, end_pause = 10)</span></code></pre></div>
+<p>Since the local optimum is based on the initial (random) assignments, we run this algorithm multiple times from different random starting configurations and select the best solution (the one with the lowest total within-cluster variation).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">kmean.out &lt;-<span class="st"> </span><span class="kw">rerun</span>(<span class="dv">6</span>, <span class="kw">kmeans</span>(x <span class="op">%&gt;%</span>
+<span class="st">                               </span><span class="kw">select</span>(<span class="op">-</span>cluster), <span class="dv">5</span>, <span class="dt">nstart =</span> <span class="dv">1</span>))
+withinss &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="kw">map_chr</span>(kmean.out, <span class="op">~</span><span class="st"> </span>.<span class="op">$</span>tot.withinss), <span class="dt">each =</span> <span class="kw">nrow</span>(x))
 
 kmean.out <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">map_df</span>(<span class="op">~</span><span class="st"> </span><span class="kw">as_tibble</span>(.<span class="op">$</span>cluster), <span class="dt">.id =</span> <span class="st">&quot;id&quot;</span>) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">bind_cols</span>(<span class="kw">bind_rows</span>(x,x,x,x,x,x)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">withinss =</span> <span class="kw">rep</span>(<span class="kw">map_chr</span>(kmean.out, <span class="op">~</span><span class="st"> </span>.<span class="op">$</span>tot.withinss), <span class="dt">each =</span> <span class="kw">nrow</span>(x)),
+<span class="st">  </span><span class="kw">bind_cols</span>(<span class="kw">bind_rows</span>(x, x, x, x, x, x)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">withinss =</span> <span class="kw">str_c</span>(<span class="st">&quot;Within SS = &quot;</span>, withinss),
+         <span class="dt">id =</span> <span class="kw">str_c</span>(<span class="st">&quot;Attempt #&quot;</span>, id),
          <span class="dt">value =</span> <span class="kw">factor</span>(value)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x1, x2, <span class="dt">color =</span> value)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>id <span class="op">+</span><span class="st"> </span>withinss, <span class="dt">ncol =</span> <span class="dv">3</span>, <span class="dt">labeller =</span> <span class="kw">label_wrap_gen</span>(<span class="dt">multi_line =</span> <span class="ot">FALSE</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(x, y, <span class="dt">color =</span> value)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span><span class="st"> </span>id <span class="op">+</span><span class="st"> </span>withinss, <span class="dt">ncol =</span> <span class="dv">3</span>, <span class="dt">labeller =</span> <span class="kw">label_wrap_gen</span>(<span class="dt">multi_line =</span> <span class="ot">TRUE</span>)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>, <span class="dt">guide =</span> <span class="ot">FALSE</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Convergence of k-means cluster algorithm&quot;</span>,
+       <span class="dt">x =</span> <span class="kw">expression</span>(X[<span class="dv">1</span>]),
+       <span class="dt">y =</span> <span class="kw">expression</span>(X[<span class="dv">2</span>])) <span class="op">+</span>
 <span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;none&quot;</span>)</code></pre></div>
 <pre><code>## Warning: Calling `as_tibble()` on a vector is discouraged, because the behavior is likely to change in the future. Use `enframe(name = NULL)` instead.
 ## This warning is displayed once per session.</code></pre>
 <p><img src="/notes/clustering_files/figure-html/kmeans-sim-start-1.png" width="672" /></p>
-<p>This is basically like starting the algorithm with a different random seed each time. In the above example I ran <span class="math inline">\(K\)</span>-mean clustering with <span class="math inline">\(K=4\)</span> six times with different starting seed values. In four of the iterations, the algorithm converged on the same local optimum solution, while the other two times the algorithm converged on a local optimum with a larger sum of within-cluster variation.</p>
+<p>This is basically like starting the algorithm with a different random seed each time. In the above example I ran <span class="math inline">\(K\)</span>-mean clustering with <span class="math inline">\(K=5\)</span> six times with different starting seed values. In four of the iterations, the algorithm converged on the same local optimum solution, while the other two times the algorithm converged on a local optimum with a larger sum of within-cluster variation.</p>
+</div>
+<div id="usarrests" class="section level1">
+<h1><span class="header-section-number">3</span> <code>USArrests</code></h1>
+<p>Example using <code>USArrests</code> dataset:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">df &lt;-<span class="st"> </span>USArrests <span class="op">%&gt;%</span>
+<span class="st">  </span>na.omit <span class="op">%&gt;%</span>
+<span class="st">  </span>scale
+<span class="kw">head</span>(df)</code></pre></div>
+<pre><code>##                Murder   Assault   UrbanPop         Rape
+## Alabama    1.24256408 0.7828393 -0.5209066 -0.003416473
+## Alaska     0.50786248 1.1068225 -1.2117642  2.484202941
+## Arizona    0.07163341 1.4788032  0.9989801  1.042878388
+## Arkansas   0.23234938 0.2308680 -1.0735927 -0.184916602
+## California 0.27826823 1.2628144  1.7589234  2.067820292
+## Colorado   0.02571456 0.3988593  0.8608085  1.864967207</code></pre>
+<div id="k2" class="section level2">
+<h2><span class="header-section-number">3.1</span> <span class="math inline">\(k=2\)</span></h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">k2 &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span class="dt">centers =</span> <span class="dv">2</span>, <span class="dt">nstart =</span> <span class="dv">25</span>)
+k2</code></pre></div>
+<pre><code>## K-means clustering with 2 clusters of sizes 30, 20
+## 
+## Cluster means:
+##      Murder    Assault   UrbanPop       Rape
+## 1 -0.669956 -0.6758849 -0.1317235 -0.5646433
+## 2  1.004934  1.0138274  0.1975853  0.8469650
+## 
+## Clustering vector:
+##        Alabama         Alaska        Arizona       Arkansas     California 
+##              2              2              2              1              2 
+##       Colorado    Connecticut       Delaware        Florida        Georgia 
+##              2              1              1              2              2 
+##         Hawaii          Idaho       Illinois        Indiana           Iowa 
+##              1              1              2              1              1 
+##         Kansas       Kentucky      Louisiana          Maine       Maryland 
+##              1              1              2              1              2 
+##  Massachusetts       Michigan      Minnesota    Mississippi       Missouri 
+##              1              2              1              2              2 
+##        Montana       Nebraska         Nevada  New Hampshire     New Jersey 
+##              1              1              2              1              1 
+##     New Mexico       New York North Carolina   North Dakota           Ohio 
+##              2              2              2              1              1 
+##       Oklahoma         Oregon   Pennsylvania   Rhode Island South Carolina 
+##              1              1              1              1              2 
+##   South Dakota      Tennessee          Texas           Utah        Vermont 
+##              1              2              2              1              1 
+##       Virginia     Washington  West Virginia      Wisconsin        Wyoming 
+##              1              1              1              1              1 
+## 
+## Within cluster sum of squares by cluster:
+## [1] 56.11445 46.74796
+##  (between_SS / total_SS =  47.5 %)
+## 
+## Available components:
+## 
+## [1] &quot;cluster&quot;      &quot;centers&quot;      &quot;totss&quot;        &quot;withinss&quot;    
+## [5] &quot;tot.withinss&quot; &quot;betweenss&quot;    &quot;size&quot;         &quot;iter&quot;        
+## [9] &quot;ifault&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">fviz_cluster</span>(k2, <span class="dt">data =</span> df) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_fill_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_minimal</span>()</code></pre></div>
+<p><img src="/notes/clustering_files/figure-html/usarrests-k2-1.png" width="672" /></p>
+<ul>
+<li>Clustered using all original (standardized) variables</li>
+<li>Visualized using PCA first two components</li>
+</ul>
+</div>
+<div id="k2345" class="section level2">
+<h2><span class="header-section-number">3.2</span> <span class="math inline">\(k=2,3,4,5\)</span></h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">k3 &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span class="dt">centers =</span> <span class="dv">3</span>, <span class="dt">nstart =</span> <span class="dv">25</span>)
+k4 &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span class="dt">centers =</span> <span class="dv">4</span>, <span class="dt">nstart =</span> <span class="dv">25</span>)
+k5 &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span class="dt">centers =</span> <span class="dv">5</span>, <span class="dt">nstart =</span> <span class="dv">25</span>)
+
+<span class="co"># plots to compare</span>
+p1 &lt;-<span class="st"> </span><span class="kw">fviz_cluster</span>(k2, <span class="dt">geom =</span> <span class="st">&quot;point&quot;</span>, <span class="dt">data =</span> df) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_fill_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_minimal</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;k = 2&quot;</span>)
+p2 &lt;-<span class="st"> </span><span class="kw">fviz_cluster</span>(k3, <span class="dt">geom =</span> <span class="st">&quot;point&quot;</span>,  <span class="dt">data =</span> df) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_fill_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_minimal</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;k = 3&quot;</span>)
+p3 &lt;-<span class="st"> </span><span class="kw">fviz_cluster</span>(k4, <span class="dt">geom =</span> <span class="st">&quot;point&quot;</span>,  <span class="dt">data =</span> df) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_fill_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_minimal</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;k = 4&quot;</span>)
+p4 &lt;-<span class="st"> </span><span class="kw">fviz_cluster</span>(k5, <span class="dt">geom =</span> <span class="st">&quot;point&quot;</span>,  <span class="dt">data =</span> df) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_fill_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_minimal</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;k = 5&quot;</span>)
+
+p1 <span class="op">+</span><span class="st"> </span>p2 <span class="op">+</span><span class="st"> </span>p3 <span class="op">+</span><span class="st"> </span>p4</code></pre></div>
+<p><img src="/notes/clustering_files/figure-html/usarrests-kmany-1.png" width="672" /></p>
+</div>
+</div>
+<div id="determining-optimal-number-of-clusters" class="section level1">
+<h1><span class="header-section-number">4</span> Determining optimal number of clusters</h1>
+<p>Since the number of clusters to use is determined by the researcher, how do we determine the optimal number of clusters?<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+<div id="elbow-method" class="section level2">
+<h2><span class="header-section-number">4.1</span> Elbow method</h2>
+<p>Recall that, the basic idea behind cluster partitioning methods, such as <span class="math inline">\(k\)</span>-means clustering, is to define clusters such that the total intra-cluster variation (known as total within-cluster variation or total within-cluster sum of square) is minimized:</p>
+<p><span class="math display">\[\min \left(\sum_{k=1}^k W(C_k) \right)\]</span></p>
+<p>where <span class="math inline">\(C_k\)</span> is the <span class="math inline">\(k\)</span>th cluster and <span class="math inline">\(W(C_k)\)</span> is the within-cluster variation. The total within-cluster sum of square (<span class="math inline">\(WSS\)</span>) measures the compactness of the clustering and we want it to be as small as possible. Thus, we can use the following algorithm to define the optimal clusters:</p>
+<ol style="list-style-type: decimal">
+<li>Compute clustering algorithm (e.g., <span class="math inline">\(k\)</span>-means clustering) for different values of <span class="math inline">\(k\)</span>. For instance, by varying <span class="math inline">\(k\)</span> from 1 to 10 clusters</li>
+<li>For each <span class="math inline">\(k\)</span>, calculate the total within-cluster sum of square (<span class="math inline">\(WSS\)</span>)</li>
+<li>Plot the curve of <span class="math inline">\(WSS\)</span> according to the number of clusters <span class="math inline">\(k\)</span>.</li>
+<li>The location of a bend (knee) in the plot is generally considered as an indicator of the appropriate number of clusters.</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">123</span>)
+
+<span class="co"># function to compute total within-cluster sum of square </span>
+wss &lt;-<span class="st"> </span><span class="cf">function</span>(k) {
+  <span class="kw">kmeans</span>(df, k, <span class="dt">nstart =</span> <span class="dv">10</span> )<span class="op">$</span>tot.withinss
+}
+
+<span class="kw">tibble</span>(
+  <span class="dt">k =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">15</span>
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">wss =</span> <span class="kw">map_dbl</span>(k, wss)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(k, wss)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;USArrests&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Number of clusters K&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Total within-clusters sum of squares&quot;</span>)</code></pre></div>
+<p><img src="/notes/clustering_files/figure-html/elbow-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># canned package function</span>
+<span class="kw">fviz_nbclust</span>(df, kmeans, <span class="dt">method =</span> <span class="st">&quot;wss&quot;</span>)</code></pre></div>
+<p><img src="/notes/clustering_files/figure-html/elbow-2.png" width="672" /></p>
+</div>
+<div id="average-silhouette-method" class="section level2">
+<h2><span class="header-section-number">4.2</span> Average silhouette method</h2>
+<p>The <strong>average silhouette method</strong> measures the quality of a clustering. That is, it determines how well each object lies within its cluster. A high average silhouette width indicates a good clustering. The average silhouette method computes the average silhouette of observations for different values of <span class="math inline">\(k\)</span>. The optimal number of clusters <span class="math inline">\(k\)</span> is the one that maximizes the average silhouette over a range of possible values for <span class="math inline">\(k\)</span>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># function to compute average silhouette for k clusters</span>
+avg_sil &lt;-<span class="st"> </span><span class="cf">function</span>(k) {
+  km.res &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span class="dt">centers =</span> k, <span class="dt">nstart =</span> <span class="dv">25</span>)
+  ss &lt;-<span class="st"> </span><span class="kw">silhouette</span>(km.res<span class="op">$</span>cluster, <span class="kw">dist</span>(df))
+  <span class="kw">mean</span>(ss[, <span class="dv">3</span>])
+}
+
+<span class="kw">tibble</span>(
+  <span class="dt">k =</span> <span class="dv">2</span><span class="op">:</span><span class="dv">15</span>
+) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">avg_sil =</span> <span class="kw">map_dbl</span>(k, avg_sil)) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(k, avg_sil)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_line</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;USArrests&quot;</span>,
+       <span class="dt">x =</span> <span class="st">&quot;Number of clusters K&quot;</span>,
+       <span class="dt">y =</span> <span class="st">&quot;Average silhouettes&quot;</span>)</code></pre></div>
+<p><img src="/notes/clustering_files/figure-html/silhouette-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># canned package function</span>
+<span class="kw">fviz_nbclust</span>(df, kmeans, <span class="dt">method =</span> <span class="st">&quot;silhouette&quot;</span>)</code></pre></div>
+<p><img src="/notes/clustering_files/figure-html/silhouette-2.png" width="672" /></p>
+</div>
+<div id="gap-statistic" class="section level2">
+<h2><span class="header-section-number">4.3</span> Gap statistic</h2>
+<p>The <strong>gap statistic</strong> compares the total within intra-cluster variation for different values of <span class="math inline">\(k\)</span> with their expected values under a null reference distribution of the data )i.e. a distribution with no obvious clustering). The reference dataset is generated using Monte Carlo simulations of the sampling process. That is, for each variable <span class="math inline">\(x_i\)</span> in the dataset we compute its range <span class="math inline">\([\min(x_i), \max(x_i)]\)</span> and generate values for the <span class="math inline">\(n\)</span> points uniformly from the interval min to max.</p>
+<p>For the observed data and the the reference data, the total intracluster variation is computed using different values of <span class="math inline">\(k\)</span>. The gap statistic for a given <span class="math inline">\(k\)</span> is defined as:</p>
+<p><span class="math display">\[\text{Gap}_n(k) = E_n^{*} \log(W_k) - \log(W_k)\]</span></p>
+<p>where <span class="math inline">\(E_n^{*}\)</span> denotes the expectation under a sample size <span class="math inline">\(n\)</span> from the reference distribution. <span class="math inline">\(E_n^{*}\)</span> is defined via bootstrapping by generating <span class="math inline">\(B\)</span> copies of the reference datasets and computing the average <span class="math inline">\(\log(W_k^{*})\)</span>. The gap statistic measures the deviation of the observed <span class="math inline">\(W_k\)</span> value from its expected value under this null hypothesis. The estimate of the optimal clusters <span class="math inline">\(\hat{k}\)</span> will be the value that maximizes <span class="math inline">\(\text{Gap}_n(k)\)</span>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># compute gap statistic</span>
+<span class="kw">set.seed</span>(<span class="dv">123</span>)
+gap_stat &lt;-<span class="st"> </span><span class="kw">clusGap</span>(df, <span class="dt">FUN =</span> kmeans, <span class="dt">nstart =</span> <span class="dv">25</span>,
+                    <span class="dt">K.max =</span> <span class="dv">10</span>, <span class="dt">B =</span> <span class="dv">50</span>)
+
+<span class="co"># Print the result</span>
+<span class="kw">print</span>(gap_stat, <span class="dt">method =</span> <span class="st">&quot;firstmax&quot;</span>)</code></pre></div>
+<pre><code>## Clustering Gap statistic [&quot;clusGap&quot;] from call:
+## clusGap(x = df, FUNcluster = kmeans, K.max = 10, B = 50, nstart = 25)
+## B=50 simulated reference sets, k = 1..10; spaceH0=&quot;scaledPCA&quot;
+##  --&gt; Number of clusters (method &#39;firstmax&#39;): 4
+##           logW   E.logW       gap     SE.sim
+##  [1,] 3.458369 3.638250 0.1798804 0.03653200
+##  [2,] 3.135112 3.371452 0.2363409 0.03394132
+##  [3,] 2.977727 3.235385 0.2576588 0.03635372
+##  [4,] 2.826221 3.120441 0.2942199 0.03615597
+##  [5,] 2.738868 3.020288 0.2814197 0.03950085
+##  [6,] 2.669860 2.933533 0.2636730 0.03957994
+##  [7,] 2.598748 2.855759 0.2570109 0.03809451
+##  [8,] 2.531626 2.784000 0.2523744 0.03869283
+##  [9,] 2.468162 2.716498 0.2483355 0.03971815
+## [10,] 2.394884 2.652241 0.2573567 0.04104674</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">fviz_gap_stat</span>(gap_stat)</code></pre></div>
+<p><img src="/notes/clustering_files/figure-html/gap-stat-1.png" width="672" /></p>
+<p>Based on these statistics, the optimal number of clusters for <code>USArrests</code> is <span class="math inline">\(k=4\)</span>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Compute k-means clustering with k = 4</span>
+<span class="kw">set.seed</span>(<span class="dv">123</span>)
+final &lt;-<span class="st"> </span><span class="kw">kmeans</span>(df, <span class="dv">4</span>, <span class="dt">nstart =</span> <span class="dv">25</span>)
+
+<span class="kw">fviz_cluster</span>(final, <span class="dt">data =</span> df) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_fill_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_minimal</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;k = 4&quot;</span>)</code></pre></div>
+<p><img src="/notes/clustering_files/figure-html/usarrests-k4-1.png" width="672" /></p>
+</div>
 </div>
 <div id="hierarchical-clustering" class="section level1">
-<h1><span class="header-section-number">2</span> Hierarchical clustering</h1>
+<h1><span class="header-section-number">5</span> Hierarchical clustering</h1>
 <p>A drawback to <span class="math inline">\(K\)</span>-means clustering is that it requires you to specify in advance the number of clusters in the data. Since this is unsupervised learning, you don’t really know the actual number of clusters. Depending on the major features of the data, different values of <span class="math inline">\(K\)</span> could produce equally meaningful results. Imagine if your data contains observations on individuals, split between males and females as well as split between Americans, Canadians, and South Africans. <span class="math inline">\(K=2\)</span> would potentially cluster the observations based on gender, whereas <span class="math inline">\(K=3\)</span> could cluster based on nationality. Which is “right”? Well, both of them. It depends on the features of the data in which you are most interested.</p>
 <p><strong>Hierarchical clustering</strong> is an alternative approach that does not require us to fix the number of clusters <em>a priori</em>. It also produces a visual interpretation of the clusters using tree-based representations called <strong>dendrograms</strong>. Here let’s review how to interpret dendrograms generated from <strong>bottom-up</strong> clustering.</p>
 </div>
 <div id="interpreting-dendrograms" class="section level1">
-<h1><span class="header-section-number">3</span> Interpreting dendrograms</h1>
-<p>Here we plot a dendrogram using simulated data, consisting of 150 observations in two-dimensional space. We simulate three natural classes in the data, but in the real-world you would not know that.</p>
+<h1><span class="header-section-number">6</span> Interpreting dendrograms</h1>
+<p>Here we plot a dendrogram using simulated data, consisting of 1500 observations in two-dimensional space. We simulate three natural classes in the data, but in the real-world you would not know that.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># generate data</span>
-x &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">x1 =</span> <span class="kw">rnorm</span>(<span class="dv">50</span>) <span class="op">+</span><span class="st"> </span><span class="dv">3</span>,
+x &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x1 =</span> <span class="kw">rnorm</span>(<span class="dv">50</span>) <span class="op">+</span><span class="st"> </span><span class="dv">3</span>,
                 <span class="dt">x2 =</span> <span class="kw">rnorm</span>(<span class="dv">50</span>) <span class="op">-</span><span class="st"> </span><span class="dv">4</span>,
                 <span class="dt">y =</span> <span class="kw">ifelse</span>(x1 <span class="op">&lt;</span><span class="st"> </span><span class="dv">3</span>, <span class="st">&quot;1&quot;</span>,
                            <span class="kw">ifelse</span>(x2 <span class="op">&gt;</span><span class="st"> </span><span class="op">-</span><span class="dv">4</span>, <span class="st">&quot;2&quot;</span>, <span class="st">&quot;3&quot;</span>)))
@@ -160,7 +510,7 @@ hc.complete &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span c
 <span class="co"># extract dendro data</span>
 hcdata &lt;-<span class="st"> </span><span class="kw">dendro_data</span>(hc.complete)
 hclabs &lt;-<span class="st"> </span><span class="kw">label</span>(hcdata) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">left_join</span>(<span class="kw">data_frame</span>(<span class="dt">label =</span> <span class="kw">as.factor</span>(<span class="kw">seq.int</span>(<span class="kw">nrow</span>(x))),
+<span class="st">  </span><span class="kw">left_join</span>(<span class="kw">tibble</span>(<span class="dt">label =</span> <span class="kw">as.factor</span>(<span class="kw">seq.int</span>(<span class="kw">nrow</span>(x))),
                        <span class="dt">cl =</span> <span class="kw">as.factor</span>(<span class="kw">cutree</span>(hc.complete, <span class="dt">h =</span> h))))</code></pre></div>
 <pre><code>## Joining, by = &quot;label&quot;</code></pre>
 <pre><code>## Warning: Column `label` joining factors with different levels, coercing to
@@ -179,7 +529,7 @@ hclabs &lt;-<span class="st"> </span><span class="kw">label</span>(hcdata) <span
 <span class="co"># extract dendro data</span>
 hcdata &lt;-<span class="st"> </span><span class="kw">dendro_data</span>(hc.complete)
 hclabs &lt;-<span class="st"> </span><span class="kw">label</span>(hcdata) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">left_join</span>(<span class="kw">data_frame</span>(<span class="dt">label =</span> <span class="kw">as.factor</span>(<span class="kw">seq.int</span>(<span class="kw">nrow</span>(x))),
+<span class="st">  </span><span class="kw">left_join</span>(<span class="kw">tibble</span>(<span class="dt">label =</span> <span class="kw">as.factor</span>(<span class="kw">seq.int</span>(<span class="kw">nrow</span>(x))),
                        <span class="dt">cl =</span> <span class="kw">as.factor</span>(<span class="kw">cutree</span>(hc.complete, <span class="dt">h =</span> h))))</code></pre></div>
 <pre><code>## Joining, by = &quot;label&quot;</code></pre>
 <pre><code>## Warning: Column `label` joining factors with different levels, coercing to
@@ -196,10 +546,10 @@ hclabs &lt;-<span class="st"> </span><span class="kw">label</span>(hcdata) <span
 <p>Generating a larger number of clusters. Determining the optimal number of clusters is generally left to the discretion of the researcher based on the height of the fusions and desired number of clusters. Again, this is unsupervised learning <strong>so there is no single correct number of clusters</strong>.</p>
 </div>
 <div id="estimating-hierarchical-clusters" class="section level1">
-<h1><span class="header-section-number">4</span> Estimating hierarchical clusters</h1>
+<h1><span class="header-section-number">7</span> Estimating hierarchical clusters</h1>
 <p>The general procedure for estimating hierarchical clusters is relatively straightforward:</p>
 <ol style="list-style-type: decimal">
-<li>Assume each <span class="math inline">\(n\)</span> observation is its own cluster. Calculate the <span class="math inline">\(\binom{n}{2} = \frac{n(n-1)}{2}\)</span> pairwise dissimilarities between each observation.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></li>
+<li>Assume each <span class="math inline">\(n\)</span> observation is its own cluster. Calculate the <span class="math inline">\(\binom{n}{2} = \frac{n(n-1)}{2}\)</span> pairwise dissimilarities between each observation.<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a></li>
 <li>For <span class="math inline">\(i=n, n-1, \dots, 2\)</span>:
 <ol style="list-style-type: decimal">
 <li>Compare all pairwise inter-cluster dissimilarities among the <span class="math inline">\(i\)</span> clusters and identify the pair of clusters that are least dissimilar (i.e. most dissimilar). Fuse these two clusters. The dissimilarity between these two clusters determines the height in the dendrogram where the fusion should be placed.</li>
@@ -230,7 +580,7 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 <p><img src="/notes/clustering_files/figure-html/dendro-compare-linkage-3.png" width="672" /></p>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
-<h1><span class="header-section-number">5</span> Session Info</h1>
+<h1><span class="header-section-number">8</span> Session Info</h1>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre></div>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
@@ -257,6 +607,7 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 ##  cellranger      1.1.0      2016-07-27 [2]
 ##  class           7.3-15     2019-01-01 [2]
 ##  cli             1.0.1      2018-09-25 [1]
+##  cluster       * 2.0.7-1    2018-04-13 [1]
 ##  codetools       0.2-16     2018-12-24 [2]
 ##  colorspace      1.4-0      2019-01-13 [2]
 ##  colourpicker    1.0        2017-09-27 [2]
@@ -270,11 +621,16 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 ##  DT              0.5        2018-11-05 [2]
 ##  dygraphs        1.1.1.6    2018-07-11 [2]
 ##  evaluate        0.13       2019-02-12 [2]
+##  factoextra    * 1.0.5      2017-08-22 [1]
+##  farver          1.1.0      2018-11-20 [1]
 ##  forcats       * 0.4.0      2019-02-17 [2]
 ##  fs              1.2.6      2018-08-23 [1]
 ##  generics        0.0.2      2018-11-29 [1]
+##  gganimate     * 1.0.2      2019-03-03 [1]
 ##  ggdendro      * 0.1-20     2019-02-21 [1]
 ##  ggplot2       * 3.1.0      2018-10-25 [1]
+##  ggpubr          0.2        2018-11-15 [1]
+##  ggrepel         0.8.0      2018-05-09 [2]
 ##  ggridges        0.5.1      2018-09-27 [2]
 ##  glue            1.3.0      2018-07-17 [2]
 ##  gower           0.1.2      2017-02-23 [2]
@@ -312,7 +668,7 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 ##  mime            0.6        2018-10-05 [1]
 ##  miniUI          0.1.1.1    2018-05-18 [2]
 ##  minqa           1.2.4      2014-10-09 [2]
-##  modelr        * 0.1.4      2019-02-18 [2]
+##  modelr          0.1.4      2019-02-18 [2]
 ##  munsell         0.5.0      2018-06-12 [2]
 ##  nlme            3.1-137    2018-04-07 [2]
 ##  nloptr          1.2.1      2018-10-03 [2]
@@ -328,10 +684,12 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 ##  pROC            1.13.0     2018-09-24 [1]
 ##  processx        3.2.1      2018-12-05 [2]
 ##  prodlim         2018.04.18 2018-04-18 [2]
+##  progress        1.2.0      2018-06-14 [2]
 ##  promises        1.0.1      2018-04-13 [2]
 ##  ps              1.3.0      2018-12-21 [2]
 ##  purrr         * 0.3.0      2019-01-27 [2]
 ##  R6              2.4.0      2019-02-14 [1]
+##  RColorBrewer    1.1-2      2014-12-07 [2]
 ##  Rcpp            1.0.0      2018-11-07 [1]
 ##  readr         * 1.3.1      2018-12-21 [2]
 ##  readxl          1.3.0      2019-02-15 [2]
@@ -373,6 +731,7 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 ##  tidyverse     * 1.2.1      2017-11-14 [2]
 ##  timeDate        3043.102   2018-02-21 [2]
 ##  tokenizers      0.2.1      2018-03-29 [2]
+##  tweenr          1.0.1      2018-12-14 [1]
 ##  usethis         1.4.0      2018-08-14 [1]
 ##  withr           2.1.2      2018-03-15 [2]
 ##  xfun            0.5        2019-02-20 [1]
@@ -394,6 +753,7 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
@@ -407,10 +767,15 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.2)                      
 ##  Github (bensoltoff/ggdendro@9c9c6e7)
+##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -467,8 +832,10 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.2)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
@@ -512,6 +879,7 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
+##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.2)                      
 ##  CRAN (R 3.5.0)                      
 ##  CRAN (R 3.5.0)                      
@@ -524,7 +892,7 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
 </div>
 <div id="references" class="section level1 toc-ignore">
-<h1><span class="header-section-number">6</span> References</h1>
+<h1><span class="header-section-number">9</span> References</h1>
 <ul>
 <li><span class="citation">James et al. (<a href="#ref-james2013introduction">2013</a>)</span></li>
 <li><span class="citation">Friedman, Hastie, and Tibshirani (<a href="#ref-friedman2001elements">2001</a>)</span></li>
@@ -541,6 +909,7 @@ hc.average &lt;-<span class="st"> </span><span class="kw">hclust</span>(<span cl
 <div class="footnotes">
 <hr />
 <ol>
-<li id="fn1"><p>Again, using Euclidean distance.<a href="#fnref1">↩</a></p></li>
+<li id="fn1"><p>Based on <a href="https://www.datanovia.com/en/lessons/determining-the-optimal-number-of-clusters-3-must-know-methods/">Determining The Optimal Number Of Clusters: 3 Must Know Methods</a><a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Again, using Euclidean distance.<a href="#fnref2">↩</a></p></li>
 </ol>
 </div>
