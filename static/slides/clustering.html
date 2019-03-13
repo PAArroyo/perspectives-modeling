@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Clustering</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="MACS 30100   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Clustering
+### <a href="https://model.uchicago.edu">MACS 30100</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Clustering
+
+* Set of techniques for finding subgroups within a dataset
+* Partition dataset into similar and distinct groups
+* Distinguished from dimension reduction
+* Applications in social science
+    * [Defining types of political regimes](https://file.scirp.org/pdf/AM_2014081916212927.pdf)
+    * [Validating typologies](https://www.jstor.org/stable/pdf/41403740.pdf)
+    * [Creating personality profiles](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4005932/)
+
+---
+
+# Distance measures
+
+* How to measure dissimilarity
+* Distance-based metrics
+* Correlation-based metrics
+* Choice of metric matters
+* Importance of standardization
+
+---
+
+# Distance-based metrics
+
+## Euclidean distance
+    
+`$$d_{\text{Euclidean}}(x,y) = \sqrt{\sum_{i=1}^n (x_i - y_i)^2}$$`
+
+## Manhattan distance
+    
+`$$d_{\text{Manhattan}}(x,y) = \sqrt{\sum_{i=1}^n | x_i - y_i |}$$`
+    
+---
+
+# Correlation-based metrics
+
+## Pearson correlation distance
+
+`$$d_\text{cor}(x,y) = 1 - \frac{\sum_{i=1}^n (x_i - \bar{x}) (y_i - \bar{y})}{\sqrt{\sum_{i=1}^n (x_i - \bar{x})^2 \sum_{i=1}^n (y_i - \bar{y})^2}}$$`
+
+## Spearman correlation distance
+
+`$$d_\text{spear}(x,y) = 1 - \frac{\sum_{i=1}^n (x'_i - \bar{x}') (y'_i - \bar{y}')}{\sqrt{\sum_{i=1}^n (x'_i - \bar{x}')^2 \sum_{i=1}^n (y'_i - \bar{y}')^2}}$$`
+
+* `\(x'_i = \text{rank}(x_i)\)`
+* `\(y'_i = \text{rank}(y_i)\)`
+
+---
+
+# `\(K\)`-means clustering
+
+* Specify the number of clusters in the data `\(K\)`
+* Assign each observation to precisely one of those `\(K\)` clusters
+
+---
+
+# Simulated dataset
+
+&lt;img src="clustering_files/figure-html/kmeans-1.png" width="864" /&gt;
+
+---
+
+# `\(K\)`-means clustering
+
+* `\(C_1, C_2, \dots, C_K\)`
+    * Each observation belongs to one of the `\(K\)` clusters
+    * Clusters are non-overlapping
+* Within-cluster variation
+
+    `$$\min_{C_1, C_2, \dots, C_K} \left\{ \sum_{k = 1}^K W(C_k) \right\}$$`
+
+* Squared euclidean distance
+
+    `$$W(C_k) = \frac{1}{|C_k|} \sum_{i,i' \in C_k} \sum_{j = 1}^p (x_{ij} - x_{i'j})^2$$`
+
+* How to identify optimum cluster assignments
+
+---
+
+# `\(K\)`-means clustering
+
+1. Randomly assign each observation to one of the `\(K\)` clusters
+1. Iterate over the cluster assignments
+    1. For each of the `\(K\)` clusters, compute the cluster centroid
+    1. Assign each observation to the cluster whose centroid is closest
+
+---
+
+# `\(K\)`-means clustering
+
+
+
+.center[
+
+![](clustering_files/figure-html/kmeans-sim-animate-1.gif)
+
+]
+
+---
+
+# Multiple attempts
+
+&lt;img src="clustering_files/figure-html/kmeans-sim-start-1.png" width="864" /&gt;
+
+---
+
+# `USArrests`
+
+
+```
+##                Murder   Assault   UrbanPop         Rape
+## Alabama    1.24256408 0.7828393 -0.5209066 -0.003416473
+## Alaska     0.50786248 1.1068225 -1.2117642  2.484202941
+## Arizona    0.07163341 1.4788032  0.9989801  1.042878388
+## Arkansas   0.23234938 0.2308680 -1.0735927 -0.184916602
+## California 0.27826823 1.2628144  1.7589234  2.067820292
+## Colorado   0.02571456 0.3988593  0.8608085  1.864967207
+```
+
+---
+
+# `\(K=2\)`
+
+&lt;img src="clustering_files/figure-html/usarrests-k2-1.png" width="864" /&gt;
+
+---
+
+# `\(K=2,3,4,5\)`
+
+&lt;img src="clustering_files/figure-html/usarrests-kmany-1.png" width="864" /&gt;
+
+---
+
+# Determining optimal number of clusters
+
+* Unsupervised learning
+* No absolute metric for success
+
+---
+
+# Elbow method
+
+`$$\min \left(\sum_{k=1}^k W(C_k) \right)$$`
+
+* Total within-cluster sum of square `\(WSS\)`
+
+1. Compute clustering algorithm for different values of `\(k\)`
+1. For each `\(k\)`, calculate the `\(WSS\)`
+1. Plot the curve of `\(WSS\)` according to the number of clusters `\(k\)`
+1. Find the bend in the graph
+
+---
+
+# Elbow method
+
+&lt;img src="clustering_files/figure-html/elbow-1.png" width="864" /&gt;
+
+---
+
+# Silhouette width
+
+1. For each observation `\(i\)`, calculate the average dissimilarity `\(a_i\)` between `\(i\)` and all other points of the cluster to which `\(i\)` belongs
+1. For all other clusters `\(C\)`, to which `\(i\)` does not belong, calculate the average dissimilarity `\(d(i,C)\)` of `\(i\)` to all observations of `\(C\)`
+    * The smallest of these `\(d(i,C)\)` is defined as `\(b_i = \min_C d(i,C)\)`
+    * Dissimilarity between `\(i\)` and its "neighbor" cluster
+1. Silhouette width of the observation `\(i\)`
+    
+    `$$S_i = \frac{b_i - a_i}{\max(a_i, b_i)}$$`
+    
+--
+
+* Observations with a large `\(S_i\)` are very well clustered
+* Small `\(S_i\)` means observation lies between two clusters
+* Negative `\(S_i\)` means observation is probably in the wrong cluster
+
+---
+
+# Average silhouette method
+
+1. Compute clustering algorithm for different values of `\(K\)`
+1. For each `\(K\)`, calculate the average silhouette of observations `\(\bar{S}_K\)`
+1. Plot the curve of `\(\bar{S}_K\)` according to `\(K\)`
+1. Find `\(\max \bar{S}_k\)`
+
+---
+
+# Average silhouette method
+
+&lt;img src="clustering_files/figure-html/silhouette-1.png" width="864" /&gt;
+
+---
+
+# Gap statistic
+
+* Compares the total within intra-cluster variation for different values of `\(k\)` with their expected values under a null reference distribution of the data
+* Optimal clusters will be a value that maximize the gap statistic
+
+---
+
+# Gap statistic
+
+1. Cluster the observed data, varying the number of clusters from `\(K = 1, \ldots, k_{max}\)`
+1. Compute the corresponding total within intra-cluster variation `\(W_k\)`
+1. Generate `\(B\)` reference data sets with a random uniform distribution. Cluster each of these reference data sets with varying number of clusters `\(K = 1, \ldots, k_{max}\)`
+1. Compute the corresponding total within intra-cluster variation `\(W_{kb}\)`
+1. Compute the gap statistic
+
+    `$$\text{Gap}(k) = \frac{1}{B} \sum_{i=1}^B \log(W_{kb}^{*}) - \log (W_k)$$`
+
+1. Choose the number of clusters as the smallest value of `\(K\)` such that the gap statistic is within one standard deviation of the gap at `\(K+1\)`
+    
+    `$$\text{Gap}(k) \geq \text{Gap}(K + 1) - \text{s.d.}_{k + 1}$$`
+
+---
+
+# Gap statistic
+
+&lt;img src="clustering_files/figure-html/gap-stat-1.png" width="864" /&gt;
+
+---
+
+# `\(K=4\)`
+
+&lt;img src="clustering_files/figure-html/usarrests-k4-1.png" width="864" /&gt;
+
+---
+
+# Hierarchical clustering
+
+* Fixed `\(K\)`
+* Hierarchical clustering
+* Dendrograms
+
+---
+
+# Interpreting dendrograms
+
+&lt;img src="clustering_files/figure-html/dendro-sim-1.png" width="864" /&gt;
+
+---
+
+# Interpreting dendrograms
+
+&lt;img src="clustering_files/figure-html/dendro-cluster-1.png" width="864" /&gt;
+
+---
+
+# Interpreting dendrograms
+
+&lt;img src="clustering_files/figure-html/dendro-cut-4-1.png" width="864" /&gt;
+
+---
+
+# Interpreting dendrograms
+
+&lt;img src="clustering_files/figure-html/dendro-cut-3-1.png" width="864" /&gt;
+
+---
+
+# Selecting optimal clusters
+
+&lt;img src="clustering_files/figure-html/dendro-cut-optimal-1.png" width="864" /&gt;
+
+---
+
+# Estimating hierarchical clusters
+
+1. Assume each `\(n\)` observation is its own cluster and calculate pairwise dissimilarities
+1. For `\(i=n, n-1, \dots, 2\)`:
+    1. Identify least dissimilar pair of clusters and fuse them
+    1. Compute the new pairwise inter-cluster dissimilarities among the `\(i-1\)` clusters
+1. Rinse and repeat until only a single cluster remains
+
+---
+
+# Linkage
+
+&lt;img src="clustering_files/figure-html/dendro-complete-1.png" width="864" /&gt;
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
