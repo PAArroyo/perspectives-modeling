@@ -41,6 +41,8 @@ theme_set(theme_minimal())
 
 ## How clustering can be used
 
+Clustering has direct applications in fields like marketing, where businesses may seek to segment their customer base into discrete categories based on a large number of measurements. Segmentation allows the company to target each type of customer with a particular form of advertising. However clustering and related methods also have relevance in the field of social science, for tasks such as [defining types of political regimes](https://file.scirp.org/pdf/AM_2014081916212927.pdf), [validating typologies](https://www.jstor.org/stable/pdf/41403740.pdf), and [creating personality profiles](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4005932/).
+
 # Clustering distance measures
 
 The classification of observations into groups requires some methods for computing the distance or the (dis)similarity between each pair of observations. The result of this computation is known as a **dissimilarity** or **distance matrix**. There are many methods to calculate this distance information.
@@ -377,7 +379,7 @@ fviz_nbclust(df, kmeans, method = "silhouette")
 
 ## Gap statistic
 
-The **gap statistic** compares the total within intra-cluster variation for different values of $k$ with their expected values under a null reference distribution of the data )i.e. a distribution with no obvious clustering). The reference dataset is generated using Monte Carlo simulations of the sampling process. That is, for each variable $x_i$ in the dataset we compute its range $[\min(x_i), \max(x_i)]$ and generate values for the $n$ points uniformly from the interval min to max.
+The **gap statistic** compares the total within intra-cluster variation for different values of $k$ with their expected values under a null reference distribution of the data (i.e. a distribution with no obvious clustering). The reference dataset is generated using Monte Carlo simulations of the sampling process. That is, for each variable $x_i$ in the dataset we compute its range $[\min(x_i), \max(x_i)]$ and generate values for the $n$ points uniformly from the interval min to max.
 
 For the observed data and the the reference data, the total intracluster variation is computed using different values of $k$. The gap statistic for a given $k$ is defined as:
 
@@ -422,6 +424,7 @@ A drawback to $K$-means clustering is that it requires you to specify in advance
 Here we plot a dendrogram using simulated data, consisting of `r nrow(x)` observations in two-dimensional space. We simulate three natural classes in the data, but in the real-world you would not know that.
 
 ```{r dendro-sim, echo = FALSE}
+set.seed(123)
 # generate data
 x <- tibble(x1 = rnorm(50) + 3,
             x2 = rnorm(50) - 4,
