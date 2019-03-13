@@ -1,0 +1,112 @@
+---
+title: "Homework 10: Unsupervised learning"
+date: 2019-03-12T13:30:00-06:00  # Schedule page publish date
+
+draft: false
+type: post
+
+output:
+  blogdown::html_page:
+    number_sections: false
+
+summary: "Implement support vector machines."
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#fork-the-hw10-repository">Fork the <code>hw10</code> repository</a></li>
+<li><a href="#submission-format">Submission format</a></li>
+<li><a href="#conceptual-exercises">Conceptual exercises</a><ul>
+<li><a href="#simulate-your-own-clusters">Simulate your own clusters</a></li>
+<li><a href="#dissimilarity-measures">Dissimilarity measures</a></li>
+</ul></li>
+<li><a href="#application-exercises">Application exercises</a><ul>
+<li><a href="#dimension-reduction">Dimension reduction</a></li>
+<li><a href="#clustering">Clustering</a></li>
+<li><a href="#exploring-the-clusters">Exploring the clusters</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<p>Due by 11:59pm March 20th.</p>
+</div>
+<div id="fork-the-hw10-repository" class="section level1">
+<h1>Fork the <code>hw10</code> repository</h1>
+<p>Go <a href="https://github.com/css-model/hw10">here</a> to fork the repo for homework 10.</p>
+</div>
+<div id="submission-format" class="section level1">
+<h1>Submission format</h1>
+<p>For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). The document should be <strong>reproducible</strong>. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (<code>.ipynb</code>) or R Markdown (<code>.Rmd</code>) rendered as <code>pdf_document</code>.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a></p>
+</div>
+<div id="conceptual-exercises" class="section level1">
+<h1>Conceptual exercises</h1>
+<div id="simulate-your-own-clusters" class="section level2">
+<h2>Simulate your own clusters</h2>
+<p>In this problem, you will generate simulated data, and then perform PCA and <span class="math inline">\(K\)</span>-means clustering on the data.</p>
+<ol style="list-style-type: decimal">
+<li>Generate a simulated data set with 20 observations in each of the three classes (i.e. 60 observations total), and 50 variables. Hint: generate your 50 variables from draws from a random variable distribution (e.g. normal, uniform, beta), then add a mean shift to one of the variables to ensure there are three distinct classes.</li>
+<li>Perform PCA on the 60 observations (note: do not rescale the variables - use their raw values) and plot the first two principal component score vectors. Use a different color to indicate the observations in each of the three classes. If the three classes appear separated in this plot, then continue on to part (3). If not, then return to part (1) and modify the simulation so that there is greater separation between the three classes.</li>
+<li>Perform <span class="math inline">\(K\)</span>-means clustering of the observations with <span class="math inline">\(K = 3\)</span>. How well do the clusters that you obtained in <span class="math inline">\(K\)</span>-means clustering comapre to the true class labels?</li>
+<li>Perform <span class="math inline">\(K\)</span>-means clustering with <span class="math inline">\(K=2\)</span>. Describe your results.</li>
+<li>Perform <span class="math inline">\(K\)</span>-means clustering with <span class="math inline">\(K=4\)</span>. Describe your results.</li>
+<li>Perform <span class="math inline">\(K\)</span>-means clustering with <span class="math inline">\(K=3\)</span> on the first two principal compoonent score vectors, rather than on the raw data. That is, perform <span class="math inline">\(K\)</span>-means clustering on the <span class="math inline">\(60 \times 2\)</span> matrix of which the first column is the first principal component score vector, and the second column is the second principal component score vector. Comment on the results.</li>
+<li>Perform <span class="math inline">\(K\)</span>-means clustering of the observations with <span class="math inline">\(K = 3\)</span> after rescaling the data so that each variable has a standard deviation of one. How do these results compare to those obtained in (3)?</li>
+</ol>
+</div>
+<div id="dissimilarity-measures" class="section level2">
+<h2>Dissimilarity measures</h2>
+<p>As we discussed in class, one can use distance or correlation-based measures of dissimilarity for clustering algorithms. Specifically, correlation-based distance and Euclidean distance turn out to be almost equivalent to one another: if <strong>each observation</strong> has been centered to have mean zero and standard deviation one, and if we let <span class="math inline">\(r_{ij}\)</span> denote the correlation between the <span class="math inline">\(i\)</span>th and <span class="math inline">\(j\)</span>th observations, then the quantity <span class="math inline">\(1 - r_{ij}\)</span> is proportional to the squared Euclidean distance between the <span class="math inline">\(i\)</span>th and <span class="math inline">\(j\)</span>th observations.</p>
+<p>On the <code>USArrests</code> data, show that this proportionality holds.</p>
+<blockquote>
+<p>HINT: scale each observation, not each feature.</p>
+</blockquote>
+<p>Users in R can access the <code>USArrests</code> directly via <code>data(USArrests)</code>. <code>USArrests.csv</code> in the <code>data</code> folder contains an identical copy for importation into Python.</p>
+</div>
+</div>
+<div id="application-exercises" class="section level1">
+<h1>Application exercises</h1>
+<p><code>wiki4HE.csv</code> contains a data set of survey responses from university faculty members related to their perceptions and practices of using Wikipedia as a teaching resource. Documentation for this dataset can be found <a href="https://archive.ics.uci.edu/ml/datasets/wiki4HE">here</a>. The dataset has been pre-processed as follows:</p>
+<ol style="list-style-type: decimal">
+<li>Include only employees of UOC and remove <code>OTHER*</code>, <code>UNIVERSITY</code> variables</li>
+<li>Impute missing values</li>
+<li>Convert <code>domain</code> and <code>uoc_position</code> to dummy variables</li>
+</ol>
+<div id="dimension-reduction" class="section level2">
+<h2>Dimension reduction</h2>
+<ol style="list-style-type: decimal">
+<li>Perform PCA on the dataset and plot the observations on the first and second principal components. Describe your results.
+<ul>
+<li>What variables appear strongly correlated on the first principal component?</li>
+<li>What about the second principal component?</li>
+</ul></li>
+<li>Calculate the proportion of variance explained (PVE) and cumulative PVE for all the principal components. Approximately how much of the variance is explained by the first two principal components?</li>
+<li>Perform <span class="math inline">\(t\)</span>-SNE on the dataset and plot the observations on the first and second dimensions. Describe your results.</li>
+</ol>
+</div>
+<div id="clustering" class="section level2">
+<h2>Clustering</h2>
+<ol style="list-style-type: decimal">
+<li>Perform <span class="math inline">\(K\)</span>-means clustering with <span class="math inline">\(K=2,3,4\)</span>. Be sure to scale each variable to have a mean of zero and standard deviation of one. Plot the observations on the first and second principal components from PCA and color-code each observation based on their cluster membership. Describe your results.</li>
+<li>Use the elbow method, average silhouette, and/or gap statistic to identify the optimal number of clusters based on <span class="math inline">\(k\)</span>-means clustering with scaled variables.</li>
+<li>Visualize the results of the optimal <span class="math inline">\(\hat{k}\)</span>-means clustering model. First use the first and second principal components from PCA, and color-code each observation based on their cluster membership. Next use the first and second dimensions from <span class="math inline">\(t\)</span>-SNE, and color-code each observation based on their cluster membership. Describe your results. How do your interpretations differ between PCA and <span class="math inline">\(t\)</span>-SNE?</li>
+</ol>
+</div>
+<div id="exploring-the-clusters" class="section level2">
+<h2>Exploring the clusters</h2>
+<ol style="list-style-type: decimal">
+<li>Estimate a supervised classification model. Use the cluster memberships from the optimal <span class="math inline">\(\hat{k}\)</span>-means clustering model as the outcome of interest, and the original variables as predictors. You do not need to exhaustively search through every type of classification model we learned this quarter, but demonstrate some effort to identify a reasonably well-performing model.</li>
+<li>Use the model-agnostic model interpretation method to estimate feature importance. Which variables are most important for generating cluster assignments?</li>
+<li>Provide some interpretation of the clusters. How would you describe each of the clusters? What are their traits/characteristics?</li>
+</ol>
+</div>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><code>html_document</code> cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in <code>.md</code> documents 😩<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>

@@ -1,0 +1,80 @@
+---
+title: "Homework 10: Unsupervised learning"
+date: 2019-03-12T13:30:00-06:00  # Schedule page publish date
+
+draft: false
+type: post
+
+output:
+  blogdown::html_page:
+    number_sections: false
+
+summary: "Implement support vector machines."
+---
+
+\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}}
+
+# Overview
+
+Due by 11:59pm March 20th.
+
+# Fork the `hw10` repository
+
+Go [here](https://github.com/css-model/hw10) to fork the repo for homework 10.
+
+# Submission format
+
+For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). The document should be **reproducible**. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (`.ipynb`) or R Markdown (`.Rmd`) rendered as `pdf_document`.^[`html_document` cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in `.md` documents `r emo::ji("sad")`]
+
+# Conceptual exercises
+
+## Simulate your own clusters
+
+In this problem, you will generate simulated data, and then perform PCA and $K$-means clustering on the data.
+
+1. Generate a simulated data set with 20 observations in each of the three classes (i.e. 60 observations total), and 50 variables. Hint: generate your 50 variables from draws from a random variable distribution (e.g. normal, uniform, beta), then add a mean shift to one of the variables to ensure there are three distinct classes.
+1. Perform PCA on the 60 observations (note: do not rescale the variables - use their raw values) and plot the first two principal component score vectors. Use a different color to indicate the observations in each of the three classes. If the three classes appear separated in this plot, then continue on to part (3). If not, then return to part (1) and modify the simulation so that there is greater separation between the three classes.
+1. Perform $K$-means clustering of the observations with $K = 3$. How well do the clusters that you obtained in $K$-means clustering comapre to the true class labels?
+1. Perform $K$-means clustering with $K=2$. Describe your results.
+1. Perform $K$-means clustering with $K=4$. Describe your results.
+1. Perform $K$-means clustering with $K=3$ on the first two principal compoonent score vectors, rather than on the raw data. That is, perform $K$-means clustering on the $60 \times 2$ matrix of which the first column is the first principal component score vector, and the second column is the second principal component score vector. Comment on the results.
+1. Perform $K$-means clustering of the observations with $K = 3$ after rescaling the data so that each variable has a standard deviation of one. How do these results compare to those obtained in (3)?
+
+## Dissimilarity measures
+
+As we discussed in class, one can use distance or correlation-based measures of dissimilarity for clustering algorithms. Specifically, correlation-based distance and Euclidean distance turn out to be almost equivalent to one another: if **each observation** has been centered to have mean zero and standard deviation one, and if we let $r_{ij}$ denote the correlation between the $i$th and $j$th observations, then the quantity $1 - r_{ij}$ is proportional to the squared Euclidean distance between the $i$th and $j$th observations.
+
+On the `USArrests` data, show that this proportionality holds.
+
+> HINT: scale each observation, not each feature.
+
+Users in R can access the `USArrests` directly via `data(USArrests)`. `USArrests.csv` in the `data` folder contains an identical copy for importation into Python.
+
+# Application exercises
+
+`wiki4HE.csv` contains a data set of survey responses from university faculty members related to their perceptions and practices of using Wikipedia as a teaching resource. Documentation for this dataset can be found [here](https://archive.ics.uci.edu/ml/datasets/wiki4HE). The dataset has been pre-processed as follows:
+
+1. Include only employees of UOC and remove `OTHER*`, `UNIVERSITY` variables
+1. Impute missing values
+1. Convert `domain` and `uoc_position` to dummy variables
+
+## Dimension reduction
+
+1. Perform PCA on the dataset and plot the observations on the first and second principal components. Describe your results.
+    * What variables appear strongly correlated on the first principal component?
+    * What about the second principal component?
+1. Calculate the proportion of variance explained (PVE) and cumulative PVE for all the principal components. Approximately how much of the variance is explained by the first two principal components?
+1. Perform $t$-SNE on the dataset and plot the observations on the first and second dimensions. Describe your results.
+
+## Clustering
+
+1. Perform $K$-means clustering with $K=2,3,4$. Be sure to scale each variable to have a mean of zero and standard deviation of one. Plot the observations on the first and second principal components from PCA and color-code each observation based on their cluster membership. Describe your results.
+1. Use the elbow method, average silhouette, and/or gap statistic to identify the optimal number of clusters based on $k$-means clustering with scaled variables.
+1. Visualize the results of the optimal $\hat{k}$-means clustering model. First use the first and second principal components from PCA, and color-code each observation based on their cluster membership. Next use the first and second dimensions from $t$-SNE, and color-code each observation based on their cluster membership. Describe your results. How do your interpretations differ between PCA and $t$-SNE?
+
+## Exploring the clusters
+
+1. Estimate a supervised classification model. Use the cluster memberships from the optimal $\hat{k}$-means clustering model as the outcome of interest, and the original variables as predictors. You do not need to exhaustively search through every type of classification model we learned this quarter, but demonstrate some effort to identify a reasonably well-performing model.
+1. Use the model-agnostic model interpretation method to estimate feature importance. Which variables are most important for generating cluster assignments?
+1. Provide some interpretation of the clusters. How would you describe each of the clusters? What are their traits/characteristics?
+
