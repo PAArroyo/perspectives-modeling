@@ -26,7 +26,7 @@ Go [here](https://github.com/css-model/hw10) to fork the repo for homework 10.
 
 For each of the following questions, produce brief written answers and/or the required graphs. Your responses must be readable on GitHub (i.e. we should not have to fork your repo to view the responses). The document should be **reproducible**. This means you need to commit and push all your code, output, and written text to complete the exercises. If necessary, I should be able to clone your repository and run all the code without any errors. Recommended document formats are Jupyter Notebook (`.ipynb`) or R Markdown (`.Rmd`) rendered as `pdf_document`.^[`html_document` cannot be viewed directly on GitHub.com, and GitHub does not properly render mathematical equations in `.md` documents `r emo::ji("sad")`]
 
-# Conceptual exercises
+# Conceptual exercises (4 points)
 
 ## Simulate your own clusters
 
@@ -50,9 +50,9 @@ On the `USArrests` data, show that this proportionality holds.
 
 Users in R can access the `USArrests` directly via `data(USArrests)`. `USArrests.csv` in the `data` folder contains an identical copy for importation into Python.
 
-# Application exercises
+# Application exercises (6 points)
 
-`wiki4HE.csv` contains a data set of survey responses from university faculty members related to their perceptions and practices of using Wikipedia as a teaching resource. Documentation for this dataset can be found [here](https://archive.ics.uci.edu/ml/datasets/wiki4HE). The dataset has been pre-processed as follows:
+`wiki.csv` contains a data set of survey responses from university faculty members related to their perceptions and practices of using Wikipedia as a teaching resource. Documentation for this dataset can be found [here](https://archive.ics.uci.edu/ml/datasets/wiki4HE). The dataset has been pre-processed as follows:
 
 1. Include only employees of UOC and remove `OTHER*`, `UNIVERSITY` variables
 1. Impute missing values
