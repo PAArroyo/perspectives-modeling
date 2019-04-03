@@ -1,0 +1,97 @@
+---
+title: "Identifying a research question"
+author: "[MACS 30200](https://github.com/css-research/course/) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2)
+
+library(tidyverse)
+library(tidymodels)
+library(here)
+library(patchwork)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 16))
+```
+
+# Identifying research topics
+
+* Should be focused
+* Start broad, then narrow down
+* Use more specific adjectives
+
+---
+
+# Where to find ideas
+
+* Media article/report claim - "is that true?"
+    * Read the day's news headlines, tweets, and posts
+* New types of events/shocks
+    * Great recession, natural experiments, Trump election
+* New data sources
+* New methods
+
+---
+
+# Turn into a research question
+
+* Needs to be answerable
+* Helps narrow down the search for sources/prior work
+* Can derive dozens of questions from even a specific topic
+* Pick and choose between them - what is interesting/relevant?
+
+---
+
+# Turn into a research problem
+
+* Determine your potential audience - what will concern them?
+* Pure vs. applied research
+
+---
+
+# Research design
+
+* Use a computationally-enhanced research design
+* Re-define "computationally-enhanced"
+* Think about a method appropriate for the problem
+
+---
+
+# #MeToo
+
+* Focused topic
+* Research questions
+* Significance of research question
+
+---
+
+# Assess research topics
+
+1. Briefly explain your research topic
+1. Identify research questions based on that topic
+1. Identify research problems
+1. How can computation assist in this project?
+
+---
+
+# Proposal format
+
+* 2-3 pages double-spaced
+* Identify a research question
+* Explain its importance
+* Explain how you will uniquely contribute
+* Outline a methodology for answering the question
+* Identify a few sources, but not an extensive literature review
