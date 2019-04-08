@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Identifying a research question</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="MACS 30200   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Identifying a research question
+### <a href="https://github.com/css-research/course/">MACS 30200</a> <br /> University of Chicago
+
+---
+
+
+
+
+# Theories and models
+
+* Model
+* Theory
+
+--
+
+* Model is a simplification of a theory
+    * Some models are mathematical
+    * Some are less precise
+
+---
+
+# Types of models in CSS
+
+## Formal model
+
+* A set of cause and effect mathematical relationships between variables used to explain, predict, and understand phenomena
+* Exogenous variables - inputs to the model, taken as given, from outside them odel
+* Endogenous variables - output of the model
+* Has both qualitative and quantitative implications
+
+--
+
+## Informal model
+
+* Narrative qualitative descriptions of relationships between variables, sometimes backed by experimental or anecdotal evidence
+* Often competing informal models are cited to show different possible relationships among variables
+* Provides interpretability of results
+
+---
+
+# Theory vs. empirical strategy
+
+* Theory
+    * Statement of model (either formal or informal)
+    * Provides interpretability of empirical results
+    * Provides testable hypotheses
+    * Assumes direction of causality
+* Empirical strategy
+    * What you do with your model and the data
+
+---
+
+# Pure theory papers
+
+* Not what we do in this class
+* Theory is the laboratory, rather than data
+* Mathematical analysis can determine results
+* Computational simulation can determine results
+
+---
+
+# Model section
+
+* Model is the theoretical version of the data generating process
+* It is a simplified version of reality
+* What are the main pieces of your model?
+* Why did you choose to model some parts of the real world and neglect others?
+    * This has to do with your research question
+* How do the parts of your model mathch up with the data?
+* If much of the model is standard, you can summarize
+    * Technical appendicies
+
+---
+
+# Theory/model section
+
+## Annotated bibliography
+
+* Provides the reader with an ordered list of sources for additional reading
+* Includes brief explanations of why each source is credible and relevant to the topic
+* Sources are separated from each other
+* Brief citation and single paragraph explaining the credibility and relevancy
+
+--
+
+## Literature review
+
+* Provides an overview of a particular topic or problem by summarizing and explaining the most significant sources in the field
+* Sources are integrated into paragraphs based on the progression of the topical overview, and they may be mentioned more than once
+* Uses an introduction to explain the topic, synthesizes sources progressively as the topic is explained through the body, and then concludes by summarizing the overall background presented
+
+---
+
+# Theory/model section
+
+* Not an annotated bibliography
+* Not a literature review
+* Fleshes out your theory and model that you have developed
+* Cites relevant literature as necessary to support your arguments and claims
+* **Cannot just copy/paste your literature review into the paper as your theory section**
+
+---
+
+# Assessing a theory section
+
+* [Kalla, J. L., &amp; Broockman, D. E. (2016). Campaign contributions facilitate access to congressional officials: A randomized field experiment. *American Journal of Political Science*, 60(3), 545-558.](https://onlinelibrary.wiley.com/doi/full/10.1111/ajps.12180)
+* Read the intro/theory sections in class
+* In small groups:
+    * What is the question being answered?
+    * What are the key concepts?
+    * Write out the model(s) being evaluated
+    * Identify how the article uses sources/citations to support their arguments
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

@@ -1,0 +1,135 @@
+---
+title: "Identifying a research question"
+author: "[MACS 30200](https://github.com/css-research/course/) <br /> University of Chicago"
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts]
+    lib_dir: libs
+    nature:
+      beforeInit: "macros.js"
+      highlightLanguage: r
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2)
+
+library(tidyverse)
+library(tidymodels)
+library(here)
+library(patchwork)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 16))
+```
+
+# Theories and models
+
+* Model
+* Theory
+
+--
+
+* Model is a simplification of a theory
+    * Some models are mathematical
+    * Some are less precise
+
+---
+
+# Types of models in CSS
+
+## Formal model
+
+* A set of cause and effect mathematical relationships between variables used to explain, predict, and understand phenomena
+* Exogenous variables - inputs to the model, taken as given, from outside them odel
+* Endogenous variables - output of the model
+* Has both qualitative and quantitative implications
+
+--
+
+## Informal model
+
+* Narrative qualitative descriptions of relationships between variables, sometimes backed by experimental or anecdotal evidence
+* Often competing informal models are cited to show different possible relationships among variables
+* Provides interpretability of results
+
+---
+
+# Theory vs. empirical strategy
+
+* Theory
+    * Statement of model (either formal or informal)
+    * Provides interpretability of empirical results
+    * Provides testable hypotheses
+    * Assumes direction of causality
+* Empirical strategy
+    * What you do with your model and the data
+
+---
+
+# Pure theory papers
+
+* Not what we do in this class
+* Theory is the laboratory, rather than data
+* Mathematical analysis can determine results
+* Computational simulation can determine results
+
+---
+
+# Model section
+
+* Model is the theoretical version of the data generating process
+* It is a simplified version of reality
+* What are the main pieces of your model?
+* Why did you choose to model some parts of the real world and neglect others?
+    * This has to do with your research question
+* How do the parts of your model mathch up with the data?
+* If much of the model is standard, you can summarize
+    * Technical appendicies
+
+---
+
+# Theory/model section
+
+## Annotated bibliography
+
+* Provides the reader with an ordered list of sources for additional reading
+* Includes brief explanations of why each source is credible and relevant to the topic
+* Sources are separated from each other
+* Brief citation and single paragraph explaining the credibility and relevancy
+
+--
+
+## Literature review
+
+* Provides an overview of a particular topic or problem by summarizing and explaining the most significant sources in the field
+* Sources are integrated into paragraphs based on the progression of the topical overview, and they may be mentioned more than once
+* Uses an introduction to explain the topic, synthesizes sources progressively as the topic is explained through the body, and then concludes by summarizing the overall background presented
+
+---
+
+# Theory/model section
+
+* Not an annotated bibliography
+* Not a literature review
+* Fleshes out your theory and model that you have developed
+* Cites relevant literature as necessary to support your arguments and claims
+* **Cannot just copy/paste your literature review into the paper as your theory section**
+
+---
+
+# Assessing a theory section
+
+* [Kalla, J. L., & Broockman, D. E. (2016). Campaign contributions facilitate access to congressional officials: A randomized field experiment. *American Journal of Political Science*, 60(3), 545-558.](https://onlinelibrary.wiley.com/doi/full/10.1111/ajps.12180)
+* Read the intro/theory sections in class
+* In small groups:
+    * What is the question being answered?
+    * What are the key concepts?
+    * Write out the model(s) being evaluated
+    * Identify how the article uses sources/citations to support their arguments
+
+
