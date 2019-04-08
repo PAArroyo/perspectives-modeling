@@ -1,5 +1,5 @@
 ---
-title: "Identifying a research question"
+title: "Writing the theory section"
 author: "[MACS 30200](https://github.com/css-research/course/) <br /> University of Chicago"
 output:
   xaringan::moon_reader:
