@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Writing the data/methods/results sections</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="MACS 30200   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Writing the data/methods/results sections
+### <a href="https://github.com/css-research/course/">MACS 30200</a> <br /> University of Chicago
+
+---
+
+
+
+
+# Describing data
+
+* Describe the data as it is, not as you wish it were
+* Sometimes (hopefully) you find surprises
+* Demonstrate, display, describe key slices of your data
+* Set up data for richer theoretical or empirical analysis
+
+---
+
+# Where ideas come from
+
+* Media article/report claim - "is that true?"
+    * Read the day's news headlines, tweets, and posts
+* New types of events/shocks
+    * Great recession, natural experiments, Trump election
+* **New data sources allow for new questions and/or answers**
+* New methods allow for new questions and/or answers
+
+---
+
+# Piketty example
+
+* Piketty (2014) identifies income inequality is increasing in developed countries
+* Studies using new data sources find more nuances in this claim
+    * [Sacerdote (2017)](http://www.nber.org/papers/w23292) - focus on consumption
+    * [Chetty et al (2018)](http://www.equality-of-opportunity.org/assets/documents/race_paper.pdf) - [racial gaps and income inequality](https://www.nytimes.com/interactive/2018/03/19/upshot/race-class-white-and-black-men.html)
+
+---
+
+# Components of a data/methods section
+
+1. Describe how to access data, where stored, who curates
+1. Cite other key papers that have used this data
+1. Describe how the data were collected
+1. Describe key variables
+1. Map the variables from the data to the concepts of your model
+1. Describe the core methods employed in the study
+1. Set up the data for the richer analyses you are going to do
+1. Demonstrate the key result of your analysis with one visualization or table
+1. Add a data appendix
+1. Make your data and code accessible
+
+---
+
+# Critique a data section
+
+* [Broockman, D. E., &amp; Skovron, C. (2018). Bias in Perceptions of Public Opinion among Political Elites. *American Political Science Review*, 1-22.](https://www.cambridge.org/core/journals/american-political-science-review/article/bias-in-perceptions-of-public-opinion-among-political-elites/2EF080E04D3AAE6AC1C894F52642E706/share/1bd83a8a05b6ac177c51e7a19aee1c55f3ef4b97)
+
+---
+
+# Types of computational research
+
+* Descriptive
+* Identification
+* Numerical solutions
+
+---
+
+# Descriptive papers
+
+* New data sets
+* Highlight interesting slices
+* Suggestive of more rigorous analysis
+* Highlight unexplained relationships, puzzles
+* **You should be doing more than this in your projects**
+
+---
+
+# Identification papers
+
+* `\(y = f(x)\)`
+* Identify the relationship/mapping between `\(x\)` and `\(y\)`
+* Could be a question of inference or prediction
+* Most academic papers are identification papers
+
+---
+
+# Numerical solution
+
+* `\(f(x) = 0\)`
+* Model solution requires computation
+* Linked to formal/pure theory, but requires computational analysis to solve the model
+* Only perhaps one or two of you are doing this
+
+---
+
+# Example papers
+
+## Descriptive
+
+* [Heathcote, J., Perri, F., &amp; Violante, G. L. (2010). Unequal we stand: An empirical analysis of economic inequality in the United States, 1967–2006. *Review of Economic dynamics*, 13(1), 15-51.](https://www.minneapolisfed.org/research/sr/sr436.pdf)
+
+--
+
+## Identification
+
+* [Mobley, L. R., Watson, L., &amp; Brown, G. G. (2012). Geographic disparities in late-stage cancer diagnosis: multilevel factors and spatial interactions. *Health &amp; place*, 18(5), 978-990.](https://www.sciencedirect.com/science/article/pii/S1353829212001165)
+
+---
+
+# Components of results section
+
+## Identification papers
+
+1. Give a small review of literature behind your method
+1. Describe your computational model
+1. Tables and figures
+    * [When do use a table vs. a figure](https://www.cambridge.org/core/journals/perspectives-on-politics/article/using-graphs-instead-of-tables-in-political-science/9FD63E9EE686AF046732191EE8A68034)
+    * Always use meaningful titles and text labels
+1. Sensitivity/robustness analysis
+
+---
+
+# Critique a results section
+
+* [Broockman, D. E., &amp; Skovron, C. (2018). Bias in Perceptions of Public Opinion among Political Elites. *American Political Science Review*, 1-22.](https://www.cambridge.org/core/journals/american-political-science-review/article/bias-in-perceptions-of-public-opinion-among-political-elites/2EF080E04D3AAE6AC1C894F52642E706/share/1bd83a8a05b6ac177c51e7a19aee1c55f3ef4b97)
+
+---
+
+# Order of paper production
+
+1. Data or theory section
+1. Theory or data section
+1. Computational results section
+1. Conclusion
+1. Introduction
+1. Abstract
+1. Title
+
+* Section orders can be changed
+* Sections can be expanded/consolidated depending on need
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
