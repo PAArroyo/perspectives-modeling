@@ -366,6 +366,111 @@ sum_stats %>%
 
 # Imputation estimation strategies
 
+Many of the following strategies can be implemented using the [`recipes`](https://tidymodels.github.io/recipes/index.html) package in R. Some of the most basic methods don't even require special packages (e.g. mean/mode imputation) but `recipes` is a recently developed tool that makes creating and pre-processing design matrices for statistical modeling far easier than previous methods. Likewise, many of these methods have analogous implementations in Python.
+
+We will demonstrate these methods using the [`credit_data` dataset](https://tidymodels.github.io/recipes/reference/credit_data.html), which is a sample of individuals with credit scores and related data.
+
+```{r credit-data}
+library(recipes)
+
+credit_data <- credit_data %>%
+  as_tibble()
+glimpse(credit_data)
+
+# missingness map
+Amelia::missmap(as.data.frame(credit_data))
+```
+
+## Unconditional imputation
+
+```{r credit-data-sample, dependson = "credit-data"}
+set.seed(342)
+in_training <- sample(1:nrow(credit_data), 2000)
+
+credit_tr <- credit_data[in_training, ]
+credit_te <- credit_data[-in_training, ]
+missing_examples <- c(14, 394, 565)
+```
+
+* Establish `recipe` to be used for each example
+
+```{r credit-data-recipe, dependson = "credit-data-sample"}
+rec <- recipe(Price ~ ., data = credit_tr)
+```
+
+### Mean imputation
+
+```{r credit-data-mean, dependson = "credit-data-recipe"}
+impute_rec <- rec %>%
+  step_meanimpute(Income, Assets, Debt)
+
+imp_models <- prep(impute_rec, training = credit_tr)
+imputed_te <- bake(imp_models, new_data = credit_te, everything())
+
+credit_te[missing_examples,]
+imputed_te[missing_examples, names(credit_te)]
+```
+
+### Median imputation
+
+```{r credit-data-median, dependson = "credit-data-recipe"}
+impute_rec <- rec %>%
+  step_medianimpute(Income, Assets, Debt)
+
+imp_models <- prep(impute_rec, training = credit_tr)
+
+imputed_te <- bake(imp_models, new_data = credit_te, everything())
+
+credit_te[missing_examples,]
+imputed_te[missing_examples, names(credit_te)]
+```
+
+### Modal imputation for nominal data
+
+```{r credit-data-mode, dependson = "credit-data-recipe"}
+impute_rec <- rec %>%
+  step_modeimpute(Status, Home, Marital, Job)
+
+imp_models <- prep(impute_rec, training = credit_tr)
+imputed_te <- bake(imp_models, new_data = credit_te, everything())
+
+credit_te[missing_examples,]
+imputed_te[missing_examples, names(credit_te)]
+```
+
+## $K$ nearest neighbors model
+
+* Uses $K$ nearest neighbors to estimate model with the imputing variable as the outcome of interest, using all the other available variables
+* Once $K$ nearest neighbors are found, the mode is used to predict nominal variables and the mean is used for numeric variables
+
+```{r credit-data-knn, dependson = "credit-data-recipe"}
+impute_rec <- rec %>%
+  step_knnimpute(all_predictors(), neighbors = 5)
+
+imp_models <- prep(impute_rec, training = credit_tr)
+imputed_te <- bake(imp_models, new_data = credit_te, everything())
+
+credit_te[missing_examples,]
+imputed_te[missing_examples, names(credit_te)]
+```
+
+## Bagged tree model
+
+Alternatively, we can use a tree-based method to pursue a non-parametric imputation strategy. In this approach, you build an ensemble of decision trees for each variable to predict its value using the other variables in the dataset. These results are used to generate imputed values for all the missing variables and observations.
+
+Any tree aggregation method can be employed (e.g. bagging, random forest, boosting). `recipes` uses the bagging method:
+
+```{r credit-data-tree, dependson = "credit-data-recipe"}
+impute_rec <- rec %>%
+  step_bagimpute(all_predictors())
+
+imp_models <- prep(impute_rec, training = credit_tr)
+imputed_te <- bake(imp_models, new_data = credit_te, everything())
+
+credit_te[missing_examples,]
+imputed_te[missing_examples, names(credit_te)]
+```
+
 ## Maximum-likelihood estimation for data MAR
 
 When data are MAR (or MCAR), we can use maximum-likelihood estimation to estimate the parameters of interest and generate imputed values for the missing data. This requires several assumptions about the missingness mechanism and the distribution of the complete data.
@@ -393,20 +498,6 @@ Combines regression model with matching procedure.
 Step 2 distinguishes this from pure conditional-mean imputation by accounting for additional uncertainty in the model(s). By default in most software, $k=5$ is the number of matches observations from which to draw the imputed value.
 
 * Implemented in `mice` and `mi` for R
-
-## $K$-nearest neighbors model
-
-
-
-## Bagged tree model
-
-Alternatively, we can use a random forest algorithm to pursue a non-parametric imputation strategy. In this approach, you build a random forest model for each variable to predict its value using the other variables in the dataset. These results are used to generate imputed values for all the missing variables and observations.
-
-* Implemented in `missForest` for R
-
-## Deep learning
-
-Because everyone is doing it. No stable packages implement off-the-shelf methods, but researchers are developing deep learning methods for imputing missing values.
 
 # Generating multiple imputations
 
