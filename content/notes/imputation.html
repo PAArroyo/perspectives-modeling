@@ -104,8 +104,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="#imputation-estimation-strategies"><span class="toc-section-number">3</span> Imputation estimation strategies</a><ul>
 <li><a href="#maximum-likelihood-estimation-for-data-mar"><span class="toc-section-number">3.1</span> Maximum-likelihood estimation for data MAR</a></li>
 <li><a href="#predictive-mean-matching"><span class="toc-section-number">3.2</span> Predictive mean matching</a></li>
-<li><a href="#random-forest-model"><span class="toc-section-number">3.3</span> Random forest model</a></li>
-<li><a href="#deep-learning"><span class="toc-section-number">3.4</span> Deep learning</a></li>
+<li><a href="#k-nearest-neighbors-model"><span class="toc-section-number">3.3</span> <span class="math inline">\(K\)</span>-nearest neighbors model</a></li>
+<li><a href="#bagged-tree-model"><span class="toc-section-number">3.4</span> Bagged tree model</a></li>
+<li><a href="#deep-learning"><span class="toc-section-number">3.5</span> Deep learning</a></li>
 </ul></li>
 <li><a href="#generating-multiple-imputations"><span class="toc-section-number">4</span> Generating multiple imputations</a><ul>
 <li><a href="#inference-for-individual-coefficients"><span class="toc-section-number">4.1</span> Inference for individual coefficients</a></li>
@@ -185,34 +186,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 <div id="simulated-examples-of-missingness-patterns" class="section level2">
 <h2><span class="header-section-number">1.4</span> Simulated examples of missingness patterns</h2>
-<pre class="sourceCode r"><code class="sourceCode r">n_sim &lt;-<span class="st"> </span><span class="dv">250</span> <span class="co"># Number of random samples</span>
-
-<span class="co"># Target parameters for univariate normal distributions</span>
-rho &lt;-<span class="st"> </span><span class="dv">2</span> <span class="op">/</span><span class="st"> </span><span class="dv">3</span>
-
-mu1 &lt;-<span class="st"> </span><span class="dv">10</span>
-mu2 &lt;-<span class="st"> </span><span class="dv">20</span>
-
-s1 &lt;-<span class="st"> </span><span class="dv">9</span>
-s2 &lt;-<span class="st"> </span><span class="dv">16</span>
-s1s2 &lt;-<span class="st"> </span><span class="kw">sqrt</span>(s1) <span class="op">*</span><span class="st"> </span><span class="kw">sqrt</span>(s2) <span class="op">*</span><span class="st"> </span>rho
-
-<span class="co"># Parameters for bivariate normal distribution</span>
-mu &lt;-<span class="st"> </span><span class="kw">c</span>(mu1, mu2) <span class="co"># Mean </span>
-sigma &lt;-<span class="st"> </span><span class="kw">matrix</span>(<span class="kw">c</span>(s1, s1s2, s1s2, s2), <span class="dv">2</span>) <span class="co"># Covariance matrix</span>
-data_sim &lt;-<span class="st"> </span>MASS<span class="op">::</span><span class="kw">mvrnorm</span>(n_sim, mu, sigma) <span class="op">%&gt;%</span>
-<span class="st">  </span>as_tibble <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">rename</span>(<span class="dt">x1 =</span> V1,
-         <span class="dt">x2 =</span> V2)</code></pre>
-<pre><code>## Warning: `as_tibble.matrix()` requires a matrix with column names or a `.name_repair` argument. Using compatibility `.name_repair`.
-## This warning is displayed once per session.</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r"><span class="co"># correlation coefficient</span>
-<span class="kw">cor</span>(data_sim)</code></pre>
 <pre><code>##       x1    x2
 ## x1 1.000 0.649
 ## x2 0.649 1.000</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r"><span class="co"># regression models</span>
-<span class="kw">lm</span>(x2 <span class="op">~</span><span class="st"> </span>x1, <span class="dt">data =</span> data_sim)</code></pre>
 <pre><code>## 
 ## Call:
 ## lm(formula = x2 ~ x1, data = data_sim)
@@ -220,7 +196,6 @@ data_sim &lt;-<span class="st"> </span>MASS<span class="op">::</span><span class
 ## Coefficients:
 ## (Intercept)           x1  
 ##      11.484        0.853</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r"><span class="kw">lm</span>(x1 <span class="op">~</span><span class="st"> </span>x2, <span class="dt">data =</span> data_sim)</code></pre>
 <pre><code>## 
 ## Call:
 ## lm(formula = x1 ~ x2, data = data_sim)
@@ -228,76 +203,14 @@ data_sim &lt;-<span class="st"> </span>MASS<span class="op">::</span><span class
 ## Coefficients:
 ## (Intercept)           x2  
 ##      0.0948       0.4943</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r"><span class="co"># plot of data</span>
-<span class="kw">ggplot</span>(data_sim, <span class="kw">aes</span>(x1, x2)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Complete data&quot;</span>,
-       <span class="dt">x =</span> <span class="kw">expression</span>(X[<span class="dv">1</span>]),
-       <span class="dt">y =</span> <span class="kw">expression</span>(X[<span class="dv">2</span>]))</code></pre>
 <p><img src="/notes/imputation_files/figure-html/sim-mod-1.png" width="672" /></p>
 <p>What happens to the data under the three mechanisms for generating missing data?</p>
-<pre class="sourceCode r"><code class="sourceCode r">mcar &lt;-<span class="st"> </span>data_sim <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">na =</span> <span class="kw">ifelse</span>(<span class="kw">row_number</span>(x2) <span class="op">%in%</span><span class="st"> </span><span class="kw">sample</span>(<span class="kw">seq_len</span>(n_sim), <span class="dv">100</span>), <span class="ot">TRUE</span>, <span class="ot">FALSE</span>))
-
-<span class="kw">ggplot</span>(mcar, <span class="kw">aes</span>(x1, x2)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_point</span>(<span class="kw">aes</span>(<span class="dt">alpha =</span> na)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mcar, <span class="op">!</span>na),
-              <span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Non-missing values&quot;</span>),
-              <span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>, <span class="dt">fullrange =</span> <span class="ot">TRUE</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;All values&quot;</span>),
-              <span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>, <span class="dt">fullrange =</span> <span class="ot">TRUE</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_alpha_manual</span>(<span class="dt">values =</span> <span class="kw">c</span>(.<span class="dv">3</span>, <span class="dv">1</span>)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Missing completely at random&quot;</span>,
-       <span class="dt">x =</span> <span class="kw">expression</span>(X[<span class="dv">1</span>]),
-       <span class="dt">y =</span> <span class="kw">expression</span>(X[<span class="dv">2</span>]),
-       <span class="dt">color =</span> <span class="st">&quot;Regression line&quot;</span>,
-       <span class="dt">alpha =</span> <span class="st">&quot;Missing&quot;</span>)</code></pre>
 <p><img src="/notes/imputation_files/figure-html/sim-mcar-1.png" width="672" /></p>
 <p>100 observations on <span class="math inline">\(X_2\)</span> are selected at random and set to missing. Here the missing values of <span class="math inline">\(X_2\)</span> are MCAR and the subset of valid observations is a simple random sample of the full data set. The regression line with and without the missing values is relatively similar, though slightly different due to the lower sample size needed to calculate the parameter estimates and the standard errors.</p>
-<pre class="sourceCode r"><code class="sourceCode r">mar &lt;-<span class="st"> </span>data_sim <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">na =</span> <span class="fl">.5</span> <span class="op">+</span><span class="st"> </span>(<span class="dv">2</span> <span class="op">/</span><span class="st"> </span><span class="dv">3</span>) <span class="op">*</span><span class="st"> </span>(x1 <span class="op">-</span><span class="st"> </span><span class="dv">10</span>) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n_sim, <span class="dt">sd =</span> <span class="dv">2</span>),
-         <span class="dt">na =</span> <span class="kw">logit2prob</span>(na),
-         <span class="dt">na =</span> <span class="kw">as.logical</span>(<span class="kw">round</span>(na)))
-
-<span class="kw">ggplot</span>(mar, <span class="kw">aes</span>(x1, x2)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_point</span>(<span class="kw">aes</span>(<span class="dt">alpha =</span> na)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mar, <span class="op">!</span>na),
-              <span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Non-missing values&quot;</span>),
-              <span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>, <span class="dt">fullrange =</span> <span class="ot">TRUE</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;All values&quot;</span>),
-              <span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>, <span class="dt">fullrange =</span> <span class="ot">TRUE</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_alpha_manual</span>(<span class="dt">values =</span> <span class="kw">c</span>(.<span class="dv">3</span>, <span class="dv">1</span>)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Missing at random&quot;</span>,
-       <span class="dt">x =</span> <span class="kw">expression</span>(X[<span class="dv">1</span>]),
-       <span class="dt">y =</span> <span class="kw">expression</span>(X[<span class="dv">2</span>]),
-       <span class="dt">color =</span> <span class="st">&quot;Regression line&quot;</span>,
-       <span class="dt">alpha =</span> <span class="st">&quot;Missing&quot;</span>)</code></pre>
 <p><img src="/notes/imputation_files/figure-html/sim-mar-1.png" width="672" /></p>
 <p>Here an observation’s missingness on <span class="math inline">\(X_2\)</span> is related to its observed value of <span class="math inline">\(X_1\)</span> in the logistic regression functional form:</p>
 <p><span class="math display">\[\Pr(X_{i2} \text{is missing}) = \frac{1}{1 + \exp[\frac{1}{2} + \frac{2}{3}(X_{i1} - 10)]}\]</span></p>
 <p>As <span class="math inline">\(X_1\)</span> increases, the probability that <span class="math inline">\(X_2\)</span> is missing increases. In the resulting dataset, 141 observations are missing. Because <span class="math inline">\(X_1\)</span> and <span class="math inline">\(X_2\)</span> are positively correlated, there are relatively fewer small values of <span class="math inline">\(X_2\)</span> in the observed data versus the complete data. If we only look at observations with valid data on both <span class="math inline">\(X_1\)</span> and <span class="math inline">\(X_2\)</span>, then this subset of observations also has relatively few small values of <span class="math inline">\(X_1\)</span>. But because <span class="math inline">\(X_1\)</span> is fully observed, the missing data on <span class="math inline">\(X_2\)</span> are MAR.</p>
-<pre class="sourceCode r"><code class="sourceCode r">mnar &lt;-<span class="st"> </span>data_sim <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">na =</span> <span class="fl">.5</span> <span class="op">+</span><span class="st"> </span>(<span class="dv">1</span> <span class="op">/</span><span class="st"> </span><span class="dv">2</span>) <span class="op">*</span><span class="st"> </span>(x2 <span class="op">-</span><span class="st"> </span><span class="dv">20</span>) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n_sim, <span class="dt">sd =</span> <span class="dv">2</span>),
-         <span class="dt">na =</span> <span class="kw">logit2prob</span>(na),
-         <span class="dt">na =</span> <span class="kw">as.logical</span>(<span class="kw">round</span>(na)))
-
-<span class="kw">ggplot</span>(mnar, <span class="kw">aes</span>(x1, x2)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_point</span>(<span class="kw">aes</span>(<span class="dt">alpha =</span> na)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="dt">data =</span> <span class="kw">filter</span>(mnar, <span class="op">!</span>na),
-              <span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;Non-missing values&quot;</span>),
-              <span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>, <span class="dt">fullrange =</span> <span class="ot">TRUE</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_smooth</span>(<span class="kw">aes</span>(<span class="dt">color =</span> <span class="st">&quot;All values&quot;</span>),
-              <span class="dt">method =</span> <span class="st">&quot;lm&quot;</span>, <span class="dt">se =</span> <span class="ot">FALSE</span>, <span class="dt">fullrange =</span> <span class="ot">TRUE</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_alpha_manual</span>(<span class="dt">values =</span> <span class="kw">c</span>(.<span class="dv">3</span>, <span class="dv">1</span>)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Missing not at random&quot;</span>,
-       <span class="dt">x =</span> <span class="kw">expression</span>(X[<span class="dv">1</span>]),
-       <span class="dt">y =</span> <span class="kw">expression</span>(X[<span class="dv">2</span>]),
-       <span class="dt">color =</span> <span class="st">&quot;Regression line&quot;</span>,
-       <span class="dt">alpha =</span> <span class="st">&quot;Missing&quot;</span>)</code></pre>
 <p><img src="/notes/imputation_files/figure-html/sim-mnar-1.png" width="672" /></p>
 <p>Finally, here an observation’s missingness on <span class="math inline">\(X_2\)</span> is related to the (potentially) unobserved value of <span class="math inline">\(X_2\)</span> itself:</p>
 <p><span class="math display">\[\Pr(X_{i2} \text{is missing}) = \frac{1}{1 + \exp[\frac{1}{2} + \frac{1}{2}(X_{i2} - 20)]}\]</span></p>
@@ -350,127 +263,6 @@ data_sim &lt;-<span class="st"> </span>MASS<span class="op">::</span><span class
 <li>We still fail to account for uncertainty in the estimates of the regression coefficients used to obtain the imputed values</li>
 </ol>
 <p>How do all of these methods stack up?</p>
-<pre class="sourceCode r"><code class="sourceCode r">get_miss_stat &lt;-<span class="st"> </span><span class="cf">function</span>(df){
-  df <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">summarize</span>(<span class="dt">mu_1 =</span> <span class="kw">mean</span>(x1, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>),
-              <span class="dt">mu_2 =</span> <span class="kw">mean</span>(x2, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>),
-              <span class="dt">sigma_1 =</span> <span class="kw">var</span>(x1, <span class="dt">use =</span> <span class="st">&quot;complete.obs&quot;</span>),
-              <span class="dt">sigma_2 =</span> <span class="kw">var</span>(x2, <span class="dt">use =</span> <span class="st">&quot;complete.obs&quot;</span>),
-              <span class="dt">sigma_12 =</span> <span class="kw">cov</span>(., <span class="dt">use =</span> <span class="st">&quot;complete.obs&quot;</span>)[<span class="dv">1</span>, <span class="dv">2</span>],
-              <span class="dt">rho =</span> <span class="kw">cor</span>(., <span class="dt">use =</span> <span class="st">&quot;complete.obs&quot;</span>)[<span class="dv">1</span>, <span class="dv">2</span>],
-              <span class="dt">beta_12 =</span> <span class="kw">lm</span>(x2 <span class="op">~</span><span class="st"> </span>x1, <span class="dt">data =</span> .) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">coef</span>(.) <span class="op">%&gt;%</span><span class="st"> </span>.[[<span class="dv">2</span>]],
-              <span class="dt">beta_21 =</span> <span class="kw">lm</span>(x1 <span class="op">~</span><span class="st"> </span>x2, <span class="dt">data =</span> .) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">coef</span>(.)<span class="op">%&gt;%</span><span class="st"> </span>.[[<span class="dv">2</span>]]
-    )
-}
-
-data_miss &lt;-<span class="st"> </span><span class="kw">list</span>(
-  <span class="dt">mcar =</span> data_sim <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">x2 =</span> <span class="kw">replace</span>(x2, <span class="kw">sample</span>(<span class="kw">seq_len</span>(n_sim), <span class="dv">100</span>), <span class="ot">NA</span>)),
-  <span class="dt">mar =</span> data_sim <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">na =</span> <span class="fl">.5</span> <span class="op">+</span><span class="st"> </span>(<span class="dv">2</span> <span class="op">/</span><span class="st"> </span><span class="dv">3</span>) <span class="op">*</span><span class="st"> </span>(x1 <span class="op">-</span><span class="st"> </span><span class="dv">10</span>) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n_sim, <span class="dt">sd =</span> <span class="dv">2</span>),
-           <span class="dt">na =</span> <span class="kw">logit2prob</span>(na),
-           <span class="dt">na =</span> <span class="kw">as.logical</span>(<span class="kw">round</span>(na)),
-           <span class="dt">x2 =</span> <span class="kw">replace</span>(x2, na, <span class="ot">NA</span>)) <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">select</span>(<span class="op">-</span>na),
-  <span class="dt">mnar =</span> data_sim <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">na =</span> <span class="fl">.5</span> <span class="op">+</span><span class="st"> </span>(<span class="dv">1</span> <span class="op">/</span><span class="st"> </span><span class="dv">2</span>) <span class="op">*</span><span class="st"> </span>(x2 <span class="op">-</span><span class="st"> </span><span class="dv">20</span>) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(n_sim, <span class="dt">sd =</span> <span class="dv">2</span>),
-           <span class="dt">na =</span> <span class="kw">logit2prob</span>(na),
-           <span class="dt">na =</span> <span class="kw">as.logical</span>(<span class="kw">round</span>(na)),
-           <span class="dt">x2 =</span> <span class="kw">replace</span>(x2, na, <span class="ot">NA</span>)) <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">select</span>(<span class="op">-</span>na)
-)
-
-<span class="co"># complete cases</span>
-complete_cases &lt;-<span class="st"> </span>data_miss <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">map</span>(na.omit) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">map_df</span>(get_miss_stat, <span class="dt">.id =</span> <span class="st">&quot;id&quot;</span>)
-
-<span class="co"># available cases</span>
-available_cases &lt;-<span class="st"> </span>data_miss <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">map_df</span>(<span class="op">~</span><span class="st"> </span>.x <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">summarize</span>(<span class="dt">mu_1 =</span> <span class="kw">mean</span>(x1, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>),
-              <span class="dt">mu_2 =</span> <span class="kw">mean</span>(x2, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>),
-              <span class="dt">sigma_1 =</span> <span class="kw">var</span>(x1, <span class="dt">use =</span> <span class="st">&quot;complete.obs&quot;</span>),
-              <span class="dt">sigma_2 =</span> <span class="kw">var</span>(x2, <span class="dt">use =</span> <span class="st">&quot;complete.obs&quot;</span>),
-              <span class="dt">sigma_12 =</span> <span class="kw">cov</span>(., <span class="dt">use =</span> <span class="st">&quot;pairwise.complete.obs&quot;</span>)[<span class="dv">1</span>, <span class="dv">2</span>],
-              <span class="dt">rho =</span> <span class="kw">cor</span>(., <span class="dt">use =</span> <span class="st">&quot;pairwise.complete.obs&quot;</span>)[<span class="dv">1</span>, <span class="dv">2</span>],
-              <span class="dt">beta_12 =</span> psych<span class="op">::</span><span class="kw">mat.regress</span>(<span class="st">&quot;x2&quot;</span>, <span class="st">&quot;x1&quot;</span>,
-                   <span class="dt">data =</span> <span class="kw">cov</span>(., <span class="dt">use =</span> <span class="st">&quot;pairwise.complete.obs&quot;</span>),
-                   <span class="dt">n.obs =</span> <span class="kw">nrow</span>(<span class="kw">na.omit</span>(.))) <span class="op">%&gt;%</span>
-<span class="st">                </span>.<span class="op">$</span>beta <span class="op">%&gt;%</span>
-<span class="st">                </span>.[[<span class="dv">1</span>]],
-              <span class="dt">beta_21 =</span> psych<span class="op">::</span><span class="kw">mat.regress</span>(<span class="st">&quot;x1&quot;</span>, <span class="st">&quot;x2&quot;</span>,
-                   <span class="dt">data =</span> <span class="kw">cov</span>(., <span class="dt">use =</span> <span class="st">&quot;pairwise.complete.obs&quot;</span>),
-                   <span class="dt">n.obs =</span> <span class="kw">nrow</span>(<span class="kw">na.omit</span>(.))) <span class="op">%&gt;%</span>
-<span class="st">                </span>.<span class="op">$</span>beta <span class="op">%&gt;%</span>
-<span class="st">                </span>.[[<span class="dv">1</span>]]
-    ), <span class="dt">.id =</span> <span class="st">&quot;id&quot;</span>)</code></pre>
-<pre><code>## mat.regress has been replaced by setCor, please change your call
-## mat.regress has been replaced by setCor, please change your call</code></pre>
-<pre><code>## mat.regress has been replaced by setCor, please change your call</code></pre>
-<pre><code>## mat.regress has been replaced by setCor, please change your call</code></pre>
-<pre><code>## mat.regress has been replaced by setCor, please change your call</code></pre>
-<pre><code>## mat.regress has been replaced by setCor, please change your call</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r"><span class="co"># mean imputation</span>
-mean_imp &lt;-<span class="st"> </span>data_miss <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">map</span>(<span class="op">~</span><span class="st"> </span><span class="kw">mutate</span>(.x, <span class="dt">x2 =</span> <span class="kw">ifelse</span>(<span class="kw">is.na</span>(x2), <span class="kw">mean</span>(x2, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>), x2))) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">map_df</span>(get_miss_stat, <span class="dt">.id =</span> <span class="st">&quot;id&quot;</span>)
-
-<span class="co"># regression imputation</span>
-reg_imp &lt;-<span class="st"> </span>data_miss <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">map</span>(<span class="op">~</span><span class="st"> </span>.x <span class="op">%&gt;%</span>
-<span class="st">        </span><span class="kw">mutate</span>(<span class="dt">x2_imp =</span> <span class="kw">lm</span>(x2 <span class="op">~</span><span class="st"> </span>x1, <span class="dt">data =</span> .) <span class="op">%&gt;%</span>
-<span class="st">                 </span><span class="kw">predict</span>(., <span class="dt">newdata =</span> .x),
-               <span class="dt">x2 =</span> <span class="kw">ifelse</span>(<span class="kw">is.na</span>(x2), x2_imp, x2))) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">map_df</span>(get_miss_stat, <span class="dt">.id =</span> <span class="st">&quot;id&quot;</span>)
-
-sum_stats &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
-  <span class="st">`</span><span class="dt">Population parameters</span><span class="st">`</span> =<span class="st"> </span><span class="kw">data_frame</span>(
-    <span class="dt">mu_1 =</span> <span class="dv">10</span>,
-    <span class="dt">mu_2 =</span> <span class="dv">20</span>,
-    <span class="dt">sigma_1 =</span> <span class="dv">9</span>,
-    <span class="dt">sigma_2 =</span> <span class="dv">16</span>,
-    <span class="dt">sigma_12 =</span> <span class="dv">8</span>,
-    <span class="dt">rho =</span> <span class="fl">.667</span>,
-    <span class="dt">beta_12 =</span> <span class="fl">.5</span>,
-    <span class="dt">beta_21 =</span> <span class="fl">.889</span>),
-  <span class="st">`</span><span class="dt">Complete data</span><span class="st">`</span> =<span class="st"> </span><span class="kw">get_miss_stat</span>(data_sim),
-  <span class="st">`</span><span class="dt">Complete cases</span><span class="st">`</span> =<span class="st"> </span>complete_cases,
-  <span class="st">`</span><span class="dt">Available cases</span><span class="st">`</span> =<span class="st"> </span>available_cases,
-  <span class="st">`</span><span class="dt">Mean imputation</span><span class="st">`</span> =<span class="st"> </span>mean_imp,
-  <span class="st">`</span><span class="dt">Regression imputation</span><span class="st">`</span> =<span class="st"> </span>reg_imp,
-  <span class="dt">.id =</span> <span class="st">&quot;method&quot;</span>
-) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">id =</span> <span class="kw">ifelse</span>(method <span class="op">==</span><span class="st"> &quot;Population parameters&quot;</span>, <span class="st">&quot;Parameter&quot;</span>, id),
-         <span class="dt">id =</span> <span class="kw">ifelse</span>(method <span class="op">==</span><span class="st"> &quot;Complete data&quot;</span>, <span class="st">&quot;Complete data&quot;</span>, id)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">gather</span>(param, value, <span class="op">-</span>method, <span class="op">-</span>id) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">param =</span> <span class="kw">ifelse</span>(param <span class="op">==</span><span class="st"> &quot;mu_1&quot;</span>, <span class="st">&quot;mu[1]&quot;</span>, param),
-         <span class="dt">param =</span> <span class="kw">ifelse</span>(param <span class="op">==</span><span class="st"> &quot;mu_2&quot;</span>, <span class="st">&quot;mu[2]&quot;</span>, param),
-         <span class="dt">param =</span> <span class="kw">ifelse</span>(param <span class="op">==</span><span class="st"> &quot;sigma_1&quot;</span>, <span class="st">&quot;sigma[1]^2&quot;</span>, param),
-         <span class="dt">param =</span> <span class="kw">ifelse</span>(param <span class="op">==</span><span class="st"> &quot;sigma_2&quot;</span>, <span class="st">&quot;sigma[2]^2&quot;</span>, param),
-         <span class="dt">param =</span> <span class="kw">ifelse</span>(param <span class="op">==</span><span class="st"> &quot;sigma_12&quot;</span>, <span class="st">&quot;sigma[12]&quot;</span>, param),
-         <span class="dt">param =</span> <span class="kw">ifelse</span>(param <span class="op">==</span><span class="st"> &quot;beta_12&quot;</span>, <span class="st">&quot;beta[12]&quot;</span>, param),
-         <span class="dt">param =</span> <span class="kw">ifelse</span>(param <span class="op">==</span><span class="st"> &quot;beta_21&quot;</span>, <span class="st">&quot;beta[21]&quot;</span>, param))</code></pre>
-<pre><code>## Warning: `data_frame()` is deprecated, use `tibble()`.
-## This warning is displayed once per session.</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r">sum_stats <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">filter</span>(id <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;mcar&quot;</span>, <span class="st">&quot;mar&quot;</span>, <span class="st">&quot;mnar&quot;</span>)) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">id =</span> <span class="kw">factor</span>(id, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="st">&quot;mcar&quot;</span>, <span class="st">&quot;mar&quot;</span>, <span class="st">&quot;mnar&quot;</span>),
-                     <span class="dt">labels =</span> <span class="kw">c</span>(<span class="st">&quot;MCAR&quot;</span>, <span class="st">&quot;MAR&quot;</span>, <span class="st">&quot;MNAR&quot;</span>))) <span class="op">%&gt;%</span>
-<span class="st">  </span><span class="kw">ggplot</span>(<span class="kw">aes</span>(id, value, <span class="dt">color =</span> method, <span class="dt">shape =</span> method)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">facet_wrap</span>( <span class="op">~</span><span class="st"> </span>param, <span class="dt">nrow =</span> <span class="dv">2</span>, <span class="dt">scales =</span> <span class="st">&quot;free_y&quot;</span>,
-              <span class="dt">labeller =</span> <span class="st">&quot;label_parsed&quot;</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">data =</span> <span class="kw">filter</span>(sum_stats, id <span class="op">==</span><span class="st"> &quot;Parameter&quot;</span>),
-             <span class="kw">aes</span>(<span class="dt">yintercept =</span> value)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">palette =</span> <span class="st">&quot;Dark2&quot;</span>, 
-                     <span class="dt">guide =</span> <span class="kw">guide_legend</span>(<span class="dt">nrow =</span> <span class="dv">2</span>)) <span class="op">+</span>
-<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="ot">NULL</span>,
-       <span class="dt">y =</span> <span class="st">&quot;Estimated parameter value&quot;</span>,
-       <span class="dt">color =</span> <span class="ot">NULL</span>,
-       <span class="dt">shape =</span> <span class="ot">NULL</span>) <span class="op">+</span>
-<span class="st">  </span><span class="kw">theme</span>(<span class="dt">axis.text.x =</span> <span class="kw">element_text</span>(<span class="dt">angle =</span> <span class="dv">30</span>),
-        <span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>)</code></pre>
 <p><img src="/notes/imputation_files/figure-html/compare-imputation-plot-1.png" width="672" /></p>
 </div>
 </div>
@@ -503,15 +295,18 @@ sum_stats &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
 <li>Implemented in <code>mice</code> and <code>mi</code> for R</li>
 </ul>
 </div>
-<div id="random-forest-model" class="section level2">
-<h2><span class="header-section-number">3.3</span> Random forest model</h2>
+<div id="k-nearest-neighbors-model" class="section level2">
+<h2><span class="header-section-number">3.3</span> <span class="math inline">\(K\)</span>-nearest neighbors model</h2>
+</div>
+<div id="bagged-tree-model" class="section level2">
+<h2><span class="header-section-number">3.4</span> Bagged tree model</h2>
 <p>Alternatively, we can use a random forest algorithm to pursue a non-parametric imputation strategy. In this approach, you build a random forest model for each variable to predict its value using the other variables in the dataset. These results are used to generate imputed values for all the missing variables and observations.</p>
 <ul>
 <li>Implemented in <code>missForest</code> for R</li>
 </ul>
 </div>
 <div id="deep-learning" class="section level2">
-<h2><span class="header-section-number">3.4</span> Deep learning</h2>
+<h2><span class="header-section-number">3.5</span> Deep learning</h2>
 <p>Because everyone is doing it. No stable packages implement off-the-shelf methods, but researchers are developing deep learning methods for imputing missing values.</p>
 </div>
 </div>
@@ -864,7 +659,7 @@ sum_stats &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
 <p><img src="/notes/imputation_files/figure-html/plot-imput-1.png" width="672" /></p>
 <p>Notice that for some of the imputed datasets, the imputed values are nonsensical; for instance, you cannot have a negative GDP or infant mortality rate. But again, let’s just run with it.</p>
 <p>We can use <code>purrr::map()</code> to estimate the linear model from before on the new imputed datasets and extract the coefficients and standard errors with <code>broom::tidy()</code>:</p>
-<pre class="sourceCode r"><code class="sourceCode r">models_imp &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">data =</span> un.out<span class="op">$</span>imputations) <span class="op">%&gt;%</span>
+<pre class="sourceCode r"><code class="sourceCode r">models_imp &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">data =</span> un.out<span class="op">$</span>imputations) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">model =</span> <span class="kw">map</span>(data, <span class="op">~</span><span class="st"> </span><span class="kw">lm</span>(<span class="kw">log</span>(infantMortality) <span class="op">~</span><span class="st"> </span><span class="kw">log</span>(GDPperCapita) <span class="op">+</span>
 <span class="st">                                  </span>contraception <span class="op">+</span><span class="st"> </span>educationFemale,
                                 <span class="dt">data =</span> .x)),
@@ -918,7 +713,7 @@ sum_stats &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
   
   combined.results &lt;-<span class="st"> </span><span class="kw">mi.meld</span>(<span class="dt">q =</span> coef.out, <span class="dt">se =</span> se.out)
   
-  <span class="kw">data_frame</span>(<span class="dt">term =</span> <span class="kw">colnames</span>(combined.results<span class="op">$</span>q.mi),
+  <span class="kw">tibble</span>(<span class="dt">term =</span> <span class="kw">colnames</span>(combined.results<span class="op">$</span>q.mi),
              <span class="dt">estimate.mi =</span> combined.results<span class="op">$</span>q.mi[<span class="dv">1</span>, ],
              <span class="dt">std.error.mi =</span> combined.results<span class="op">$</span>se.mi[<span class="dv">1</span>, ])
 }
@@ -946,232 +741,6 @@ sum_stats &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
 <h3><span class="header-section-number">5.1.2</span> Transforming variables</h3>
 <p>Let’s think more carefully about what variables to include in the imputation model and how to specify them. First, which variables are highly correlated with contraception and female education?</p>
 <pre class="sourceCode r"><code class="sourceCode r">GGally<span class="op">::</span><span class="kw">ggpairs</span>(<span class="kw">select_if</span>(un, is.numeric))</code></pre>
-<pre><code>## Warning: Removed 10 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 66 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 13 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 13 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 11 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 17 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 49 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 49 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 66 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 63 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 145 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 145 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 67 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 67 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 64 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 63 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 88 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 88 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 89 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 89 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 131 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 145 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 131 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 139 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 139 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 151 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 151 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 131 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 145 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 131 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 131 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 139 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 139 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 151 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 151 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 13 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 67 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 131 rows containing missing values (geom_point).
-
-## Warning: Removed 131 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 11 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 11 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 13 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 17 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 13 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 67 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 131 rows containing missing values (geom_point).
-
-## Warning: Removed 131 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 11 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 11 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 13 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 17 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 11 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 64 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 131 rows containing missing values (geom_point).
-
-## Warning: Removed 131 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 13 rows containing missing values (geom_point).
-
-## Warning: Removed 13 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 6 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 14 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 44 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 44 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 47 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 47 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 17 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 63 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 131 rows containing missing values (geom_point).
-
-## Warning: Removed 131 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 17 rows containing missing values (geom_point).
-
-## Warning: Removed 17 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 14 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 10 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 47 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 47 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 51 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 51 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 49 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 88 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 139 rows containing missing values (geom_point).
-
-## Warning: Removed 139 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 50 rows containing missing values (geom_point).
-
-## Warning: Removed 50 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 44 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 47 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 42 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 42 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 74 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 74 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 49 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 88 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 139 rows containing missing values (geom_point).
-
-## Warning: Removed 139 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 50 rows containing missing values (geom_point).
-
-## Warning: Removed 50 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 44 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 47 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 42 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 42 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 74 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 74 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 50 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 89 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 151 rows containing missing values (geom_point).
-
-## Warning: Removed 151 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 50 rows containing missing values (geom_point).
-
-## Warning: Removed 50 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 47 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 51 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 74 rows containing missing values (geom_point).
-
-## Warning: Removed 74 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 47 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 47 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 50 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 89 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 151 rows containing missing values (geom_point).
-
-## Warning: Removed 151 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 50 rows containing missing values (geom_point).
-
-## Warning: Removed 50 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 47 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 51 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 74 rows containing missing values (geom_point).
-
-## Warning: Removed 74 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 47 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 47 rows containing non-finite values (stat_density).</code></pre>
 <p><img src="/notes/imputation_files/figure-html/heatmap-1.png" width="672" /></p>
 <p>Variables such as total fertility rate and the illiteracy rate for women are strongly correlated with our missing variables. Let’s now limit our imputation model to just the four variables in the original regression model plus the total fertility rate, expectation of life for women, percentage of women engaged in economic activity outside the home, and the illiteracy rate for women.</p>
 <pre class="sourceCode r"><code class="sourceCode r">un_lite &lt;-<span class="st"> </span>un <span class="op">%&gt;%</span>
@@ -1179,100 +748,6 @@ sum_stats &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(
          tfr, lifeFemale, economicActivityFemale, illiteracyFemale)
 
 GGally<span class="op">::</span><span class="kw">ggpairs</span>(un_lite)</code></pre>
-<pre><code>## Warning: Removed 6 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 14 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 64 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 11 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 13 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 44 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 47 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 14 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 10 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 63 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 17 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 17 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 47 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 51 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 64 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 63 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 63 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 145 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 66 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 67 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 88 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 89 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 131 rows containing missing values (geom_point).
-
-## Warning: Removed 131 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 145 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 131 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 131 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 139 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 151 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 11 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 17 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 66 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 131 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 10 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 13 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 49 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 13 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 17 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 67 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 131 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 13 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 11 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 50 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 44 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 47 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 88 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 139 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 49 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 50 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 42 rows containing non-finite values (stat_density).</code></pre>
-<pre><code>## Warning in (function (data, mapping, alignPercent = 0.6, method =
-## &quot;pearson&quot;, : Removed 74 rows containing missing values</code></pre>
-<pre><code>## Warning: Removed 47 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 51 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 89 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 151 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 50 rows containing missing values (geom_point).
-
-## Warning: Removed 50 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 74 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 47 rows containing non-finite values (stat_density).</code></pre>
 <p><img src="/notes/imputation_files/figure-html/select-un-1.png" width="672" /></p>
 <p>Several of these variables are clearly not normally distributed; transforming these variables will also help make the dataset more multivariate normal, so we can transform them before imputation. We could manually transform them using <code>mutate()</code>, but <code>amelia()</code> includes options for transforming variables as part of the imputation process. This allows us to retain the original values for the statistical modeling.</p>
 <pre class="sourceCode r"><code class="sourceCode r">un_lite.out &lt;-<span class="st"> </span><span class="kw">amelia</span>(un_lite, <span class="dt">m =</span> <span class="dv">5</span>,
@@ -1314,7 +789,7 @@ GGally<span class="op">::</span><span class="kw">ggpairs</span>(un_lite)</code><
 <p><code>amelia()</code> also includes support for nominal and ordinal variables and cross-sectional time-series data, as well as pure time series data and accounting for leads and lags. See the help file for more details.</p>
 </blockquote>
 <p>What does the resulting model look like now?</p>
-<pre class="sourceCode r"><code class="sourceCode r">models_trans_imp &lt;-<span class="st"> </span><span class="kw">data_frame</span>(<span class="dt">data =</span> un_lite.out<span class="op">$</span>imputations) <span class="op">%&gt;%</span>
+<pre class="sourceCode r"><code class="sourceCode r">models_trans_imp &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">data =</span> un_lite.out<span class="op">$</span>imputations) <span class="op">%&gt;%</span>
 <span class="st">  </span><span class="kw">mutate</span>(<span class="dt">model =</span> <span class="kw">map</span>(data, <span class="op">~</span><span class="st"> </span><span class="kw">lm</span>(<span class="kw">log</span>(infantMortality) <span class="op">~</span><span class="st"> </span><span class="kw">log</span>(GDPperCapita) <span class="op">+</span>
 <span class="st">                                  </span>contraception <span class="op">+</span><span class="st"> </span>educationFemale,
                                 <span class="dt">data =</span> .x)),
@@ -1458,99 +933,87 @@ models_trans_imp</code></pre>
 ##  date     2019-04-16                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
-##  package      * version  date       lib source        
-##  abind          1.4-5    2016-07-21 [2] CRAN (R 3.5.0)
-##  Amelia       * 1.7.5    2018-05-08 [2] CRAN (R 3.5.0)
-##  assertthat     0.2.1    2019-03-21 [2] CRAN (R 3.5.3)
-##  backports      1.1.3    2018-12-14 [2] CRAN (R 3.5.0)
-##  blogdown       0.11     2019-03-11 [1] CRAN (R 3.5.2)
-##  bookdown       0.9      2018-12-21 [1] CRAN (R 3.5.0)
-##  broom        * 0.5.1    2018-12-05 [2] CRAN (R 3.5.0)
-##  callr          3.2.0    2019-03-15 [2] CRAN (R 3.5.2)
-##  car          * 3.0-2    2018-08-23 [2] CRAN (R 3.5.0)
-##  carData      * 3.0-2    2018-09-30 [2] CRAN (R 3.5.0)
-##  cellranger     1.1.0    2016-07-27 [2] CRAN (R 3.5.0)
-##  cli            1.1.0    2019-03-19 [1] CRAN (R 3.5.2)
-##  codetools      0.2-16   2018-12-24 [2] CRAN (R 3.5.3)
-##  colorspace     1.4-1    2019-03-18 [2] CRAN (R 3.5.2)
-##  crayon         1.3.4    2017-09-16 [2] CRAN (R 3.5.0)
-##  curl           3.3      2019-01-10 [2] CRAN (R 3.5.2)
-##  data.table     1.12.0   2019-01-13 [2] CRAN (R 3.5.2)
-##  desc           1.2.0    2018-05-01 [2] CRAN (R 3.5.0)
-##  devtools       2.0.1    2018-10-26 [1] CRAN (R 3.5.1)
-##  digest         0.6.18   2018-10-10 [1] CRAN (R 3.5.0)
-##  dplyr        * 0.8.0.1  2019-02-15 [1] CRAN (R 3.5.2)
-##  evaluate       0.13     2019-02-12 [2] CRAN (R 3.5.2)
-##  fansi          0.4.0    2018-10-05 [2] CRAN (R 3.5.0)
-##  forcats      * 0.4.0    2019-02-17 [2] CRAN (R 3.5.2)
-##  foreign        0.8-71   2018-07-20 [2] CRAN (R 3.5.3)
-##  fs             1.2.7    2019-03-19 [1] CRAN (R 3.5.3)
-##  generics       0.0.2    2018-11-29 [1] CRAN (R 3.5.0)
-##  GGally         1.4.0    2018-05-17 [1] CRAN (R 3.5.0)
-##  ggplot2      * 3.1.0    2018-10-25 [1] CRAN (R 3.5.0)
-##  glue           1.3.1    2019-03-12 [2] CRAN (R 3.5.2)
-##  gtable         0.2.0    2016-02-26 [2] CRAN (R 3.5.0)
-##  haven          2.1.0    2019-02-19 [2] CRAN (R 3.5.2)
-##  here         * 0.1      2017-05-28 [2] CRAN (R 3.5.0)
-##  highr          0.8      2019-03-20 [2] CRAN (R 3.5.3)
-##  hms            0.4.2    2018-03-10 [2] CRAN (R 3.5.0)
-##  htmltools      0.3.6    2017-04-28 [1] CRAN (R 3.5.0)
-##  httr           1.4.0    2018-12-11 [2] CRAN (R 3.5.0)
-##  jsonlite       1.6      2018-12-07 [2] CRAN (R 3.5.0)
-##  knitr          1.22     2019-03-08 [2] CRAN (R 3.5.2)
-##  labeling       0.3      2014-08-23 [2] CRAN (R 3.5.0)
-##  lattice        0.20-38  2018-11-04 [2] CRAN (R 3.5.3)
-##  lazyeval       0.2.2    2019-03-15 [2] CRAN (R 3.5.2)
-##  lubridate      1.7.4    2018-04-11 [2] CRAN (R 3.5.0)
-##  magrittr       1.5      2014-11-22 [2] CRAN (R 3.5.0)
-##  MASS           7.3-51.1 2018-11-01 [2] CRAN (R 3.5.3)
-##  memoise        1.1.0    2017-04-21 [2] CRAN (R 3.5.0)
-##  mnormt         1.5-5    2016-10-15 [2] CRAN (R 3.5.0)
-##  modelr       * 0.1.4    2019-02-18 [2] CRAN (R 3.5.2)
-##  munsell        0.5.0    2018-06-12 [2] CRAN (R 3.5.0)
-##  nlme           3.1-137  2018-04-07 [2] CRAN (R 3.5.3)
-##  openxlsx       4.1.0    2018-05-26 [2] CRAN (R 3.5.0)
-##  pillar         1.3.1    2018-12-15 [2] CRAN (R 3.5.0)
-##  pkgbuild       1.0.3    2019-03-20 [1] CRAN (R 3.5.3)
-##  pkgconfig      2.0.2    2018-08-16 [2] CRAN (R 3.5.1)
-##  pkgload        1.0.2    2018-10-29 [1] CRAN (R 3.5.0)
-##  plyr           1.8.4    2016-06-08 [2] CRAN (R 3.5.0)
-##  prettyunits    1.0.2    2015-07-13 [2] CRAN (R 3.5.0)
-##  processx       3.3.0    2019-03-10 [2] CRAN (R 3.5.2)
-##  ps             1.3.0    2018-12-21 [2] CRAN (R 3.5.0)
-##  psych          1.8.12   2019-01-12 [2] CRAN (R 3.5.2)
-##  purrr        * 0.3.2    2019-03-15 [2] CRAN (R 3.5.2)
-##  R6             2.4.0    2019-02-14 [1] CRAN (R 3.5.2)
-##  rcfss        * 0.1.5    2019-04-11 [1] local         
-##  RColorBrewer * 1.1-2    2014-12-07 [2] CRAN (R 3.5.0)
-##  Rcpp         * 1.0.1    2019-03-17 [1] CRAN (R 3.5.2)
-##  readr        * 1.3.1    2018-12-21 [2] CRAN (R 3.5.0)
-##  readxl         1.3.1    2019-03-13 [2] CRAN (R 3.5.2)
-##  remotes        2.0.2    2018-10-30 [1] CRAN (R 3.5.0)
-##  reshape        0.8.8    2018-10-23 [2] CRAN (R 3.5.0)
-##  reshape2       1.4.3    2017-12-11 [2] CRAN (R 3.5.0)
-##  rio            0.5.16   2018-11-26 [2] CRAN (R 3.5.0)
-##  rlang          0.3.2    2019-03-21 [1] CRAN (R 3.5.3)
-##  rmarkdown      1.12     2019-03-14 [1] CRAN (R 3.5.2)
-##  rprojroot      1.3-2    2018-01-03 [2] CRAN (R 3.5.0)
-##  rstudioapi     0.10     2019-03-19 [1] CRAN (R 3.5.3)
-##  rvest          0.3.2    2016-06-17 [2] CRAN (R 3.5.0)
-##  scales         1.0.0    2018-08-09 [1] CRAN (R 3.5.0)
-##  sessioninfo    1.1.1    2018-11-05 [1] CRAN (R 3.5.0)
-##  stringi        1.4.3    2019-03-12 [1] CRAN (R 3.5.2)
-##  stringr      * 1.4.0    2019-02-10 [1] CRAN (R 3.5.2)
-##  testthat       2.0.1    2018-10-13 [2] CRAN (R 3.5.0)
-##  tibble       * 2.1.1    2019-03-16 [2] CRAN (R 3.5.2)
-##  tidyr        * 0.8.3    2019-03-01 [1] CRAN (R 3.5.2)
-##  tidyselect     0.2.5    2018-10-11 [1] CRAN (R 3.5.0)
-##  tidyverse    * 1.2.1    2017-11-14 [2] CRAN (R 3.5.0)
-##  usethis        1.4.0    2018-08-14 [1] CRAN (R 3.5.0)
-##  utf8           1.1.4    2018-05-24 [2] CRAN (R 3.5.0)
-##  withr          2.1.2    2018-03-15 [2] CRAN (R 3.5.0)
-##  xfun           0.5      2019-02-20 [1] CRAN (R 3.5.2)
-##  xml2           1.2.0    2018-01-24 [2] CRAN (R 3.5.0)
-##  yaml           2.2.0    2018-07-25 [2] CRAN (R 3.5.0)
-##  zip            2.0.1    2019-03-11 [2] CRAN (R 3.5.2)
+##  package      * version date       lib source        
+##  abind          1.4-5   2016-07-21 [2] CRAN (R 3.5.0)
+##  assertthat     0.2.1   2019-03-21 [2] CRAN (R 3.5.3)
+##  backports      1.1.3   2018-12-14 [2] CRAN (R 3.5.0)
+##  blogdown       0.11    2019-03-11 [1] CRAN (R 3.5.2)
+##  bookdown       0.9     2018-12-21 [1] CRAN (R 3.5.0)
+##  broom        * 0.5.1   2018-12-05 [2] CRAN (R 3.5.0)
+##  callr          3.2.0   2019-03-15 [2] CRAN (R 3.5.2)
+##  car          * 3.0-2   2018-08-23 [2] CRAN (R 3.5.0)
+##  carData      * 3.0-2   2018-09-30 [2] CRAN (R 3.5.0)
+##  cellranger     1.1.0   2016-07-27 [2] CRAN (R 3.5.0)
+##  cli            1.1.0   2019-03-19 [1] CRAN (R 3.5.2)
+##  colorspace     1.4-1   2019-03-18 [2] CRAN (R 3.5.2)
+##  crayon         1.3.4   2017-09-16 [2] CRAN (R 3.5.0)
+##  curl           3.3     2019-01-10 [2] CRAN (R 3.5.2)
+##  data.table     1.12.0  2019-01-13 [2] CRAN (R 3.5.2)
+##  desc           1.2.0   2018-05-01 [2] CRAN (R 3.5.0)
+##  devtools       2.0.1   2018-10-26 [1] CRAN (R 3.5.1)
+##  digest         0.6.18  2018-10-10 [1] CRAN (R 3.5.0)
+##  dplyr        * 0.8.0.1 2019-02-15 [1] CRAN (R 3.5.2)
+##  evaluate       0.13    2019-02-12 [2] CRAN (R 3.5.2)
+##  forcats      * 0.4.0   2019-02-17 [2] CRAN (R 3.5.2)
+##  foreign        0.8-71  2018-07-20 [2] CRAN (R 3.5.3)
+##  fs             1.2.7   2019-03-19 [1] CRAN (R 3.5.3)
+##  generics       0.0.2   2018-11-29 [1] CRAN (R 3.5.0)
+##  ggplot2      * 3.1.0   2018-10-25 [1] CRAN (R 3.5.0)
+##  glue           1.3.1   2019-03-12 [2] CRAN (R 3.5.2)
+##  gtable         0.2.0   2016-02-26 [2] CRAN (R 3.5.0)
+##  haven          2.1.0   2019-02-19 [2] CRAN (R 3.5.2)
+##  here         * 0.1     2017-05-28 [2] CRAN (R 3.5.0)
+##  hms            0.4.2   2018-03-10 [2] CRAN (R 3.5.0)
+##  htmltools      0.3.6   2017-04-28 [1] CRAN (R 3.5.0)
+##  httr           1.4.0   2018-12-11 [2] CRAN (R 3.5.0)
+##  jsonlite       1.6     2018-12-07 [2] CRAN (R 3.5.0)
+##  knitr          1.22    2019-03-08 [2] CRAN (R 3.5.2)
+##  lattice        0.20-38 2018-11-04 [2] CRAN (R 3.5.3)
+##  lazyeval       0.2.2   2019-03-15 [2] CRAN (R 3.5.2)
+##  lubridate      1.7.4   2018-04-11 [2] CRAN (R 3.5.0)
+##  magrittr       1.5     2014-11-22 [2] CRAN (R 3.5.0)
+##  memoise        1.1.0   2017-04-21 [2] CRAN (R 3.5.0)
+##  modelr       * 0.1.4   2019-02-18 [2] CRAN (R 3.5.2)
+##  munsell        0.5.0   2018-06-12 [2] CRAN (R 3.5.0)
+##  nlme           3.1-137 2018-04-07 [2] CRAN (R 3.5.3)
+##  openxlsx       4.1.0   2018-05-26 [2] CRAN (R 3.5.0)
+##  pillar         1.3.1   2018-12-15 [2] CRAN (R 3.5.0)
+##  pkgbuild       1.0.3   2019-03-20 [1] CRAN (R 3.5.3)
+##  pkgconfig      2.0.2   2018-08-16 [2] CRAN (R 3.5.1)
+##  pkgload        1.0.2   2018-10-29 [1] CRAN (R 3.5.0)
+##  plyr           1.8.4   2016-06-08 [2] CRAN (R 3.5.0)
+##  prettyunits    1.0.2   2015-07-13 [2] CRAN (R 3.5.0)
+##  processx       3.3.0   2019-03-10 [2] CRAN (R 3.5.2)
+##  ps             1.3.0   2018-12-21 [2] CRAN (R 3.5.0)
+##  purrr        * 0.3.2   2019-03-15 [2] CRAN (R 3.5.2)
+##  R6             2.4.0   2019-02-14 [1] CRAN (R 3.5.2)
+##  rcfss        * 0.1.5   2019-04-11 [1] local         
+##  RColorBrewer * 1.1-2   2014-12-07 [2] CRAN (R 3.5.0)
+##  Rcpp           1.0.1   2019-03-17 [1] CRAN (R 3.5.2)
+##  readr        * 1.3.1   2018-12-21 [2] CRAN (R 3.5.0)
+##  readxl         1.3.1   2019-03-13 [2] CRAN (R 3.5.2)
+##  remotes        2.0.2   2018-10-30 [1] CRAN (R 3.5.0)
+##  rio            0.5.16  2018-11-26 [2] CRAN (R 3.5.0)
+##  rlang          0.3.2   2019-03-21 [1] CRAN (R 3.5.3)
+##  rmarkdown      1.12    2019-03-14 [1] CRAN (R 3.5.2)
+##  rprojroot      1.3-2   2018-01-03 [2] CRAN (R 3.5.0)
+##  rstudioapi     0.10    2019-03-19 [1] CRAN (R 3.5.3)
+##  rvest          0.3.2   2016-06-17 [2] CRAN (R 3.5.0)
+##  scales         1.0.0   2018-08-09 [1] CRAN (R 3.5.0)
+##  sessioninfo    1.1.1   2018-11-05 [1] CRAN (R 3.5.0)
+##  stringi        1.4.3   2019-03-12 [1] CRAN (R 3.5.2)
+##  stringr      * 1.4.0   2019-02-10 [1] CRAN (R 3.5.2)
+##  testthat       2.0.1   2018-10-13 [2] CRAN (R 3.5.0)
+##  tibble       * 2.1.1   2019-03-16 [2] CRAN (R 3.5.2)
+##  tidyr        * 0.8.3   2019-03-01 [1] CRAN (R 3.5.2)
+##  tidyselect     0.2.5   2018-10-11 [1] CRAN (R 3.5.0)
+##  tidyverse    * 1.2.1   2017-11-14 [2] CRAN (R 3.5.0)
+##  usethis        1.4.0   2018-08-14 [1] CRAN (R 3.5.0)
+##  withr          2.1.2   2018-03-15 [2] CRAN (R 3.5.0)
+##  xfun           0.5     2019-02-20 [1] CRAN (R 3.5.2)
+##  xml2           1.2.0   2018-01-24 [2] CRAN (R 3.5.0)
+##  yaml           2.2.0   2018-07-25 [2] CRAN (R 3.5.0)
+##  zip            2.0.1   2019-03-11 [2] CRAN (R 3.5.2)
 ## 
 ## [1] /Users/soltoffbc/Library/R/3.5/library
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>

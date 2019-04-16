@@ -78,7 +78,7 @@ Even more depressingly, you rarely if ever can test to see if your data are MCAR
 
 ## Simulated examples of missingness patterns
 
-```{r sim-data}
+```{r sim-data, include = FALSE}
 n_sim <- 250 # Number of random samples
 
 # Target parameters for univariate normal distributions
@@ -100,7 +100,7 @@ data_sim <- MASS::mvrnorm(n_sim, mu, sigma) %>%
          x2 = V2)
 ```
 
-```{r sim-mod}
+```{r sim-mod, echo = FALSE}
 # correlation coefficient
 cor(data_sim)
 
@@ -119,7 +119,7 @@ ggplot(data_sim, aes(x1, x2)) +
 
 What happens to the data under the three mechanisms for generating missing data?
 
-```{r sim-mcar}
+```{r sim-mcar, echo = FALSE}
 mcar <- data_sim %>%
   mutate(na = ifelse(row_number(x2) %in% sample(seq_len(n_sim), 100), TRUE, FALSE))
 
@@ -141,7 +141,7 @@ ggplot(mcar, aes(x1, x2)) +
 
 100 observations on $X_2$ are selected at random and set to missing. Here the missing values of $X_2$ are MCAR and the subset of valid observations is a simple random sample of the full data set. The regression line with and without the missing values is relatively similar, though slightly different due to the lower sample size needed to calculate the parameter estimates and the standard errors.
 
-```{r sim-mar}
+```{r sim-mar, echo = FALSE}
 mar <- data_sim %>%
   mutate(na = .5 + (2 / 3) * (x1 - 10) + rnorm(n_sim, sd = 2),
          na = logit2prob(na),
@@ -169,7 +169,7 @@ $$\Pr(X_{i2} \text{is missing}) = \frac{1}{1 + \exp[\frac{1}{2} + \frac{2}{3}(X_
 
 As $X_1$ increases, the probability that $X_2$ is missing increases. In the resulting dataset, `r sum(mar$na)` observations are missing. Because $X_1$ and $X_2$ are positively correlated, there are relatively fewer small values of $X_2$ in the observed data versus the complete data. If we only look at observations with valid data on both $X_1$ and $X_2$, then this subset of observations also has relatively few small values of $X_1$. But because $X_1$ is fully observed, the missing data on $X_2$ are MAR.
 
-```{r sim-mnar}
+```{r sim-mnar, echo = FALSE}
 mnar <- data_sim %>%
   mutate(na = .5 + (1 / 2) * (x2 - 20) + rnorm(n_sim, sd = 2),
          na = logit2prob(na),
@@ -244,7 +244,7 @@ The disadvantages of this method are that it:
 
 How do all of these methods stack up?
 
-```{r compare-imputation, fig.show = "hide"}
+```{r compare-imputation, fig.show = "hide", echo = FALSE}
 get_miss_stat <- function(df){
   df %>%
     summarize(mu_1 = mean(x1, na.rm = TRUE),
@@ -254,7 +254,7 @@ get_miss_stat <- function(df){
               sigma_12 = cov(., use = "complete.obs")[1, 2],
               rho = cor(., use = "complete.obs")[1, 2],
               beta_12 = lm(x2 ~ x1, data = .) %>% coef(.) %>% .[[2]],
-              beta_21 = lm(x1 ~ x2, data = .) %>% coef(.)%>% .[[2]]
+              beta_21 = lm(x1 ~ x2, data = .) %>% coef(.) %>% .[[2]]
     )
 }
 
@@ -289,12 +289,12 @@ available_cases <- data_miss %>%
               sigma_2 = var(x2, use = "complete.obs"),
               sigma_12 = cov(., use = "pairwise.complete.obs")[1, 2],
               rho = cor(., use = "pairwise.complete.obs")[1, 2],
-              beta_12 = psych::mat.regress("x2", "x1",
+              beta_12 = psych::setCor("x2", "x1",
                    data = cov(., use = "pairwise.complete.obs"),
                    n.obs = nrow(na.omit(.))) %>%
                 .$beta %>%
                 .[[1]],
-              beta_21 = psych::mat.regress("x1", "x2",
+              beta_21 = psych::setCor("x1", "x2",
                    data = cov(., use = "pairwise.complete.obs"),
                    n.obs = nrow(na.omit(.))) %>%
                 .$beta %>%
@@ -315,7 +315,7 @@ reg_imp <- data_miss %>%
   map_df(get_miss_stat, .id = "id")
 
 sum_stats <- bind_rows(
-  `Population parameters` = data_frame(
+  `Population parameters` = tibble(
     mu_1 = 10,
     mu_2 = 20,
     sigma_1 = 9,
@@ -343,7 +343,7 @@ sum_stats <- bind_rows(
          param = ifelse(param == "beta_21", "beta[21]", param))
 ```
 
-```{r compare-imputation-plot}
+```{r compare-imputation-plot, echo = FALSE}
 sum_stats %>%
   filter(id %in% c("mcar", "mar", "mnar")) %>%
   mutate(id = factor(id, levels = c("mcar", "mar", "mnar"),
@@ -394,7 +394,11 @@ Step 2 distinguishes this from pure conditional-mean imputation by accounting fo
 
 * Implemented in `mice` and `mi` for R
 
-## Random forest model
+## $K$-nearest neighbors model
+
+
+
+## Bagged tree model
 
 Alternatively, we can use a random forest algorithm to pursue a non-parametric imputation strategy. In this approach, you build a random forest model for each variable to predict its value using the other variables in the dataset. These results are used to generate imputed values for all the missing variables and observations.
 
@@ -526,7 +530,7 @@ Notice that for some of the imputed datasets, the imputed values are nonsensical
 We can use `purrr::map()` to estimate the linear model from before on the new imputed datasets and extract the coefficients and standard errors with `broom::tidy()`:
 
 ```{r amelia-purrr}
-models_imp <- data_frame(data = un.out$imputations) %>%
+models_imp <- tibble(data = un.out$imputations) %>%
   mutate(model = map(data, ~ lm(log(infantMortality) ~ log(GDPperCapita) +
                                   contraception + educationFemale,
                                 data = .x)),
@@ -552,7 +556,7 @@ mi.meld.plus <- function(df_tidy){
   
   combined.results <- mi.meld(q = coef.out, se = se.out)
   
-  data_frame(term = colnames(combined.results$q.mi),
+  tibble(term = colnames(combined.results$q.mi),
              estimate.mi = combined.results$q.mi[1, ],
              std.error.mi = combined.results$se.mi[1, ])
 }
@@ -577,13 +581,13 @@ missmap(un.out)
 
 Let's think more carefully about what variables to include in the imputation model and how to specify them. First, which variables are highly correlated with contraception and female education?
 
-```{r heatmap}
+```{r heatmap, warning = FALSE}
 GGally::ggpairs(select_if(un, is.numeric))
 ```
 
 Variables such as total fertility rate and the illiteracy rate for women are strongly correlated with our missing variables. Let's now limit our imputation model to just the four variables in the original regression model plus the total fertility rate, expectation of life for women, percentage of women engaged in economic activity outside the home, and the illiteracy rate for women.
 
-```{r select-un}
+```{r select-un, warning = FALSE}
 un_lite <- un %>%
   select(infantMortality, GDPperCapita, contraception, educationFemale,
          tfr, lifeFemale, economicActivityFemale, illiteracyFemale)
@@ -604,7 +608,7 @@ un_lite.out <- amelia(un_lite, m = 5,
 What does the resulting model look like now?
 
 ```{r amelia-trans-mod}
-models_trans_imp <- data_frame(data = un_lite.out$imputations) %>%
+models_trans_imp <- tibble(data = un_lite.out$imputations) %>%
   mutate(model = map(data, ~ lm(log(infantMortality) ~ log(GDPperCapita) +
                                   contraception + educationFemale,
                                 data = .x)),
