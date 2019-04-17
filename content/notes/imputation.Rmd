@@ -237,7 +237,7 @@ The disadvantages of this method are that it:
 
 ### Conditional-mean imputation
 
-**Conditional-mean imputation** replaces missing data with predicted values obtained from a statistical learning model, typically a regression model. Using the available data, regress each variable with missing data on the other variables in the data set. Then use the regression model to generate predicted values for the missing data in the regressed variable. However this still leaves two problems:
+**Conditional-mean imputation** replaces missing data with predicted values obtained from a statistical learning model. Using the available data, predict each variable with missing data using the other variables in the data set. Regression is a simple approach, though more complex machine learning algorithms can be used. However this still leaves two problems:
 
 1. Imputed values still tend to be less variable than the real data because they lack **residual variation**
 1. We still fail to account for uncertainty in the estimates of the regression coefficients used to obtain the imputed values
@@ -340,7 +340,12 @@ sum_stats <- bind_rows(
          param = ifelse(param == "sigma_2", "sigma[2]^2", param),
          param = ifelse(param == "sigma_12", "sigma[12]", param),
          param = ifelse(param == "beta_12", "beta[12]", param),
-         param = ifelse(param == "beta_21", "beta[21]", param))
+         param = ifelse(param == "beta_21", "beta[21]", param)) %>%
+  mutate(param = factor(param,
+                        levels = c("mu[1]", "mu[2]",
+                                   "sigma[1]^2", "sigma[2]^2",
+                                   "sigma[12]", "rho",
+                                   "beta[12]", "beta[21]")))
 ```
 
 ```{r compare-imputation-plot, echo = FALSE}
@@ -360,13 +365,14 @@ sum_stats %>%
        y = "Estimated parameter value",
        color = NULL,
        shape = NULL) +
-  theme(axis.text.x = element_text(angle = 30),
-        legend.position = "bottom")
+  theme(legend.position = "bottom")
 ```
 
 # Imputation estimation strategies
 
 Many of the following strategies can be implemented using the [`recipes`](https://tidymodels.github.io/recipes/index.html) package in R. Some of the most basic methods don't even require special packages (e.g. mean/mode imputation) but `recipes` is a recently developed tool that makes creating and pre-processing design matrices for statistical modeling far easier than previous methods. Likewise, many of these methods have analogous implementations in Python.
+
+> [`sklearn.preprocessing.Imputer`](http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.Imputer.html) - for basic imputation with mean, median, or modal values
 
 We will demonstrate these methods using the [`credit_data` dataset](https://tidymodels.github.io/recipes/reference/credit_data.html), which is a sample of individuals with credit scores and related data.
 
@@ -392,8 +398,6 @@ credit_te <- credit_data[-in_training, ]
 missing_examples <- c(14, 394, 565)
 ```
 
-* Establish `recipe` to be used for each example
-
 ```{r credit-data-recipe, dependson = "credit-data-sample"}
 rec <- recipe(Price ~ ., data = credit_tr)
 ```
@@ -407,8 +411,13 @@ impute_rec <- rec %>%
 imp_models <- prep(impute_rec, training = credit_tr)
 imputed_te <- bake(imp_models, new_data = credit_te, everything())
 
-credit_te[missing_examples,]
-imputed_te[missing_examples, names(credit_te)]
+credit_te %>%
+  select(-Seniority, -Marital, -Records) %>%
+  slice(missing_examples)
+
+imputed_te %>%
+  select(-Seniority, -Marital, -Records) %>%
+  slice(missing_examples)
 ```
 
 ### Median imputation
@@ -421,8 +430,13 @@ imp_models <- prep(impute_rec, training = credit_tr)
 
 imputed_te <- bake(imp_models, new_data = credit_te, everything())
 
-credit_te[missing_examples,]
-imputed_te[missing_examples, names(credit_te)]
+credit_te %>%
+  select(-Seniority, -Marital, -Records) %>%
+  slice(missing_examples)
+
+imputed_te %>%
+  select(-Seniority, -Marital, -Records) %>%
+  slice(missing_examples)
 ```
 
 ### Modal imputation for nominal data
@@ -434,8 +448,13 @@ impute_rec <- rec %>%
 imp_models <- prep(impute_rec, training = credit_tr)
 imputed_te <- bake(imp_models, new_data = credit_te, everything())
 
-credit_te[missing_examples,]
-imputed_te[missing_examples, names(credit_te)]
+credit_te %>%
+  select(-Seniority, -Expenses, -Records) %>%
+  slice(missing_examples)
+
+imputed_te %>%
+  select(-Seniority, -Expenses, -Records) %>%
+  slice(missing_examples)
 ```
 
 ## $K$ nearest neighbors model
@@ -450,8 +469,13 @@ impute_rec <- rec %>%
 imp_models <- prep(impute_rec, training = credit_tr)
 imputed_te <- bake(imp_models, new_data = credit_te, everything())
 
-credit_te[missing_examples,]
-imputed_te[missing_examples, names(credit_te)]
+credit_te %>%
+  select(-Seniority, -Marital, -Records) %>%
+  slice(missing_examples)
+
+imputed_te %>%
+  select(-Seniority, -Marital, -Records) %>%
+  slice(missing_examples)
 ```
 
 ## Bagged tree model
@@ -467,25 +491,45 @@ impute_rec <- rec %>%
 imp_models <- prep(impute_rec, training = credit_tr)
 imputed_te <- bake(imp_models, new_data = credit_te, everything())
 
-credit_te[missing_examples,]
-imputed_te[missing_examples, names(credit_te)]
+credit_te %>%
+  select(-Seniority, -Marital, -Records) %>%
+  slice(missing_examples)
+
+imputed_te %>%
+  select(-Seniority, -Marital, -Records) %>%
+  slice(missing_examples)
 ```
 
-## Maximum-likelihood estimation for data MAR
+## General rules of thumb
+
+* For predictive modeling, these methods are typically most utilized
+* If the method accepts missing values, no need to impute
+* Compare the effect of different imputation strategies on model performance
+* Exclude the validation/test set from imputation strategy
+
+# Multiple imputation
+
+**Bayesian multiple imputation** (MI) is a flexible method for dealing with missing data MAR. It starts by specifying the distribution of the complete data; typically the data is assumed to be multivariate normal. The key difference is that this method reflects uncertainty associated with missing data by imputing multiple values for each missing data value (i.e. multiple imputation), producing several complete datasets. Each dataset is then analyzed independently and in parallel, estimating parameters of interest and standard errors for each imputed dataset. The estimated parameters are then averaged together across the imputed datasets. Standard errors are also combined, taking into account the variation among the estimates in the several datasets and capturing the added uncertainty due to having to deal with missing data.
+
+The method is **Bayesian** because each estimate of the parameters and standard errors is drawn from the **posterior distribution** of the parameters, typically assuming a non-informative (flat) prior distribution. The important thing to note is that this method directly accounts for our uncertainty associated with both the sampling variance of the coefficients used in the imputation model as well as the uncertainty derived from the missingness itself.
+
+## Estimation strategies for multiple imputation
+
+### Maximum-likelihood estimation for data MAR
 
 When data are MAR (or MCAR), we can use maximum-likelihood estimation to estimate the parameters of interest and generate imputed values for the missing data. This requires several assumptions about the missingness mechanism and the distribution of the complete data.
 
-Let $p(\mathbf{X}, \theta) = p(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}; \theta)$ represent the joint probability density for the complete data $\mathbf{X}$, which is composed of the observed and missing components denoted by $\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}$. The vector $\theta$ contains the unknown parameters on which the complete-data distribution depends. For example, if the variables in $\mathbf{X}$ are multivariate normally distributed, then $\theta$ includes the population means and covariances among the variables.
+Let $\Pr(\mathbf{X}, \theta) = \Pr(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}; \theta)$ represent the joint probability density for the complete data $\mathbf{X}$, which is composed of the observed and missing components denoted by $\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}$. The vector $\theta$ contains the unknown parameters on which the complete-data distribution depends. For example, if the variables in $\mathbf{X}$ are multivariate normally distributed, then $\theta$ includes the population means and covariances among the variables.
 
 If data is MAR, then the ML estimate $\hat{\theta}$ of $\theta$ can be obtained from the marginal distribution of the observed data by integrating over the missing data:
 
-$$p(\mathbf{X}_\text{obs}; \theta) = \int{p(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}; \theta)} d\mathbf{X}_{\text{mis}}$$
+$$\Pr(\mathbf{X}_\text{obs}; \theta) = \int{\Pr(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}; \theta)} d\mathbf{X}_{\text{mis}}$$
 
 We'll skip the math for all of this^[See Fox ch 20.3 for the gory details], but the important thing to note is that the ML estimate only has a closed-form solution when missingness follows an arbitrary pattern (i.e. MAR). We can use iterative processes such as an **expectation-maximization (EM) algorithm** to find the ML estimates in the absence of arbitrary patterns of missingness. Typically software will use an **expectation-maximization (EM) algorithm** to find the ML estimates in the absence of arbitrary patterns of missingness. When the parameter estimates stop changing from one iteration to the next, they converge to the ML estimates $\hat{\theta}$.
 
 * Implemented in `Amelia` for R
 
-## Predictive mean matching
+### Predictive mean matching
 
 Combines regression model with matching procedure.
 
@@ -498,12 +542,8 @@ Combines regression model with matching procedure.
 Step 2 distinguishes this from pure conditional-mean imputation by accounting for additional uncertainty in the model(s). By default in most software, $k=5$ is the number of matches observations from which to draw the imputed value.
 
 * Implemented in `mice` and `mi` for R
-
-# Generating multiple imputations
-
-**Bayesian multiple imputation** (MI) is a flexible method for dealing with missing data MAR. It starts by specifying the distribution of the complete data; typically the data is assumed to be multivariate normal. The key difference is that this method reflects uncertainty associated with missing data by imputing multiple values for each missing data value (i.e. multiple imputation), producing several complete datasets. Each dataset is then analyzed independently and in parallel, estimating parameters of interest and standard errors for each imputed dataset. The estimated parameters are then averaged together across the imputed datasets. Standard errors are also combined, taking into account the variation among the estimates in the several datasets and capturing the added uncertainty due to having to deal with missing data.
-
-The method is **Bayesian** because each estimate of the parameters and standard errors is drawn from the **posterior distribution** of the parameters, typically assuming a non-informative (flat) prior distribution. The important thing to note is that this method directly accounts for our uncertainty associated with both the sampling variance of the coefficients used in the imputation model as well as the uncertainty derived from the missingness itself.
+* [Multiple Imputation with Chained Equations](http://www.statsmodels.org/dev/imputation.html) - for `statsmodels`
+    * Uses the predictive mean matching technique
 
 ## Inference for individual coefficients
 
@@ -515,21 +555,21 @@ $$\tilde{\beta}_j \equiv \frac{\sum_{l=1}^g B_j^{(l)}}{g}$$
 
 Standard errors of the estimated coefficients are obtained by combining information about within- and between-imputation variation in the coefficients:
 
-$$\tilde{\text{SE}}(\tilde{\beta}_j) = \sqrt{V_j^{(W)} + \frac{g + 1}{g} V_j^{(B)}}$$
+$$\tilde{\se}(\tilde{\beta}_j) = \sqrt{\Var_j^{(W)} + \frac{g + 1}{g} \Var_j^{(B)}}$$
 
 where the within-imputation component is:
 
-$$V_j^{(W)} = \frac{\sum_{l=1}^g \text{SE}^2(B_j^{(l)})}{g}$$
+$$\Var_j^{(W)} = \frac{\sum_{l=1}^g \se^2(B_j^{(l)})}{g}$$
 
 and the between-imputation component is:
 
-$$V_j^{(B)} = \frac{\sum_{l=1}^g (B_j^{(l)} - \tilde{B}_j)^2}{g-1}$$
+$$\Var_j^{(B)} = \frac{\sum_{l=1}^g (B_j^{(l)} - \tilde{B}_j)^2}{g-1}$$
 
-$\text{SE}^2(B_j^{(l)})$ is the standard error of $B_j$, computed in the usual manner for the $l$th imputed dataset.
+$\se^2(B_j^{(l)})$ is the standard error of $B_j$, computed in the usual manner for the $l$th imputed dataset.
 
-Inference based on $\tilde{\text{SE}}(\tilde{\beta}_j)$ and $\tilde{\text{SE}}(\tilde{\beta}_j)$ follows the $t$-distribution with degrees of freedom:
+Inference based on $\tilde{\se}(\tilde{\beta}_j)$ and $\tilde{\se}(\tilde{\beta}_j)$ follows the $t$-distribution with degrees of freedom:
 
-$$df_j = (g-1) \left ( 1 + \frac{g}{g+1} \times \frac{V_j^{(W)}}{V_j^{(B)}} \right)^2$$
+$$df_j = (g-1) \left ( 1 + \frac{g}{g+1} \times \frac{\Var_j^{(W)}}{\Var_j^{(B)}} \right)^2$$
 
 ## Practical considerations for multiple imputation
 
@@ -648,8 +688,8 @@ mi.meld.plus <- function(df_tidy){
   combined.results <- mi.meld(q = coef.out, se = se.out)
   
   tibble(term = colnames(combined.results$q.mi),
-             estimate.mi = combined.results$q.mi[1, ],
-             std.error.mi = combined.results$se.mi[1, ])
+         estimate.mi = combined.results$q.mi[1, ],
+         std.error.mi = combined.results$se.mi[1, ])
 }
 
 # compare results
@@ -734,7 +774,7 @@ bind_rows(orig = tidy(mortal_mod),
   geom_hline(yintercept = 0, linetype = 2) +
   geom_pointrange(position = position_dodge(.75)) +
   coord_flip() +
-  scale_color_discrete(guide = guide_legend(reverse = TRUE)) +
+  scale_color_brewer(type = "qual", guide = guide_legend(reverse = TRUE)) +
   labs(title = "Comparing regression results",
        x = NULL,
        y = "Estimated parameter",
@@ -763,7 +803,7 @@ bind_rows(orig = tidy(mortal_mod),
   geom_hline(yintercept = 0, linetype = 2) +
   geom_pointrange(position = position_dodge(.75)) +
   coord_flip() +
-  scale_color_discrete(guide = guide_legend(reverse = TRUE)) +
+  scale_color_brewer(type = "qual", guide = guide_legend(reverse = TRUE)) +
   labs(title = "Comparing regression results",
        subtitle = "Omitting intercept from plot",
        x = NULL,
@@ -771,17 +811,6 @@ bind_rows(orig = tidy(mortal_mod),
        color = NULL) +
   theme(legend.position = "bottom")
 ```
-
-# Multiple imputation outside of GLMs
-
-* Tree-based inference - missing value becomes a feature of the data
-
-# MI in Python
-
-* [`sklearn.preprocessing.Imputer`](http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.Imputer.html) - for basic imputation with mean, median, or modal values
-* [Multiple Imputation with Chained Equations](http://www.statsmodels.org/dev/imputation.html) - for `statsmodels`
-    * Uses the predictive mean matching technique
-* [MIDAS - Multiple Imputation with Denoising Autoencoders](https://github.com/Oracen/MIDAS) - deep learning method for multiple imputation
 
 # Acknowledgments {.toc-ignore}
 

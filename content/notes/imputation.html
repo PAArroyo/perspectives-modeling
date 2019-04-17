@@ -109,12 +109,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </ul></li>
 <li><a href="#k-nearest-neighbors-model"><span class="toc-section-number">3.2</span> <span class="math inline">\(K\)</span> nearest neighbors model</a></li>
 <li><a href="#bagged-tree-model"><span class="toc-section-number">3.3</span> Bagged tree model</a></li>
-<li><a href="#maximum-likelihood-estimation-for-data-mar"><span class="toc-section-number">3.4</span> Maximum-likelihood estimation for data MAR</a></li>
-<li><a href="#predictive-mean-matching"><span class="toc-section-number">3.5</span> Predictive mean matching</a></li>
+<li><a href="#general-rules-of-thumb"><span class="toc-section-number">3.4</span> General rules of thumb</a></li>
 </ul></li>
-<li><a href="#generating-multiple-imputations"><span class="toc-section-number">4</span> Generating multiple imputations</a><ul>
-<li><a href="#inference-for-individual-coefficients"><span class="toc-section-number">4.1</span> Inference for individual coefficients</a></li>
-<li><a href="#practical-considerations-for-multiple-imputation"><span class="toc-section-number">4.2</span> Practical considerations for multiple imputation</a></li>
+<li><a href="#multiple-imputation"><span class="toc-section-number">4</span> Multiple imputation</a><ul>
+<li><a href="#estimation-strategies-for-multiple-imputation"><span class="toc-section-number">4.1</span> Estimation strategies for multiple imputation</a><ul>
+<li><a href="#maximum-likelihood-estimation-for-data-mar"><span class="toc-section-number">4.1.1</span> Maximum-likelihood estimation for data MAR</a></li>
+<li><a href="#predictive-mean-matching"><span class="toc-section-number">4.1.2</span> Predictive mean matching</a></li>
+</ul></li>
+<li><a href="#inference-for-individual-coefficients"><span class="toc-section-number">4.2</span> Inference for individual coefficients</a></li>
+<li><a href="#practical-considerations-for-multiple-imputation"><span class="toc-section-number">4.3</span> Practical considerations for multiple imputation</a></li>
 </ul></li>
 <li><a href="#regression-model-of-infant-mortality-with-mi"><span class="toc-section-number">5</span> Regression model of infant mortality with MI</a><ul>
 <li><a href="#amelia"><span class="toc-section-number">5.1</span> <code>Amelia</code></a><ul>
@@ -122,10 +125,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="#transforming-variables"><span class="toc-section-number">5.1.2</span> Transforming variables</a></li>
 </ul></li>
 </ul></li>
-<li><a href="#multiple-imputation-outside-of-glms"><span class="toc-section-number">6</span> Multiple imputation outside of GLMs</a></li>
-<li><a href="#mi-in-python"><span class="toc-section-number">7</span> MI in Python</a></li>
-<li><a href="#acknowledgments"><span class="toc-section-number">8</span> Acknowledgments</a></li>
-<li><a href="#session-info"><span class="toc-section-number">9</span> Session Info</a></li>
+<li><a href="#acknowledgments"><span class="toc-section-number">6</span> Acknowledgments</a></li>
+<li><a href="#session-info"><span class="toc-section-number">7</span> Session Info</a></li>
 </ul>
 </div>
 
@@ -261,7 +262,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 <div id="conditional-mean-imputation" class="section level3">
 <h3><span class="header-section-number">2.2.2</span> Conditional-mean imputation</h3>
-<p><strong>Conditional-mean imputation</strong> replaces missing data with predicted values obtained from a statistical learning model, typically a regression model. Using the available data, regress each variable with missing data on the other variables in the data set. Then use the regression model to generate predicted values for the missing data in the regressed variable. However this still leaves two problems:</p>
+<p><strong>Conditional-mean imputation</strong> replaces missing data with predicted values obtained from a statistical learning model. Using the available data, predict each variable with missing data using the other variables in the data set. Regression is a simple approach, though more complex machine learning algorithms can be used. However this still leaves two problems:</p>
 <ol style="list-style-type: decimal">
 <li>Imputed values still tend to be less variable than the real data because they lack <strong>residual variation</strong></li>
 <li>We still fail to account for uncertainty in the estimates of the regression coefficients used to obtain the imputed values</li>
@@ -274,6 +275,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div id="imputation-estimation-strategies" class="section level1">
 <h1><span class="header-section-number">3</span> Imputation estimation strategies</h1>
 <p>Many of the following strategies can be implemented using the <a href="https://tidymodels.github.io/recipes/index.html"><code>recipes</code></a> package in R. Some of the most basic methods don’t even require special packages (e.g. mean/mode imputation) but <code>recipes</code> is a recently developed tool that makes creating and pre-processing design matrices for statistical modeling far easier than previous methods. Likewise, many of these methods have analogous implementations in Python.</p>
+<blockquote>
+<p><a href="http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.Imputer.html"><code>sklearn.preprocessing.Imputer</code></a> - for basic imputation with mean, median, or modal values</p>
+</blockquote>
 <p>We will demonstrate these methods using the <a href="https://tidymodels.github.io/recipes/reference/credit_data.html"><code>credit_data</code> dataset</a>, which is a sample of individuals with credit scores and related data.</p>
 <pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(recipes)</code></pre>
 <pre><code>## 
@@ -314,9 +318,6 @@ in_training &lt;-<span class="st"> </span><span class="kw">sample</span>(<span c
 credit_tr &lt;-<span class="st"> </span>credit_data[in_training, ]
 credit_te &lt;-<span class="st"> </span>credit_data[<span class="op">-</span>in_training, ]
 missing_examples &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">14</span>, <span class="dv">394</span>, <span class="dv">565</span>)</code></pre>
-<ul>
-<li>Establish <code>recipe</code> to be used for each example</li>
-</ul>
 <pre class="sourceCode r"><code class="sourceCode r">rec &lt;-<span class="st"> </span><span class="kw">recipe</span>(Price <span class="op">~</span><span class="st"> </span>., <span class="dt">data =</span> credit_tr)</code></pre>
 <div id="mean-imputation" class="section level3">
 <h3><span class="header-section-number">3.1.1</span> Mean imputation</h3>
@@ -326,24 +327,24 @@ missing_examples &lt;-<span class="st"> </span><span class="kw">c</span>(<span c
 imp_models &lt;-<span class="st"> </span><span class="kw">prep</span>(impute_rec, <span class="dt">training =</span> credit_tr)
 imputed_te &lt;-<span class="st"> </span><span class="kw">bake</span>(imp_models, <span class="dt">new_data =</span> credit_te, <span class="kw">everything</span>())
 
-credit_te[missing_examples,]</code></pre>
-<pre><code>## # A tibble: 3 x 14
-##   Status Seniority Home   Time   Age Marital Records Job   Expenses Income
-##   &lt;fct&gt;      &lt;int&gt; &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;   &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;
-## 1 bad            0 &lt;NA&gt;     48    37 single  no      &lt;NA&gt;        35     NA
-## 2 bad            1 priv     48    36 single  yes     fixed       35    173
-## 3 bad           24 priv     60    46 married no      fixed       60    165
-## # … with 4 more variables: Assets &lt;int&gt;, Debt &lt;int&gt;, Amount &lt;int&gt;,
-## #   Price &lt;int&gt;</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r">imputed_te[missing_examples, <span class="kw">names</span>(credit_te)]</code></pre>
-<pre><code>## # A tibble: 3 x 14
-##   Status Seniority Home   Time   Age Marital Records Job   Expenses Income
-##   &lt;fct&gt;      &lt;int&gt; &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;   &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;
-## 1 bad            0 &lt;NA&gt;     48    37 single  no      &lt;NA&gt;        35   139.
-## 2 bad            1 priv     48    36 single  yes     fixed       35   173 
-## 3 bad           24 priv     60    46 married no      fixed       60   165 
-## # … with 4 more variables: Assets &lt;dbl&gt;, Debt &lt;dbl&gt;, Amount &lt;int&gt;,
-## #   Price &lt;int&gt;</code></pre>
+credit_te <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Seniority, <span class="op">-</span>Marital, <span class="op">-</span>Records) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(missing_examples)</code></pre>
+<pre><code>## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35     NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 fixed       35    173   7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60    165   3500  1300   1400  1530</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r">imputed_te <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Seniority, <span class="op">-</span>Marital, <span class="op">-</span>Records) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(missing_examples)</code></pre>
+<pre><code>## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35   139.  5430.  320.   1500  1850
+## 2 bad    priv     48    36 fixed       35   173   7700     0    1000  2008
+## 3 bad    priv     60    46 fixed       60   165   3500  1300    1400  1530</code></pre>
 </div>
 <div id="median-imputation" class="section level3">
 <h3><span class="header-section-number">3.1.2</span> Median imputation</h3>
@@ -354,24 +355,24 @@ imp_models &lt;-<span class="st"> </span><span class="kw">prep</span>(impute_rec
 
 imputed_te &lt;-<span class="st"> </span><span class="kw">bake</span>(imp_models, <span class="dt">new_data =</span> credit_te, <span class="kw">everything</span>())
 
-credit_te[missing_examples,]</code></pre>
-<pre><code>## # A tibble: 3 x 14
-##   Status Seniority Home   Time   Age Marital Records Job   Expenses Income
-##   &lt;fct&gt;      &lt;int&gt; &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;   &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;
-## 1 bad            0 &lt;NA&gt;     48    37 single  no      &lt;NA&gt;        35     NA
-## 2 bad            1 priv     48    36 single  yes     fixed       35    173
-## 3 bad           24 priv     60    46 married no      fixed       60    165
-## # … with 4 more variables: Assets &lt;int&gt;, Debt &lt;int&gt;, Amount &lt;int&gt;,
-## #   Price &lt;int&gt;</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r">imputed_te[missing_examples, <span class="kw">names</span>(credit_te)]</code></pre>
-<pre><code>## # A tibble: 3 x 14
-##   Status Seniority Home   Time   Age Marital Records Job   Expenses Income
-##   &lt;fct&gt;      &lt;int&gt; &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;   &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;
-## 1 bad            0 &lt;NA&gt;     48    37 single  no      &lt;NA&gt;        35    125
-## 2 bad            1 priv     48    36 single  yes     fixed       35    173
-## 3 bad           24 priv     60    46 married no      fixed       60    165
-## # … with 4 more variables: Assets &lt;dbl&gt;, Debt &lt;dbl&gt;, Amount &lt;int&gt;,
-## #   Price &lt;int&gt;</code></pre>
+credit_te <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Seniority, <span class="op">-</span>Marital, <span class="op">-</span>Records) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(missing_examples)</code></pre>
+<pre><code>## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35     NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 fixed       35    173   7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60    165   3500  1300   1400  1530</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r">imputed_te <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Seniority, <span class="op">-</span>Marital, <span class="op">-</span>Records) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(missing_examples)</code></pre>
+<pre><code>## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35    125   3500     0   1500  1850
+## 2 bad    priv     48    36 fixed       35    173   7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60    165   3500  1300   1400  1530</code></pre>
 </div>
 <div id="modal-imputation-for-nominal-data" class="section level3">
 <h3><span class="header-section-number">3.1.3</span> Modal imputation for nominal data</h3>
@@ -381,24 +382,24 @@ credit_te[missing_examples,]</code></pre>
 imp_models &lt;-<span class="st"> </span><span class="kw">prep</span>(impute_rec, <span class="dt">training =</span> credit_tr)
 imputed_te &lt;-<span class="st"> </span><span class="kw">bake</span>(imp_models, <span class="dt">new_data =</span> credit_te, <span class="kw">everything</span>())
 
-credit_te[missing_examples,]</code></pre>
-<pre><code>## # A tibble: 3 x 14
-##   Status Seniority Home   Time   Age Marital Records Job   Expenses Income
-##   &lt;fct&gt;      &lt;int&gt; &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;   &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;
-## 1 bad            0 &lt;NA&gt;     48    37 single  no      &lt;NA&gt;        35     NA
-## 2 bad            1 priv     48    36 single  yes     fixed       35    173
-## 3 bad           24 priv     60    46 married no      fixed       60    165
-## # … with 4 more variables: Assets &lt;int&gt;, Debt &lt;int&gt;, Amount &lt;int&gt;,
-## #   Price &lt;int&gt;</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r">imputed_te[missing_examples, <span class="kw">names</span>(credit_te)]</code></pre>
-<pre><code>## # A tibble: 3 x 14
-##   Status Seniority Home   Time   Age Marital Records Job   Expenses Income
-##   &lt;fct&gt;      &lt;int&gt; &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;   &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;
-## 1 bad            0 owner    48    37 single  no      fixed       35     NA
-## 2 bad            1 priv     48    36 single  yes     fixed       35    173
-## 3 bad           24 priv     60    46 married no      fixed       60    165
-## # … with 4 more variables: Assets &lt;int&gt;, Debt &lt;int&gt;, Amount &lt;int&gt;,
-## #   Price &lt;int&gt;</code></pre>
+credit_te <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Seniority, <span class="op">-</span>Expenses, <span class="op">-</span>Records) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(missing_examples)</code></pre>
+<pre><code>## # A tibble: 3 x 11
+##   Status Home   Time   Age Marital Job   Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 single  &lt;NA&gt;      NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 single  fixed    173   7700     0   1000  2008
+## 3 bad    priv     60    46 married fixed    165   3500  1300   1400  1530</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r">imputed_te <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Seniority, <span class="op">-</span>Expenses, <span class="op">-</span>Records) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(missing_examples)</code></pre>
+<pre><code>## # A tibble: 3 x 11
+##   Status Home   Time   Age Marital Job   Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    owner    48    37 single  fixed     NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 single  fixed    173   7700     0   1000  2008
+## 3 bad    priv     60    46 married fixed    165   3500  1300   1400  1530</code></pre>
 </div>
 </div>
 <div id="k-nearest-neighbors-model" class="section level2">
@@ -413,24 +414,24 @@ credit_te[missing_examples,]</code></pre>
 imp_models &lt;-<span class="st"> </span><span class="kw">prep</span>(impute_rec, <span class="dt">training =</span> credit_tr)
 imputed_te &lt;-<span class="st"> </span><span class="kw">bake</span>(imp_models, <span class="dt">new_data =</span> credit_te, <span class="kw">everything</span>())
 
-credit_te[missing_examples,]</code></pre>
-<pre><code>## # A tibble: 3 x 14
-##   Status Seniority Home   Time   Age Marital Records Job   Expenses Income
-##   &lt;fct&gt;      &lt;int&gt; &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;   &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;
-## 1 bad            0 &lt;NA&gt;     48    37 single  no      &lt;NA&gt;        35     NA
-## 2 bad            1 priv     48    36 single  yes     fixed       35    173
-## 3 bad           24 priv     60    46 married no      fixed       60    165
-## # … with 4 more variables: Assets &lt;int&gt;, Debt &lt;int&gt;, Amount &lt;int&gt;,
-## #   Price &lt;int&gt;</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r">imputed_te[missing_examples, <span class="kw">names</span>(credit_te)]</code></pre>
-<pre><code>## # A tibble: 3 x 14
-##   Status Seniority Home   Time   Age Marital Records Job   Expenses Income
-##   &lt;fct&gt;      &lt;int&gt; &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;   &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;
-## 1 bad            0 other    48    37 single  no      fixed       35   91.8
-## 2 bad            1 priv     48    36 single  yes     fixed       35  173  
-## 3 bad           24 priv     60    46 married no      fixed       60  165  
-## # … with 4 more variables: Assets &lt;dbl&gt;, Debt &lt;dbl&gt;, Amount &lt;int&gt;,
-## #   Price &lt;int&gt;</code></pre>
+credit_te <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Seniority, <span class="op">-</span>Marital, <span class="op">-</span>Records) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(missing_examples)</code></pre>
+<pre><code>## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35     NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 fixed       35    173   7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60    165   3500  1300   1400  1530</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r">imputed_te <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Seniority, <span class="op">-</span>Marital, <span class="op">-</span>Records) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(missing_examples)</code></pre>
+<pre><code>## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    other    48    37 fixed       35   91.8      0     0   1500  1850
+## 2 bad    priv     48    36 fixed       35  173     7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60  165     3500  1300   1400  1530</code></pre>
 </div>
 <div id="bagged-tree-model" class="section level2">
 <h2><span class="header-section-number">3.3</span> Bagged tree model</h2>
@@ -442,38 +443,54 @@ credit_te[missing_examples,]</code></pre>
 imp_models &lt;-<span class="st"> </span><span class="kw">prep</span>(impute_rec, <span class="dt">training =</span> credit_tr)
 imputed_te &lt;-<span class="st"> </span><span class="kw">bake</span>(imp_models, <span class="dt">new_data =</span> credit_te, <span class="kw">everything</span>())
 
-credit_te[missing_examples,]</code></pre>
-<pre><code>## # A tibble: 3 x 14
-##   Status Seniority Home   Time   Age Marital Records Job   Expenses Income
-##   &lt;fct&gt;      &lt;int&gt; &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;   &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;
-## 1 bad            0 &lt;NA&gt;     48    37 single  no      &lt;NA&gt;        35     NA
-## 2 bad            1 priv     48    36 single  yes     fixed       35    173
-## 3 bad           24 priv     60    46 married no      fixed       60    165
-## # … with 4 more variables: Assets &lt;int&gt;, Debt &lt;int&gt;, Amount &lt;int&gt;,
-## #   Price &lt;int&gt;</code></pre>
-<pre class="sourceCode r"><code class="sourceCode r">imputed_te[missing_examples, <span class="kw">names</span>(credit_te)]</code></pre>
-<pre><code>## # A tibble: 3 x 14
-##   Status Seniority Home   Time   Age Marital Records Job   Expenses Income
-##   &lt;fct&gt;      &lt;int&gt; &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;   &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;
-## 1 bad            0 other    48    37 single  no      fixed       35   118.
-## 2 bad            1 priv     48    36 single  yes     fixed       35   173 
-## 3 bad           24 priv     60    46 married no      fixed       60   165 
-## # … with 4 more variables: Assets &lt;dbl&gt;, Debt &lt;dbl&gt;, Amount &lt;int&gt;,
-## #   Price &lt;int&gt;</code></pre>
+credit_te <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Seniority, <span class="op">-</span>Marital, <span class="op">-</span>Records) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(missing_examples)</code></pre>
+<pre><code>## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35     NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 fixed       35    173   7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60    165   3500  1300   1400  1530</code></pre>
+<pre class="sourceCode r"><code class="sourceCode r">imputed_te <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span>Seniority, <span class="op">-</span>Marital, <span class="op">-</span>Records) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">slice</span>(missing_examples)</code></pre>
+<pre><code>## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    other    48    37 fixed       35   118.  2942.  118.   1500  1850
+## 2 bad    priv     48    36 fixed       35   173   7700     0    1000  2008
+## 3 bad    priv     60    46 fixed       60   165   3500  1300    1400  1530</code></pre>
 </div>
-<div id="maximum-likelihood-estimation-for-data-mar" class="section level2">
-<h2><span class="header-section-number">3.4</span> Maximum-likelihood estimation for data MAR</h2>
+<div id="general-rules-of-thumb" class="section level2">
+<h2><span class="header-section-number">3.4</span> General rules of thumb</h2>
+<ul>
+<li>For predictive modeling, these methods are typically most utilized</li>
+<li>If the method accepts missing values, no need to impute</li>
+<li>Compare the effect of different imputation strategies on model performance</li>
+<li>Exclude the validation/test set from imputation strategy</li>
+</ul>
+</div>
+</div>
+<div id="multiple-imputation" class="section level1">
+<h1><span class="header-section-number">4</span> Multiple imputation</h1>
+<p><strong>Bayesian multiple imputation</strong> (MI) is a flexible method for dealing with missing data MAR. It starts by specifying the distribution of the complete data; typically the data is assumed to be multivariate normal. The key difference is that this method reflects uncertainty associated with missing data by imputing multiple values for each missing data value (i.e. multiple imputation), producing several complete datasets. Each dataset is then analyzed independently and in parallel, estimating parameters of interest and standard errors for each imputed dataset. The estimated parameters are then averaged together across the imputed datasets. Standard errors are also combined, taking into account the variation among the estimates in the several datasets and capturing the added uncertainty due to having to deal with missing data.</p>
+<p>The method is <strong>Bayesian</strong> because each estimate of the parameters and standard errors is drawn from the <strong>posterior distribution</strong> of the parameters, typically assuming a non-informative (flat) prior distribution. The important thing to note is that this method directly accounts for our uncertainty associated with both the sampling variance of the coefficients used in the imputation model as well as the uncertainty derived from the missingness itself.</p>
+<div id="estimation-strategies-for-multiple-imputation" class="section level2">
+<h2><span class="header-section-number">4.1</span> Estimation strategies for multiple imputation</h2>
+<div id="maximum-likelihood-estimation-for-data-mar" class="section level3">
+<h3><span class="header-section-number">4.1.1</span> Maximum-likelihood estimation for data MAR</h3>
 <p>When data are MAR (or MCAR), we can use maximum-likelihood estimation to estimate the parameters of interest and generate imputed values for the missing data. This requires several assumptions about the missingness mechanism and the distribution of the complete data.</p>
-<p>Let <span class="math inline">\(p(\mathbf{X}, \theta) = p(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}; \theta)\)</span> represent the joint probability density for the complete data <span class="math inline">\(\mathbf{X}\)</span>, which is composed of the observed and missing components denoted by <span class="math inline">\(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}\)</span>. The vector <span class="math inline">\(\theta\)</span> contains the unknown parameters on which the complete-data distribution depends. For example, if the variables in <span class="math inline">\(\mathbf{X}\)</span> are multivariate normally distributed, then <span class="math inline">\(\theta\)</span> includes the population means and covariances among the variables.</p>
+<p>Let <span class="math inline">\(\Pr(\mathbf{X}, \theta) = \Pr(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}; \theta)\)</span> represent the joint probability density for the complete data <span class="math inline">\(\mathbf{X}\)</span>, which is composed of the observed and missing components denoted by <span class="math inline">\(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}\)</span>. The vector <span class="math inline">\(\theta\)</span> contains the unknown parameters on which the complete-data distribution depends. For example, if the variables in <span class="math inline">\(\mathbf{X}\)</span> are multivariate normally distributed, then <span class="math inline">\(\theta\)</span> includes the population means and covariances among the variables.</p>
 <p>If data is MAR, then the ML estimate <span class="math inline">\(\hat{\theta}\)</span> of <span class="math inline">\(\theta\)</span> can be obtained from the marginal distribution of the observed data by integrating over the missing data:</p>
-<p><span class="math display">\[p(\mathbf{X}_\text{obs}; \theta) = \int{p(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}; \theta)} d\mathbf{X}_{\text{mis}}\]</span></p>
+<p><span class="math display">\[\Pr(\mathbf{X}_\text{obs}; \theta) = \int{\Pr(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}; \theta)} d\mathbf{X}_{\text{mis}}\]</span></p>
 <p>We’ll skip the math for all of this<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>, but the important thing to note is that the ML estimate only has a closed-form solution when missingness follows an arbitrary pattern (i.e. MAR). We can use iterative processes such as an <strong>expectation-maximization (EM) algorithm</strong> to find the ML estimates in the absence of arbitrary patterns of missingness. Typically software will use an <strong>expectation-maximization (EM) algorithm</strong> to find the ML estimates in the absence of arbitrary patterns of missingness. When the parameter estimates stop changing from one iteration to the next, they converge to the ML estimates <span class="math inline">\(\hat{\theta}\)</span>.</p>
 <ul>
 <li>Implemented in <code>Amelia</code> for R</li>
 </ul>
 </div>
-<div id="predictive-mean-matching" class="section level2">
-<h2><span class="header-section-number">3.5</span> Predictive mean matching</h2>
+<div id="predictive-mean-matching" class="section level3">
+<h3><span class="header-section-number">4.1.2</span> Predictive mean matching</h3>
 <p>Combines regression model with matching procedure.</p>
 <ol style="list-style-type: decimal">
 <li>For cases with no missing data, estimate a linear regression of <span class="math inline">\(x\)</span> on <span class="math inline">\(z\)</span>, producing a set of coefficients <span class="math inline">\(b\)</span>.</li>
@@ -485,32 +502,32 @@ credit_te[missing_examples,]</code></pre>
 <p>Step 2 distinguishes this from pure conditional-mean imputation by accounting for additional uncertainty in the model(s). By default in most software, <span class="math inline">\(k=5\)</span> is the number of matches observations from which to draw the imputed value.</p>
 <ul>
 <li>Implemented in <code>mice</code> and <code>mi</code> for R</li>
+<li><a href="http://www.statsmodels.org/dev/imputation.html">Multiple Imputation with Chained Equations</a> - for <code>statsmodels</code>
+<ul>
+<li>Uses the predictive mean matching technique</li>
+</ul></li>
 </ul>
 </div>
 </div>
-<div id="generating-multiple-imputations" class="section level1">
-<h1><span class="header-section-number">4</span> Generating multiple imputations</h1>
-<p><strong>Bayesian multiple imputation</strong> (MI) is a flexible method for dealing with missing data MAR. It starts by specifying the distribution of the complete data; typically the data is assumed to be multivariate normal. The key difference is that this method reflects uncertainty associated with missing data by imputing multiple values for each missing data value (i.e. multiple imputation), producing several complete datasets. Each dataset is then analyzed independently and in parallel, estimating parameters of interest and standard errors for each imputed dataset. The estimated parameters are then averaged together across the imputed datasets. Standard errors are also combined, taking into account the variation among the estimates in the several datasets and capturing the added uncertainty due to having to deal with missing data.</p>
-<p>The method is <strong>Bayesian</strong> because each estimate of the parameters and standard errors is drawn from the <strong>posterior distribution</strong> of the parameters, typically assuming a non-informative (flat) prior distribution. The important thing to note is that this method directly accounts for our uncertainty associated with both the sampling variance of the coefficients used in the imputation model as well as the uncertainty derived from the missingness itself.</p>
 <div id="inference-for-individual-coefficients" class="section level2">
-<h2><span class="header-section-number">4.1</span> Inference for individual coefficients</h2>
+<h2><span class="header-section-number">4.2</span> Inference for individual coefficients</h2>
 <p>We use this method to produce <span class="math inline">\(g\)</span> complete datasets. MI estimates of population parameters of interest (such as a regression coefficient) are obtained by averaging over the imputed datasets:</p>
 <p><span class="math display">\[\tilde{\beta}_j \equiv \frac{\sum_{l=1}^g B_j^{(l)}}{g}\]</span></p>
 <blockquote>
 <p>This averaging method applies to any type of parameter that for the separate estimates is approximately normally distributed. This applies to OLS regression estimates, GLM coefficient estimates, or by any parametric method of regression analysis.</p>
 </blockquote>
 <p>Standard errors of the estimated coefficients are obtained by combining information about within- and between-imputation variation in the coefficients:</p>
-<p><span class="math display">\[\tilde{\text{SE}}(\tilde{\beta}_j) = \sqrt{V_j^{(W)} + \frac{g + 1}{g} V_j^{(B)}}\]</span></p>
+<p><span class="math display">\[\tilde{\text{se}}(\tilde{\beta}_j) = \sqrt{\mathrm{Var}_j^{(W)} + \frac{g + 1}{g} \mathrm{Var}_j^{(B)}}\]</span></p>
 <p>where the within-imputation component is:</p>
-<p><span class="math display">\[V_j^{(W)} = \frac{\sum_{l=1}^g \text{SE}^2(B_j^{(l)})}{g}\]</span></p>
+<p><span class="math display">\[\mathrm{Var}_j^{(W)} = \frac{\sum_{l=1}^g \text{se}^2(B_j^{(l)})}{g}\]</span></p>
 <p>and the between-imputation component is:</p>
-<p><span class="math display">\[V_j^{(B)} = \frac{\sum_{l=1}^g (B_j^{(l)} - \tilde{B}_j)^2}{g-1}\]</span></p>
-<p><span class="math inline">\(\text{SE}^2(B_j^{(l)})\)</span> is the standard error of <span class="math inline">\(B_j\)</span>, computed in the usual manner for the <span class="math inline">\(l\)</span>th imputed dataset.</p>
-<p>Inference based on <span class="math inline">\(\tilde{\text{SE}}(\tilde{\beta}_j)\)</span> and <span class="math inline">\(\tilde{\text{SE}}(\tilde{\beta}_j)\)</span> follows the <span class="math inline">\(t\)</span>-distribution with degrees of freedom:</p>
-<p><span class="math display">\[df_j = (g-1) \left ( 1 + \frac{g}{g+1} \times \frac{V_j^{(W)}}{V_j^{(B)}} \right)^2\]</span></p>
+<p><span class="math display">\[\mathrm{Var}_j^{(B)} = \frac{\sum_{l=1}^g (B_j^{(l)} - \tilde{B}_j)^2}{g-1}\]</span></p>
+<p><span class="math inline">\(\text{se}^2(B_j^{(l)})\)</span> is the standard error of <span class="math inline">\(B_j\)</span>, computed in the usual manner for the <span class="math inline">\(l\)</span>th imputed dataset.</p>
+<p>Inference based on <span class="math inline">\(\tilde{\text{se}}(\tilde{\beta}_j)\)</span> and <span class="math inline">\(\tilde{\text{se}}(\tilde{\beta}_j)\)</span> follows the <span class="math inline">\(t\)</span>-distribution with degrees of freedom:</p>
+<p><span class="math display">\[df_j = (g-1) \left ( 1 + \frac{g}{g+1} \times \frac{\mathrm{Var}_j^{(W)}}{\mathrm{Var}_j^{(B)}} \right)^2\]</span></p>
 </div>
 <div id="practical-considerations-for-multiple-imputation" class="section level2">
-<h2><span class="header-section-number">4.2</span> Practical considerations for multiple imputation</h2>
+<h2><span class="header-section-number">4.3</span> Practical considerations for multiple imputation</h2>
 <p>The MI method is typically implemented assuming the complete data follows a multivariate normal distribution. Violation of this assumption isn’t necessarily a deal-breaker for relying on MI estimates. However MI can only preserve features of the dataset represented in the imputation model. Therefore you need to think carefully about which features (variables) need to be preserved when building the imputation model to ensure those particular features will appear in the final statistical model.</p>
 <ul>
 <li><strong>Include variables in the imputation model that make the assumption of ignorable missingness reasonable.</strong> Remember that the MI method assumes data is MAR. So for this to work on data MNAR, we want to build a predictive model that does a great job of predicting missing values. Typically this includes using variables that will be in the final statistical model as well as variables in the dataset not used in the final statistical model, variables strongly correlated with the variable with missingness (as measured by the complete observations), and even the response variable itself. Think of the imputation model as a pure prediction model - you are not conducting inference on the imputation model itself, so it can be highly complex.</li>
@@ -892,8 +909,8 @@ credit_te[missing_examples,]</code></pre>
   combined.results &lt;-<span class="st"> </span><span class="kw">mi.meld</span>(<span class="dt">q =</span> coef.out, <span class="dt">se =</span> se.out)
   
   <span class="kw">tibble</span>(<span class="dt">term =</span> <span class="kw">colnames</span>(combined.results<span class="op">$</span>q.mi),
-             <span class="dt">estimate.mi =</span> combined.results<span class="op">$</span>q.mi[<span class="dv">1</span>, ],
-             <span class="dt">std.error.mi =</span> combined.results<span class="op">$</span>se.mi[<span class="dv">1</span>, ])
+         <span class="dt">estimate.mi =</span> combined.results<span class="op">$</span>q.mi[<span class="dv">1</span>, ],
+         <span class="dt">std.error.mi =</span> combined.results<span class="op">$</span>se.mi[<span class="dv">1</span>, ])
 }
 
 <span class="co"># compare results</span>
@@ -1031,7 +1048,7 @@ models_trans_imp</code></pre>
 <span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_pointrange</span>(<span class="dt">position =</span> <span class="kw">position_dodge</span>(.<span class="dv">75</span>)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">coord_flip</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_color_discrete</span>(<span class="dt">guide =</span> <span class="kw">guide_legend</span>(<span class="dt">reverse =</span> <span class="ot">TRUE</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">guide =</span> <span class="kw">guide_legend</span>(<span class="dt">reverse =</span> <span class="ot">TRUE</span>)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Comparing regression results&quot;</span>,
        <span class="dt">x =</span> <span class="ot">NULL</span>,
        <span class="dt">y =</span> <span class="st">&quot;Estimated parameter&quot;</span>,
@@ -1060,7 +1077,7 @@ models_trans_imp</code></pre>
 <span class="st">  </span><span class="kw">geom_hline</span>(<span class="dt">yintercept =</span> <span class="dv">0</span>, <span class="dt">linetype =</span> <span class="dv">2</span>) <span class="op">+</span>
 <span class="st">  </span><span class="kw">geom_pointrange</span>(<span class="dt">position =</span> <span class="kw">position_dodge</span>(.<span class="dv">75</span>)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">coord_flip</span>() <span class="op">+</span>
-<span class="st">  </span><span class="kw">scale_color_discrete</span>(<span class="dt">guide =</span> <span class="kw">guide_legend</span>(<span class="dt">reverse =</span> <span class="ot">TRUE</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_color_brewer</span>(<span class="dt">type =</span> <span class="st">&quot;qual&quot;</span>, <span class="dt">guide =</span> <span class="kw">guide_legend</span>(<span class="dt">reverse =</span> <span class="ot">TRUE</span>)) <span class="op">+</span>
 <span class="st">  </span><span class="kw">labs</span>(<span class="dt">title =</span> <span class="st">&quot;Comparing regression results&quot;</span>,
        <span class="dt">subtitle =</span> <span class="st">&quot;Omitting intercept from plot&quot;</span>,
        <span class="dt">x =</span> <span class="ot">NULL</span>,
@@ -1071,32 +1088,15 @@ models_trans_imp</code></pre>
 </div>
 </div>
 </div>
-<div id="multiple-imputation-outside-of-glms" class="section level1">
-<h1><span class="header-section-number">6</span> Multiple imputation outside of GLMs</h1>
-<ul>
-<li>Tree-based inference - missing value becomes a feature of the data</li>
-</ul>
-</div>
-<div id="mi-in-python" class="section level1">
-<h1><span class="header-section-number">7</span> MI in Python</h1>
-<ul>
-<li><a href="http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.Imputer.html"><code>sklearn.preprocessing.Imputer</code></a> - for basic imputation with mean, median, or modal values</li>
-<li><a href="http://www.statsmodels.org/dev/imputation.html">Multiple Imputation with Chained Equations</a> - for <code>statsmodels</code>
-<ul>
-<li>Uses the predictive mean matching technique</li>
-</ul></li>
-<li><a href="https://github.com/Oracen/MIDAS">MIDAS - Multiple Imputation with Denoising Autoencoders</a> - deep learning method for multiple imputation</li>
-</ul>
-</div>
 <div id="acknowledgments" class="section level1 toc-ignore">
-<h1><span class="header-section-number">8</span> Acknowledgments</h1>
+<h1><span class="header-section-number">6</span> Acknowledgments</h1>
 <ul>
 <li><a href="http://socserv.socsci.mcmaster.ca/jfox/Books/Applied-Regression-3E/index.html">Fox, John. <em>Applied Regression Analysis and Generalized Linear Models</em>. 3rd edition. 2016.</a></li>
 <li>For more information on alternative packages in R for multiple imputation, see <a href="http://thomasleeper.com/Rcourse/Tutorials/mi.html">this tutorial on multiple imputation in R</a>.</li>
 </ul>
 </div>
 <div id="session-info" class="section level1 toc-ignore">
-<h1><span class="header-section-number">9</span> Session Info</h1>
+<h1><span class="header-section-number">7</span> Session Info</h1>
 <pre class="sourceCode r"><code class="sourceCode r">devtools<span class="op">::</span><span class="kw">session_info</span>()</code></pre>
 <pre><code>## ─ Session info ──────────────────────────────────────────────────────────
 ##  setting  value                       
@@ -1108,90 +1108,107 @@ models_trans_imp</code></pre>
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/Chicago             
-##  date     2019-04-16                  
+##  date     2019-04-17                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
-##  package      * version date       lib source        
-##  abind          1.4-5   2016-07-21 [2] CRAN (R 3.5.0)
-##  assertthat     0.2.1   2019-03-21 [2] CRAN (R 3.5.3)
-##  backports      1.1.3   2018-12-14 [2] CRAN (R 3.5.0)
-##  blogdown       0.11    2019-03-11 [1] CRAN (R 3.5.2)
-##  bookdown       0.9     2018-12-21 [1] CRAN (R 3.5.0)
-##  broom        * 0.5.1   2018-12-05 [2] CRAN (R 3.5.0)
-##  callr          3.2.0   2019-03-15 [2] CRAN (R 3.5.2)
-##  car          * 3.0-2   2018-08-23 [2] CRAN (R 3.5.0)
-##  carData      * 3.0-2   2018-09-30 [2] CRAN (R 3.5.0)
-##  cellranger     1.1.0   2016-07-27 [2] CRAN (R 3.5.0)
-##  cli            1.1.0   2019-03-19 [1] CRAN (R 3.5.2)
-##  colorspace     1.4-1   2019-03-18 [2] CRAN (R 3.5.2)
-##  crayon         1.3.4   2017-09-16 [2] CRAN (R 3.5.0)
-##  curl           3.3     2019-01-10 [2] CRAN (R 3.5.2)
-##  data.table     1.12.0  2019-01-13 [2] CRAN (R 3.5.2)
-##  desc           1.2.0   2018-05-01 [2] CRAN (R 3.5.0)
-##  devtools       2.0.1   2018-10-26 [1] CRAN (R 3.5.1)
-##  digest         0.6.18  2018-10-10 [1] CRAN (R 3.5.0)
-##  dplyr        * 0.8.0.1 2019-02-15 [1] CRAN (R 3.5.2)
-##  evaluate       0.13    2019-02-12 [2] CRAN (R 3.5.2)
-##  forcats      * 0.4.0   2019-02-17 [2] CRAN (R 3.5.2)
-##  foreign        0.8-71  2018-07-20 [2] CRAN (R 3.5.3)
-##  fs             1.2.7   2019-03-19 [1] CRAN (R 3.5.3)
-##  generics       0.0.2   2018-11-29 [1] CRAN (R 3.5.0)
-##  ggplot2      * 3.1.0   2018-10-25 [1] CRAN (R 3.5.0)
-##  glue           1.3.1   2019-03-12 [2] CRAN (R 3.5.2)
-##  gtable         0.2.0   2016-02-26 [2] CRAN (R 3.5.0)
-##  haven          2.1.0   2019-02-19 [2] CRAN (R 3.5.2)
-##  here         * 0.1     2017-05-28 [2] CRAN (R 3.5.0)
-##  hms            0.4.2   2018-03-10 [2] CRAN (R 3.5.0)
-##  htmltools      0.3.6   2017-04-28 [1] CRAN (R 3.5.0)
-##  httr           1.4.0   2018-12-11 [2] CRAN (R 3.5.0)
-##  jsonlite       1.6     2018-12-07 [2] CRAN (R 3.5.0)
-##  knitr          1.22    2019-03-08 [2] CRAN (R 3.5.2)
-##  lattice        0.20-38 2018-11-04 [2] CRAN (R 3.5.3)
-##  lazyeval       0.2.2   2019-03-15 [2] CRAN (R 3.5.2)
-##  lubridate      1.7.4   2018-04-11 [2] CRAN (R 3.5.0)
-##  magrittr       1.5     2014-11-22 [2] CRAN (R 3.5.0)
-##  memoise        1.1.0   2017-04-21 [2] CRAN (R 3.5.0)
-##  modelr       * 0.1.4   2019-02-18 [2] CRAN (R 3.5.2)
-##  munsell        0.5.0   2018-06-12 [2] CRAN (R 3.5.0)
-##  nlme           3.1-137 2018-04-07 [2] CRAN (R 3.5.3)
-##  openxlsx       4.1.0   2018-05-26 [2] CRAN (R 3.5.0)
-##  pillar         1.3.1   2018-12-15 [2] CRAN (R 3.5.0)
-##  pkgbuild       1.0.3   2019-03-20 [1] CRAN (R 3.5.3)
-##  pkgconfig      2.0.2   2018-08-16 [2] CRAN (R 3.5.1)
-##  pkgload        1.0.2   2018-10-29 [1] CRAN (R 3.5.0)
-##  plyr           1.8.4   2016-06-08 [2] CRAN (R 3.5.0)
-##  prettyunits    1.0.2   2015-07-13 [2] CRAN (R 3.5.0)
-##  processx       3.3.0   2019-03-10 [2] CRAN (R 3.5.2)
-##  ps             1.3.0   2018-12-21 [2] CRAN (R 3.5.0)
-##  purrr        * 0.3.2   2019-03-15 [2] CRAN (R 3.5.2)
-##  R6             2.4.0   2019-02-14 [1] CRAN (R 3.5.2)
-##  rcfss        * 0.1.5   2019-04-11 [1] local         
-##  RColorBrewer * 1.1-2   2014-12-07 [2] CRAN (R 3.5.0)
-##  Rcpp           1.0.1   2019-03-17 [1] CRAN (R 3.5.2)
-##  readr        * 1.3.1   2018-12-21 [2] CRAN (R 3.5.0)
-##  readxl         1.3.1   2019-03-13 [2] CRAN (R 3.5.2)
-##  remotes        2.0.2   2018-10-30 [1] CRAN (R 3.5.0)
-##  rio            0.5.16  2018-11-26 [2] CRAN (R 3.5.0)
-##  rlang          0.3.2   2019-03-21 [1] CRAN (R 3.5.3)
-##  rmarkdown      1.12    2019-03-14 [1] CRAN (R 3.5.2)
-##  rprojroot      1.3-2   2018-01-03 [2] CRAN (R 3.5.0)
-##  rstudioapi     0.10    2019-03-19 [1] CRAN (R 3.5.3)
-##  rvest          0.3.2   2016-06-17 [2] CRAN (R 3.5.0)
-##  scales         1.0.0   2018-08-09 [1] CRAN (R 3.5.0)
-##  sessioninfo    1.1.1   2018-11-05 [1] CRAN (R 3.5.0)
-##  stringi        1.4.3   2019-03-12 [1] CRAN (R 3.5.2)
-##  stringr      * 1.4.0   2019-02-10 [1] CRAN (R 3.5.2)
-##  testthat       2.0.1   2018-10-13 [2] CRAN (R 3.5.0)
-##  tibble       * 2.1.1   2019-03-16 [2] CRAN (R 3.5.2)
-##  tidyr        * 0.8.3   2019-03-01 [1] CRAN (R 3.5.2)
-##  tidyselect     0.2.5   2018-10-11 [1] CRAN (R 3.5.0)
-##  tidyverse    * 1.2.1   2017-11-14 [2] CRAN (R 3.5.0)
-##  usethis        1.4.0   2018-08-14 [1] CRAN (R 3.5.0)
-##  withr          2.1.2   2018-03-15 [2] CRAN (R 3.5.0)
-##  xfun           0.5     2019-02-20 [1] CRAN (R 3.5.2)
-##  xml2           1.2.0   2018-01-24 [2] CRAN (R 3.5.0)
-##  yaml           2.2.0   2018-07-25 [2] CRAN (R 3.5.0)
-##  zip            2.0.1   2019-03-11 [2] CRAN (R 3.5.2)
+##  package      * version    date       lib source        
+##  abind          1.4-5      2016-07-21 [2] CRAN (R 3.5.0)
+##  Amelia       * 1.7.5      2018-05-08 [2] CRAN (R 3.5.0)
+##  assertthat     0.2.1      2019-03-21 [2] CRAN (R 3.5.3)
+##  backports      1.1.3      2018-12-14 [2] CRAN (R 3.5.0)
+##  blogdown       0.11       2019-03-11 [1] CRAN (R 3.5.2)
+##  bookdown       0.9        2018-12-21 [1] CRAN (R 3.5.0)
+##  broom        * 0.5.1      2018-12-05 [2] CRAN (R 3.5.0)
+##  callr          3.2.0      2019-03-15 [2] CRAN (R 3.5.2)
+##  car          * 3.0-2      2018-08-23 [2] CRAN (R 3.5.0)
+##  carData      * 3.0-2      2018-09-30 [2] CRAN (R 3.5.0)
+##  cellranger     1.1.0      2016-07-27 [2] CRAN (R 3.5.0)
+##  class          7.3-15     2019-01-01 [2] CRAN (R 3.5.3)
+##  cli            1.1.0      2019-03-19 [1] CRAN (R 3.5.2)
+##  codetools      0.2-16     2018-12-24 [2] CRAN (R 3.5.3)
+##  colorspace     1.4-1      2019-03-18 [2] CRAN (R 3.5.2)
+##  crayon         1.3.4      2017-09-16 [2] CRAN (R 3.5.0)
+##  curl           3.3        2019-01-10 [2] CRAN (R 3.5.2)
+##  data.table     1.12.0     2019-01-13 [2] CRAN (R 3.5.2)
+##  desc           1.2.0      2018-05-01 [2] CRAN (R 3.5.0)
+##  devtools       2.0.1      2018-10-26 [1] CRAN (R 3.5.1)
+##  digest         0.6.18     2018-10-10 [1] CRAN (R 3.5.0)
+##  dplyr        * 0.8.0.1    2019-02-15 [1] CRAN (R 3.5.2)
+##  evaluate       0.13       2019-02-12 [2] CRAN (R 3.5.2)
+##  fansi          0.4.0      2018-10-05 [2] CRAN (R 3.5.0)
+##  forcats      * 0.4.0      2019-02-17 [2] CRAN (R 3.5.2)
+##  foreign        0.8-71     2018-07-20 [2] CRAN (R 3.5.3)
+##  fs             1.2.7      2019-03-19 [1] CRAN (R 3.5.3)
+##  generics       0.0.2      2018-11-29 [1] CRAN (R 3.5.0)
+##  ggplot2      * 3.1.0      2018-10-25 [1] CRAN (R 3.5.0)
+##  glue           1.3.1      2019-03-12 [2] CRAN (R 3.5.2)
+##  gower          0.2.0      2019-03-07 [2] CRAN (R 3.5.2)
+##  gtable         0.2.0      2016-02-26 [2] CRAN (R 3.5.0)
+##  haven          2.1.0      2019-02-19 [2] CRAN (R 3.5.2)
+##  here         * 0.1        2017-05-28 [2] CRAN (R 3.5.0)
+##  hms            0.4.2      2018-03-10 [2] CRAN (R 3.5.0)
+##  htmltools      0.3.6      2017-04-28 [1] CRAN (R 3.5.0)
+##  httr           1.4.0      2018-12-11 [2] CRAN (R 3.5.0)
+##  ipred          0.9-8      2018-11-05 [1] CRAN (R 3.5.0)
+##  jsonlite       1.6        2018-12-07 [2] CRAN (R 3.5.0)
+##  knitr          1.22       2019-03-08 [2] CRAN (R 3.5.2)
+##  labeling       0.3        2014-08-23 [2] CRAN (R 3.5.0)
+##  lattice        0.20-38    2018-11-04 [2] CRAN (R 3.5.3)
+##  lava           1.6.5      2019-02-12 [2] CRAN (R 3.5.2)
+##  lazyeval       0.2.2      2019-03-15 [2] CRAN (R 3.5.2)
+##  lubridate      1.7.4      2018-04-11 [2] CRAN (R 3.5.0)
+##  magrittr       1.5        2014-11-22 [2] CRAN (R 3.5.0)
+##  MASS           7.3-51.1   2018-11-01 [2] CRAN (R 3.5.3)
+##  Matrix         1.2-15     2018-11-01 [2] CRAN (R 3.5.3)
+##  memoise        1.1.0      2017-04-21 [2] CRAN (R 3.5.0)
+##  modelr       * 0.1.4      2019-02-18 [2] CRAN (R 3.5.2)
+##  munsell        0.5.0      2018-06-12 [2] CRAN (R 3.5.0)
+##  nlme           3.1-137    2018-04-07 [2] CRAN (R 3.5.3)
+##  nnet           7.3-12     2016-02-02 [2] CRAN (R 3.5.3)
+##  openxlsx       4.1.0      2018-05-26 [2] CRAN (R 3.5.0)
+##  pillar         1.3.1      2018-12-15 [2] CRAN (R 3.5.0)
+##  pkgbuild       1.0.3      2019-03-20 [1] CRAN (R 3.5.3)
+##  pkgconfig      2.0.2      2018-08-16 [2] CRAN (R 3.5.1)
+##  pkgload        1.0.2      2018-10-29 [1] CRAN (R 3.5.0)
+##  plyr           1.8.4      2016-06-08 [2] CRAN (R 3.5.0)
+##  prettyunits    1.0.2      2015-07-13 [2] CRAN (R 3.5.0)
+##  processx       3.3.0      2019-03-10 [2] CRAN (R 3.5.2)
+##  prodlim        2018.04.18 2018-04-18 [2] CRAN (R 3.5.0)
+##  ps             1.3.0      2018-12-21 [2] CRAN (R 3.5.0)
+##  purrr        * 0.3.2      2019-03-15 [2] CRAN (R 3.5.2)
+##  R6             2.4.0      2019-02-14 [1] CRAN (R 3.5.2)
+##  rcfss        * 0.1.5      2019-04-17 [1] local         
+##  RColorBrewer * 1.1-2      2014-12-07 [2] CRAN (R 3.5.0)
+##  Rcpp         * 1.0.1      2019-03-17 [1] CRAN (R 3.5.2)
+##  readr        * 1.3.1      2018-12-21 [2] CRAN (R 3.5.0)
+##  readxl         1.3.1      2019-03-13 [2] CRAN (R 3.5.2)
+##  recipes      * 0.1.5      2019-03-21 [1] CRAN (R 3.5.3)
+##  remotes        2.0.2      2018-10-30 [1] CRAN (R 3.5.0)
+##  rio            0.5.16     2018-11-26 [2] CRAN (R 3.5.0)
+##  rlang          0.3.2      2019-03-21 [1] CRAN (R 3.5.3)
+##  rmarkdown      1.12       2019-03-14 [1] CRAN (R 3.5.2)
+##  rpart          4.1-13     2018-02-23 [1] CRAN (R 3.5.0)
+##  rprojroot      1.3-2      2018-01-03 [2] CRAN (R 3.5.0)
+##  rstudioapi     0.10       2019-03-19 [1] CRAN (R 3.5.3)
+##  rvest          0.3.2      2016-06-17 [2] CRAN (R 3.5.0)
+##  scales         1.0.0      2018-08-09 [1] CRAN (R 3.5.0)
+##  sessioninfo    1.1.1      2018-11-05 [1] CRAN (R 3.5.0)
+##  stringi        1.4.3      2019-03-12 [1] CRAN (R 3.5.2)
+##  stringr      * 1.4.0      2019-02-10 [1] CRAN (R 3.5.2)
+##  survival       2.43-3     2018-11-26 [2] CRAN (R 3.5.3)
+##  testthat       2.0.1      2018-10-13 [2] CRAN (R 3.5.0)
+##  tibble       * 2.1.1      2019-03-16 [2] CRAN (R 3.5.2)
+##  tidyr        * 0.8.3      2019-03-01 [1] CRAN (R 3.5.2)
+##  tidyselect     0.2.5      2018-10-11 [1] CRAN (R 3.5.0)
+##  tidyverse    * 1.2.1      2017-11-14 [2] CRAN (R 3.5.0)
+##  timeDate       3043.102   2018-02-21 [2] CRAN (R 3.5.0)
+##  usethis        1.4.0      2018-08-14 [1] CRAN (R 3.5.0)
+##  utf8           1.1.4      2018-05-24 [2] CRAN (R 3.5.0)
+##  withr          2.1.2      2018-03-15 [2] CRAN (R 3.5.0)
+##  xfun           0.5        2019-02-20 [1] CRAN (R 3.5.2)
+##  xml2           1.2.0      2018-01-24 [2] CRAN (R 3.5.0)
+##  yaml           2.2.0      2018-07-25 [2] CRAN (R 3.5.0)
+##  zip            2.0.1      2019-03-11 [2] CRAN (R 3.5.2)
 ## 
 ## [1] /Users/soltoffbc/Library/R/3.5/library
 ## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library</code></pre>
