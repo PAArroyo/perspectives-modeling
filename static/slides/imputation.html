@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Imputation methods</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="MACS 30200   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/lucy-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Imputation methods
+### <a href="https://github.com/css-research/course/">MACS 30200</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Causes of missingness
+
+* Surveys
+    * Global or unit non-response
+    * Item non-response
+* Errors in data collection
+* Intentionally built into the research design (e.g. survey experiments)
+* Censored values
+
+---
+
+# Patterns of missingness
+
+* Missing completely at random (MCAR)
+* Missing at random (MAR)
+* Missing not at random (MNAR)
+
+## Why does it matter?
+
+* Mechanism for missingness
+* Ignorable vs. non-ignorable
+
+---
+
+# Simulated data
+
+
+
+&lt;img src="imputation_files/figure-html/sim-mod-1.png" width="864" /&gt;
+
+---
+
+# Missing completely at random
+
+&lt;img src="imputation_files/figure-html/sim-mcar-1.png" width="864" /&gt;
+
+---
+
+# Missing at random
+
+`$$\Pr(X_{i2} \text{is missing}) = \frac{1}{1 + \exp[\frac{1}{2} + \frac{2}{3}(X_{i1} - 10)]}$$`
+
+&lt;img src="imputation_files/figure-html/sim-mar-1.png" width="864" /&gt;
+
+---
+
+# Missing not at random
+
+`$$\Pr(X_{i2} \text{is missing}) = \frac{1}{1 + \exp[\frac{1}{2} + \frac{1}{2}(X_{i2} - 20)]}$$`
+
+&lt;img src="imputation_files/figure-html/sim-mnar-1.png" width="864" /&gt;
+
+---
+
+# Traditional approaches to missing data
+
+1. Does the method provide **consistent estimates** of the population parameters?
+1. Does the method provide **valid statistical inferences**?
+1. Does the method use the observed data **efficiently** or does it recklessly discard information?
+
+---
+
+# Complete-case analysis
+
+* Listwise or casewise deletion
+* Ignore any observations with missing values on variables necessary to estimate the model
+
+## Benefits
+
+* Is simple
+* Provides consistent estimates and valid inferences when the data is MCAR
+* Provides consistent estimates of regression coefficients and valid inferences when missingness on all the variables in a regression does not depend on the response variable
+
+## Drawbacks
+
+* Decreases efficiency
+* When data is MAR or MNAR, listwise deletion provides biased results and invalid inferences
+
+---
+
+# Available-case analysis
+
+* Pairwise deletion
+* Use all non-missing observations to compute each statistic of interest
+* For OLS:
+    * Compute regression coefficients from means, variances, and covariances rather than directly from the observations
+
+## Benefits
+
+* Uses more information than complete-case analysis
+
+## Drawbacks
+
+* Less efficient than complete-case analysis
+* Can lead to nonsensical statistical values
+* Difficult to implement outside of OLS
+
+---
+
+# Imputation
+
+* Fill in missing data with plausible imputed values
+* Use complete data set to analyze using traditional methods
+
+--
+
+## Unconditional mean imputation
+
+* Replace missing value with arithmetic mean/median/mode of the observed values
+* Preserves measure of central tendency
+* Decreases variance and covariance
+* Potentially biases models and inferences even if data is MCAR
+
+--
+
+## Conditional mean imputation
+
+* Replace missing data with predicted values obtained from a statistical learning model
+* Use available variables to predict a single variable with missing values
+* Replace missing values with predictions from the model
+* Imputed values still tend to be less variable than the real data because they lack residual variation
+* Fail to account for uncertainty in the model used to obtain the imputed values
+
+---
+
+# Comparison of imputation methods
+
+
+
+&lt;img src="imputation_files/figure-html/compare-imputation-plot-1.png" width="864" /&gt;
+
+---
+
+# Implementing imputation
+
+* `recipes`
+* `scikit-learn`
+
+---
+
+# `credit_data`
+
+
+```
+## Observations: 4,454
+## Variables: 14
+## $ Status    &lt;fct&gt; good, good, bad, good, good, good, good, good, good, b…
+## $ Seniority &lt;int&gt; 9, 17, 10, 0, 0, 1, 29, 9, 0, 0, 6, 7, 8, 19, 0, 0, 15…
+## $ Home      &lt;fct&gt; rent, rent, owner, rent, rent, owner, owner, parents, …
+## $ Time      &lt;int&gt; 60, 60, 36, 60, 36, 60, 60, 12, 60, 48, 48, 36, 60, 36…
+## $ Age       &lt;int&gt; 30, 58, 46, 24, 26, 36, 44, 27, 32, 41, 34, 29, 30, 37…
+## $ Marital   &lt;fct&gt; married, widow, married, single, single, married, marr…
+## $ Records   &lt;fct&gt; no, no, yes, no, no, no, no, no, no, no, no, no, no, n…
+## $ Job       &lt;fct&gt; freelance, fixed, freelance, fixed, fixed, fixed, fixe…
+## $ Expenses  &lt;int&gt; 73, 48, 90, 63, 46, 75, 75, 35, 90, 90, 60, 60, 75, 75…
+## $ Income    &lt;int&gt; 129, 131, 200, 182, 107, 214, 125, 80, 107, 80, 125, 1…
+## $ Assets    &lt;int&gt; 0, 0, 3000, 2500, 0, 3500, 10000, 0, 15000, 0, 4000, 3…
+## $ Debt      &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2500, 260, 0, 0, 0…
+## $ Amount    &lt;int&gt; 800, 1000, 2000, 900, 310, 650, 1600, 200, 1200, 1200,…
+## $ Price     &lt;int&gt; 846, 1658, 2985, 1325, 910, 1645, 1800, 1093, 1957, 14…
+```
+
+---
+
+# `credit_data`
+
+&lt;img src="imputation_files/figure-html/credit-data-missmap-1.png" width="864" /&gt;
+
+---
+
+# Mean imputation
+
+
+
+
+
+
+```
+## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35     NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 fixed       35    173   7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60    165   3500  1300   1400  1530
+```
+
+```
+## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35   139.  5430.  320.   1500  1850
+## 2 bad    priv     48    36 fixed       35   173   7700     0    1000  2008
+## 3 bad    priv     60    46 fixed       60   165   3500  1300    1400  1530
+```
+
+---
+
+# Median imputation
+
+
+```
+## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35     NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 fixed       35    173   7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60    165   3500  1300   1400  1530
+```
+
+```
+## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35    125   3500     0   1500  1850
+## 2 bad    priv     48    36 fixed       35    173   7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60    165   3500  1300   1400  1530
+```
+
+---
+
+# Modal imputation
+
+
+```
+## # A tibble: 3 x 11
+##   Status Home   Time   Age Marital Job   Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 single  &lt;NA&gt;      NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 single  fixed    173   7700     0   1000  2008
+## 3 bad    priv     60    46 married fixed    165   3500  1300   1400  1530
+```
+
+```
+## # A tibble: 3 x 11
+##   Status Home   Time   Age Marital Job   Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;   &lt;fct&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    owner    48    37 single  fixed     NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 single  fixed    173   7700     0   1000  2008
+## 3 bad    priv     60    46 married fixed    165   3500  1300   1400  1530
+```
+
+---
+
+# `\(K\)` nearest neighbors imputation
+
+* Uses `\(K\)` nearest neighbors to estimate model with the imputing variable as the outcome of interest, using all the other available variables
+* Once `\(K\)` nearest neighbors are found, the mode is used to predict nominal variables and the mean is used for numeric variables
+
+---
+
+# `\(K\)` nearest neighbors imputation
+
+
+```
+## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35     NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 fixed       35    173   7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60    165   3500  1300   1400  1530
+```
+
+```
+## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    other    48    37 fixed       35   91.8      0     0   1500  1850
+## 2 bad    priv     48    36 fixed       35  173     7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60  165     3500  1300   1400  1530
+```
+
+---
+
+# Tree-aggregation imputation
+
+* Use tree-based method to generate imputed values
+* Ensemble of trees
+
+---
+
+# Tree bagging imputation
+
+
+```
+## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    &lt;NA&gt;     48    37 &lt;NA&gt;        35     NA     NA    NA   1500  1850
+## 2 bad    priv     48    36 fixed       35    173   7700     0   1000  2008
+## 3 bad    priv     60    46 fixed       60    165   3500  1300   1400  1530
+```
+
+```
+## # A tibble: 3 x 11
+##   Status Home   Time   Age Job   Expenses Income Assets  Debt Amount Price
+##   &lt;fct&gt;  &lt;fct&gt; &lt;int&gt; &lt;int&gt; &lt;fct&gt;    &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;int&gt; &lt;int&gt;
+## 1 bad    other    48    37 fixed       35   118.  2942.  118.   1500  1850
+## 2 bad    priv     48    36 fixed       35   173   7700     0    1000  2008
+## 3 bad    priv     60    46 fixed       60   165   3500  1300    1400  1530
+```
+
+---
+
+# Imputation rules of thumb
+
+* For predictive modeling, these methods are typically most utilized
+* If the method accepts missing values, no need to impute
+* Compare the effect of different imputation strategies on model performance
+* Exclude the validation/test set from imputation strategy
+
+---
+
+# Multiple imputation
+
+* Generate multiple imputed datasets
+* Bayesian multiple imputation
+* Account for uncertainty within and across the datasets
+
+---
+
+# Maximum-likelihood estimation
+
+* Joint PDF for the complete data `\(\mathbf{X}\)`
+    
+    `$$\Pr(\mathbf{X}, \theta) = \Pr(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}; \theta)$$`
+    * `\(\theta\)`
+
+* Estimate marginal distribution of observed data
+
+    `$$\Pr(\mathbf{X}_\text{obs}; \theta) = \int{\Pr(\mathbf{X}_{\text{obs}}, \mathbf{X}_{\text{mis}}; \theta)} d\mathbf{X}_{\text{mis}}$$`
+
+* Directly calculated for MCAR/MAR
+* More complex implementation for MNAR
+
+---
+
+# Predictive mean matching
+
+1. For cases with no missing data, estimate a linear regression of `\(x\)` on `\(z\)`, producing a set of coefficients `\(b\)`
+1. Make a random draw from the **posterior predictive distribution** of `\(b\)`, producing a new set of coefficients `\(b*\)`
+1. Using `\(b*\)`, generate predicted values for `\(x\)` for all cases, both those with data missing on `\(x\)` and those with data present
+1. For each case with missing `\(x\)`, identify a set of cases with observed `\(x\)` whose predicted values are close to the predicted value for the case with missing data
+1. From among those close cases, randomly choose one and assign its observed value to substitute for the missing value
+
+---
+
+# Inference for individual coefficients
+
+`$$\tilde{\beta}_j \equiv \frac{\sum_{l=1}^g B_j^{(l)}}{g}$$`
+
+`$$\tilde{\se}(\tilde{\beta}_j) = \sqrt{\Var_j^{(W)} + \frac{g + 1}{g} \Var_j^{(B)}}$$`
+
+`$$\Var_j^{(W)} = \frac{\sum_{l=1}^g \se^2(B_j^{(l)})}{g}$$`
+
+`$$\Var_j^{(B)} = \frac{\sum_{l=1}^g (B_j^{(l)} - \tilde{B}_j)^2}{g-1}$$`
+
+`$$\se^2(B_j^{(l)})$$`
+
+---
+
+# Practical considerations for MI
+
+* Which variables to include
+* Transform variables to approximately normal
+* Adjust the imputed data to resemble the original data
+* Make sure the imputation model captures relevant features of the data
+* `\(g\)` doesn't need to be large
+
+---
+
+# Infant mortality
+
+
+
+&lt;img src="imputation_files/figure-html/plot-infant-gdp-1.png" width="864" /&gt;
+
+---
+
+# Infant mortality
+
+.pull-left[
+
+&lt;img src="imputation_files/figure-html/log-log-1.png" width="432" /&gt;
+
+]
+
+.pull-right[
+
+
+```
+## # A tibble: 4 x 5
+##   term              estimate std.error statistic  p.value
+##   &lt;chr&gt;                &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+## 1 (Intercept)         6.88     0.290       23.7  1.58e-31
+## 2 log(GDPperCapita)  -0.294    0.0577      -5.10 3.85e- 6
+## 3 contraception      -0.0113   0.00424     -2.66 1.01e- 2
+## 4 educationFemale    -0.0770   0.0338      -2.28 2.63e- 2
+```
+
+]
+
+---
+
+# Infant mortality missingness
+
+&lt;img src="imputation_files/figure-html/miss-pattern-1.png" width="864" /&gt;
+
+---
+
+# `Amelia`
+
+
+
+
+```
+## List of 5
+##  $ imp1:'data.frame':	207 obs. of  14 variables:
+##   ..$ country               : chr [1:207] "Afghanistan" "Albania" "Algeria" "American.Samoa" ...
+##   ..$ region                : chr [1:207] "Asia" "Europe" "Africa" "Asia" ...
+##   ..$ tfr                   : num [1:207] 6.9 2.6 3.81 1.82 NA ...
+##   ..$ contraception         : num [1:207] 25.3 49.6 52 49.3 NA ...
+##   ..$ educationMale         : num [1:207] 12.4 13.7 11.1 10.9 NA ...
+##   ..$ educationFemale       : num [1:207] 9.38 13.9 9.9 11.76 NA ...
+##   ..$ lifeMale              : num [1:207] 45 68 67.5 68 NA ...
+##   ..$ lifeFemale            : num [1:207] 46 74 70.3 73 NA ...
+##   ..$ infantMortality       : num [1:207] 154 32 44 11 NA 124 24 22 25 6 ...
+##   ..$ GDPperCapita          : num [1:207] 2848 863 1531 2739 NA ...
+##   ..$ economicActivityMale  : num [1:207] 87.5 75.1 76.4 58.8 NA ...
+##   ..$ economicActivityFemale: num [1:207] 7.2 42.1 7.8 42.4 NA ...
+##   ..$ illiteracyMale        : num [1:207] 52.8 2.15 26.1 0.264 NA ...
+##   ..$ illiteracyFemale      : num [1:207] 85 6.52 51 0.36 NA ...
+##   ..- attr(*, "spec")=
+##   .. .. cols(
+##   .. ..   country = col_character(),
+##   .. ..   region = col_character(),
+##   .. ..   tfr = col_double(),
+##   .. ..   contraception = col_double(),
+##   .. ..   educationMale = col_double(),
+##   .. ..   educationFemale = col_double(),
+##   .. ..   lifeMale = col_double(),
+##   .. ..   lifeFemale = col_double(),
+##   .. ..   infantMortality = col_double(),
+##   .. ..   GDPperCapita = col_double(),
+##   .. ..   economicActivityMale = col_double(),
+##   .. ..   economicActivityFemale = col_double(),
+##   .. ..   illiteracyMale = col_double(),
+##   .. ..   illiteracyFemale = col_double()
+##   .. .. )
+##  $ imp2:'data.frame':	207 obs. of  14 variables:
+##   ..$ country               : chr [1:207] "Afghanistan" "Albania" "Algeria" "American.Samoa" ...
+##   ..$ region                : chr [1:207] "Asia" "Europe" "Africa" "Asia" ...
+##   ..$ tfr                   : num [1:207] 6.9 2.6 3.81 2.48 NA ...
+##   ..$ contraception         : num [1:207] 6.66 57.7 52 37.09 NA ...
+##   ..$ educationMale         : num [1:207] 6.82 10.4 11.1 11.8 NA ...
+##   ..$ educationFemale       : num [1:207] 3.76 11.66 9.9 11.85 NA ...
+##   ..$ lifeMale              : num [1:207] 45 68 67.5 68 NA ...
+##   ..$ lifeFemale            : num [1:207] 46 74 70.3 73 NA ...
+##   ..$ infantMortality       : num [1:207] 154 32 44 11 NA 124 24 22 25 6 ...
+##   ..$ GDPperCapita          : num [1:207] 2848 863 1531 1403 NA ...
+##   ..$ economicActivityMale  : num [1:207] 87.5 74.3 76.4 58.8 NA ...
+##   ..$ economicActivityFemale: num [1:207] 7.2 46 7.8 42.4 NA ...
+##   ..$ illiteracyMale        : num [1:207] 52.8 1.519 26.1 0.264 NA ...
+##   ..$ illiteracyFemale      : num [1:207] 85 -1.85 51 0.36 NA ...
+##   ..- attr(*, "spec")=
+##   .. .. cols(
+##   .. ..   country = col_character(),
+##   .. ..   region = col_character(),
+##   .. ..   tfr = col_double(),
+##   .. ..   contraception = col_double(),
+##   .. ..   educationMale = col_double(),
+##   .. ..   educationFemale = col_double(),
+##   .. ..   lifeMale = col_double(),
+##   .. ..   lifeFemale = col_double(),
+##   .. ..   infantMortality = col_double(),
+##   .. ..   GDPperCapita = col_double(),
+##   .. ..   economicActivityMale = col_double(),
+##   .. ..   economicActivityFemale = col_double(),
+##   .. ..   illiteracyMale = col_double(),
+##   .. ..   illiteracyFemale = col_double()
+##   .. .. )
+##  $ imp3:'data.frame':	207 obs. of  14 variables:
+##   ..$ country               : chr [1:207] "Afghanistan" "Albania" "Algeria" "American.Samoa" ...
+##   ..$ region                : chr [1:207] "Asia" "Europe" "Africa" "Asia" ...
+##   ..$ tfr                   : num [1:207] 6.9 2.6 3.81 3.09 NA ...
+##   ..$ contraception         : num [1:207] 16.5 52.5 52 51.6 NA ...
+##   ..$ educationMale         : num [1:207] 7.49 11.75 11.1 14.35 NA ...
+##   ..$ educationFemale       : num [1:207] 3.98 11.92 9.9 14.65 NA ...
+##   ..$ lifeMale              : num [1:207] 45 68 67.5 68 NA ...
+##   ..$ lifeFemale            : num [1:207] 46 74 70.3 73 NA ...
+##   ..$ infantMortality       : num [1:207] 154 32 44 11 NA 124 24 22 25 6 ...
+##   ..$ GDPperCapita          : num [1:207] 2848 863 1531 15300 NA ...
+##   ..$ economicActivityMale  : num [1:207] 87.5 84.3 76.4 58.8 NA ...
+##   ..$ economicActivityFemale: num [1:207] 7.2 62.2 7.8 42.4 NA ...
+##   ..$ illiteracyMale        : num [1:207] 52.8 12.197 26.1 0.264 NA ...
+##   ..$ illiteracyFemale      : num [1:207] 85 14.6 51 0.36 NA ...
+##   ..- attr(*, "spec")=
+##   .. .. cols(
+##   .. ..   country = col_character(),
+##   .. ..   region = col_character(),
+##   .. ..   tfr = col_double(),
+##   .. ..   contraception = col_double(),
+##   .. ..   educationMale = col_double(),
+##   .. ..   educationFemale = col_double(),
+##   .. ..   lifeMale = col_double(),
+##   .. ..   lifeFemale = col_double(),
+##   .. ..   infantMortality = col_double(),
+##   .. ..   GDPperCapita = col_double(),
+##   .. ..   economicActivityMale = col_double(),
+##   .. ..   economicActivityFemale = col_double(),
+##   .. ..   illiteracyMale = col_double(),
+##   .. ..   illiteracyFemale = col_double()
+##   .. .. )
+##  $ imp4:'data.frame':	207 obs. of  14 variables:
+##   ..$ country               : chr [1:207] "Afghanistan" "Albania" "Algeria" "American.Samoa" ...
+##   ..$ region                : chr [1:207] "Asia" "Europe" "Africa" "Asia" ...
+##   ..$ tfr                   : num [1:207] 6.9 2.6 3.81 1.84 NA ...
+##   ..$ contraception         : num [1:207] 24.1 51.4 52 43.7 NA ...
+##   ..$ educationMale         : num [1:207] 8.85 9.18 11.1 13.72 NA ...
+##   ..$ educationFemale       : num [1:207] 5.59 10.11 9.9 14.1 NA ...
+##   ..$ lifeMale              : num [1:207] 45 68 67.5 68 NA ...
+##   ..$ lifeFemale            : num [1:207] 46 74 70.3 73 NA ...
+##   ..$ infantMortality       : num [1:207] 154 32 44 11 NA 124 24 22 25 6 ...
+##   ..$ GDPperCapita          : num [1:207] 2848 863 1531 16133 NA ...
+##   ..$ economicActivityMale  : num [1:207] 87.5 80 76.4 58.8 NA ...
+##   ..$ economicActivityFemale: num [1:207] 7.2 67.1 7.8 42.4 NA ...
+##   ..$ illiteracyMale        : num [1:207] 52.8 9.117 26.1 0.264 NA ...
+##   ..$ illiteracyFemale      : num [1:207] 85 10.26 51 0.36 NA ...
+##   ..- attr(*, "spec")=
+##   .. .. cols(
+##   .. ..   country = col_character(),
+##   .. ..   region = col_character(),
+##   .. ..   tfr = col_double(),
+##   .. ..   contraception = col_double(),
+##   .. ..   educationMale = col_double(),
+##   .. ..   educationFemale = col_double(),
+##   .. ..   lifeMale = col_double(),
+##   .. ..   lifeFemale = col_double(),
+##   .. ..   infantMortality = col_double(),
+##   .. ..   GDPperCapita = col_double(),
+##   .. ..   economicActivityMale = col_double(),
+##   .. ..   economicActivityFemale = col_double(),
+##   .. ..   illiteracyMale = col_double(),
+##   .. ..   illiteracyFemale = col_double()
+##   .. .. )
+##  $ imp5:'data.frame':	207 obs. of  14 variables:
+##   ..$ country               : chr [1:207] "Afghanistan" "Albania" "Algeria" "American.Samoa" ...
+##   ..$ region                : chr [1:207] "Asia" "Europe" "Africa" "Asia" ...
+##   ..$ tfr                   : num [1:207] 6.9 2.6 3.81 3.07 NA ...
+##   ..$ contraception         : num [1:207] -15 49.9 52 60.8 NA ...
+##   ..$ educationMale         : num [1:207] 5.59 12.29 11.1 15.4 NA ...
+##   ..$ educationFemale       : num [1:207] 2.5 11.7 9.9 15.2 NA ...
+##   ..$ lifeMale              : num [1:207] 45 68 67.5 68 NA ...
+##   ..$ lifeFemale            : num [1:207] 46 74 70.3 73 NA ...
+##   ..$ infantMortality       : num [1:207] 154 32 44 11 NA 124 24 22 25 6 ...
+##   ..$ GDPperCapita          : num [1:207] 2848 863 1531 16249 NA ...
+##   ..$ economicActivityMale  : num [1:207] 87.5 75.4 76.4 58.8 NA ...
+##   ..$ economicActivityFemale: num [1:207] 7.2 34.8 7.8 42.4 NA ...
+##   ..$ illiteracyMale        : num [1:207] 52.8 10.904 26.1 0.264 NA ...
+##   ..$ illiteracyFemale      : num [1:207] 85 13.79 51 0.36 NA ...
+##   ..- attr(*, "spec")=
+##   .. .. cols(
+##   .. ..   country = col_character(),
+##   .. ..   region = col_character(),
+##   .. ..   tfr = col_double(),
+##   .. ..   contraception = col_double(),
+##   .. ..   educationMale = col_double(),
+##   .. ..   educationFemale = col_double(),
+##   .. ..   lifeMale = col_double(),
+##   .. ..   lifeFemale = col_double(),
+##   .. ..   infantMortality = col_double(),
+##   .. ..   GDPperCapita = col_double(),
+##   .. ..   economicActivityMale = col_double(),
+##   .. ..   economicActivityFemale = col_double(),
+##   .. ..   illiteracyMale = col_double(),
+##   .. ..   illiteracyFemale = col_double()
+##   .. .. )
+##  - attr(*, "class")= chr [1:2] "mi" "list"
+```
+
+---
+
+# Multiple imputed data
+
+&lt;img src="imputation_files/figure-html/plot-imput-1.png" width="864" /&gt;
+
+---
+
+# Multiple imputed data
+
+
+```
+## # A tibble: 20 x 6
+##    id    term              estimate std.error statistic   p.value
+##    &lt;chr&gt; &lt;chr&gt;                &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+##  1 imp1  (Intercept)        6.60      0.175       37.7  1.46e- 92
+##  2 imp1  log(GDPperCapita) -0.257     0.0299      -8.58 2.67e- 15
+##  3 imp1  contraception     -0.0150    0.00238     -6.29 1.95e-  9
+##  4 imp1  educationFemale   -0.0628    0.0169      -3.72 2.55e-  4
+##  5 imp2  (Intercept)        6.54      0.164       39.8  4.18e- 96
+##  6 imp2  log(GDPperCapita) -0.226     0.0310      -7.30 7.01e- 12
+##  7 imp2  contraception     -0.00720   0.00243     -2.96 3.45e-  3
+##  8 imp2  educationFemale   -0.117     0.0180      -6.51 6.15e- 10
+##  9 imp3  (Intercept)        6.48      0.156       41.6  8.63e-100
+## 10 imp3  log(GDPperCapita) -0.186     0.0288      -6.46 8.01e- 10
+## 11 imp3  contraception     -0.00890   0.00229     -3.89 1.36e-  4
+## 12 imp3  educationFemale   -0.133     0.0181      -7.33 5.70e- 12
+## 13 imp4  (Intercept)        6.56      0.158       41.4  6.79e- 99
+## 14 imp4  log(GDPperCapita) -0.220     0.0296      -7.42 3.48e- 12
+## 15 imp4  contraception     -0.00633   0.00249     -2.55 1.17e-  2
+## 16 imp4  educationFemale   -0.128     0.0182      -7.07 2.66e- 11
+## 17 imp5  (Intercept)        6.42      0.155       41.4  9.06e-100
+## 18 imp5  log(GDPperCapita) -0.189     0.0292      -6.48 7.17e- 10
+## 19 imp5  contraception     -0.00681   0.00215     -3.17 1.75e-  3
+## 20 imp5  educationFemale   -0.137     0.0167      -8.22 2.57e- 14
+```
+
+---
+
+# Multiple imputed data
+
+
+```
+## # A tibble: 4 x 5
+##   term              estimate std.error estimate.mi std.error.mi
+##   &lt;chr&gt;                &lt;dbl&gt;     &lt;dbl&gt;       &lt;dbl&gt;        &lt;dbl&gt;
+## 1 (Intercept)         6.88     0.290       6.52         0.179  
+## 2 log(GDPperCapita)  -0.294    0.0577     -0.216        0.0436 
+## 3 contraception      -0.0113   0.00424    -0.00885      0.00456
+## 4 educationFemale    -0.0770   0.0338     -0.116        0.0378
+```
+
+---
+
+# Transforming variables
+
+&lt;img src="imputation_files/figure-html/heatmap-1.png" width="864" /&gt;
+
+---
+
+# Transforming variables
+
+&lt;img src="imputation_files/figure-html/select-un-1.png" width="864" /&gt;
+
+---
+
+# Multiple imputation (redux)
+
+
+
+&lt;img src="imputation_files/figure-html/amelia-trans-mod-1.png" width="864" /&gt;
+
+---
+
+# Multiple imputation (redux)
+
+&lt;img src="imputation_files/figure-html/amelia-trans-mod-lite-1.png" width="864" /&gt;
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="https://cfss.uchicago.edu/slides/macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
