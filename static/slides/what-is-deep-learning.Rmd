@@ -138,6 +138,10 @@ $$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{
 
 # Use of deep learning in the social sciences
 
+* [Gaydar](https://www.netflix.com/watch/70080635?t=1243)
+
+--
+
 * [Deep neural networks are more accurate than humans at detecting sexual orientation from facial images](http://proxy.uchicago.edu/login?url=http://search.ebscohost.com/login.aspx?direct=true&db=pdh&AN=2018-03783-002&site=ehost-live&scope=site)
 * [Streetscore](http://streetscore.media.mit.edu/about.html)
 
