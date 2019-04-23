@@ -151,6 +151,24 @@ class: center, middle, inverse, title-slide
 
 ---
 
+# Neural network
+
+* Nonlinear statistical model
+* Two-stage regression or classification model
+* Graph
+
+---
+
+# Neural network
+
+.center[
+
+![](/img/esl-11-3.png)
+
+]
+
+---
+
 # First look at a neural network
 
 .center[
@@ -287,8 +305,6 @@ metrics
 ## Scalars (0D tensors)
 
 * A tensor containing a single number
-* Python - Numpy `float32` or `float64` number
-* R - vector of length 1
 
 --
 
@@ -296,8 +312,6 @@ metrics
 
 * A tensor with a one-dimensional array of numbers
 * Has exactly one axis
-* Python - Numpy vector
-* R - vector
 
 
 ```r
@@ -319,8 +333,6 @@ dim(as.array(x))
 * A tensor with a two-dimensional array of numbers
 * Two axes (frequently rows and columns)
 * Visually is a rectangular grid of numbers
-* Python - Numpy matrix
-* R - matrix
 
 
 ```r
@@ -342,8 +354,6 @@ dim(x)
 ## 3D tensors and higher-dimensional tensors
 
 * Array of matricies
-* Python - Numpy 3D tensor
-* R - array
 
 
 ```r
@@ -376,9 +386,9 @@ dim(x)
     * 3D tensor example - `\((2,3,2)\)`
 * Data type
 
----
+--
 
-# Data batches
+## Data batches
 
 * Samples axis
 * Batching and batch axis
@@ -525,14 +535,12 @@ output = relu(dot(W, input) + B)
 1. Compute the loss of the network on the batch (mismatch between `y_pred` and `y`)
 1. Update the weights of the network in a way that slightly reduces the loss on this batch
 
----
+--
 
-# Naive solution
+## Implementation
 
-* Freeze all weights except one scalar coefficient and try different values for that coefficient
-* Horribly inefficient
-* Use differentiation and compute the **gradient** of the loss with regard to the network's coefficients
-* Move the coefficients in the opposite direction from the gradient, thus decreasing the loss
+* Naive solution
+* Differentiation
 
 ---
 
