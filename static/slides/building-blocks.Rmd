@@ -1,0 +1,495 @@
+---
+title: "Building blocks of neural networks"
+author: "[MACS 30200](https://github.com/css-research/course/) <br /> University of Chicago"
+output: rcfss::xaringan
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.retina = 2, fig.width = 12)
+
+library(tidyverse)
+library(here)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = rcfss::base_size))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+# Neural network
+
+* Nonlinear statistical model
+* Two-stage regression or classification model
+* Graph
+
+---
+
+# Neural network
+
+.center[
+
+![](/img/esl-11-3.png)
+
+]
+
+---
+
+# First look at a neural network
+
+.center[
+
+![MNIST digits](https://upload.wikimedia.org/wikipedia/commons/2/27/MnistExamples.png)
+
+]
+---
+
+# Import data
+
+```{r import, results='hide'}
+library(keras)
+
+mnist <- dataset_mnist()
+train_images <- mnist$train$x
+train_labels <- mnist$train$y
+test_images <- mnist$test$x
+test_labels <- mnist$test$y
+```
+
+```{r train-str, dependson = "import", collapse = TRUE}
+str(train_images)
+str(train_labels)
+```
+
+```{r test-str, dependson = "import",, collapse = TRUE}
+str(test_images)
+str(test_labels)
+```
+
+---
+
+# Build the network
+
+```{r network}
+network <- keras_model_sequential() %>% 
+  layer_dense(units = 512, activation = "relu", input_shape = c(28 * 28)) %>% 
+  layer_dense(units = 10, activation = "softmax")
+```
+
+---
+
+# Compile the network
+
+```{r compile}
+network %>% compile(
+  optimizer = "rmsprop",
+  loss = "categorical_crossentropy",
+  metrics = c("accuracy")
+)
+```
+
+---
+
+# Reshape the data
+
+```{r reshape, dependson = "import"}
+train_images <- array_reshape(train_images, c(60000, 28 * 28))
+train_images <- train_images / 255
+str(train_images)
+
+test_images <- array_reshape(test_images, c(10000, 28 * 28))
+test_images <- test_images / 255
+str(test_images)
+```
+
+```{r categorical}
+train_labels <- to_categorical(train_labels)
+test_labels <- to_categorical(test_labels)
+```
+
+---
+
+# Train the network
+
+```{r fit, dependson = c("reshape", "categorical"), echo = TRUE, results = "hide"}
+set.seed(1234)
+
+network %>% fit(train_images, train_labels, epochs = 5, batch_size = 128)
+```
+
+---
+
+# Assess the model
+
+```{r metrics, dependson = "fit"}
+metrics <- network %>% evaluate(test_images, test_labels, verbose = 0)
+metrics
+```
+
+---
+
+# Data representations for neural networks
+
+* Tensor
+* Generalization of vectors and matricies to higher-dimensions
+
+---
+
+# Tensor
+
+## Scalars (0D tensors)
+
+* A tensor containing a single number
+
+--
+
+## Vectors (1D tensors)
+
+* A tensor with a one-dimensional array of numbers
+* Has exactly one axis
+
+```{r vector, collapse = TRUE}
+x <- c(12, 3, 6, 14, 10)
+str(x)
+dim(as.array(x))
+```
+
+* 5D vector $\neq$ 5D tensor
+
+---
+
+# Tensor
+
+## Matricies (2D tensors)
+
+* A tensor with a two-dimensional array of numbers
+* Two axes (frequently rows and columns)
+* Visually is a rectangular grid of numbers
+
+```{r matrix, collapse = TRUE}
+x <- matrix(rep(0, 3*5), nrow = 3, ncol = 5)
+x
+
+dim(x)
+```
+
+---
+
+# Tensor
+
+## 3D tensors and higher-dimensional tensors
+
+* Array of matricies
+
+```{r 3d-tensor, collapse = TRUE}
+x <- array(rep(0, 2*3*2), dim = c(2, 3, 2))
+x
+str(x)
+dim(x)
+```
+
+---
+
+# Key attributes
+
+* Number of axes (rank)
+* Shape
+    * Matrix example - $(3,5)$
+    * 3D tensor example - $(2,3,2)$
+* Data type
+
+--
+
+## Data batches
+
+* Samples axis
+* Batching and batch axis
+
+---
+
+# Vector data
+
+* 2D tensors of shape (`samples`, `features`)
+* Each data point is encoded as a vector
+
+---
+
+# Actuarial dataset of people
+
+## Variables
+
+* Age
+* ZIP code
+* Income
+
+--
+
+## Data structure
+
+* Person - vector of 3 values
+* Dataset - 100,000 individuals
+* 2D tensor of shape `(100000, 3)`
+
+---
+
+# Text documents
+
+* Each document has a count of the frequency each word appears in it
+* Dictionary of 20,000 words
+* Document - vector of 20,000 values
+* Documents - 500 documents
+
+--
+
+* 2D tensor of shape `(500, 20000)`
+
+---
+
+# Time series data
+
+![](/img/fig-2-3.png)
+
+---
+
+# Stock prices
+
+## Variables
+
+* Current price of a stock
+* Highest price in the past minute
+* Lowest price in the past minute
+* Recorded every minute for a single stock
+
+--
+
+## Data structure
+
+* Day of trading - 2D tensor of shape `(390, 3)`
+* 250 days' worth of data - 3D tensor of shape `(250, 390, 3)`
+
+---
+
+# Image data
+
+![](/img/fig-2-4.png)
+
+---
+
+# Video data
+
+* Requires 5D tensor
+* Each frame is a color image (`height`, `width`, `color_depth`)
+* Sample of frames for a single video (`frames`, `height`, `width`, `color_depth`)
+* Batch of videos (`samples`, `frames`, `height`, `width`, `color_depth`)
+
+---
+
+# Tensor operations
+
+* Generalizations of matrix operations
+    * Addition
+    * Subtraction
+    * Multiplication
+* If you can do it with a matrix, you can do it with a tensor
+
+---
+
+# Geometric interpretation
+
+.center[
+
+![](/img/fig-2-6.png)
+
+]
+
+---
+
+# Geometric interpretation
+
+.center[
+
+![](/img/fig-2-8.png)
+
+]
+
+---
+
+# Geometric interpretation of deep learning
+
+.center[
+
+![](/img/fig-2-9.png)
+
+]
+
+---
+
+# Gradient-based optimization
+
+```
+output = relu(dot(W, input) + B)
+```
+
+* `input`
+* `dot()`
+* `relu()`
+* `W, b`
+
+* Adjust the weights to produce the lowest loss score
+* Initialize the weights with random values that are not useful
+
+---
+
+# Training loop
+
+1. Draw a batch of training samples `x` and targets `y`
+1. Forward pass - run the network on `x` to obtain predictions `y_pred`
+1. Compute the loss of the network on the batch (mismatch between `y_pred` and `y`)
+1. Update the weights of the network in a way that slightly reduces the loss on this batch
+
+--
+
+## Implementation
+
+* Naive solution
+* Differentiation
+
+---
+
+# Derivative
+
+.center[
+
+![](/img/fig-2-10.png)
+
+]
+
+---
+
+# Derivative of a tensor operation
+
+```
+y_pred = dot(W, x)
+loss_value = loss(y_pred, y)
+```
+
+```
+loss_value = f(W)
+```
+
+```
+loss_value = f(W0)
+f'(W0)
+```
+
+---
+
+# Stochastic gradient descent
+
+1. Draw a batch of training samples `x` and targets `y`
+1. Forward pass - run the network on `x` to obtain predictions `y_pred`
+1. Compute the loss of the network on the batch (mismatch between `y_pred` and `y`)
+1. Backward pass - compute the gradient of the loss with regard to the network's parameters
+1. Move the parameters a little in the opposite direction from the gradient to reduce the loss for the batch
+
+---
+
+# Stochastic gradient descent
+
+.center[
+
+![](/img/fig-2-11.png)
+
+]
+
+---
+
+# Stochastic gradient descent
+
+.center[
+
+![](/img/fig-2-12.png)
+
+]
+
+---
+
+# Momentum
+
+.center[
+
+![](/img/fig-2-13.png)
+
+]
+
+---
+
+# Backpropogation
+
+* Chained tensor operations
+
+    ```
+    f(W1, W2, W3) = a(W1, b(W2, c(W3)))
+    ```
+
+* Calculus and the chain rule
+
+    ```
+    f(g(x)) = f'(g(x)) * g'(x)
+    ```
+
+--
+
+* Backpropogation
+    * Start with the final loss value
+    * Work backwards from the top layers to the bottom layers
+    * Apply the chain rule to compute the contribution that each parameter had in the loss value
+
+---
+
+# Import our data
+
+```r
+library(keras)
+
+mnist <- dataset_mnist()
+train_images <- mnist$train$x
+train_labels <- mnist$train$y
+test_images <- mnist$test$x
+test_labels <- mnist$test$y
+```
+
+---
+
+# The network
+
+```r
+network <- keras_model_sequential() %>% 
+  layer_dense(units = 512, activation = "relu", input_shape = c(28 * 28)) %>% 
+  layer_dense(units = 10, activation = "softmax")
+```
+
+---
+
+# Compilation
+
+```r
+network %>% compile(
+  optimizer = "rmsprop",
+  loss = "categorical_crossentropy",
+  metrics = c("accuracy")
+)
+```
+
+---
+
+# Training loop
+
+```r
+network %>%
+  fit(train_images, train_labels, epochs = 5, batch_size = 128)
+```
+
