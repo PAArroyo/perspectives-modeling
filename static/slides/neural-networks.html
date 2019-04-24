@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Getting started with neural networks</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="MACS 30200   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/lucy-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Getting started with neural networks
+### <a href="https://github.com/css-research/course/">MACS 30200</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Layers
+
+* Layer
+* Stateless layer
+* Stochastic gradient descent
+* Knowledge
+
+--
+
+## Layers for different tensors
+
+* Densely connected layers - 2D tensor
+* Recurrent layers - 3D tensor
+* 2D convolution layers - 4D tensor
+
+---
+
+# Connecting layers
+
+![](https://inhabitat.com/wp-content/blogs.dir/1/files/2015/06/LEGO-sustainable-building-brick-889x589.jpg)
+
+---
+
+# Models
+
+## Network architecture
+
+* Directed, acyclic graph of layers
+* Linear stack of layers
+* Hypothesis space
+* No clear guidelines for defining network architecture
+
+--
+
+## Loss functions and optimizers
+
+* Loss function
+* Optimizer
+
+---
+
+# Keras
+
+* Deep-learning framework that provides a convenient way to define and train almost any kind of deep learning model
+* Runs on CPU or GPU
+* Easy to work with API
+* Works with many kinds of networks
+
+---
+
+# Keras vs. Tensorflow
+
+* Model-level library
+    * Keras
+* Tensor library
+    * TensorFlow
+    * Theano
+    * Microsoft Cognitive Toolkit (CNTK)
+
+---
+
+# Typical workflow
+
+1. Define your training data
+1. Define a network of layers that maps inputs to your targets
+1. Configure the learning process by choosing a loss function, an optimizer, and some metrics to monitor
+1. Iterate on your training data
+
+---
+
+# Setting up a deep-learning workstation
+
+* Have a powerful GPU (typically NVIDIA)
+* CPU processing is for chumps
+* Can be run on the cloud via RCC/AWS/Google Cloud
+
+---
+
+# Binary classification: IMDB dataset
+
+* Set of 50,000 highly-polarized reviews from IMDB
+* 25,000 for training
+* 25,000 for testing
+* Each has 50% negative and 50% positive reviews
+
+---
+
+# Import data
+
+
+```r
+library(keras)
+
+imdb &lt;- dataset_imdb(num_words = 10000)
+c(c(train_data, train_labels), c(test_data, test_labels)) %&lt;-% imdb
+```
+
+
+```r
+str(train_data[[1]])
+##  int [1:218] 1 14 22 16 43 530 973 1622 1385 65 ...
+train_labels[[1]]
+## [1] 1
+```
+
+--
+
+* Word indicies
+* One-hot-encoding
+
+
+
+
+```r
+str(x_train[1,])
+##  num [1:10000] 1 1 0 1 1 1 1 1 1 0 ...
+```
+
+
+
+---
+
+# Building our network
+
+.center[
+
+![:scale 50%](https://s3.amazonaws.com/book.keras.io/img/ch3/3_layer_network.png)
+
+]
+
+---
+
+# Building our network
+
+
+```r
+library(keras)
+
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %&gt;% 
+  layer_dense(units = 16, activation = "relu") %&gt;% 
+  layer_dense(units = 1, activation = "sigmoid")
+```
+
+* Activation functions enable non-linear transformations
+
+---
+
+# Compiling the network
+
+
+```r
+model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+```
+
+* Binary crossentropy
+* `rmsprop` optimizer
+* Monitor accuracy during training
+
+---
+
+# Validating our approach
+
+
+```r
+val_indices &lt;- 1:10000
+
+x_val &lt;- x_train[val_indices,]
+partial_x_train &lt;- x_train[-val_indices,]
+
+y_val &lt;- y_train[val_indices]
+partial_y_train &lt;- y_train[-val_indices]
+```
+
+---
+
+# Fit the model
+
+
+```r
+model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history &lt;- model %&gt;%
+  fit(
+    partial_x_train,
+    partial_y_train,
+    epochs = 20,
+    batch_size = 512,
+    validation_data = list(x_val, y_val)
+  )
+```
+
+---
+
+# Evaluate the model
+
+&lt;img src="neural-networks_files/figure-html/imdb-plot-perform-1.png" width="864" /&gt;
+
+---
+
+# Train a new network
+
+
+```r
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %&gt;% 
+  layer_dense(units = 16, activation = "relu") %&gt;% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+model %&gt;% fit(x_train, y_train, epochs = 4, batch_size = 512)
+results &lt;- model %&gt;%
+  evaluate(x_test, y_test)
+```
+
+
+```r
+results
+## $loss
+## [1] 0.3055599
+## 
+## $acc
+## [1] 0.878
+```
+
+---
+
+# Conclusions
+
+* Data usually requires preprocessing to encode it as a tensor
+* Stacks of dense layers with `relu` activations solve a wide range of problems
+* Always end binary classification with a dense layer with one unit and `sigmoid` activation
+* Use binary crossentropy with binary classification
+* `rmsprop` optimizer is usually a good starting place
+* Avoid overfitting
+
+---
+
+# Scalar regression: Boston housing data
+
+
+```r
+# clear previous sessions
+k_clear_session()
+
+dataset &lt;- dataset_boston_housing()
+c(c(train_data, train_targets), c(test_data, test_targets)) %&lt;-% dataset
+```
+
+
+```r
+str(train_data)
+```
+
+```
+##  num [1:404, 1:13] 1.2325 0.0218 4.8982 0.0396 3.6931 ...
+```
+
+```r
+str(test_data)
+```
+
+```
+##  num [1:102, 1:13] 18.0846 0.1233 0.055 1.2735 0.0715 ...
+```
+
+
+```r
+str(train_targets)
+```
+
+```
+##  num [1:404(1d)] 15.2 42.3 50 21.1 17.7 18.5 11.3 15.6 15.6 14.4 ...
+```
+
+---
+
+# Preparing the data
+
+
+```r
+mean &lt;- apply(train_data, 2, mean)
+std &lt;- apply(train_data, 2, sd)
+train_data &lt;- scale(train_data, center = mean, scale = std)
+test_data &lt;- scale(test_data, center = mean, scale = std)
+```
+
+---
+
+# Building our network
+
+
+```r
+# Because we will need to instantiate the same model multiple times,
+# we use a function to construct it.
+build_model &lt;- function() {
+  model &lt;- keras_model_sequential() %&gt;% 
+    layer_dense(units = 64, activation = "relu", 
+                input_shape = dim(train_data)[[2]]) %&gt;% 
+    layer_dense(units = 64, activation = "relu") %&gt;% 
+    layer_dense(units = 1) 
+    
+  model %&gt;% compile(
+    optimizer = "rmsprop", 
+    loss = "mse", 
+    metrics = c("mae")
+  )
+}
+```
+
+---
+
+# `\(K\)`-fold validation
+
+
+```r
+k &lt;- 4
+indices &lt;- sample(1:nrow(train_data))
+folds &lt;- cut(1:length(indices), breaks = k, labels = FALSE) 
+
+num_epochs &lt;- 100
+all_scores &lt;- c()
+for (i in 1:k) {
+  cat("processing fold #", i, "\n")
+  # Prepare the validation data: data from partition # k
+  val_indices &lt;- which(folds == i, arr.ind = TRUE) 
+  val_data &lt;- train_data[val_indices,]
+  val_targets &lt;- train_targets[val_indices]
+  
+  # Prepare the training data: data from all other partitions
+  partial_train_data &lt;- train_data[-val_indices,]
+  partial_train_targets &lt;- train_targets[-val_indices]
+  
+  # Build the Keras model (already compiled)
+  model &lt;- build_model()
+  
+  # Train the model (in silent mode, verbose=0)
+  model %&gt;% fit(partial_train_data, partial_train_targets,
+                epochs = num_epochs, batch_size = 1, verbose = 0)
+                
+  # Evaluate the model on the validation data
+  results &lt;- model %&gt;% evaluate(val_data, val_targets, verbose = 0)
+  all_scores &lt;- c(all_scores, results$mean_absolute_error)
+}  
+```
+
+---
+
+# `\(K\)`-fold validation
+
+
+```r
+all_scores
+```
+
+```
+## [1] 1.998741 2.100755 2.908484 2.299561
+```
+
+```r
+mean(all_scores)
+```
+
+```
+## [1] 2.326886
+```
+
+---
+
+# `\(K\)`-fold validation with more epochs
+
+
+```r
+# Some memory clean-up
+k_clear_session()
+```
+
+
+```r
+num_epochs &lt;- 500
+all_mae_histories &lt;- NULL
+for (i in 1:k) {
+  cat("processing fold #", i, "\n")
+  
+  # Prepare the validation data: data from partition # k
+  val_indices &lt;- which(folds == i, arr.ind = TRUE)
+  val_data &lt;- train_data[val_indices,]
+  val_targets &lt;- train_targets[val_indices]
+  
+  # Prepare the training data: data from all other partitions
+  partial_train_data &lt;- train_data[-val_indices,]
+  partial_train_targets &lt;- train_targets[-val_indices]
+  
+  # Build the Keras model (already compiled)
+  model &lt;- build_model()
+  
+  # Train the model (in silent mode, verbose=0)
+  history &lt;- model %&gt;% fit(
+    partial_train_data, partial_train_targets,
+    validation_data = list(val_data, val_targets),
+    epochs = num_epochs, batch_size = 1, verbose = 0
+  )
+  mae_history &lt;- history$metrics$val_mean_absolute_error
+  all_mae_histories &lt;- rbind(all_mae_histories, mae_history)
+}
+```
+
+---
+
+# `\(K\)`-fold validation with more epochs
+
+
+
+&lt;img src="neural-networks_files/figure-html/boston-plot-1.png" width="864" /&gt;
+
+
+
+---
+
+# Wrapping up
+
+* Regression uses different loss functions from classification
+* Evaluation metrics differ as well
+* Rescale features with values in different ranges
+* With little data, use `\(K\)`-fold CV
+* With little data, use a small network with few hidden layers to avoid overfitting
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="https://cfss.uchicago.edu/slides/macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

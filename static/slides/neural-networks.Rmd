@@ -1,0 +1,451 @@
+---
+title: "Getting started with neural networks"
+author: "[MACS 30200](https://github.com/css-research/course/) <br /> University of Chicago"
+output: rcfss::xaringan
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.retina = 2, fig.width = 12)
+
+library(tidyverse)
+library(here)
+library(patchwork)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = rcfss::base_size))
+```
+
+$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$
+
+---
+
+# Layers
+
+* Layer
+* Stateless layer
+* Stochastic gradient descent
+* Knowledge
+
+--
+
+## Layers for different tensors
+
+* Densely connected layers - 2D tensor
+* Recurrent layers - 3D tensor
+* 2D convolution layers - 4D tensor
+
+---
+
+# Connecting layers
+
+![](https://inhabitat.com/wp-content/blogs.dir/1/files/2015/06/LEGO-sustainable-building-brick-889x589.jpg)
+
+---
+
+# Models
+
+## Network architecture
+
+* Directed, acyclic graph of layers
+* Linear stack of layers
+* Hypothesis space
+* No clear guidelines for defining network architecture
+
+--
+
+## Loss functions and optimizers
+
+* Loss function
+* Optimizer
+
+---
+
+# Keras
+
+* Deep-learning framework that provides a convenient way to define and train almost any kind of deep learning model
+* Runs on CPU or GPU
+* Easy to work with API
+* Works with many kinds of networks
+
+---
+
+# Keras vs. Tensorflow
+
+* Model-level library
+    * Keras
+* Tensor library
+    * TensorFlow
+    * Theano
+    * Microsoft Cognitive Toolkit (CNTK)
+
+---
+
+# Typical workflow
+
+1. Define your training data
+1. Define a network of layers that maps inputs to your targets
+1. Configure the learning process by choosing a loss function, an optimizer, and some metrics to monitor
+1. Iterate on your training data
+
+---
+
+# Setting up a deep-learning workstation
+
+* Have a powerful GPU (typically NVIDIA)
+* CPU processing is for chumps
+* Can be run on the cloud via RCC/AWS/Google Cloud
+
+---
+
+# Binary classification: IMDB dataset
+
+* Set of 50,000 highly-polarized reviews from IMDB
+* 25,000 for training
+* 25,000 for testing
+* Each has 50% negative and 50% positive reviews
+
+---
+
+# Import data
+
+```{r imdb-import, results='hide', collapse = TRUE}
+library(keras)
+
+imdb <- dataset_imdb(num_words = 10000)
+c(c(train_data, train_labels), c(test_data, test_labels)) %<-% imdb
+```
+
+```{r imdb-str, collapse = TRUE}
+str(train_data[[1]])
+train_labels[[1]]
+```
+
+--
+
+* Word indicies
+* One-hot-encoding
+
+```{r imdb-reshape, include = FALSE}
+vectorize_sequences <- function(sequences, dimension = 10000) {
+  # Create an all-zero matrix of shape (len(sequences), dimension)
+  results <- matrix(0, nrow = length(sequences), ncol = dimension)
+  for (i in 1:length(sequences))
+    # Sets specific indices of results[i] to 1s
+    results[i, sequences[[i]]] <- 1
+  results
+}
+
+# Our vectorized training data
+x_train <- vectorize_sequences(train_data)
+# Our vectorized test data
+x_test <- vectorize_sequences(test_data)
+```
+
+```{r imdb-reshape-example, collapse = TRUE}
+str(x_train[1,])
+```
+
+```{r imdb-reshape-labels, include = FALSE}
+# Our vectorized labels
+y_train <- as.numeric(train_labels)
+y_test <- as.numeric(test_labels)
+```
+
+---
+
+# Building our network
+
+.center[
+
+![:scale 50%](https://s3.amazonaws.com/book.keras.io/img/ch3/3_layer_network.png)
+
+]
+
+---
+
+# Building our network
+
+```{r imdb-model}
+library(keras)
+
+model <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 16, activation = "relu") %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+```
+
+* Activation functions enable non-linear transformations
+
+---
+
+# Compiling the network
+
+```{r imdb-compile}
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+```
+
+* Binary crossentropy
+* `rmsprop` optimizer
+* Monitor accuracy during training
+
+---
+
+# Validating our approach
+
+```{r imdb-validate}
+val_indices <- 1:10000
+
+x_val <- x_train[val_indices,]
+partial_x_train <- x_train[-val_indices,]
+
+y_val <- y_train[val_indices]
+partial_y_train <- y_train[-val_indices]
+```
+
+---
+
+# Fit the model
+
+```{r, echo=TRUE, results='hide'}
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+history <- model %>%
+  fit(
+    partial_x_train,
+    partial_y_train,
+    epochs = 20,
+    batch_size = 512,
+    validation_data = list(x_val, y_val)
+  )
+```
+
+---
+
+# Evaluate the model
+
+```{r imdb-plot-perform, echo = FALSE}
+plot(history)
+```
+
+---
+
+# Train a new network
+
+```{r imdb-model-new, echo=TRUE, results='hide'}
+model <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 16, activation = "relu") %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+
+model %>% fit(x_train, y_train, epochs = 4, batch_size = 512)
+results <- model %>%
+  evaluate(x_test, y_test)
+```
+
+```{r imdb-results, collapse = TRUE}
+results
+```
+
+---
+
+# Conclusions
+
+* Data usually requires preprocessing to encode it as a tensor
+* Stacks of dense layers with `relu` activations solve a wide range of problems
+* Always end binary classification with a dense layer with one unit and `sigmoid` activation
+* Use binary crossentropy with binary classification
+* `rmsprop` optimizer is usually a good starting place
+* Avoid overfitting
+
+---
+
+# Scalar regression: Boston housing data
+
+```{r boston-import}
+# clear previous sessions
+k_clear_session()
+
+dataset <- dataset_boston_housing()
+c(c(train_data, train_targets), c(test_data, test_targets)) %<-% dataset
+```
+
+```{r boston-str}
+str(train_data)
+str(test_data)
+```
+
+```{r boston-target}
+str(train_targets)
+```
+
+---
+
+# Preparing the data
+
+```{r boston-rescale}
+mean <- apply(train_data, 2, mean)
+std <- apply(train_data, 2, sd)
+train_data <- scale(train_data, center = mean, scale = std)
+test_data <- scale(test_data, center = mean, scale = std)
+```
+
+---
+
+# Building our network
+
+```{r boston-model}
+# Because we will need to instantiate the same model multiple times,
+# we use a function to construct it.
+build_model <- function() {
+  model <- keras_model_sequential() %>% 
+    layer_dense(units = 64, activation = "relu", 
+                input_shape = dim(train_data)[[2]]) %>% 
+    layer_dense(units = 64, activation = "relu") %>% 
+    layer_dense(units = 1) 
+    
+  model %>% compile(
+    optimizer = "rmsprop", 
+    loss = "mse", 
+    metrics = c("mae")
+  )
+}
+```
+
+---
+
+# $K$-fold validation
+
+```{r boston-kfold, echo=TRUE, results='hide'}
+k <- 4
+indices <- sample(1:nrow(train_data))
+folds <- cut(1:length(indices), breaks = k, labels = FALSE) 
+
+num_epochs <- 100
+all_scores <- c()
+for (i in 1:k) {
+  cat("processing fold #", i, "\n")
+  # Prepare the validation data: data from partition # k
+  val_indices <- which(folds == i, arr.ind = TRUE) 
+  val_data <- train_data[val_indices,]
+  val_targets <- train_targets[val_indices]
+  
+  # Prepare the training data: data from all other partitions
+  partial_train_data <- train_data[-val_indices,]
+  partial_train_targets <- train_targets[-val_indices]
+  
+  # Build the Keras model (already compiled)
+  model <- build_model()
+  
+  # Train the model (in silent mode, verbose=0)
+  model %>% fit(partial_train_data, partial_train_targets,
+                epochs = num_epochs, batch_size = 1, verbose = 0)
+                
+  # Evaluate the model on the validation data
+  results <- model %>% evaluate(val_data, val_targets, verbose = 0)
+  all_scores <- c(all_scores, results$mean_absolute_error)
+}  
+```
+
+---
+
+# $K$-fold validation
+
+```{r boston-results}
+all_scores
+mean(all_scores)
+```
+
+---
+
+# $K$-fold validation with more epochs
+
+```{r boston-clear}
+# Some memory clean-up
+k_clear_session()
+```
+
+```{r boston-more-epochs, echo=TRUE, results='hide'}
+num_epochs <- 500
+all_mae_histories <- NULL
+for (i in 1:k) {
+  cat("processing fold #", i, "\n")
+  
+  # Prepare the validation data: data from partition # k
+  val_indices <- which(folds == i, arr.ind = TRUE)
+  val_data <- train_data[val_indices,]
+  val_targets <- train_targets[val_indices]
+  
+  # Prepare the training data: data from all other partitions
+  partial_train_data <- train_data[-val_indices,]
+  partial_train_targets <- train_targets[-val_indices]
+  
+  # Build the Keras model (already compiled)
+  model <- build_model()
+  
+  # Train the model (in silent mode, verbose=0)
+  history <- model %>% fit(
+    partial_train_data, partial_train_targets,
+    validation_data = list(val_data, val_targets),
+    epochs = num_epochs, batch_size = 1, verbose = 0
+  )
+  mae_history <- history$metrics$val_mean_absolute_error
+  all_mae_histories <- rbind(all_mae_histories, mae_history)
+}
+```
+
+---
+
+# $K$-fold validation with more epochs
+
+```{r boston-avg-mae, include = FALSE}
+average_mae_history <- data.frame(
+  epoch = seq(1:ncol(all_mae_histories)),
+  validation_mae = apply(all_mae_histories, 2, mean)
+)
+```
+
+```{r boston-plot, echo = FALSE}
+ggplot(average_mae_history, aes(x = epoch, y = validation_mae)) +
+  geom_line() +
+  geom_smooth() +
+  labs(x = "Epoch",
+       y = "K-fold validation set MAE")
+```
+
+```{r boston-final, echo=FALSE, results='hide'}
+# Get a fresh, compiled model.
+model <- build_model()
+
+# Train it on the entirety of the data.
+model %>% fit(train_data, train_targets,
+          epochs = 80, batch_size = 16, verbose = 0)
+
+result <- model %>% evaluate(test_data, test_targets)
+result
+```
+
+---
+
+# Wrapping up
+
+* Regression uses different loss functions from classification
+* Evaluation metrics differ as well
+* Rescale features with values in different ranges
+* With little data, use $K$-fold CV
+* With little data, use a small network with few hidden layers to avoid overfitting
