@@ -463,6 +463,250 @@ for (i in 1:k) {
 * Rescale features with values in different ranges
 * With little data, use `\(K\)`-fold CV
 * With little data, use a small network with few hidden layers to avoid overfitting
+
+---
+
+# Evaluating machine learning models
+
+* Want to build generalizable models
+* Requires strong performance on held-out or test data
+* Need to measure the reliability of the model not solely on the training data
+
+---
+
+# Validation
+
+* Training/validation/test sets
+* Simple hold-out validation
+* `\(K\)`-fold validation
+* Iterated `\(K\)`-fold validation
+
+--
+
+## Things to consider
+
+* Data representativeness
+* Arrow of time
+
+---
+
+# Data preprocessing
+
+* Convert your data to an appropriate tensor of floating-point numbers (or integers)
+* Rescale your data to a standardized range
+* Account for missing values
+* Feature engineering
+
+---
+
+# Feature engineering
+
+![](images/fig-4-3.png)
+
+---
+
+# Overfitting and underfitting
+
+* Tension between optimization and generalization
+* Underfitting
+* Once generalization stops, model begins to overfit
+
+--
+
+## Solutions
+
+* Get more training data
+* Reduce the network's size
+* Regularization
+* Dropout
+
+---
+
+# Reducing the network's size
+
+* Reduce the size of the model (capacity)
+* But not too much
+* Best determined via trial and error
+
+---
+
+# Original model
+
+
+```r
+original_model &lt;- keras_model_sequential() %&gt;% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %&gt;% 
+  layer_dense(units = 16, activation = "relu") %&gt;% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+original_model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+```
+
+---
+
+# Smaller model
+
+
+```r
+smaller_model &lt;- keras_model_sequential() %&gt;% 
+  layer_dense(units = 4, activation = "relu", input_shape = c(10000)) %&gt;% 
+  layer_dense(units = 4, activation = "relu") %&gt;% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+smaller_model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+```
+
+---
+
+# Fit both models
+
+
+
+
+
+
+
+&lt;img src="neural-networks_files/figure-html/imdb-small-compare-plot-1.png" width="864" /&gt;
+
+---
+
+# Bigger model
+
+
+```r
+bigger_model &lt;- keras_model_sequential() %&gt;% 
+  layer_dense(units = 512, activation = "relu", input_shape = c(10000)) %&gt;% 
+  layer_dense(units = 512, activation = "relu") %&gt;% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+bigger_model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c('acc')
+)
+```
+
+
+
+---
+
+# Bigger model
+
+&lt;img src="neural-networks_files/figure-html/imdb-model-big-plot-1.png" width="864" /&gt;
+
+---
+
+# Training losses
+
+&lt;img src="neural-networks_files/figure-html/imdb-model-plot-train-loss-1.png" width="864" /&gt;
+
+---
+
+# Weight regularization
+
+* Occam's Razor
+* Weight regularization
+* L1 regularization
+* L2 regularization
+
+---
+
+# Adding weight regularization
+
+
+```r
+l2_model &lt;- keras_model_sequential() %&gt;% 
+  layer_dense(units = 16, kernel_regularizer = regularizer_l2(0.001),
+              activation = "relu", input_shape = c(10000)) %&gt;% 
+  layer_dense(units = 16, kernel_regularizer = regularizer_l2(0.001),
+              activation = "relu") %&gt;% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+l2_model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+```
+
+---
+
+# L2 regularization
+
+
+
+&lt;img src="neural-networks_files/figure-html/imdb-l2-plot-1.png" width="864" /&gt;
+
+---
+
+# Adding dropout
+
+* Randomly set to zero a number of output features of a layer during training
+* Dropout rate
+* Deliberately remove data from the layer
+* Why do this?
+
+---
+
+# Adding dropout
+
+
+```r
+layer_dropout(rate = 0.5)
+```
+
+
+```r
+dpt_model &lt;- keras_model_sequential() %&gt;% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %&gt;% 
+  layer_dropout(rate = 0.5) %&gt;% 
+  layer_dense(units = 16, activation = "relu") %&gt;% 
+  layer_dropout(rate = 0.5) %&gt;% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+dpt_model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+```
+
+
+```r
+dpt_model_hist &lt;- dpt_model %&gt;% fit(
+  x_train, y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_test, y_test)
+)
+```
+
+---
+
+# Adding dropout
+
+&lt;img src="neural-networks_files/figure-html/imdb-dropout-plot-1.png" width="864" /&gt;
+
+---
+
+# Universal workflow of machine learning
+
+1. Define the problem and assemble a dataset
+1. Choose a measure of success
+1. Decide on an evaluation protocol
+1. Prepare your data
+1. Develop a model that performs better than the baseline
+1. Develop a model that overfits
+1. Regularize your model and tune your hyperparameters
+1. Retrain a final time on all training data and evaluate using the test data
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>

@@ -449,3 +449,303 @@ result
 * Rescale features with values in different ranges
 * With little data, use $K$-fold CV
 * With little data, use a small network with few hidden layers to avoid overfitting
+
+---
+
+# Evaluating machine learning models
+
+* Want to build generalizable models
+* Requires strong performance on held-out or test data
+* Need to measure the reliability of the model not solely on the training data
+
+---
+
+# Validation
+
+* Training/validation/test sets
+* Simple hold-out validation
+* $K$-fold validation
+* Iterated $K$-fold validation
+
+--
+
+## Things to consider
+
+* Data representativeness
+* Arrow of time
+
+---
+
+# Data preprocessing
+
+* Convert your data to an appropriate tensor of floating-point numbers (or integers)
+* Rescale your data to a standardized range
+* Account for missing values
+* Feature engineering
+
+---
+
+# Feature engineering
+
+![](images/fig-4-3.png)
+
+---
+
+# Overfitting and underfitting
+
+* Tension between optimization and generalization
+* Underfitting
+* Once generalization stops, model begins to overfit
+
+--
+
+## Solutions
+
+* Get more training data
+* Reduce the network's size
+* Regularization
+* Dropout
+
+---
+
+# Reducing the network's size
+
+* Reduce the size of the model (capacity)
+* But not too much
+* Best determined via trial and error
+
+---
+
+# Original model
+
+```{r imdb-model-orig}
+original_model <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 16, activation = "relu") %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+original_model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+```
+
+---
+
+# Smaller model
+
+```{r imdb-model-small}
+smaller_model <- keras_model_sequential() %>% 
+  layer_dense(units = 4, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 4, activation = "relu") %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+smaller_model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("accuracy")
+)
+```
+
+---
+
+# Fit both models
+
+```{r imdb-model-orig-fit, include=FALSE, results='hide'}
+original_hist <- original_model %>% fit(
+  x_train, y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_test, y_test)
+)
+```
+
+```{r imdb-model-small-fit, include=FALSE, results='hide'}
+smaller_model_hist <- smaller_model %>% fit(
+  x_train, y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_test, y_test)
+)
+```
+
+```{r imdb-small-compare, include = FALSE}
+plot_training_losses <- function(losses) {
+  loss_names <- names(losses)
+  losses <- as.data.frame(losses)
+  losses$epoch <- seq_len(nrow(losses))
+  losses %>% 
+    gather(model, loss, loss_names[[1]], loss_names[[2]]) %>% 
+    ggplot(aes(x = epoch, y = loss, colour = model)) +
+    geom_point()
+}
+```
+
+```{r imdb-small-compare-plot, echo = FALSE}
+plot_training_losses(losses = list(
+  original_model = original_hist$metrics$val_loss,
+  smaller_model = smaller_model_hist$metrics$val_loss
+))
+```
+
+---
+
+# Bigger model
+
+```{r imdb-model-big}
+bigger_model <- keras_model_sequential() %>% 
+  layer_dense(units = 512, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 512, activation = "relu") %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+bigger_model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c('acc')
+)
+```
+
+```{r imdb-model-big-fit, include=FALSE, results='hide'}
+bigger_model_hist <- bigger_model %>% fit(
+  x_train, y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_test, y_test)
+)
+```
+
+---
+
+# Bigger model
+
+```{r imdb-model-big-plot, echo = FALSE}
+plot_training_losses(losses = list(
+  original_model = original_hist$metrics$val_loss,
+  bigger_model = bigger_model_hist$metrics$val_loss
+))
+```
+
+---
+
+# Training losses
+
+```{r imdb-model-plot-train-loss, echo = FALSE}
+plot_training_losses(losses = list(
+  original_model = original_hist$metrics$loss,
+  bigger_model = bigger_model_hist$metrics$loss
+))
+```
+
+---
+
+# Weight regularization
+
+* Occam's Razor
+* Weight regularization
+* L1 regularization
+* L2 regularization
+
+---
+
+# Adding weight regularization
+
+```{r imdb-l2}
+l2_model <- keras_model_sequential() %>% 
+  layer_dense(units = 16, kernel_regularizer = regularizer_l2(0.001),
+              activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 16, kernel_regularizer = regularizer_l2(0.001),
+              activation = "relu") %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+l2_model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+```
+
+---
+
+# L2 regularization
+
+```{r imdb-l2-fit, include=FALSE, results='hide'}
+l2_model_hist <- l2_model %>% fit(
+  x_train, y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_test, y_test)
+)
+```
+
+```{r imdb-l2-plot, echo = FALSE}
+plot_training_losses(losses = list(
+  original_model = original_hist$metrics$val_loss,
+  l2_model = l2_model_hist$metrics$val_loss
+))
+```
+
+---
+
+# Adding dropout
+
+* Randomly set to zero a number of output features of a layer during training
+* Dropout rate
+* Deliberately remove data from the layer
+* Why do this?
+
+---
+
+# Adding dropout
+
+```{r layer-dropout, include=TRUE, results='hide'}
+layer_dropout(rate = 0.5)
+```
+
+```{r imdb-dropout}
+dpt_model <- keras_model_sequential() %>% 
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dropout(rate = 0.5) %>% 
+  layer_dense(units = 16, activation = "relu") %>% 
+  layer_dropout(rate = 0.5) %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+dpt_model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+```
+
+```{r imdb-dropout-fit, echo=TRUE, results='hide'}
+dpt_model_hist <- dpt_model %>% fit(
+  x_train, y_train,
+  epochs = 20,
+  batch_size = 512,
+  validation_data = list(x_test, y_test)
+)
+```
+
+---
+
+# Adding dropout
+
+```{r imdb-dropout-plot, echo = FALSE}
+plot_training_losses(losses = list(
+  original_model = original_hist$metrics$val_loss,
+  dpt_model = dpt_model_hist$metrics$val_loss
+))
+```
+
+---
+
+# Universal workflow of machine learning
+
+1. Define the problem and assemble a dataset
+1. Choose a measure of success
+1. Decide on an evaluation protocol
+1. Prepare your data
+1. Develop a model that performs better than the baseline
+1. Develop a model that overfits
+1. Regularize your model and tune your hyperparameters
+1. Retrain a final time on all training data and evaluate using the test data
