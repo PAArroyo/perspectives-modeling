@@ -487,7 +487,11 @@ result
 
 # Feature engineering
 
-![](images/fig-4-3.png)
+.center[
+
+![](/img/fig-4-3.png)
+
+]
 
 ---
 
