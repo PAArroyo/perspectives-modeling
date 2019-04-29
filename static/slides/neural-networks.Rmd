@@ -582,11 +582,12 @@ plot_training_losses <- function(losses) {
   losses %>% 
     gather(model, loss, loss_names[[1]], loss_names[[2]]) %>% 
     ggplot(aes(x = epoch, y = loss, colour = model)) +
-    geom_point()
+    geom_point() +
+    geom_line()
 }
 ```
 
-```{r imdb-small-compare-plot, echo = FALSE}
+```{r imdb-small-compare-plot, echo = FALSE, dependson = "imdb-small-compare"}
 plot_training_losses(losses = list(
   original_model = original_hist$metrics$val_loss,
   smaller_model = smaller_model_hist$metrics$val_loss
@@ -623,7 +624,7 @@ bigger_model_hist <- bigger_model %>% fit(
 
 # Bigger model
 
-```{r imdb-model-big-plot, echo = FALSE}
+```{r imdb-model-big-plot, echo = FALSE, dependson = "imdb-small-compare"}
 plot_training_losses(losses = list(
   original_model = original_hist$metrics$val_loss,
   bigger_model = bigger_model_hist$metrics$val_loss
@@ -634,7 +635,7 @@ plot_training_losses(losses = list(
 
 # Training losses
 
-```{r imdb-model-plot-train-loss, echo = FALSE}
+```{r imdb-model-plot-train-loss, echo = FALSE, dependson = "imdb-small-compare"}
 plot_training_losses(losses = list(
   original_model = original_hist$metrics$loss,
   bigger_model = bigger_model_hist$metrics$loss
@@ -682,7 +683,7 @@ l2_model_hist <- l2_model %>% fit(
 )
 ```
 
-```{r imdb-l2-plot, echo = FALSE}
+```{r imdb-l2-plot, echo = FALSE, dependson = "imdb-small-compare"}
 plot_training_losses(losses = list(
   original_model = original_hist$metrics$val_loss,
   l2_model = l2_model_hist$metrics$val_loss
@@ -734,7 +735,7 @@ dpt_model_hist <- dpt_model %>% fit(
 
 # Adding dropout
 
-```{r imdb-dropout-plot, echo = FALSE}
+```{r imdb-dropout-plot, echo = FALSE, dependson = "imdb-small-compare"}
 plot_training_losses(losses = list(
   original_model = original_hist$metrics$val_loss,
   dpt_model = dpt_model_hist$metrics$val_loss
