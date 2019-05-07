@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Neural networks and sequential data</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="MACS 30200   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/lucy-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Neural networks and sequential data
+### <a href="https://github.com/css-research/course/">MACS 30200</a> <br /> University of Chicago
+
+---
+
+
+
+
+`$$\newcommand{\E}{\mathrm{E}} \newcommand{\Var}{\mathrm{Var}} \newcommand{\Cov}{\mathrm{Cov}} \newcommand{\se}{\text{se}} \newcommand{\Lagr}{\mathcal{L}} \newcommand{\lagr}{\mathcal{l}}$$`
+
+---
+
+# Sequential data
+
+* Text
+* Time series
+
+---
+
+# Working with text data
+
+* Natural language processing
+* Document classification
+* Sentiment analysis
+* Author identification
+* **Pattern recognition**
+
+---
+
+# Pre-processing text
+
+* Vectorization
+* Tokenizations
+
+---
+
+# `\(N\)`-grams
+
+* Groups of `\(N\)` consecutive words
+* Bag of words model
+* Shallow vs. deep learning
+
+---
+
+# One-hot encoding
+
+* Associate all unique words with unique integer index
+* Convert integer index `\(i\)` into a binary vector of size `\(N\)`
+
+---
+
+# One-hot encoding
+
+## List of integer indicies
+
+
+```
+##   [1]    1   14   22   16   43  530  973 1622 1385   65  458 4468   66 3941
+##  [15]    4  173   36  256    5   25  100   43  838  112   50  670    2    9
+##  [29]   35  480  284    5  150    4  172  112  167    2  336  385   39    4
+##  [43]  172 4536 1111   17  546   38   13  447    4  192   50   16    6  147
+##  [57] 2025   19   14   22    4 1920 4613  469    4   22   71   87   12   16
+##  [71]   43  530   38   76   15   13 1247    4   22   17  515   17   12   16
+##  [85]  626   18    2    5   62  386   12    8  316    8  106    5    4 2223
+##  [99] 5244   16  480   66 3785   33    4  130   12   16   38  619    5   25
+## [113]  124   51   36  135   48   25 1415   33    6   22   12  215   28   77
+## [127]   52    5   14  407   16   82    2    8    4  107  117 5952   15  256
+## [141]    4    2    7 3766    5  723   36   71   43  530  476   26  400  317
+## [155]   46    7    4    2 1029   13  104   88    4  381   15  297   98   32
+## [169] 2071   56   26  141    6  194 7486   18    4  226   22   21  134  476
+## [183]   26  480    5  144   30 5535   18   51   36   28  224   92   25  104
+## [197]    4  226   65   16   38 1334   88   12   16  283    5   16 4472  113
+## [211]  103   32   15   16 5345   19  178   32
+```
+
+---
+
+# Word embeddings
+
+![:scale 70%](https://s3.amazonaws.com/book.keras.io/img/ch6/word_embeddings.png)
+
+---
+
+# Word embeddings
+
+* Lower-dimensional representations
+* More dense vectors
+* Pack more information into a smaller tensor structure
+* Learning word embeddings
+    * Jointly with classification task
+    * Use pretrained word embeddings
+
+---
+
+# Learning word embeddings
+
+![](https://blogs.mathworks.com/images/loren/2017/vecs.png)
+
+--
+
+&gt; No single ideal word-embedding space
+
+---
+
+# Keras and embedding layer
+
+```r
+embedding_layer &lt;- layer_embedding(input_dim = 1000, output_dim = 64) 
+```
+
+* Maps integer indicies to dense vectors
+* Input: 2D tensor of shape `(samples, sequence_length)`
+* All sequences in a single batch must be the same shape
+    * Padding
+    * Truncation
+* Output: 3D tensor of shape `(samples, sequence_length, embedding_dimensionality)`
+
+---
+
+# Training the embedding layer
+
+
+
+
+```r
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_embedding(input_dim = 10000, output_dim = 8, 
+                  input_length = maxlen) %&gt;% 
+  layer_flatten() %&gt;% 
+  layer_dense(units = 1, activation = "sigmoid") 
+
+model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+
+history &lt;- model %&gt;% fit(
+  x_train, y_train,
+  epochs = 10,
+  batch_size = 32,
+  validation_split = 0.2
+)
+```
+
+---
+
+# Training the embedding layer
+
+&lt;img src="sequential-data_files/figure-html/imdb-embed-train-hist-1.png" width="864" /&gt;
+
+---
+
+# Pretrained word embeddings
+
+* Use when not enough training data is available
+* Computed using word-occurrence statistics
+* Doesn't require neural networks to calculate
+
+--
+
+## Example word embeddings
+
+* word2vec
+* Global Vectors for Word Representation (GloVe)
+
+---
+
+# Pretrained word embeddings
+
+* Still use `layer_embedding()`
+* Use pre-configured weights for the layer, rather than estimating them directly
+
+---
+
+# Pretrained word embeddings
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```r
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_embedding(input_dim = max_words, output_dim = embedding_dim, 
+                  input_length = maxlen) %&gt;% 
+  layer_flatten() %&gt;% 
+  layer_dense(units = 32, activation = "relu") %&gt;% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+summary(model)
+```
+
+```
+## ___________________________________________________________________________
+## Layer (type)                     Output Shape                  Param #     
+## ===========================================================================
+## embedding_2 (Embedding)          (None, 100, 100)              1000000     
+## ___________________________________________________________________________
+## flatten_2 (Flatten)              (None, 10000)                 0           
+## ___________________________________________________________________________
+## dense_2 (Dense)                  (None, 32)                    320032      
+## ___________________________________________________________________________
+## dense_3 (Dense)                  (None, 1)                     33          
+## ===========================================================================
+## Total params: 1,320,065
+## Trainable params: 1,320,065
+## Non-trainable params: 0
+## ___________________________________________________________________________
+```
+
+---
+
+# Setting `layer_embedding()` weights
+
+
+```r
+get_layer(model, index = 1) %&gt;% 
+  set_weights(list(embedding_matrix)) %&gt;% 
+  freeze_weights()
+```
+
+---
+
+# Train and fit model
+
+
+```r
+model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+
+history &lt;- model %&gt;% fit(
+  x_train, y_train,
+  epochs = 20,
+  batch_size = 32,
+  validation_data = list(x_val, y_val)
+)
+```
+
+---
+
+# Train and fit model
+
+&lt;img src="sequential-data_files/figure-html/glove-fit-plot-1.png" width="864" /&gt;
+
+---
+
+# Pre-trained vs. task-specific embeddings
+
+
+
+
+
+&lt;img src="sequential-data_files/figure-html/compare-embeddings-plot-1.png" width="864" /&gt;
+
+---
+
+# Pre-trained vs. task-specific embeddings
+
+
+
+
+
+
+
+
+
+
+
+&lt;img src="sequential-data_files/figure-html/compare-embeddings-plot-large-1.png" width="864" /&gt;
+
+---
+
+# Neural network structures
+
+* Densely connected networks
+* No **memory**
+* Feed-forward networks
+
+---
+
+# Recurrent neural networks
+
+![](https://cdn-images-1.medium.com/max/1200/1*K6s4Li0fTl1pSX4-WPBMMA.jpeg)
+
+---
+
+# Recurrent neural networks
+
+```python
+import numpy as np
+
+timesteps = 100
+input_features = 32
+output_features = 64
+
+inputs = np.random.random((timesteps, input_features))
+
+state_t = np.zeros((output_features,))
+
+W = np.random.random((output_features, input_features))
+U = np.random.random((output_features, output_features))
+b = np.random.random((output_features,))
+
+successive_outputs = []
+for input_t in inputs:
+    output_t = np.tanh(np.dot(W, input_t) + np.dot(U, state_t) + b)
+    successive_outputs.append(output_t)
+    state_t = output_t
+
+final_output_sequence = np.concatenate(successive_outputs, axis=0)
+```
+
+---
+
+# Recurrent layers in Keras
+
+```r
+layer_simple_rnn(units = 32)
+```
+
+---
+
+# Recurrent layers in Keras
+
+
+```r
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_embedding(input_dim = 10000, output_dim = 32) %&gt;% 
+  layer_simple_rnn(units = 32)
+
+summary(model)
+```
+
+```
+## ___________________________________________________________________________
+## Layer (type)                     Output Shape                  Param #     
+## ===========================================================================
+## embedding_1 (Embedding)          (None, None, 32)              320000      
+## ___________________________________________________________________________
+## simple_rnn_1 (SimpleRNN)         (None, 32)                    2080        
+## ===========================================================================
+## Total params: 322,080
+## Trainable params: 322,080
+## Non-trainable params: 0
+## ___________________________________________________________________________
+```
+
+---
+
+# Recurrent layers in Keras
+
+
+```r
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_embedding(input_dim = 10000, output_dim = 32) %&gt;% 
+  layer_simple_rnn(units = 32, return_sequences = TRUE)
+
+summary(model)
+```
+
+```
+## ___________________________________________________________________________
+## Layer (type)                     Output Shape                  Param #     
+## ===========================================================================
+## embedding_2 (Embedding)          (None, None, 32)              320000      
+## ___________________________________________________________________________
+## simple_rnn_2 (SimpleRNN)         (None, None, 32)              2080        
+## ===========================================================================
+## Total params: 322,080
+## Trainable params: 322,080
+## Non-trainable params: 0
+## ___________________________________________________________________________
+```
+
+---
+
+# Stacking recurrent layers
+
+
+```r
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_embedding(input_dim = 10000, output_dim = 32) %&gt;% 
+  layer_simple_rnn(units = 32, return_sequences = TRUE) %&gt;% 
+  layer_simple_rnn(units = 32, return_sequences = TRUE) %&gt;%
+  layer_simple_rnn(units = 32, return_sequences = TRUE) %&gt;%
+  layer_simple_rnn(units = 32)
+
+summary(model)
+```
+
+```
+## ___________________________________________________________________________
+## Layer (type)                     Output Shape                  Param #     
+## ===========================================================================
+## embedding_3 (Embedding)          (None, None, 32)              320000      
+## ___________________________________________________________________________
+## simple_rnn_3 (SimpleRNN)         (None, None, 32)              2080        
+## ___________________________________________________________________________
+## simple_rnn_4 (SimpleRNN)         (None, None, 32)              2080        
+## ___________________________________________________________________________
+## simple_rnn_5 (SimpleRNN)         (None, None, 32)              2080        
+## ___________________________________________________________________________
+## simple_rnn_6 (SimpleRNN)         (None, 32)                    2080        
+## ===========================================================================
+## Total params: 328,320
+## Trainable params: 328,320
+## Non-trainable params: 0
+## ___________________________________________________________________________
+```
+
+---
+
+# RNN for IMDB
+
+## Load the data
+
+
+```
+## Loading data...
+```
+
+```
+## 25000 train sequences
+```
+
+```
+## 25000 test sequences
+```
+
+```
+## Pad sequences (samples x time)
+```
+
+```
+## input_train shape: 25000 500
+```
+
+```
+## input_test shape: 25000 500
+```
+
+---
+
+# RNN for IMDB
+
+
+```r
+model &lt;- keras_model_sequential() %&gt;%
+  layer_embedding(input_dim = max_features, output_dim = 32) %&gt;%
+  layer_simple_rnn(units = 32) %&gt;%
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %&gt;% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+
+history &lt;- model %&gt;% fit(
+  input_train, y_train,
+  epochs = 10,
+  batch_size = 128,
+  validation_split = 0.2
+)
+```
+
+---
+
+# RNN for IMDB
+
+&lt;img src="sequential-data_files/figure-html/imdb-rnn-plot-1.png" width="864" /&gt;
+
+---
+
+# Simple RNN
+
+![](https://colah.github.io/posts/2015-08-Understanding-LSTMs/img/LSTM3-SimpleRNN.png)
+
+---
+
+# Long Short-Term Memory (LSTM)
+
+![](https://colah.github.io/posts/2015-08-Understanding-LSTMs/img/LSTM3-chain.png)
+
+---
+
+# Long Short-Term Memory (LSTM)
+
+
+```r
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_embedding(input_dim = max_features, output_dim = 32) %&gt;% 
+  layer_lstm(units = 32) %&gt;% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %&gt;% compile(
+  optimizer = "rmsprop", 
+  loss = "binary_crossentropy", 
+  metrics = c("acc")
+)
+
+history &lt;- model %&gt;% fit(
+  input_train, y_train,
+  epochs = 10,
+  batch_size = 128,
+  validation_split = 0.2
+)
+```
+
+---
+
+# Long Short-Term Memory (LSTM)
+
+&lt;img src="sequential-data_files/figure-html/imdb-lstm-plot-1.png" width="864" /&gt;
+
+---
+
+# Advanced techniques for RNNs
+
+* Recurrent dropout
+* Stacking recurrent layers
+* Bidirectional recurrent layers
+
+---
+
+# Weather stations
+
+---
+
+# Data prep
+
+---
+
+# Establish a sensible baseline
+
+---
+
+# Basic machine learning approach
+
+---
+
+# Recurrent baseline
+
+---
+
+# Recurrent dropout
+
+---
+
+# Stacking recurrent layers
+
+---
+
+# Bidirectional RNNs
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="https://cfss.uchicago.edu/slides/macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
