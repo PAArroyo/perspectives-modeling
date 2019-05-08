@@ -549,35 +549,212 @@ history &lt;- model %&gt;% fit(
 
 ---
 
-# Weather stations
+# Weather station
+
+
+
+
+
+
+```
+## Observations: 420,551
+## Variables: 15
+## $ `Date Time`       &lt;chr&gt; "01.01.2009 00:10:00", "01.01.2009 00:20:00", …
+## $ `p (mbar)`        &lt;dbl&gt; 996.52, 996.57, 996.53, 996.51, 996.51, 996.50…
+## $ `T (degC)`        &lt;dbl&gt; -8.02, -8.41, -8.51, -8.31, -8.27, -8.05, -7.6…
+## $ `Tpot (K)`        &lt;dbl&gt; 265.40, 265.01, 264.91, 265.12, 265.15, 265.38…
+## $ `Tdew (degC)`     &lt;dbl&gt; -8.90, -9.28, -9.31, -9.07, -9.04, -8.78, -8.3…
+## $ `rh (%)`          &lt;dbl&gt; 93.3, 93.4, 93.9, 94.2, 94.1, 94.4, 94.8, 94.4…
+## $ `VPmax (mbar)`    &lt;dbl&gt; 3.33, 3.23, 3.21, 3.26, 3.27, 3.33, 3.44, 3.44…
+## $ `VPact (mbar)`    &lt;dbl&gt; 3.11, 3.02, 3.01, 3.07, 3.08, 3.14, 3.26, 3.25…
+## $ `VPdef (mbar)`    &lt;dbl&gt; 0.22, 0.21, 0.20, 0.19, 0.19, 0.19, 0.18, 0.19…
+## $ `sh (g/kg)`       &lt;dbl&gt; 1.94, 1.89, 1.88, 1.92, 1.92, 1.96, 2.04, 2.03…
+## $ `H2OC (mmol/mol)` &lt;dbl&gt; 3.12, 3.03, 3.02, 3.08, 3.09, 3.15, 3.27, 3.26…
+## $ `rho (g/m**3)`    &lt;dbl&gt; 1307.75, 1309.80, 1310.24, 1309.19, 1309.00, 1…
+## $ `wv (m/s)`        &lt;dbl&gt; 1.03, 0.72, 0.19, 0.34, 0.32, 0.21, 0.18, 0.19…
+## $ `max. wv (m/s)`   &lt;dbl&gt; 1.75, 1.50, 0.63, 0.50, 0.63, 0.63, 0.63, 0.50…
+## $ `wd (deg)`        &lt;dbl&gt; 152.3, 136.1, 171.6, 198.0, 214.3, 192.7, 166.…
+```
 
 ---
 
-# Data prep
+# Weather station
+
+
+```r
+ggplot(data, aes(x = 1:nrow(data), y = `T (degC)`)) +
+  geom_line()
+```
+
+&lt;img src="sequential-data_files/figure-html/weather-plot-1.png" width="864" /&gt;
+
+---
+
+# Weather station
+
+
+```r
+ggplot(data[1:1440,], aes(x = 1:1440, y = `T (degC)`)) +
+  geom_line()
+```
+
+&lt;img src="sequential-data_files/figure-html/weather-plot-short-1.png" width="864" /&gt;
+
+---
+
+# Problem statement
+
+&gt; Given data going as far back as `lookback` timesteps and sampled every `steps` timesteps, can you predict the temperature in `delay` timesteps?
+
+* `lookback = 1440`
+* `steps = 6`
+* `delay = 144`
+
+--
+
+## Data preparation
+
+* Normalize each variable
+* Generate batches of data from the recent past with target temperature in the future
+
+
+
+
+
+
+
+
 
 ---
 
 # Establish a sensible baseline
 
+* Use temperature from 24 hours previous to predict current temperature
+* Naive model
+* Mean absolute error (MAE)
+
+
+```
+## [1] 0.2789863
+```
+
+```
+## [1] 0.2789863
+```
+
+```
+## [1] 2.469732
+```
+
 ---
 
-# Basic machine learning approach
+# Densely connected feed-forward model
+
+
+```r
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_flatten(input_shape = c(lookback / step, dim(data)[-1])) %&gt;% 
+  layer_dense(units = 32, activation = "relu") %&gt;% 
+  layer_dense(units = 1)
+
+model %&gt;% compile(
+  optimizer = optimizer_rmsprop(),
+  loss = "mae"
+)
+
+history &lt;- model %&gt;% fit_generator(
+  train_gen,
+  steps_per_epoch = 500,
+  epochs = 20,
+  validation_data = val_gen,
+  validation_steps = val_steps
+)
+```
+
+---
+
+# Densely connected feed-forward model
+
+&lt;img src="sequential-data_files/figure-html/weather-dense-plot-1.png" width="864" /&gt;
 
 ---
 
 # Recurrent baseline
 
+
+```r
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_gru(units = 32, input_shape = list(NULL, dim(data)[[-1]])) %&gt;% 
+  layer_dense(units = 1)
+
+model %&gt;% compile(
+  optimizer = optimizer_rmsprop(),
+  loss = "mae"
+)
+
+history &lt;- model %&gt;% fit_generator(
+  train_gen,
+  steps_per_epoch = 500,
+  epochs = 20,
+  validation_data = val_gen,
+  validation_steps = val_steps
+)
+```
+
+---
+
+# Recurrent baseline
+
+&lt;img src="sequential-data_files/figure-html/weather-gru-plot-1.png" width="864" /&gt;
+
 ---
 
 # Recurrent dropout
+
+
+```r
+model &lt;- keras_model_sequential() %&gt;% 
+  layer_gru(units = 32, dropout = 0.2, recurrent_dropout = 0.2,
+            input_shape = list(NULL, dim(data)[[-1]])) %&gt;% 
+  layer_dense(units = 1)
+
+model %&gt;% compile(
+  optimizer = optimizer_rmsprop(),
+  loss = "mae"
+)
+
+history &lt;- model %&gt;% fit_generator(
+  train_gen,
+  steps_per_epoch = 500,
+  epochs = 40,
+  validation_data = val_gen,
+  validation_steps = val_steps
+)
+```
+
+---
+
+# Recurrent dropout
+
+&lt;img src="sequential-data_files/figure-html/weather-dropout-plot-1.png" width="864" /&gt;
 
 ---
 
 # Stacking recurrent layers
 
+
+
+---
+
+# Stacking recurrent layers
+
+
+
 ---
 
 # Bidirectional RNNs
+
+![](https://dpzbhybb2pdcj.cloudfront.net/allaire/Figures/06fig21.jpg)
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
