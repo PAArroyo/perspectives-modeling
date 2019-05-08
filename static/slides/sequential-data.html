@@ -217,13 +217,13 @@ summary(model)
 ## ___________________________________________________________________________
 ## Layer (type)                     Output Shape                  Param #     
 ## ===========================================================================
-## embedding_2 (Embedding)          (None, 100, 100)              1000000     
+## embedding_1 (Embedding)          (None, 100, 100)              1000000     
 ## ___________________________________________________________________________
-## flatten_2 (Flatten)              (None, 10000)                 0           
+## flatten_1 (Flatten)              (None, 10000)                 0           
 ## ___________________________________________________________________________
-## dense_2 (Dense)                  (None, 32)                    320032      
+## dense_1 (Dense)                  (None, 32)                    320032      
 ## ___________________________________________________________________________
-## dense_3 (Dense)                  (None, 1)                     33          
+## dense_2 (Dense)                  (None, 1)                     33          
 ## ===========================================================================
 ## Total params: 1,320,065
 ## Trainable params: 1,320,065
@@ -580,23 +580,11 @@ history &lt;- model %&gt;% fit(
 
 # Weather station
 
-
-```r
-ggplot(data, aes(x = 1:nrow(data), y = `T (degC)`)) +
-  geom_line()
-```
-
 &lt;img src="sequential-data_files/figure-html/weather-plot-1.png" width="864" /&gt;
 
 ---
 
 # Weather station
-
-
-```r
-ggplot(data[1:1440,], aes(x = 1:1440, y = `T (degC)`)) +
-  geom_line()
-```
 
 &lt;img src="sequential-data_files/figure-html/weather-plot-short-1.png" width="864" /&gt;
 
@@ -633,10 +621,6 @@ ggplot(data[1:1440,], aes(x = 1:1440, y = `T (degC)`)) +
 * Naive model
 * Mean absolute error (MAE)
 
-
-```
-## [1] 0.2789863
-```
 
 ```
 ## [1] 0.2789863
@@ -711,6 +695,15 @@ history &lt;- model %&gt;% fit_generator(
 
 # Recurrent dropout
 
+* Prevent overfitting
+* Similar to dropout in feed-forward networks
+* Maintain same pattern of dropout for each timestep
+* Add dropout to inner recurrent activations of the layers (i.e. internal loops)
+
+---
+
+# Recurrent dropout
+
 
 ```r
 model &lt;- keras_model_sequential() %&gt;% 
@@ -742,19 +735,36 @@ history &lt;- model %&gt;% fit_generator(
 
 # Stacking recurrent layers
 
-
+* If you aren't overfitting, you are underfitting
+* Increase network capacity until overfitting occurs
+* Add more hidden units
+* Add more layers
 
 ---
 
 # Stacking recurrent layers
 
+.center[
 
+![](https://dpzbhybb2pdcj.cloudfront.net/allaire/Figures/06fig19_alt.jpg)
+
+]
 
 ---
 
 # Bidirectional RNNs
 
+.center[
+
 ![](https://dpzbhybb2pdcj.cloudfront.net/allaire/Figures/06fig21.jpg)
+
+]
+
+* RNNs treat information at end of sequence more strongly
+* Order matters, but should direction as well?
+* Time series data - probably matters
+* Text data - not so much
+* Combine results of two RNN layers
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>

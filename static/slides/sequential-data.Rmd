@@ -732,7 +732,7 @@ glimpse(data)
 
 # Weather station
 
-```{r weather-plot, dependson = "weather-import"}
+```{r weather-plot, dependson = "weather-import", echo = FALSE}
 ggplot(data, aes(x = 1:nrow(data), y = `T (degC)`)) +
   geom_line()
 ```
@@ -741,7 +741,7 @@ ggplot(data, aes(x = 1:nrow(data), y = `T (degC)`)) +
 
 # Weather station
 
-```{r weather-plot-short, dependson = "weather-import"}
+```{r weather-plot-short, dependson = "weather-import", echo = FALSE}
 ggplot(data[1:1440,], aes(x = 1:1440, y = `T (degC)`)) +
   geom_line()
 ```
@@ -873,7 +873,6 @@ evaluate_naive_method <- function() {
   print(mean(batch_maes))
 }
 mae_naive <- evaluate_naive_method()
-mae_naive
 mae_naive * std[[2]]
 ```
 
@@ -944,6 +943,15 @@ plot(history)
 
 # Recurrent dropout
 
+* Prevent overfitting
+* Similar to dropout in feed-forward networks
+* Maintain same pattern of dropout for each timestep
+* Add dropout to inner recurrent activations of the layers (i.e. internal loops)
+
+---
+
+# Recurrent dropout
+
 ```{r weather-dropout, dependson = "weather-generate-batches", echo=TRUE, results='hide'}
 model <- keras_model_sequential() %>% 
   layer_gru(units = 32, dropout = 0.2, recurrent_dropout = 0.2,
@@ -976,19 +984,34 @@ plot(history)
 
 # Stacking recurrent layers
 
-
+* If you aren't overfitting, you are underfitting
+* Increase network capacity until overfitting occurs
+* Add more hidden units
+* Add more layers
 
 ---
 
 # Stacking recurrent layers
 
+.center[
 
+![](https://dpzbhybb2pdcj.cloudfront.net/allaire/Figures/06fig19_alt.jpg)
+
+]
 
 ---
 
 # Bidirectional RNNs
 
+.center[
+
 ![](https://dpzbhybb2pdcj.cloudfront.net/allaire/Figures/06fig21.jpg)
 
+]
 
+* RNNs treat information at end of sequence more strongly
+* Order matters, but should direction as well?
+* Time series data - probably matters
+* Text data - not so much
+* Combine results of two RNN layers
 
