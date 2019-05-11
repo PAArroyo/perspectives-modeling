@@ -1,0 +1,274 @@
+---
+title: "Data visualization and evaluating statistical graphs"
+author: "[MACS 30200](https://github.com/css-research/course/) <br /> University of Chicago"
+output: rcfss::xaringan
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.retina = 2, fig.width = 12)
+
+library(tidyverse)
+library(here)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = rcfss::base_size))
+```
+
+# Dr. John Snow
+
+.center[
+
+[![:scale 70%](https://upload.wikimedia.org/wikipedia/commons/2/27/Snow-cholera-map-1.jpg)](https://commons.wikimedia.org/wiki/File:Snow-cholera-map-1.jpg)
+
+]
+
+---
+
+# Minard's map of Napoleon's march on Russia
+
+[![Charles Minard's 1869 chart showing the number of men in Napoleon’s 1812 Russian campaign army, their movements, as well as the temperature they encountered on the return path. Source: Wikipedia.](https://upload.wikimedia.org/wikipedia/commons/2/29/Minard.png)](https://en.wikipedia.org/wiki/File:Minard.png)
+
+---
+
+# Minard's map of Napoleon's march on Russia
+
+[![English translation of Minard's map](https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Minard_Update.png/1280px-Minard_Update.png)](https://commons.wikimedia.org/wiki/File:Minard_Update.png)
+
+---
+
+# What makes a great visualization
+
+* Truthful
+* Functional
+* Beautiful
+* Insightful
+* Enlightening
+
+---
+
+# Truthful
+
+* Truth is a continuum
+* A lot depends not on the graph but on the research design and the data
+
+---
+
+# Truthful?
+
+.center[
+
+![Inconsistent x-axis](/img/cost_of_gas.jpg)
+
+]
+
+---
+
+# Truthful?
+
+.center[
+
+![Inconsistent y-axis](/img/y_axis.jpg)
+
+]
+---
+
+# Truthful?
+
+.center[
+
+![Two y-axes](/img/wonk-room-misleading-graph.jpg)
+
+]
+
+---
+
+# Truthful?
+
+.center[
+
+![Only have half the year](/img/new-haven-ct.jpg)
+
+]
+
+---
+
+# Truthful?
+
+.center[
+
+![Numbers plotted are not even correct](/img/unemployment-rate.jpg)
+
+]
+
+---
+
+# Truthful?
+
+.center[
+
+![[Spurious correlations](http://tylervigen.com/spurious-correlations)](/img/drowning_cage.jpeg)
+
+]
+
+---
+
+# Truthful?
+
+.center[
+
+![Missing the other part of the story - what happens to those without a 4-year degree?](/img/diminishing-return.jpg)
+
+]
+
+---
+
+# Functional
+
+* What is the purpose of the graph?
+* What is the story?
+* Make it easy to interpret, yet still be truthful
+* Adapt to your audience
+
+---
+
+# Functional?
+
+.center[
+
+![Baseline of 34, not 0](/img/Bush_cuts2.png)
+
+]
+
+---
+
+# Functional?
+
+.center[
+
+![:scale 60%](/img/stand_your_ground.jpg)
+
+]
+
+---
+
+# Functional?
+
+.center[
+
+![:scale 70%](/img/age_of_death.jpg)
+
+]
+
+---
+
+# Beautiful
+
+* Make it aesthetically pleasing
+* Chart junk
+
+---
+
+# Beautiful?
+
+.center[
+
+![[Eww chart junk](http://iboz.net/largest-fast-food-chain-in-the-world/)](/img/Largest-Fast-Food-Chain.jpg)
+
+]
+
+---
+
+# Beautiful?
+
+.center[
+
+![Serious story, ruined by amateur graph](/img/death_penalty.jpg)
+
+]
+
+---
+
+# Insightful
+
+* Two types
+    * Spontaneous
+    * Knowledge-building
+* The story and audience will drive how you incorporate this
+    * Academic audience
+    * Mass audience
+
+---
+
+# Insightful?
+
+.center[
+
+![[Self-Description](https://xkcd.com/688/)](/img/xkcd_self_description.png)
+
+]
+
+---
+
+# Insightful?
+
+.center[
+
+![All zeroes](/img/all_zeroes.jpg)
+
+]
+
+---
+
+# Insightful?
+
+> [The Complete History Of MLB](https://projects.fivethirtyeight.com/complete-history-of-mlb/)
+
+---
+
+# Enlightening
+
+* Choice of topic
+* Somewhat relative, but also somewhat absolute
+* "Do good with data"
+
+---
+
+# Enlightening?
+
+.center[
+
+[![](/img/xkcd_movie_narrative_charts.png)](https://xkcd.com/657/large/)
+
+]
+
+---
+
+# Enlightening?
+
+.center[
+
+![:scale 80%](/img/daughter_sleep.jpeg)
+
+]
+
+---
+
+# Visualizations to critique
+
+* Is it truthful?
+* Is it functional?
+* Is it beautiful?
+* Is it insightful?
+* Is it enlightening?
+
+## Examples
+
+* [Trump popularity](https://projects.fivethirtyeight.com/trump-approval-ratings/)
+* [Earth Temperature Timeline](https://xkcd.com/1732/)
+* [Gun Deaths in America](https://fivethirtyeight.com/features/gun-deaths/)
+* [Marriage](https://xkcd.com/1431/)
+* [Cookie ingredient variants](http://flowingdata.com/2014/12/24/cookie-ingredient-variants/)
+
+
