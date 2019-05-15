@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Best practices in designing statistical graphics</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="MACS 30200   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/lucy-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Best practices in designing statistical graphics
+### <a href="https://github.com/css-research/course/">MACS 30200</a> <br /> University of Chicago
+
+---
+
+
+
+
+# Tufte's world
+
+* Core purpose of visualization is to communicate quantitative information
+    * Art is secondary
+    * "Above all else show the data"
+
+--
+
+`$$\max(\text{Data-ink ratio}) = \frac{\text{data-ink}}{\text{total ink used to print the graphic}}$$`
+
+* What should we consider to be part of the "data-ink"?
+
+---
+
+# What is integral?
+
+
+```r
+p &lt;- ggplot(mpg, aes(cty, hwy)) +
+  geom_point()
+p
+```
+
+&lt;img src="best-practices_files/figure-html/integral-1.png" width="864" /&gt;
+
+---
+
+# Remove the non-data elements
+
+
+```r
+p + theme_void()
+```
+
+&lt;img src="best-practices_files/figure-html/integral-void-1.png" width="864" /&gt;
+
+---
+
+# Remove background color
+
+
+```r
+p + theme_bw()
+```
+
+&lt;img src="best-practices_files/figure-html/integral-background-1.png" width="864" /&gt;
+
+---
+
+# Remove panel box
+
+
+```r
+p + theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank())
+```
+
+&lt;img src="best-practices_files/figure-html/integral-panelbox-1.png" width="864" /&gt;
+
+---
+
+# Remove minor grid lines
+
+
+```r
+p + theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          strip.background = element_blank(),
+          plot.background = element_blank(),
+          axis.line = element_blank(),
+          panel.grid.minor = element_blank())
+```
+
+&lt;img src="best-practices_files/figure-html/integral-minor-1.png" width="864" /&gt;
+
+---
+
+# Remove all grid lines
+
+
+```r
+p + theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          strip.background = element_blank(),
+          plot.background = element_blank(),
+          axis.line = element_blank(),
+          panel.grid = element_blank())
+```
+
+&lt;img src="best-practices_files/figure-html/integral-major-1.png" width="864" /&gt;
+
+---
+
+# Remove tick marks
+
+
+```r
+p + theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          strip.background = element_blank(),
+          plot.background = element_blank(),
+          axis.line = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks = element_blank())
+```
+
+&lt;img src="best-practices_files/figure-html/integral-tick-1.png" width="864" /&gt;
+
+---
+
+# Use serif font
+
+
+```r
+p + theme_bw(base_family = "serif") +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          strip.background = element_blank(),
+          plot.background = element_blank(),
+          axis.line = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks = element_blank())
+```
+
+&lt;img src="best-practices_files/figure-html/integral-serif-1.png" width="864" /&gt;
+
+---
+
+# Chart junk
+
+* Vibrating moire effects
+* The grid
+* The duck
+
+---
+
+# Line plot
+
+
+```r
+x &lt;- 1967:1977
+y &lt;- c(0.5, 1.8, 4.6, 5.3, 5.3, 5.7, 5.4, 5, 5.5, 6, 5)
+d &lt;- tibble(x, y)
+
+ggplot(d, aes(x, y)) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(breaks = seq(1, 6, 1), label = sprintf("$%s", seq(300, 400, 20))) +
+  labs(title = "Per capita budget expandures",
+       x = "Year",
+       y = "Per capita budget expandures\nin constant dollars")
+```
+
+&lt;img src="best-practices_files/figure-html/line-1.png" width="864" /&gt;
+
+---
+
+# Minimal line plot
+
+
+```r
+ggplot(d, aes(x, y)) +
+  geom_line() +
+  geom_point(size = 3) +
+  theme_tufte(base_size = 15) +
+  theme(axis.title = element_blank()) +
+  geom_hline(yintercept = c(5, 6), lty = 2) +
+  scale_y_continuous(breaks = seq(1, 6, 1), label = sprintf("$%s", seq(300, 400, 20))) +
+  scale_x_continuous(breaks = x, label = x) +
+  annotate(
+    "text",
+    x = c(1977, 1977.2),
+    y = c(1.5, 5.5),
+    adj = 1,
+    family = "serif",
+    label = c("Per capita\nbudget expandures\nin constant dollars", "5%")
+  )
+```
+
+&lt;img src="best-practices_files/figure-html/minline-1.png" width="864" /&gt;
+
+---
+
+# Boxplot
+
+
+```r
+ggplot(quakes, aes(factor(mag), stations)) +
+  geom_boxplot() +
+  labs(title = "Fiji earthquakes",
+       x = "Richter Magnitude",
+       y = "Number of stations reporting earthquakes")
+```
+
+&lt;img src="best-practices_files/figure-html/boxplot-1.png" width="864" /&gt;
+
+---
+
+# Minimal boxplot
+
+
+```r
+ggplot(quakes, aes(factor(mag), stations)) +
+  theme_tufte() +
+  geom_tufteboxplot(outlier.colour = "transparent") +
+  theme(axis.title = element_blank()) +
+  annotate(
+    "text",
+    x = 8,
+    y = 120,
+    adj = 1,
+    family = "serif",
+    label = c(
+      "Number of stations \nreporting Richter Magnitude\nof Fiji earthquakes (n=1000)"
+    )
+  )
+```
+
+&lt;img src="best-practices_files/figure-html/minboxplot-1.png" width="864" /&gt;
+
+---
+
+# Minimal offset boxplot
+
+
+```r
+ggplot(quakes, aes(factor(mag), stations)) +
+  theme_tufte() +
+  geom_tufteboxplot(median.type = "line") +
+  theme(axis.title = element_blank()) +
+  annotate(
+    "text",
+    x = 8,
+    y = 120,
+    adj = 1,
+    family = "serif",
+    label = c(
+      "Number of stations \nreporting Richter Magnitude\nof Fiji earthquakes (n=1000)"
+    )
+  )
+```
+
+&lt;img src="best-practices_files/figure-html/offset-boxplot-1.png" width="864" /&gt;
+
+---
+
+# Barchart
+
+
+```r
+library(psych)
+library(reshape2)
+
+d &lt;- melt(colMeans(msq[, c(2, 7, 34, 36, 42, 43, 46, 55, 68)], na.rm = T) *
+            10)
+d$trait &lt;- rownames(d)
+
+p &lt;- ggplot(d, aes(x = trait, y = value)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(breaks = seq(1, 5, 1)) +
+  labs(title = "Watson et al., 1998",
+       subtitle = "N = 3896",
+       x = "Negative emotion traits",
+       y = "Average score")
+p
+```
+
+&lt;img src="best-practices_files/figure-html/bar-1.png" width="864" /&gt;
+
+---
+
+# Minimal barchart
+
+
+```r
+ggplot(d, aes(x = trait, y = value)) +
+  theme_tufte(base_size = 14, ticks = F) +
+  geom_bar(width = 0.25, fill = "gray", stat = "identity") +
+  theme(axis.title = element_blank()) +
+  scale_y_continuous(breaks = seq(1, 5, 1)) +
+  geom_hline(yintercept = seq(1, 5, 1),
+             col = "white",
+             lwd = 1) +
+  annotate(
+    "text",
+    x = 3.5,
+    y = 5,
+    adj = 1,
+    family = "serif",
+    label = c(
+      "Average scores\non negative emotion traits
+from 3896 participants\n(Watson et al., 1988)"
+    )
+  )
+```
+
+&lt;img src="best-practices_files/figure-html/minbar-1.png" width="864" /&gt;
+
+---
+
+# When is redundancy better?
+
+![Traditional bar chart of crime in the city of San Francisco, 2009-10. Source: [Visualizing Time with the Double-Time Bar Chart](http://dougmccune.com/blog/2011/04/26/visualizing-time-with-the-double-time-bar-chart/)](http://dougmccune.com/blog/wp-content/uploads/2011/04/sk_time_chart1.png)
+
+![Double-time bar chart of crime in the city of San Francisco, 2009-10. Source: [Visualizing Time with the Double-Time Bar Chart](http://dougmccune.com/blog/2011/04/26/visualizing-time-with-the-double-time-bar-chart/)](http://dougmccune.com/blog/wp-content/uploads/2011/04/burglary1.png)
+    
+---
+
+# Does minimalism really help?
+
+![Chart from Harvard magazine. Source: [Involuntary head-shaking is probably not an intended consequence of data visualization](http://junkcharts.typepad.com/junk_charts/2016/11/involuntary-head-shaking-is-probably-not-an-intended-consequence-of-data-visualization.html)](http://junkcharts.typepad.com/.a/6a00d8341e992c53ef01b7c8b60cd9970b-pi)
+
+---
+
+# Redesigned chart
+
+![Redesigned chart from Harvard magazine. Source: [Involuntary head-shaking is probably not an intended consequence of data visualization](http://junkcharts.typepad.com/junk_charts/2016/11/involuntary-head-shaking-is-probably-not-an-intended-consequence-of-data-visualization.html)](http://junkcharts.typepad.com/.a/6a00d8341e992c53ef01b8d23fe1c7970c-pi)
+
+---
+
+# Visualizing statistical models
+
+* Do it right
+* Present findings in substantive terms
+* Show degree of confidence
+* Show your data when you can
+
+---
+
+# Visualizing statistical models
+
+## Tables
+
+* Parameter estimates
+* Standard errors
+* Model statistics
+
+--
+
+## Visualizations
+
+* Predicted values
+* Original data points
+
+---
+
+# Tables vs. graphs
+
+* [Charts or tables?](https://www.jstor.org/stable/20446574)
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="https://cfss.uchicago.edu/slides/macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

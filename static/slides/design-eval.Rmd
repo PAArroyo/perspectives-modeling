@@ -267,8 +267,6 @@ theme_set(theme_minimal(base_size = rcfss::base_size))
 
 * [Trump popularity](https://projects.fivethirtyeight.com/trump-approval-ratings/)
 * [Earth Temperature Timeline](https://xkcd.com/1732/)
-* [Gun Deaths in America](https://fivethirtyeight.com/features/gun-deaths/)
 * [Marriage](https://xkcd.com/1431/)
-* [Cookie ingredient variants](http://flowingdata.com/2014/12/24/cookie-ingredient-variants/)
 
 
