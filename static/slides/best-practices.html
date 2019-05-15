@@ -36,23 +36,11 @@ class: center, middle, inverse, title-slide
 
 # What is integral?
 
-
-```r
-p &lt;- ggplot(mpg, aes(cty, hwy)) +
-  geom_point()
-p
-```
-
 &lt;img src="best-practices_files/figure-html/integral-1.png" width="864" /&gt;
 
 ---
 
 # Remove the non-data elements
-
-
-```r
-p + theme_void()
-```
 
 &lt;img src="best-practices_files/figure-html/integral-void-1.png" width="864" /&gt;
 
@@ -60,23 +48,11 @@ p + theme_void()
 
 # Remove background color
 
-
-```r
-p + theme_bw()
-```
-
 &lt;img src="best-practices_files/figure-html/integral-background-1.png" width="864" /&gt;
 
 ---
 
 # Remove panel box
-
-
-```r
-p + theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank())
-```
 
 &lt;img src="best-practices_files/figure-html/integral-panelbox-1.png" width="864" /&gt;
 
@@ -84,33 +60,11 @@ p + theme_bw() +
 
 # Remove minor grid lines
 
-
-```r
-p + theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          strip.background = element_blank(),
-          plot.background = element_blank(),
-          axis.line = element_blank(),
-          panel.grid.minor = element_blank())
-```
-
 &lt;img src="best-practices_files/figure-html/integral-minor-1.png" width="864" /&gt;
 
 ---
 
 # Remove all grid lines
-
-
-```r
-p + theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          strip.background = element_blank(),
-          plot.background = element_blank(),
-          axis.line = element_blank(),
-          panel.grid = element_blank())
-```
 
 &lt;img src="best-practices_files/figure-html/integral-major-1.png" width="864" /&gt;
 
@@ -118,35 +72,11 @@ p + theme_bw() +
 
 # Remove tick marks
 
-
-```r
-p + theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          strip.background = element_blank(),
-          plot.background = element_blank(),
-          axis.line = element_blank(),
-          panel.grid = element_blank(),
-          axis.ticks = element_blank())
-```
-
 &lt;img src="best-practices_files/figure-html/integral-tick-1.png" width="864" /&gt;
 
 ---
 
 # Use serif font
-
-
-```r
-p + theme_bw(base_family = "serif") +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          strip.background = element_blank(),
-          plot.background = element_blank(),
-          axis.line = element_blank(),
-          panel.grid = element_blank(),
-          axis.ticks = element_blank())
-```
 
 &lt;img src="best-practices_files/figure-html/integral-serif-1.png" width="864" /&gt;
 
@@ -154,28 +84,25 @@ p + theme_bw(base_family = "serif") +
 
 # Chart junk
 
-* Vibrating moire effects
-* The grid
-* The duck
+.center[
+
+![](https://cdn-images-1.medium.com/max/1600/1*lEhSF1qFlvgub-sIZe2x5g.jpeg)
+
+]
+
+---
+
+# Chart junk
+
+.center[
+
+![:scale 100%](http://eagereyes.org/media/2010/usefuljunk-teaser.jpg)
+
+]
 
 ---
 
 # Line plot
-
-
-```r
-x &lt;- 1967:1977
-y &lt;- c(0.5, 1.8, 4.6, 5.3, 5.3, 5.7, 5.4, 5, 5.5, 6, 5)
-d &lt;- tibble(x, y)
-
-ggplot(d, aes(x, y)) +
-  geom_line() +
-  geom_point() +
-  scale_y_continuous(breaks = seq(1, 6, 1), label = sprintf("$%s", seq(300, 400, 20))) +
-  labs(title = "Per capita budget expandures",
-       x = "Year",
-       y = "Per capita budget expandures\nin constant dollars")
-```
 
 &lt;img src="best-practices_files/figure-html/line-1.png" width="864" /&gt;
 
@@ -183,40 +110,11 @@ ggplot(d, aes(x, y)) +
 
 # Minimal line plot
 
-
-```r
-ggplot(d, aes(x, y)) +
-  geom_line() +
-  geom_point(size = 3) +
-  theme_tufte(base_size = 15) +
-  theme(axis.title = element_blank()) +
-  geom_hline(yintercept = c(5, 6), lty = 2) +
-  scale_y_continuous(breaks = seq(1, 6, 1), label = sprintf("$%s", seq(300, 400, 20))) +
-  scale_x_continuous(breaks = x, label = x) +
-  annotate(
-    "text",
-    x = c(1977, 1977.2),
-    y = c(1.5, 5.5),
-    adj = 1,
-    family = "serif",
-    label = c("Per capita\nbudget expandures\nin constant dollars", "5%")
-  )
-```
-
 &lt;img src="best-practices_files/figure-html/minline-1.png" width="864" /&gt;
 
 ---
 
 # Boxplot
-
-
-```r
-ggplot(quakes, aes(factor(mag), stations)) +
-  geom_boxplot() +
-  labs(title = "Fiji earthquakes",
-       x = "Richter Magnitude",
-       y = "Number of stations reporting earthquakes")
-```
 
 &lt;img src="best-practices_files/figure-html/boxplot-1.png" width="864" /&gt;
 
@@ -224,47 +122,11 @@ ggplot(quakes, aes(factor(mag), stations)) +
 
 # Minimal boxplot
 
-
-```r
-ggplot(quakes, aes(factor(mag), stations)) +
-  theme_tufte() +
-  geom_tufteboxplot(outlier.colour = "transparent") +
-  theme(axis.title = element_blank()) +
-  annotate(
-    "text",
-    x = 8,
-    y = 120,
-    adj = 1,
-    family = "serif",
-    label = c(
-      "Number of stations \nreporting Richter Magnitude\nof Fiji earthquakes (n=1000)"
-    )
-  )
-```
-
 &lt;img src="best-practices_files/figure-html/minboxplot-1.png" width="864" /&gt;
 
 ---
 
 # Minimal offset boxplot
-
-
-```r
-ggplot(quakes, aes(factor(mag), stations)) +
-  theme_tufte() +
-  geom_tufteboxplot(median.type = "line") +
-  theme(axis.title = element_blank()) +
-  annotate(
-    "text",
-    x = 8,
-    y = 120,
-    adj = 1,
-    family = "serif",
-    label = c(
-      "Number of stations \nreporting Richter Magnitude\nof Fiji earthquakes (n=1000)"
-    )
-  )
-```
 
 &lt;img src="best-practices_files/figure-html/offset-boxplot-1.png" width="864" /&gt;
 
@@ -272,53 +134,11 @@ ggplot(quakes, aes(factor(mag), stations)) +
 
 # Barchart
 
-
-```r
-library(psych)
-library(reshape2)
-
-d &lt;- melt(colMeans(msq[, c(2, 7, 34, 36, 42, 43, 46, 55, 68)], na.rm = T) *
-            10)
-d$trait &lt;- rownames(d)
-
-p &lt;- ggplot(d, aes(x = trait, y = value)) +
-  geom_bar(stat = "identity") +
-  scale_y_continuous(breaks = seq(1, 5, 1)) +
-  labs(title = "Watson et al., 1998",
-       subtitle = "N = 3896",
-       x = "Negative emotion traits",
-       y = "Average score")
-p
-```
-
 &lt;img src="best-practices_files/figure-html/bar-1.png" width="864" /&gt;
 
 ---
 
 # Minimal barchart
-
-
-```r
-ggplot(d, aes(x = trait, y = value)) +
-  theme_tufte(base_size = 14, ticks = F) +
-  geom_bar(width = 0.25, fill = "gray", stat = "identity") +
-  theme(axis.title = element_blank()) +
-  scale_y_continuous(breaks = seq(1, 5, 1)) +
-  geom_hline(yintercept = seq(1, 5, 1),
-             col = "white",
-             lwd = 1) +
-  annotate(
-    "text",
-    x = 3.5,
-    y = 5,
-    adj = 1,
-    family = "serif",
-    label = c(
-      "Average scores\non negative emotion traits
-from 3896 participants\n(Watson et al., 1988)"
-    )
-  )
-```
 
 &lt;img src="best-practices_files/figure-html/minbar-1.png" width="864" /&gt;
 
@@ -326,21 +146,33 @@ from 3896 participants\n(Watson et al., 1988)"
 
 # When is redundancy better?
 
+.center[
+
 ![Traditional bar chart of crime in the city of San Francisco, 2009-10. Source: [Visualizing Time with the Double-Time Bar Chart](http://dougmccune.com/blog/2011/04/26/visualizing-time-with-the-double-time-bar-chart/)](http://dougmccune.com/blog/wp-content/uploads/2011/04/sk_time_chart1.png)
 
 ![Double-time bar chart of crime in the city of San Francisco, 2009-10. Source: [Visualizing Time with the Double-Time Bar Chart](http://dougmccune.com/blog/2011/04/26/visualizing-time-with-the-double-time-bar-chart/)](http://dougmccune.com/blog/wp-content/uploads/2011/04/burglary1.png)
+
+]
     
 ---
 
 # Does minimalism really help?
 
-![Chart from Harvard magazine. Source: [Involuntary head-shaking is probably not an intended consequence of data visualization](http://junkcharts.typepad.com/junk_charts/2016/11/involuntary-head-shaking-is-probably-not-an-intended-consequence-of-data-visualization.html)](http://junkcharts.typepad.com/.a/6a00d8341e992c53ef01b7c8b60cd9970b-pi)
+.center[
+
+![:scale 85%](http://junkcharts.typepad.com/.a/6a00d8341e992c53ef01b7c8b60cd9970b-pi)
+
+]
 
 ---
 
 # Redesigned chart
 
+.center[
+
 ![Redesigned chart from Harvard magazine. Source: [Involuntary head-shaking is probably not an intended consequence of data visualization](http://junkcharts.typepad.com/junk_charts/2016/11/involuntary-head-shaking-is-probably-not-an-intended-consequence-of-data-visualization.html)](http://junkcharts.typepad.com/.a/6a00d8341e992c53ef01b8d23fe1c7970c-pi)
+
+]
 
 ---
 
