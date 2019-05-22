@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Presenting academic research</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="MACS 30200   University of Chicago" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="libs/remark-css/lucy-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Presenting academic research
+### <a href="https://github.com/css-research/course/">MACS 30200</a> <br /> University of Chicago
+
+---
+
+
+
+
+# Presenting at conferences
+
+* Journal article/research paper
+* Oral presentations
+    * Paper panels
+    * Lightning talks
+* Poster presentations
+
+---
+
+# Goals of a research poster
+
+* Extended abstract
+* Snapshot of your research
+    * More in-depth than an abstract
+    * Less in-depth than the full paper
+* Designing a good poster is tough
+
+---
+
+# Major elements
+
+## Must haves
+
+* Title
+* Introduction
+* Data and methods
+* Results
+* Conclusions
+* Contact information
+
+--
+
+## Optional
+
+* Literature cited
+* Acknowledgements
+
+--
+
+## What not to include
+
+* Abstract
+* Verbatim text
+
+---
+
+# Helpful tips
+
+* Don't reproduce the paper
+* Keep the words to a minimum
+* Choose your words carefully (informative phrases)
+* Have a logical flow
+* Make the poster legible
+* Visualize your results
+    * Functional
+    * Pretty
+
+---
+
+# Examples of scientific posters
+
+* [A bad poster](https://s-media-cache-ak0.pinimg.com/originals/18/1a/6c/181a6cd948f5f0ac02bdd0509db90779.jpg)
+* [Do decisions follow dollars? Campaign contributions and state supreme court decisions](https://github.com/css-research/course/blob/master/demos/poster-example-1.pdf)
+* [Children's books as a unique source of early language input](https://github.com/css-research/course/blob/master/demos/poster-example-2.pdf)
+
+---
+
+# Presenting the poster
+
+* Don't just set it up and leave
+* Prepare an oral pitch for your project
+* Don't read from your poster
+* Behave professionally
+
+---
+
+# Research poster templates
+
+* Powerpoint
+    * [UChicago template](https://github.com/css-research/course/blob/master/demos/E-Poster%20Template%20Academic%20conference.ppt)
+    * [Poster Presentations templates](https://www.posterpresentations.com/html/free_poster_templates.html)
+* `\(\LaTeX\)`
+    * [Poster template](http://www.brian-amberg.de/uni/poster/)
+    * [`beamerposter`](https://github.com/deselaers/latex-beamerposter)
+* R Markdown
+    * [`flexdashboard` poster](https://github.com/odeleongt/flexdashboard-poster)
+    * [`drposter`](https://github.com/bbucior/drposter)
+
+---
+
+# Printing posters
+
+* Render as PDF
+* Proof-read the poster
+* Lamination
+* Foam core backing
+
+---
+
+# Poster size
+
+* 36 x 48 inches
+* 48 x 60 inches
+* More poster, more money
+* Landscape vs. portrait orientation
+
+---
+
+# Where to print the poster
+
+* Booth School print shop - if it still exists
+* [John Crerar Library - PSD Graphic Arts](http://graphicarts.uchicago.edu/)
+    * $50ish for a 24 x 36 inch non-laminated poster
+    * $85 for a 36 x 48 inch non-laminated poster
+    * 24 hour turnaround
+    * Cash or check only
+* [Fedex Office](http://www.fedex.com/us/office/) at 1315 E 57th St
+    * Starting at $43.50 for 24 x 36 inch non-laminated poster
+    * Starting at $87 for 36 x 48 inch non-laminated poster
+    * 24 hour turnaround
+* Order online - search ["print a research poster"](https://www.google.com/search?q=print+a+research+poster)
+
+---
+
+# Grading rubric
+
+1. Overall design/layout (10 points)
+    * Clarity
+    * Organization
+    * Structure/flow
+    * Use of color
+    * Parsimony and efficiency of language
+1. Visualization (10 points)
+    * Plots
+    * Tables
+1. Content (10 points)
+    * What is the question?
+    * What is the answer?
+    * How did you answer the question?
+    * How strong is the evidence?
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="https://cfss.uchicago.edu/slides/macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightLanguage": "r",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
