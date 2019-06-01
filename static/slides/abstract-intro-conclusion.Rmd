@@ -1,0 +1,68 @@
+---
+title: "Writing the abstract/introduction/conclusion"
+author: "[MACS 30200](https://github.com/css-research/course/) <br /> University of Chicago"
+output: rcfss::xaringan
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(cache = TRUE, echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.retina = 2)
+
+library(tidyverse)
+library(tidymodels)
+library(here)
+library(patchwork)
+
+set.seed(1234)
+theme_set(theme_minimal(base_size = 16))
+```
+
+# Conclusion
+
+* First thing to write after finishing the body of the paper
+* Fairly short (3-to-8 paragraphs)
+* **Briefly** summarize key results and takeaways
+* Reiterate limitations of results or analyses
+* Talk about extensions and future work
+
+---
+
+# Introduction
+
+* Executive summary
+* Marketing center of the paper
+* What is the research question?
+* Why is it important? Why should anyone care?
+* How do you answer the question?
+    * Data
+    * Theory
+    * Methods
+* Summarize results
+* Role of literature
+    * What do you add to what has already been done?
+    * Put paper in context
+* Outline the structure of the paper
+
+---
+
+# Writing the abstract
+
+* Last thing to write
+* Contains three pieces
+    1. Research question
+    1. Reference to methods
+    1. Results summary
+* No citations
+* Should be around 250-350 words (5-10 sentences)
+
+---
+
+# Critique a paper
+
+* [Broockman, D. E., & Skovron, C. (2018). Bias in Perceptions of Public Opinion among Political Elites. *American Political Science Review*, 1-22.](https://www.cambridge.org/core/journals/american-political-science-review/article/bias-in-perceptions-of-public-opinion-among-political-elites/2EF080E04D3AAE6AC1C894F52642E706/share/1bd83a8a05b6ac177c51e7a19aee1c55f3ef4b97)
+
+
+
+
+
